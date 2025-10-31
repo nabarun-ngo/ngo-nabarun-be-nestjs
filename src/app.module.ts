@@ -23,7 +23,7 @@ import { DatabaseModule } from './modules/shared/database/database.module';
       }
     }),
     DatabaseModule.forRoot({
-      postgresUrl: process.env.DATABASE_URL,
+      postgresUrl: process.env.POSTGRES_URL,
     }),
     UserModule,
   ],

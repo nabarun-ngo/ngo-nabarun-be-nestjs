@@ -3,6 +3,8 @@ import { UserController } from './presentation/controllers/user.controller';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import UserRepository from './infrastructure/persistence/user.repository';
+import { UserEventsHandler } from './application/handlers/user-events.handler';
+import { UserJobsHandler } from './application/handlers/user-jobs.handler';
 
 @Module({
   controllers: [UserController],
@@ -13,6 +15,8 @@ import UserRepository from './infrastructure/persistence/user.repository';
       provide: USER_REPOSITORY,
       useClass: UserRepository,
     },
+    UserEventsHandler,
+    UserJobsHandler
   ],
   exports: [],
 })

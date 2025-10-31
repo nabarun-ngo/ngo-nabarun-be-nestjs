@@ -2,28 +2,33 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { ProcessJob } from "src/modules/shared/job-processing/decorators/process-job.decorator";
 import { JobResult } from "src/modules/shared/job-processing/interfaces/job.interface";
+import { User } from "../../domain/model/user.model";
 
 @Injectable()
-export class EmailJobProcessor {
-  private readonly logger = new Logger(EmailJobProcessor.name);
+export class UserJobsHandler {
+  private readonly logger = new Logger(UserJobsHandler.name);
 
   @ProcessJob({
-    name: 'send-email',
-    concurrency: 5,
+    name: 'send-onboarding-email',
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 2000,
     },
   })
-  async processEmailJob(job: Job<{ userId: string, email: string }>): Promise<JobResult> {
+  async sendOnboardingEmail(job: Job<{
+    name: string,
+    email: string,
+    password: string,
+  }>): Promise<JobResult> {
     try {
-      this.logger.log(`Processing email job: ${job.id} to ${job.data.userId} , ${job.data.email}`);
-      
+
+      this.logger.log(`Processing email job: ${job.id} to ${job.data.name} , ${job.data.email} Password ${job.data.password}`);
+
       // Simulate email sending
-      
+
       this.logger.log(`Email sent successfully: ${job.id}`);
-      
+
       return {
         success: true,
         data: { messageId: `email-${job.id}` },

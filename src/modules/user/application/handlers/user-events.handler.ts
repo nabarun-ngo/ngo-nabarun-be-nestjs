@@ -10,12 +10,11 @@ export class UserEventsHandler {
 
   @OnEvent('UserCreatedEvent')
   async handleUserCreatedEvent(event: UserCreatedEvent) {
-    console.log(`Handling UserCreatedEvent for user ID: ${event.user.id}`);
-    // Add job to send welcome email
-    // await this.jobProcessingService.addJob('send-email', {
-    //   userId: event.userId,
-    //   email: event.email,
-    // });
+   await this.jobProcessingService.addJob('send-onboarding-email', {
+    name: event.user.fullName,
+    email: event.user.email,
+    password: event.user.createPassword(),
+   });
   }
 
 }
