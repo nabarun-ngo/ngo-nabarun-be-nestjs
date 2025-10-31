@@ -3,20 +3,21 @@ import {
   OnModuleInit,
   OnApplicationShutdown,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { PrismaClient } from 'generated/prisma';
 
 @Injectable()
-export class PrismaService
+export class PrismaPostgresService
   extends PrismaClient
   implements OnModuleInit, OnApplicationShutdown {
-  private readonly logger = new Logger(PrismaService.name);
+  private readonly logger = new Logger(PrismaPostgresService.name);
 
-  constructor() {
+  constructor(@Inject('POSTGRES_URL') dbUrl: string) {
     super({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL!, // injected by Doppler
+          url: dbUrl!, 
         },
       },
       log: ['error', 'warn'],

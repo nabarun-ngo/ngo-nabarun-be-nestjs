@@ -1,4 +1,4 @@
-import { BaseDomain } from '../../../../shared/domain/base-domain';
+import { BaseDomain } from '../../../../shared/models/base-domain';
 import { randomUUID } from 'crypto';
 
 export enum LinkType {

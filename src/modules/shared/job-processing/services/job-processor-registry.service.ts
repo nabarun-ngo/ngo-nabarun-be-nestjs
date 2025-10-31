@@ -6,7 +6,7 @@ import { JobProcessor, Job, JobResult } from '../interfaces/job.interface';
 import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.decorator';
 
 @Injectable()
-export class JobProcessorRegistry implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap {
+export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBootstrap {
   private readonly logger = new Logger(JobProcessorRegistry.name);
   private readonly processors = new Map<string, { processor: JobProcessor; options: ProcessJobOptions }>();
   private worker: Worker | null = null;
@@ -17,10 +17,6 @@ export class JobProcessorRegistry implements OnModuleInit, OnModuleDestroy, OnAp
     private readonly moduleRef: ModuleRef,
     private readonly reflector: Reflector,
   ) { }
-
-  async onModuleInit() {
-    // Don't initialize here - wait for all modules
-  }
 
   async onApplicationBootstrap() {
     // All modules are loaded now, discover processors

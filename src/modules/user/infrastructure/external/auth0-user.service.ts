@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Auth0Service } from '../../../../shared/infrastructure/external/auth0/auth0.service';
-import { ThirdPartyException } from '../../../../shared/infrastructure/external/third-party-exception';
+import { ThirdPartyException } from '../../../../shared/exceptions/third-party-exception';
 import { LoginMethod, User, UserStatus } from '../../domain/model/user.model';
 import { ManagementClient } from 'auth0';
 import { UserMapper } from '../user.mapper';

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { BaseDomain } from 'src/shared/domain/base-domain';
+import { BaseDomain } from 'src/shared/models/base-domain';
 
 export class Role extends BaseDomain<string> {
   constructor(

@@ -1,4 +1,4 @@
-import { BaseDomain } from '../../../../shared/domain/base-domain';
+import { BaseDomain } from '../../../../shared/models/base-domain';
 
 export class Address extends BaseDomain<string> {
   constructor(

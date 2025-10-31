@@ -1,4 +1,4 @@
-import { ValueObject } from "src/shared/domain/value-object";
+import { ValueObject } from "src/shared/models/value-object";
 
 interface EmailProps {
   value: string;

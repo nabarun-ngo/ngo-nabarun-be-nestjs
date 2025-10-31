@@ -1,4 +1,4 @@
-import { IRepository } from '../../domain/repository.interface';
+import { IRepository } from '../interfaces/repository.interface';
 
 export abstract class BaseRepository<T, ID> implements IRepository<T, ID> {
   abstract findAll<F>(filter: F): Promise<T[]>;

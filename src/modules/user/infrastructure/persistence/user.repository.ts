@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from '../../domain/repositories/user.repository.interface';
 import { User } from '../../domain/model/user.model';
-import { PrismaService } from 'src/shared/infrastructure/database/prisma.service';
 import { UserMapper } from '../user.mapper';
 import {
   UserProfile,
@@ -11,10 +10,11 @@ import {
   UserRole as PrismaUserRole,
 } from 'generated/prisma';
 import { UserFilter } from '../../domain/value-objects/user-filter.vo';
+import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 
 @Injectable()
 class UserRepository implements IUserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaPostgresService) {}
 
   async findAll(filter: UserFilter): Promise<User[]> {
     const users = await this.prisma.userProfile.findMany({

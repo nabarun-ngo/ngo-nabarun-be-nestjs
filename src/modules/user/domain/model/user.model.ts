@@ -1,13 +1,13 @@
-import { AggregateRoot } from '../../../../shared/domain/aggregate-root';
+import { AggregateRoot } from '../../../../shared/models/aggregate-root';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { randomUUID } from 'crypto';
-import { BusinessException } from 'src/shared/domain/business-exception';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { Expose } from 'class-transformer';
 import { Role } from './role.model';
 import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.vo';
 import { Link } from './link.model';
-import { generatePassword } from '../../../../shared/util/password-util';
+import { generatePassword } from '../../../../shared/utilities/password-util';
 
 export enum UserStatus {
   DRAFT = 'DRAFT',

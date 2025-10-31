@@ -1,6 +1,6 @@
 import { Expose } from 'class-transformer';
 import { randomUUID } from 'crypto';
-import { BaseDomain } from 'src/shared/domain/base-domain';
+import { BaseDomain } from 'src/shared/models/base-domain';
 
 @Expose()
 export class PhoneNumber extends BaseDomain<string> {

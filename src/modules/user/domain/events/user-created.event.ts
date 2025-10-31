@@ -1,4 +1,4 @@
-import { DomainEvent } from '../../../../shared/domain/domain-event';
+import { DomainEvent } from '../../../../shared/models/domain-event';
 import { User } from '../model/user.model';
 
 export class UserCreatedEvent extends DomainEvent {

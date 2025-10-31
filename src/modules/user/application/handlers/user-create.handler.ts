@@ -1,7 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { ProcessJob } from "src/modules/shared/job-processing/decorators/process-job.decorator";
-import { EmailJobData } from "src/modules/shared/job-processing/examples/email-job.processor";
 import { JobResult } from "src/modules/shared/job-processing/interfaces/job.interface";
 
 @Injectable()

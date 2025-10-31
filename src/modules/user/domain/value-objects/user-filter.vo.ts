@@ -1,6 +1,6 @@
 import { UserStatus } from '../model/user.model';
-import { BaseFilterProps } from '../../../../shared/domain/base-filter-props';
-import { ValueObject } from '../../../../shared/domain/value-object';
+import { BaseFilterProps } from '../../../../shared/models/base-filter-props';
+import { ValueObject } from '../../../../shared/models/value-object';
 
 class UserFilterProps extends BaseFilterProps {
   readonly firstName?: string;

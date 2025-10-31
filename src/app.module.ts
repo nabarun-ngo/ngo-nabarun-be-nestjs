@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { UserModule } from './modules/user/user.module';
 import { JobProcessingModule } from './modules/shared/job-processing/job-processing.module';
+import { DatabaseModule } from './modules/shared/database/database.module';
 
 @Module({
   imports: [
@@ -20,6 +21,9 @@ import { JobProcessingModule } from './modules/shared/job-processing/job-process
       connection: {
         url: process.env.REDIS_URL || 'redis://localhost:6379',
       }
+    }),
+    DatabaseModule.forRoot({
+      postgresUrl: process.env.DATABASE_URL,
     }),
     UserModule,
   ],

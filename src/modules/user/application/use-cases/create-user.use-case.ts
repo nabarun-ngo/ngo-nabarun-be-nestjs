@@ -1,21 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { IUseCase } from '../../../../shared/application/use-case.interface';
+import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { User } from '../../domain/model/user.model';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
 import { CreateUserDto, UserDto } from '../dto/create-user.dto';
 import { PhoneNumber } from '../../domain/model/phone-number.vo';
-import { BusinessException } from '../../../../shared/domain/business-exception';
+import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { toUserDTO } from '../dto/mapper';
-import { JobProcessingService } from 'src/modules/shared/job-processing/services/job-processing.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    private readonly jpService: JobProcessingService,
-   // private readonly eventPublisher: AppEventPublisher,
+    private readonly eventPublisher: EventEmitter2,
   ) {}
 
   async execute(request: CreateUserDto): Promise<UserDto> {
@@ -42,9 +41,8 @@ export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
 
     // Emit domain events
     for (const event of user.domainEvents) {
-      //await this.eventPublisher.publishEvent(event.constructor.name, event);
+      await this.eventPublisher.emitAsync(event.constructor.name, event);
     }
-    this.jpService.addJob('send-email', { userId: savedUser.id, email: savedUser.email },{priority:1});
     user.clearEvents();
 
     return toUserDTO(savedUser);
