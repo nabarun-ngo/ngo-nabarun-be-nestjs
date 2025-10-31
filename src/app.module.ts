@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { UserModule } from './modules/user/user.module';
-import { PrismaModule } from './shared/infrastructure/database/prisma.module';
-
+import { JobProcessingModule } from './modules/shared/job-processing/job-processing.module';
 
 @Module({
   imports: [
@@ -17,7 +16,12 @@ import { PrismaModule } from './shared/infrastructure/database/prisma.module';
       maxListeners: 10,
       verboseMemoryLeak: false,
     }),
+    JobProcessingModule.forRoot({
+      connection: {
+        url: process.env.REDIS_URL || 'redis://localhost:6379',
+      }
+    }),
     UserModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

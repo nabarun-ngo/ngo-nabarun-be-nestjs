@@ -5,10 +5,9 @@ import { BusinessException } from 'src/shared/domain/business-exception';
 import { Expose } from 'class-transformer';
 import { Role } from './role.model';
 import { Address } from './address.model';
-import { PhoneNumber } from '../value-objects/phone-number.vo';
+import { PhoneNumber } from './phone-number.vo';
 import { Link } from './link.model';
-
-// Value Objects and Enums (stubs for now)
+import { generatePassword } from '../../../../shared/util/password-util';
 
 export enum UserStatus {
   DRAFT = 'DRAFT',
@@ -21,14 +20,14 @@ export enum LoginMethod {
 
 @Expose()
 export class User extends AggregateRoot<string> {
-  private static readonly AVATAR_BASE = 'https://ui-avatars.com/api/?name=';
   private _fullName: string;
-  private constructor(
+  private _initials: string;
+  constructor(
     protected _id: string,
     private _firstName: string,
     private _lastName: string,
     private _email: string,
-    private _primaryNumber: PhoneNumber,
+    private _primaryNumber?: PhoneNumber,
     private _status: UserStatus = UserStatus.DRAFT,
     private _isTemporary: boolean = false,
     private _title?: string,
@@ -57,11 +56,8 @@ export class User extends AggregateRoot<string> {
   ) {
     super(_id);
     this._fullName = this.computeFullName();
-    this._picture =
-      `${User.AVATAR_BASE}${this._firstName}+${this._lastName}&background=random`.replace(
-        /\s+/g,
-        '',
-      );
+    this._initials = this.computeInitials();
+    this._picture = this.generatePictureUrl();
   }
 
   // Factory
@@ -97,9 +93,26 @@ export class User extends AggregateRoot<string> {
     return (f + ' ' + l).trim();
   }
 
-  public computeInitials(): string {
+  private computeInitials(): string {
     if (!this._firstName || !this._lastName) return '';
     return (this._firstName[0] + this._lastName[0]).toUpperCase();
+  }
+
+  private generatePictureUrl() {
+    return `https://ui-avatars.com/api/?name=${this._firstName}+${this._lastName}&background=random`.replace(
+      /\s+/g,
+      '',
+    );
+  }
+
+  public createPassword() {
+    return generatePassword({
+      length: 8,
+      includeUppercase: true,
+      includeLowercase: true,
+      includeNumbers: true,
+      includeSymbols: true,
+    });
   }
 
   public updateUser(detail: {
@@ -117,7 +130,7 @@ export class User extends AggregateRoot<string> {
     permanentAddress?: Address;
     isAddressSame?: boolean;
     isPublicProfile?: boolean;
-    //socialMediaLinks?: Link[];
+    socialMediaLinks?: Link[];
   }): void {
     this._title = detail.title ?? this._title;
     this._firstName = detail.firstName ?? this._firstName;
@@ -134,7 +147,7 @@ export class User extends AggregateRoot<string> {
     this._permanentAddress = detail.permanentAddress ?? this._permanentAddress;
     this._isSameAddress = detail.isAddressSame ?? this._isSameAddress;
     this._isPublic = detail.isPublicProfile ?? this._isPublic;
-    //this.__socialMediaLinks = detail.socialMediaLinks ?? this.__socialMediaLinks;
+    this._socialMediaLinks = detail.socialMediaLinks ?? this._socialMediaLinks;
     this._isProfileCompleted = !!(
       this._firstName &&
       this._lastName &&
@@ -143,6 +156,10 @@ export class User extends AggregateRoot<string> {
       this._email &&
       this._authUserId
     );
+    this._fullName = this.computeFullName();
+    this._initials = this.computeInitials();
+    this._picture = this.generatePictureUrl();
+    this.touch();
   }
 
   public updateAdmin(detail: {
@@ -153,6 +170,7 @@ export class User extends AggregateRoot<string> {
     this._roles = detail.roles ?? this._roles;
     this._status = detail.status ?? this._status;
     this._authUserId = detail.userId ?? this._authUserId;
+    this.touch();
   }
 
   public addLoginMethod(method: LoginMethod): void {
@@ -228,11 +246,123 @@ export class User extends AggregateRoot<string> {
     );
   }
 
-  // public getSocialMediaLinks(): ReadonlyArray<Link> {
-  //   return this._socialMediaLinks;
-  // }
+  /**
+   * Getters
+   */
 
-  public getLoginMethods(): ReadonlyArray<LoginMethod> {
+  get fullName(): string {
+    return this._fullName;
+  }
+
+  get initials(): string {
+    return this._initials;
+  }
+
+  get id(): string {
+    return this._id;
+  }
+
+  get firstName(): string {
+    return this._firstName;
+  }
+
+  get lastName(): string {
+    return this._lastName;
+  }
+
+  get email(): string {
+    return this._email;
+  }
+
+  get primaryNumber(): PhoneNumber | undefined {
+    return this._primaryNumber;
+  }
+
+  get status(): UserStatus {
+    return this._status;
+  }
+
+  get isTemporary(): boolean {
+    return this._isTemporary;
+  }
+
+  get title(): string | undefined {
+    return this._title;
+  }
+
+  get middleName(): string | undefined {
+    return this._middleName;
+  }
+
+  get dateOfBirth(): Date | undefined {
+    return this._dateOfBirth;
+  }
+
+  get gender(): string | undefined {
+    return this._gender;
+  }
+
+  get about(): string | undefined {
+    return this._about;
+  }
+
+  get picture(): string | undefined {
+    return this._picture;
+  }
+
+  get roles(): ReadonlyArray<Role> {
+    return this._roles;
+  }
+
+  get secondaryNumber(): PhoneNumber | undefined {
+    return this._secondaryNumber;
+  }
+
+  get presentAddress(): Address | undefined {
+    return this._presentAddress;
+  }
+
+  get permanentAddress(): Address | undefined {
+    return this._permanentAddress;
+  }
+
+  get isPublic(): boolean {
+    return this._isPublic;
+  }
+
+  get authUserId(): string | undefined {
+    return this._authUserId;
+  }
+
+  get isSameAddress(): boolean | undefined {
+    return this._isSameAddress;
+  }
+
+  get loginMethod(): ReadonlyArray<LoginMethod> {
     return this._loginMethod;
+  }
+
+  get socialMediaLinks(): ReadonlyArray<Link> {
+    return this._socialMediaLinks;
+  }
+
+  get donationPauseStart(): Date | undefined {
+    return this._donationPauseStart;
+  }
+
+  get donationPauseEnd(): Date | undefined {
+    return this._donationPauseEnd;
+  }
+
+  get panNumber(): string | undefined {
+    return this._panNumber;
+  }
+
+  get aadharNumber(): string | undefined {
+    return this._aadharNumber;
+  }
+
+  get isProfileCompleted(): boolean {
+    return this._isProfileCompleted;
   }
 }

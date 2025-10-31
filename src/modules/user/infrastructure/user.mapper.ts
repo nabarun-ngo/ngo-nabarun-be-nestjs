@@ -1,15 +1,16 @@
-import { User, UserStatus, LoginMethod } from '../../domain/model/user.model';
+import { LoginMethod, User, UserStatus } from '../domain/model/user.model';
 import {
-  UserProfile,
-  PhoneNumber as PrismaPhoneNumber,
-  Link as PrismaLink,
   Address as PrismaAddress,
+  Link as PrismaLink,
+  PhoneNumber as PrismaPhoneNumber,
+  UserProfile,
   UserRole as PrismaUserRole,
 } from 'generated/prisma';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
-import { Role } from '../../domain/model/role.model';
-import { Address, AddressType } from '../../domain/model/address.model';
-import { Link, LinkType } from '../../domain/model/link.model';
+import { PhoneNumber } from '../domain/model/phone-number.vo';
+import { Role } from '../domain/model/role.model';
+import { Address } from '../domain/model/address.model';
+import { Link, LinkType } from '../domain/model/link.model';
+import { Auth0User } from './external/auth0-user.service';
 
 export class UserMapper {
   static toUser(
@@ -26,15 +27,11 @@ export class UserMapper {
     const presentAddress =
       addresses == null
         ? null
-        : addresses.find(
-            (a) => a.addressType === AddressType.PRESENT.toString(),
-          );
+        : addresses.find((a) => a.addressType === 'PRESENT');
     const permanentAddress =
       addresses == null
         ? null
-        : addresses.find(
-            (a) => a.addressType == AddressType.PERMANENT.toString(),
-          );
+        : addresses.find((a) => a.addressType == 'PERMANENT');
 
     return new User(
       model.id,
@@ -80,7 +77,6 @@ export class UserMapper {
             presentAddress.state!,
             presentAddress.district!,
             presentAddress.country!,
-            presentAddress.addressType as AddressType,
           )
         : undefined,
       permanentAddress
@@ -94,7 +90,6 @@ export class UserMapper {
             permanentAddress.state!,
             permanentAddress.district!,
             permanentAddress.country!,
-            permanentAddress.addressType as AddressType,
           )
         : undefined,
       model.isPublic!,
@@ -138,5 +133,58 @@ export class UserMapper {
       donationPauseStart: user.donationPauseStart ?? null,
       donationPauseEnd: user.donationPauseEnd ?? null,
     };
+  }
+
+  static toAuthUser(a0User: Auth0User) {
+    return new User(
+      a0User.user_id!,
+      a0User.given_name!,
+      a0User.family_name!,
+      a0User.email!,
+      undefined,
+      UserStatus.ACTIVE,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      a0User.user_id,
+      undefined,
+      a0User.identities?.map((i) => this.connection2LoginMethod(i.connection!)),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
+  }
+
+  static loginMethod2Connection(method: LoginMethod): string {
+    switch (method) {
+      case LoginMethod.EMAIL:
+        return 'email';
+      case LoginMethod.PASSWORD:
+        return 'Username-Password-Authentication';
+      default:
+        return 'Username-Password-Authentication';
+    }
+  }
+  static connection2LoginMethod(connection: string): LoginMethod {
+    switch (connection) {
+      case 'email':
+        return LoginMethod.EMAIL;
+      case 'Username-Password-Authentication':
+        return LoginMethod.PASSWORD;
+      default:
+        return LoginMethod.PASSWORD;
+    }
   }
 }

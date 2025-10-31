@@ -1,8 +1,17 @@
-import { Injectable, INestApplication, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnApplicationShutdown,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from 'generated/prisma';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnApplicationShutdown {
+  private readonly logger = new Logger(PrismaService.name);
+
   constructor() {
     super({
       datasources: {
@@ -13,13 +22,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       log: ['error', 'warn'],
     });
   }
-
-  async onModuleInit() {
-
-    await this.$connect();
+  async onApplicationShutdown(signal?: string) {
+    this.logger.log(`Application shutdown: ${signal}`);
+    await this.$disconnect();
+    this.logger.debug('Database disconnected');
   }
 
-  async enableShutdownHooks(app: INestApplication) {
-    this.$on('beforeExit' as never, async () => await app.close());
+  async onModuleInit() {
+    await this.$connect();
+    this.logger.log(`Connected to Database`)
   }
 }
