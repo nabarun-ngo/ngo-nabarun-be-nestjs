@@ -1,0 +1,233 @@
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { OAuth2Client, } from 'google-auth-library';
+import { Configkey } from 'src/shared/config-keys';
+import {
+  encryptText,
+  getEncryptionKey,
+} from 'src/shared/utilities/encryption.util';
+import { TOKEN_REPOSITORY, type ITokenRepository } from '../../domain/token.repository.interface';
+import { AuthToken } from '../../domain/auth-token.model';
+
+@Injectable()
+export class GoogleOAuthService {
+  private readonly logger = new Logger(GoogleOAuthService.name);
+  private readonly clientId: string;
+  private readonly clientSecret: string;
+  private readonly redirectUri: string;
+  private readonly oauth2Client: OAuth2Client;
+
+
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: ITokenRepository,
+  ) {
+    this.clientId = this.configService.get<string>(Configkey.GOOGLE_CLIENT_ID)!;
+    this.clientSecret = this.configService.get<string>(
+      Configkey.GOOGLE_CLIENT_SECRET,
+    )!;
+    this.redirectUri = this.configService.get<string>(Configkey.GOOGLE_REDIRECT_URI)!;
+
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error(
+        'Google OAuth credentials are missing. Please configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET',
+      );
+    }
+    this.oauth2Client = new OAuth2Client({
+      clientId: this.clientId,
+      clientSecret: this.clientSecret,
+      redirectUri: this.redirectUri
+    });
+
+  }
+
+  /**
+   * Generate OAuth authorization URL
+   */
+  getAuthUrl(state?: string): { url: string; state: string | undefined; clientId : string } {
+    const scopes = this.configService
+      .get<string>(
+        Configkey.GOOGLE_SCOPES,
+        'https://www.googleapis.com/auth/gmail.send',
+      )
+      .split(',')
+      .map((s) => s.trim());
+
+    const url = this.oauth2Client.generateAuthUrl({
+      access_type: 'offline', // Required to get refresh token
+      scope: [...scopes, 'openid', 'email', 'profile'],
+      prompt: 'consent', // Force consent to get refresh token
+      state: state || undefined,
+      response_type: 'code',
+      include_granted_scopes: true,
+    });
+
+    this.logger.log(`Generated OAuth URL for Google authentication`);
+    return { url: url, state: state , clientId : this.clientId };
+  }
+
+  /**
+   * Exchange authorization code for tokens and store them
+   * If email is not provided, it will be fetched from Google userinfo
+   */
+  async handleCallback(
+    code: string,
+    clientId: string,
+  ): Promise<{ success: boolean }> {
+    if (clientId !== this.clientId) {
+      throw new Error('Invalid client id');
+    }
+    try {
+
+      // Exchange code for tokens
+      const { tokens } = await this.oauth2Client.getToken(code);
+
+      if (!tokens.access_token) {
+        throw new Error('No access token received');
+      }
+
+      // If email not provided, fetch from Google userinfo
+
+      this.oauth2Client.setCredentials({
+        access_token: tokens.access_token,
+      });
+
+      // Verify and decode ID token
+      const ticket = await this.oauth2Client.verifyIdToken({
+        idToken: tokens.id_token!,
+        audience: this.clientId,
+      });
+
+      const payload = ticket.getPayload();
+      const email = payload?.email;
+
+      if (!email) {
+        throw new Error('Could not retrieve email from Google userinfo');
+      }
+      // Encrypt tokens
+      const encryptionKey = getEncryptionKey(this.configService);
+      const authToken = await AuthToken.create({
+        clientId: this.clientId,
+        provider: 'google',
+        email: email!,
+        accessToken: tokens.access_token!,
+        refreshToken: tokens.refresh_token!,
+        tokenType: tokens.token_type || 'Bearer',
+        expiresAt: tokens.expiry_date!,
+        scope: tokens.scope!,
+      }, encryptionKey);
+      await this.tokenRepository.create(authToken);
+      this.logger.log(
+        `Successfully stored OAuth tokens`,
+      );
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle OAuth callback: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get valid access token for a user (refresh if needed)
+   */
+  async getValidAccessToken(clientId: string, scope: string): Promise<string> {
+
+    const tokenRecord = await this.tokenRepository.findByAttribute({
+      clientId: clientId,
+      provider: 'google',
+      scope: scope,
+    });
+
+    if (!tokenRecord) {
+      throw new NotFoundException(
+        `No OAuth token found. Please ask admin to authenticate first.`,
+      );
+    }
+
+    // Check if token is expired or will expire soon (within 5 minutes)
+    if (tokenRecord.isExpired()) {
+      this.logger.log(
+        `Refreshing access token`,
+      );
+      await this.refreshAccessToken(tokenRecord);
+    }
+    const encryptionKey = getEncryptionKey(this.configService);
+
+    return tokenRecord.getAccessToken(encryptionKey);
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  private async refreshAccessToken(tokenRecord: AuthToken): Promise<string> {
+    if (!tokenRecord || !tokenRecord.refreshToken) {
+      throw new Error(
+        `No refresh token available. Please ask admin to authenticate first.`,
+      );
+    }
+
+    // Decrypt refresh token
+    const encryptionKey = getEncryptionKey(this.configService);
+    // Set refresh token and get new access token
+    this.oauth2Client.setCredentials({
+      refresh_token: await tokenRecord.getRefreshToken(encryptionKey),
+    });
+
+    const { credentials } = await this.oauth2Client.refreshAccessToken();
+
+    if (!credentials.access_token) {
+      throw new Error('Failed to refresh access token');
+    }
+
+    // Encrypt and update token
+    await this.tokenRepository.update(tokenRecord.id, tokenRecord);
+    this.logger.log(
+      `Successfully refreshed access token`,
+    );
+
+    return credentials.access_token;
+  }
+
+  /**
+   * Revoke tokens for a user
+   */
+  async revokeTokens(id: string, email: string): Promise<void> {
+    const tokenRecord = await this.tokenRepository.findById(id);
+    if (!tokenRecord) {
+      return;
+    }
+
+    // Decrypt access token to revoke
+    const encryptionKey = getEncryptionKey(this.configService);
+    try {
+      await this.oauth2Client.revokeToken(await tokenRecord.getAccessToken(encryptionKey));
+      this.logger.log(`Revoked token`);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to revoke token (may already be revoked): ${error.message}`,
+      );
+    }
+
+    await this.tokenRepository.delete(tokenRecord.id);
+
+    this.logger.log(`Deleted token record`);
+  }
+
+  /**
+   * Get OAuth2Client with valid credentials for a user
+   */
+  async getAuthenticatedClient(
+    clientId: string,
+    scope: string,
+  ): Promise<OAuth2Client> {
+    const accessToken = await this.getValidAccessToken(clientId, scope);
+    this.oauth2Client.setCredentials({
+      access_token: accessToken,
+    });
+    return this.oauth2Client;
+  }
+}

@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { UserModule } from './modules/user/user.module';
 import { JobProcessingModule } from './modules/shared/job-processing/job-processing.module';
 import { DatabaseModule } from './modules/shared/database/database.module';
+import { AuthModule } from './modules/shared/auth/auth.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DatabaseModule } from './modules/shared/database/database.module';
       postgresUrl: process.env.POSTGRES_URL,
     }),
     UserModule,
+   AuthModule
   ],
 })
 export class AppModule { }

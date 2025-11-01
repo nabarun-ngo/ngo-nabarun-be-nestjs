@@ -119,3 +119,23 @@ model Address {
 
   @@map("addresses")
 }
+
+model OAuthToken {
+  id            String   @id @default(uuid())
+  provider      String   @db.VarChar(20) // e.g., 'google', 'gmail'
+  clientId      String   @db.VarChar(100) // OAuth client ID
+  email         String   @db.VarChar(100) // Gmail address associated with token
+  accessToken   String   @db.Text // Encrypted access token
+  refreshToken  String?  @db.Text // Encrypted refresh token
+  tokenType     String?  @db.VarChar(20) // Usually 'Bearer'
+  expiresAt     DateTime? // Token expiration time
+  scope         String?  @db.Text // OAuth scopes
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  @@index([email, clientId])
+  @@map("oauth_tokens")
+}
+
+

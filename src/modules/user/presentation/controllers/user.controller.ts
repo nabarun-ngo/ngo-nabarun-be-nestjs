@@ -12,6 +12,7 @@ import { CreateUserUseCase } from '../../application/use-cases/create-user.use-c
 import { CreateUserDto, UserDto } from '../../application/dto/create-user.dto';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
+import { Public } from 'src/modules/shared/auth/application/decorators/public.decorator';
 
 @Controller('users')
 export class UserController {
