@@ -2,10 +2,6 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client, } from 'google-auth-library';
 import { Configkey } from 'src/shared/config-keys';
-import {
-  encryptText,
-  getEncryptionKey,
-} from 'src/shared/utilities/crypto.util';
 import { TOKEN_REPOSITORY, type ITokenRepository } from '../../domain/token.repository.interface';
 import { AuthToken } from '../../domain/auth-token.model';
 
@@ -44,7 +40,7 @@ export class GoogleOAuthService {
   /**
    * Generate OAuth authorization URL
    */
-  getAuthUrl(state?: string): { url: string; state: string | undefined; clientId : string } {
+  getAuthUrl(state?: string): { url: string; state: string | undefined; clientId: string } {
     const scopes = this.configService
       .get<string>(
         Configkey.GOOGLE_SCOPES,
@@ -63,7 +59,7 @@ export class GoogleOAuthService {
     });
 
     this.logger.log(`Generated OAuth URL for Google authentication`);
-    return { url: url, state: state , clientId : this.clientId };
+    return { url: url, state: state, clientId: this.clientId };
   }
 
   /**
@@ -105,7 +101,9 @@ export class GoogleOAuthService {
         throw new Error('Could not retrieve email from Google userinfo');
       }
       // Encrypt tokens
-      const encryptionKey = getEncryptionKey(this.configService);
+      const encryptionKey = this.configService.get<string>(
+        Configkey.APP_SECRET
+      )!;
       const authToken = await AuthToken.create({
         clientId: this.clientId,
         provider: 'google',
@@ -155,8 +153,9 @@ export class GoogleOAuthService {
       );
       await this.refreshAccessToken(tokenRecord);
     }
-    const encryptionKey = getEncryptionKey(this.configService);
-
+    const encryptionKey = this.configService.get<string>(
+      Configkey.APP_SECRET
+    )!;
     return tokenRecord.getAccessToken(encryptionKey);
   }
 
@@ -171,8 +170,9 @@ export class GoogleOAuthService {
     }
 
     // Decrypt refresh token
-    const encryptionKey = getEncryptionKey(this.configService);
-    // Set refresh token and get new access token
+    const encryptionKey = this.configService.get<string>(
+      Configkey.APP_SECRET
+    )!;    // Set refresh token and get new access token
     this.oauth2Client.setCredentials({
       refresh_token: await tokenRecord.getRefreshToken(encryptionKey),
     });
@@ -202,7 +202,9 @@ export class GoogleOAuthService {
     }
 
     // Decrypt access token to revoke
-    const encryptionKey = getEncryptionKey(this.configService);
+    const encryptionKey = this.configService.get<string>(
+      Configkey.APP_SECRET
+    )!; 
     try {
       await this.oauth2Client.revokeToken(await tokenRecord.getAccessToken(encryptionKey));
       this.logger.log(`Revoked token`);

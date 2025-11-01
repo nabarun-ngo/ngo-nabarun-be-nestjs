@@ -77,15 +77,5 @@ export async function validateApiKey(incomingText: string, storedHash: string): 
   return await bcrypt.compare(incomingText, storedHash);
 }
 
-/**
- * Gets encryption key from config or uses APP_SECRET as fallback
- */
-export function getEncryptionKey(configService: ConfigService): string {
-  return (
-    configService.get<string>('OAUTH_TOKEN_ENCRYPTION_KEY') ||
-    configService.get<string>('APP_SECRET')!
-  );
-}
-
 
 

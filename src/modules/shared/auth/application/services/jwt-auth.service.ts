@@ -26,11 +26,11 @@ export class JwtAuthService implements OnModuleInit {
   private readonly audience: string;
 
   constructor(private config: ConfigService) {
+    const domain = this.config.get<string>(Configkey.AUTH0_DOMAIN)!;
     this.audience = this.config.get<string>(Configkey.AUTH0_RESOURCE_API_AUDIENCE)!;
-    this.issuer = this.config.get<string>(Configkey.AUTH0_ISSUER_URI)!;
-
+    this.issuer = `https://${domain}/`;
     if (!this.issuer || !this.audience) {
-      throw new Error('AUTH0_RESOURCE_API_AUDIENCE and AUTH0_ISSUER_URI must be set');
+      throw new Error('AUTH0_DOMAIN must be set');
     }
   }
 

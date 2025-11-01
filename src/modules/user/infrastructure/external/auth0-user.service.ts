@@ -1,22 +1,40 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Auth0Service } from '../../../../shared/infrastructure/external/auth0/auth0.service';
 import { ThirdPartyException } from '../../../../shared/exceptions/third-party-exception';
 import { LoginMethod, User, UserStatus } from '../../domain/model/user.model';
 import { ManagementClient } from 'auth0';
 import { UserMapper } from '../user.mapper';
+import { ConfigService } from '@nestjs/config';
+import { Configkey } from 'src/shared/config-keys';
 
 export type Auth0User = Awaited<ReturnType<ManagementClient['users']['get']>>;
 
 @Injectable()
 export class Auth0UserService {
   private readonly logger = new Logger(Auth0UserService.name);
+  private readonly managementClient: ManagementClient;
 
-  constructor(private auth0Service: Auth0Service) {}
+  constructor(private readonly configService: ConfigService) {
+    const domain = this.configService.get<string>(Configkey.AUTH0_DOMAIN)!;
+    const clientId = this.configService.get<string>(Configkey.AUTH0_MANAGEMENT_CLIENT_ID)!;
+    const clientSecret = this.configService.get<string>(Configkey.AUTH0_MANAGEMENT_CLIENT_SECRET)!;
+    const audience = `https://${domain}/api/v2/`;
+
+    if (!domain || !clientId || !clientSecret || !audience) {
+      throw new Error('Auth0 Management API configuration is incomplete.');
+    }
+
+    this.managementClient = new ManagementClient({
+      domain: domain,
+      clientId: clientId,
+      clientSecret: clientSecret,
+      audience,
+    });
+  }
 
   async getUserByEmail(email: string): Promise<User[]> {
     try {
       const users: Auth0User[] =
-        await this.auth0Service.client.users.listUsersByEmail({
+        await this.managementClient.users.listUsersByEmail({
           email: email,
         });
       return users.map((user) => UserMapper.toAuthUser(user));
@@ -28,7 +46,7 @@ export class Auth0UserService {
 
   async getUsers(): Promise<User[]> {
     try {
-      const users: Auth0User[] = (await this.auth0Service.client.users.list())
+      const users: Auth0User[] = (await this.managementClient.users.list())
         .data;
       return users.map((user) => UserMapper.toAuthUser(user));
     } catch (e) {
@@ -39,7 +57,7 @@ export class Auth0UserService {
 
   async getUser(id: string): Promise<User> {
     try {
-      const user = await this.auth0Service.client.users.get(id);
+      const user = await this.managementClient.users.get(id);
       return UserMapper.toAuthUser(user);
     } catch (e) {
       this.logger.error(`Failed to get user ${id}: ${e}`);
@@ -47,41 +65,70 @@ export class Auth0UserService {
     }
   }
 
-  // async createUser(newUser: User, emailVerified: boolean): Promise<User> {
-  //   try {
-  //     for (const lm of newUser.loginMethod) {
-  //       await this.auth0Service.client.users.create({
-  //         email: newUser.email,
-  //         connection: UserMapper.loginMethod2Connection(lm),
-  //         given_name: newUser.firstName,
-  //         family_name: newUser.lastName,
-  //         name: newUser.fullName,
-  //         picture: newUser.picture,
-  //         user_metadata: {
-  //           profile_id: newUser.id,
-  //           active_user: newUser.status == UserStatus.ACTIVE,
-  //           reset_password: true,
-  //           profile_updated: newUser.isProfileCompleted,
-  //         },
-  //         password:
-  //           lm == LoginMethod.PASSWORD ? newUser.createPassword() : undefined,
-  //         email_verified: emailVerified,
-  //       });
-  //     }
-  //     const users = await this.auth0Service.client.users.listUsersByEmail({
-  //       email: newUser.email,
-  //     });
-  //     if (users.length > 0 && users.length == 1) return UserMapper.toAuthUser(users[0]);
-  //     const primaryUser = users[0];
-  //     for(let index = 1; index < users.length; index++){
-  //       const user = users[index];
-  //       await this.auth0Service.client
-  //     }
-  //   } catch (e) {
-  //     this.logger.error(`Error creating Auth0 user:`, e);
-  //     throw new ThirdPartyException('auth0', e as Error);
-  //   }
-  // }
+  async createUser(newUser: User, emailVerified: boolean): Promise<User> {
+    try {
+      for (const lm of newUser.loginMethod) {
+        await this.managementClient.users.create({
+          email: newUser.email,
+          connection: UserMapper.loginMethod2Connection(lm),
+          given_name: newUser.firstName,
+          family_name: newUser.lastName,
+          name: newUser.fullName,
+          picture: newUser.picture,
+          user_metadata: {
+            profile_id: newUser.id,
+            active_user: newUser.status == UserStatus.ACTIVE,
+            reset_password: true,
+            profile_updated: newUser.isProfileCompleted,
+          },
+          password:
+            lm == LoginMethod.PASSWORD ? newUser.createPassword() : undefined,
+          email_verified: emailVerified,
+        });
+      }
+
+      return await this.linkAllAccountsForUser(newUser.email);
+    } catch (e) {
+      this.logger.error(`Error creating Auth0 user:`, e);
+      throw new ThirdPartyException('auth0', e as Error);
+    }
+  }
+
+  async linkAllAccountsForUser(email: string): Promise<User> {
+
+    const users = await this.managementClient.users.listUsersByEmail({
+      email: email.toLowerCase(),
+    });
+
+    if (users.length > 0 && users.length == 1) {
+      return UserMapper.toAuthUser(users[0]);
+    }
+
+    const primary = users[0];
+    const primaryId = primary.user_id!;
+    const mergedMetadata: Record<string, unknown> = {
+      ...(primary.user_metadata ?? {}),
+    };
+
+    for (let i = 1; i < users.length; i++) {
+      const secondary = users[i];
+      const secondaryId = secondary.user_id!;
+      const provider = secondary.identities?.[0]?.provider;
+      if (!provider) continue;
+
+      Object.assign(mergedMetadata, secondary.user_metadata ?? {});
+      await this.managementClient.users.identities.link(primaryId, {
+        user_id: secondaryId,
+        provider,
+      });
+    }
+
+    const updated = await this.managementClient.users.update(primaryId, {
+      user_metadata: mergedMetadata
+    });
+    this.logger.log(`Linked ${users.length} Auth0 identities for user ${email}`);
+    return UserMapper.toAuthUser(updated);
+  }
 
   // async updateUser(id: string, user: Partial<User>): Promise<User> {
   //   try {

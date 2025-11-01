@@ -11,6 +11,7 @@ import { UnifiedAuthGuard } from './application/guards/unified-auth.guard';
 import { API_KEY_REPOSITORY } from './domain/api-key.repository.interface';
 import { ApiKeyRepository } from './infrastructure/persistence/api-key.repository';
 import { ApiKeyController } from './presentation/controllers/api-key.controller';
+import { ApiKeyEventsHandler } from './application/handler/api-key-events.handler';
 
 @Global()
 @Module({
@@ -38,7 +39,8 @@ import { ApiKeyController } from './presentation/controllers/api-key.controller'
     JwtAuthService,
     ApiKeyService,
     PermissionsGuard,
-    UnifiedAuthGuard
+    UnifiedAuthGuard,
+    ApiKeyEventsHandler
   ],
   exports: [GoogleOAuthService], 
 })

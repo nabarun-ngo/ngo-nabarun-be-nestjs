@@ -15,7 +15,7 @@ This module provides Auth0 JWT authentication for securing all API endpoints.
 The following environment variables are required:
 
 ```env
-AUTH0_ISSUER_URI=https://your-auth0-domain.auth0.com/
+AUTH0_DOMAIN=your-auth0-domain.auth0.com
 AUTH0_RESOURCE_API_AUDIENCE=your-api-identifier
 ```
 

@@ -2,7 +2,6 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { API_KEY_REPOSITORY } from '../../domain/api-key.repository.interface';
 import type { IApiKeyRepository } from '../../domain/api-key.repository.interface';
 import { ApiKey } from '../../domain/api-key.model';
-import { hashText } from 'src/shared/utilities/crypto.util';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -19,8 +18,7 @@ export class ApiKeyService {
     if (!apiKey) {
       throw new UnauthorizedException('API key is required');
     }
-     console.log(apiKey)
-     const keyId = ApiKey.fetchKeyId(apiKey);
+    const keyId = ApiKey.fetchKeyId(apiKey);
     const keyInfo = this.apiKeys.get(keyId) ?? await this.apiKeyRepository.findByKeyId(keyId);
 
     if (!keyInfo) {
@@ -35,7 +33,7 @@ export class ApiKeyService {
 
     // Update last used timestamp (in production: async update)
     keyInfo.used();
-    this.eventEmitter.emit('api-key.used', keyInfo);
+    this.eventEmitter.emit('api-key.updated', keyInfo);
 
     if (!this.apiKeys.has(keyId)) {
       this.apiKeys.set(keyId, keyInfo);
