@@ -28,7 +28,7 @@ export class ApiKeyGuard implements CanActivate {
         name: keyInfo.name,
       };
       request.permissions = keyInfo.permissions;
-      request.roles = keyInfo.roles;
+     // request.roles = keyInfo.roles;
       request.apiKeyInfo = keyInfo;
       request.authType = 'apikey';
 

@@ -4,7 +4,6 @@ import {
   Query,
   Post,
   Body,
-  Param,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -14,28 +13,16 @@ import {
   ApiResponse,
   ApiQuery,
   ApiBearerAuth,
-  ApiParam,
-  ApiProperty,
 } from '@nestjs/swagger';
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
 import { Public } from '../../application/decorators/public.decorator';
-import { IsOptional, IsString } from 'class-validator';
+import { AuthCallbackDto } from '../dto/oauth..dto';
 
-class AuthCallbackDto {
-  @IsString()
-  @ApiProperty()
-  code: string;
-  @ApiProperty()
-  @IsOptional()
-  state?: string;
-  @IsString()
-  @ApiProperty()
-  clientId: string;
-}
+
 
 @ApiTags('OAuth')
 @ApiBearerAuth()
-@Controller('oauth')
+@Controller('auth/oauth')
 export class OAuthController {
   constructor(
     private readonly oAuthService: GoogleOAuthService,

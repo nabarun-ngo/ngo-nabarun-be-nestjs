@@ -16,7 +16,7 @@ export class UnifiedAuthGuard implements CanActivate {
     private authService: JwtAuthService,
     private apiKeyService: ApiKeyService,
     private reflector: Reflector,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if route is public
@@ -48,7 +48,7 @@ export class UnifiedAuthGuard implements CanActivate {
 
   private async validateJwt(request: any): Promise<boolean> {
     const token = this.extractJwtToken(request);
-    
+
     if (!token) {
       throw new UnauthorizedException('JWT token is required');
     }
@@ -66,25 +66,22 @@ export class UnifiedAuthGuard implements CanActivate {
 
   private async validateApiKey(request: any): Promise<boolean> {
     const apiKey = this.extractApiKey(request);
-    
+
     if (!apiKey) {
       throw new UnauthorizedException('API key is required');
     }
 
-    try {
-      const keyInfo = await this.apiKeyService.validateApiKey(apiKey);
-      request.user = {
-        sub: `apikey:${keyInfo.name}`,
-        apiKey: true,
-        name: keyInfo.name,
-      };
-      request.user.permissions = keyInfo.permissions;
-      request.apiKeyInfo = keyInfo;
-      request.authType = 'apikey';
-      return true;
-    } catch (error) {
-      throw new UnauthorizedException('Invalid or expired API key');
-    }
+
+    const keyInfo = await this.apiKeyService.validateApiKey(apiKey);
+    request.user = {
+      sub: `apikey:${keyInfo.name}`,
+      apiKey: true,
+      name: keyInfo.name,
+    };
+    request.user.permissions = keyInfo.permissions;
+    request.apiKeyInfo = keyInfo;
+    request.authType = 'apikey';
+    return true;
   }
 
   private extractJwtToken(request: any): string | null {

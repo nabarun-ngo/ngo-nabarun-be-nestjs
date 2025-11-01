@@ -3,7 +3,7 @@ import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import {
   decryptText,
   encryptText,
-} from '../../../../shared/utilities/encryption.util';
+} from '../../../../shared/utilities/crypto.util';
 
 export class AuthToken extends AggregateRoot<string> {
   private readonly _clientId: string;

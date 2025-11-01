@@ -8,12 +8,15 @@ import { TOKEN_REPOSITORY } from './domain/token.repository.interface';
 import { JwtAuthService } from './application/services/jwt-auth.service';
 import { ApiKeyService } from './application/services/api-key.service';
 import { UnifiedAuthGuard } from './application/guards/unified-auth.guard';
+import { API_KEY_REPOSITORY } from './domain/api-key.repository.interface';
+import { ApiKeyRepository } from './infrastructure/persistence/api-key.repository';
+import { ApiKeyController } from './presentation/controllers/api-key.controller';
 
 @Global()
 @Module({
   imports: [
   ],
-  controllers: [OAuthController],
+  controllers: [OAuthController,ApiKeyController],
   providers: [
     {
       provide: APP_GUARD,
@@ -26,6 +29,10 @@ import { UnifiedAuthGuard } from './application/guards/unified-auth.guard';
     {
       provide: TOKEN_REPOSITORY,
       useClass: TokenRepository,
+    },
+    {
+      provide: API_KEY_REPOSITORY,
+      useClass: ApiKeyRepository,
     },
     GoogleOAuthService,
     JwtAuthService,

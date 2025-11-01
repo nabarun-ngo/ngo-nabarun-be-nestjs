@@ -1,12 +1,14 @@
 import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
 
 const scryptAsync = promisify(scrypt);
 const ALGORITHM = 'aes-256-ctr';
 const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const SEPARATOR = ':';
+const SALT_ROUNDS = 12; 
 
 /**
  * Encrypts a token and stores IV with it in format: iv:encryptedToken
@@ -57,6 +59,25 @@ export async function decryptText(
 }
 
 /**
+ * Hashes an text using bcrypt with a configurable salt round.
+ * @param text - The raw test to hash
+ * @returns A bcrypt hash of the text
+ */
+export async function hashText(text: string): Promise<string> {
+  return await bcrypt.hash(text, SALT_ROUNDS);
+}
+
+/**
+ * Validates an incoming Text against a stored bcrypt hash.
+ * @param incomingText - The text provided by the client
+ * @param storedHash - The bcrypt hash stored in your database
+ * @returns True if the text matches, false otherwise
+ */
+export async function validateApiKey(incomingText: string, storedHash: string): Promise<boolean> {
+  return await bcrypt.compare(incomingText, storedHash);
+}
+
+/**
  * Gets encryption key from config or uses APP_SECRET as fallback
  */
 export function getEncryptionKey(configService: ConfigService): string {
@@ -65,4 +86,6 @@ export function getEncryptionKey(configService: ConfigService): string {
     configService.get<string>('APP_SECRET')!
   );
 }
+
+
 

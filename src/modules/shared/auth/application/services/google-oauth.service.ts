@@ -5,7 +5,7 @@ import { Configkey } from 'src/shared/config-keys';
 import {
   encryptText,
   getEncryptionKey,
-} from 'src/shared/utilities/encryption.util';
+} from 'src/shared/utilities/crypto.util';
 import { TOKEN_REPOSITORY, type ITokenRepository } from '../../domain/token.repository.interface';
 import { AuthToken } from '../../domain/auth-token.model';
 

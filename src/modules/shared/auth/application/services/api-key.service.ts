@@ -1,114 +1,75 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
-
-export interface ApiKeyInfo {
-  key: string;
-  name: string;
-  permissions: string[];
-  roles: string[];
-  rateLimit?: number;
-  expiresAt?: Date;
-  createdAt: Date;
-  lastUsedAt?: Date;
-}
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { API_KEY_REPOSITORY } from '../../domain/api-key.repository.interface';
+import type { IApiKeyRepository } from '../../domain/api-key.repository.interface';
+import { ApiKey } from '../../domain/api-key.model';
+import { hashText } from 'src/shared/utilities/crypto.util';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ApiKeyService {
-  // In production, store these in database
-  private apiKeys = new Map<string, ApiKeyInfo>();
+  private apiKeys = new Map<string, ApiKey>();
 
-  constructor(private config: ConfigService) {
-    // Load API keys from environment or database
-    this.initializeApiKeys();
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    @Inject(API_KEY_REPOSITORY) private readonly apiKeyRepository: IApiKeyRepository
+  ) {
   }
 
-  private initializeApiKeys() {
-    // Example: Load from environment
-    const masterKey = this.config.get<string>('MASTER_API_KEY');
-    if (masterKey) {
-      this.apiKeys.set(masterKey, {
-        key: masterKey,
-        name: 'Master Key',
-        permissions: ['*'], // All permissions
-        roles: ['admin'],
-        createdAt: new Date(),
-      });
-    }
-  }
-
-  async validateApiKey(apiKey: string): Promise<ApiKeyInfo> {
+  async validateApiKey(apiKey: string): Promise<ApiKey> {
     if (!apiKey) {
       throw new UnauthorizedException('API key is required');
     }
-
-    // In production: Query database
-    const keyInfo = this.apiKeys.get(apiKey);
+     console.log(apiKey)
+     const keyId = ApiKey.fetchKeyId(apiKey);
+    const keyInfo = this.apiKeys.get(keyId) ?? await this.apiKeyRepository.findByKeyId(keyId);
 
     if (!keyInfo) {
       throw new UnauthorizedException('Invalid API key');
     }
 
     // Check if key is expired
-    if (keyInfo.expiresAt && keyInfo.expiresAt < new Date()) {
+    if (keyInfo.isExpired()) {
+      this.apiKeys.delete(keyId);
       throw new UnauthorizedException('API key has expired');
     }
 
     // Update last used timestamp (in production: async update)
-    keyInfo.lastUsedAt = new Date();
+    keyInfo.used();
+    this.eventEmitter.emit('api-key.used', keyInfo);
+
+    if (!this.apiKeys.has(keyId)) {
+      this.apiKeys.set(keyId, keyInfo);
+    }
 
     return keyInfo;
   }
 
-  generateApiKey(
+  async generateApiKey(
     name: string,
     permissions: string[],
-    roles: string[] = [],
-    expiresInDays?: number,
-  ): ApiKeyInfo {
+    expiresAt?: Date,
+  ): Promise<{ keyInfo: ApiKey, token: string }> {
+
     // Generate secure random key
-    const apiKey = this.generateSecureKey();
+    const { keyInfo, token } = await ApiKey.create({
+      name: name,
+      permissions: permissions,
+      expiresAt: expiresAt,
+    });
 
-    const keyInfo: ApiKeyInfo = {
-      key: apiKey,
-      name,
-      permissions,
-      roles,
-      createdAt: new Date(),
-      expiresAt: expiresInDays
-        ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
-        : undefined,
-    };
-
-    // In production: Save to database
-    this.apiKeys.set(apiKey, keyInfo);
-
-    return keyInfo;
+    this.apiKeys.set(keyInfo.key, keyInfo);
+    await this.apiKeyRepository.create(keyInfo);
+    return { keyInfo, token };
   }
 
-  private generateSecureKey(length: number = 32): string {
-    // Generate cryptographically secure random key
-    const buffer = crypto.randomBytes(length);
-    return `sk_${buffer.toString('base64url')}`; // sk_ prefix for identification
+
+  async revokeApiKey(id: string): Promise<boolean> {
+    const apiKeyInfo = await this.apiKeyRepository.findById(id);
+    await this.apiKeyRepository.delete(id)
+    return this.apiKeys.delete(apiKeyInfo?.key!);
   }
 
-  async revokeApiKey(apiKey: string): Promise<boolean> {
-    // In production: Mark as revoked in database
-    return this.apiKeys.delete(apiKey);
-  }
-
-  async listApiKeys(): Promise<ApiKeyInfo[]> {
-    // In production: Query database
-    // Never return actual keys, only metadata
-    return Array.from(this.apiKeys.values()).map(key => ({
-      ...key,
-      key: this.maskApiKey(key.key),
-    }));
-  }
-
-  private maskApiKey(key: string): string {
-    // Show only first and last 4 characters
-    if (key.length <= 8) return '***';
-    return `${key.slice(0, 7)}...${key.slice(-4)}`;
+  async listApiKeys(): Promise<ApiKey[]> {
+    return await this.apiKeyRepository.findAll();
   }
 }
