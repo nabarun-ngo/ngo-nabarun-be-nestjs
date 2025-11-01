@@ -7,14 +7,18 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { CreateUserDto, UserDto } from '../../application/dto/create-user.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
-import { Public } from 'src/modules/shared/auth/application/decorators/public.decorator';
+import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
 
+@ApiSecurity('api-key') // Apply the 'api-key' security definition
+@ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
+@UseApiKey()
 export class UserController {
   constructor(private readonly createUserUseCase: CreateUserUseCase) {}
 

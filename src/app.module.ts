@@ -27,7 +27,7 @@ import { AuthModule } from './modules/shared/auth/auth.module';
       postgresUrl: process.env.POSTGRES_URL,
     }),
     UserModule,
-   AuthModule
+    AuthModule
   ],
 })
 export class AppModule { }

@@ -5,6 +5,7 @@ import { USER_REPOSITORY } from './domain/repositories/user.repository.interface
 import UserRepository from './infrastructure/persistence/user.repository';
 import { UserEventsHandler } from './application/handlers/user-events.handler';
 import { UserJobsHandler } from './application/handlers/user-jobs.handler';
+import { AuthModule } from '../shared/auth/auth.module';
 
 @Module({
   controllers: [UserController],

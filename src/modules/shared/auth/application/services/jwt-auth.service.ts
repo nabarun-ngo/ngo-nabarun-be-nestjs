@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import * as jose from 'jose';
 import { Configkey } from 'src/shared/config-keys';
 
-export interface Auth0User {
+export interface AuthUser {
   sub: string;
   email?: string;
   email_verified?: boolean;
@@ -19,7 +19,8 @@ export interface Auth0User {
 }
 
 @Injectable()
-export class AuthService implements OnModuleInit {
+export class JwtAuthService implements OnModuleInit {
+ 
   private jwks: jose.JWTVerifyGetKey;
   private readonly issuer: string;
   private readonly audience: string;
@@ -40,7 +41,7 @@ export class AuthService implements OnModuleInit {
     );
   }
 
-  async verifyToken(token: string): Promise<Auth0User> {
+  async verifyToken(token: string): Promise<AuthUser> {
     try {
       // Verify JWT with jose - single function call!
       const { payload } = await jose.jwtVerify(token, this.jwks, {
@@ -49,7 +50,7 @@ export class AuthService implements OnModuleInit {
         algorithms: ['RS256'], // Auth0 uses RS256
       });
 
-      return payload as Auth0User;
+      return payload as AuthUser;
     } catch (error) {
       // jose provides specific error types
       if (error.code === 'ERR_JWT_EXPIRED') {
@@ -64,6 +65,5 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Token verification failed');
     }
   }
-
   
 }
