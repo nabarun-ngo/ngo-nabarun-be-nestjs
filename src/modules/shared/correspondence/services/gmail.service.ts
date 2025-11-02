@@ -1,31 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleOAuthService } from '../../auth/application/services/google-oauth.service';
 import { gmail as googleMail } from '@googleapis/gmail';
+import { EmailOptions, SendEmailResult } from '../dtos/email.dto';
 
-export interface EmailOptions {
-  to: string | string[];
-  subject: string;
-  text?: string;
-  html?: string;
-  cc?: string | string[];
-  bcc?: string | string[];
-  attachments?: Array<{
-    filename: string;
-    content: Buffer | string;
-    contentType?: string;
-  }>;
-  replyTo?: string;
-}
 
-export interface SendEmailResult {
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}
 
 @Injectable()
 export class GmailService {
   private readonly logger = new Logger(GmailService.name);
+  private readonly scope = 'https://www.googleapis.com/auth/gmail.send';
 
   constructor(private readonly googleOAuthService: GoogleOAuthService) { }
 
@@ -33,67 +16,57 @@ export class GmailService {
    * Send an email using Gmail API
    */
   async sendEmail(
-    userId: string,
-    fromEmail: string,
+    html: string,
     options: EmailOptions,
+    fromEmail: string,
   ): Promise<SendEmailResult> {
-    try {
-      const oauth2Client =
-        await this.googleOAuthService.getAuthenticatedClient(userId, fromEmail);
+    const oauth2Client = await this.googleOAuthService.getAuthenticatedClient(this.scope);
+    const gmail = googleMail({ version: 'v1', auth: oauth2Client });
+    const message = this.buildEmailMessage({ html: html }, options, fromEmail);
+    // Send email
+    const response = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: {
+        raw: message,
+      },
+    });
 
-      const gmail = googleMail({ version: 'v1', auth: oauth2Client });
+    const messageId = response.data.id;
+    this.logger.log(
+      `Email sent successfully. Message ID: ${messageId}, To: ${Array.isArray(options.recipients.to) ? options.recipients.to.join(', ') : options.recipients.to}`,
+    );
 
-      // Build email message
-      const message = this.buildEmailMessage(fromEmail, options);
-
-      // Send email
-      const response = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: message,
-        },
-      });
-
-      const messageId = response.data.id;
-
-      this.logger.log(
-        `Email sent successfully. Message ID: ${messageId}, To: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
-      );
-
-      return {
-        success: true,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to send email: ${error.message}`,
-        error.stack,
-      );
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    return {
+      success: true,
+      messageId: messageId!
+    };
   }
 
   /**
    * Build RFC 2822 email message
    */
-  private buildEmailMessage(fromEmail: string, options: EmailOptions): string {
+  private buildEmailMessage(content: { text?: string, html?: string }, options: EmailOptions, fromEmail: string,): string {
     const lines: string[] = [];
 
     // Headers
-    lines.push(`From: ${fromEmail}`);
-    lines.push(`To: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
+    if (fromEmail) {
+      lines.push(`From: ${fromEmail}`);
+    }
 
-    if (options.cc) {
+    if (options.recipients.to) {
+      lines.push(`To: ${Array.isArray(options.recipients.to) ? options.recipients.to?.join(', ') : options.recipients.to}`);
+
+    }
+
+    if (options.recipients.cc) {
       lines.push(
-        `Cc: ${Array.isArray(options.cc) ? options.cc.join(', ') : options.cc}`,
+        `Cc: ${Array.isArray(options.recipients.cc) ? options.recipients.cc?.join(', ') : options.recipients.cc}`,
       );
     }
 
-    if (options.bcc) {
+    if (options.recipients.bcc) {
       lines.push(
-        `Bcc: ${Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc}`,
+        `Bcc: ${Array.isArray(options.recipients.bcc) ? options.recipients.bcc.join(', ') : options.recipients.bcc}`,
       );
     }
 
@@ -108,7 +81,7 @@ export class GmailService {
     lines.push('MIME-Version: 1.0');
 
     // Determine content type and build message body
-    if (options.html && options.attachments && options.attachments.length > 0) {
+    if (content.html && options.attachments && options.attachments.length > 0) {
       // Multipart message with HTML and attachments
       const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
       lines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
@@ -119,15 +92,15 @@ export class GmailService {
       lines.push('Content-Type: multipart/alternative; boundary="alt"');
       lines.push('');
       lines.push('--alt');
-      if (options.text) {
+      if (content.text) {
         lines.push('Content-Type: text/plain; charset=utf-8');
         lines.push('');
-        lines.push(options.text);
+        lines.push(content.text);
         lines.push('--alt');
       }
       lines.push('Content-Type: text/html; charset=utf-8');
       lines.push('');
-      lines.push(options.html);
+      lines.push(content.html);
       lines.push('--alt--');
 
       // Attachments
@@ -150,9 +123,9 @@ export class GmailService {
         lines.push(...base64Lines);
       }
       lines.push(`--${boundary}--`);
-    } else if (options.html) {
+    } else if (content.html) {
       // HTML only
-      if (options.text) {
+      if (content.text) {
         // Both HTML and text - use multipart/alternative
         const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substring(2)}`;
         lines.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
@@ -160,23 +133,23 @@ export class GmailService {
         lines.push(`--${boundary}`);
         lines.push('Content-Type: text/plain; charset=utf-8');
         lines.push('');
-        lines.push(options.text);
+        lines.push(content.text);
         lines.push(`--${boundary}`);
         lines.push('Content-Type: text/html; charset=utf-8');
         lines.push('');
-        lines.push(options.html);
+        lines.push(content.html);
         lines.push(`--${boundary}--`);
       } else {
         // HTML only
         lines.push('Content-Type: text/html; charset=utf-8');
         lines.push('');
-        lines.push(options.html);
+        lines.push(content.html);
       }
-    } else if (options.text) {
+    } else if (content.text) {
       // Text only
       lines.push('Content-Type: text/plain; charset=utf-8');
       lines.push('');
-      lines.push(options.text);
+      lines.push(content.text);
     } else {
       throw new Error('Either text or html content must be provided');
     }
@@ -191,40 +164,6 @@ export class GmailService {
       .replace(/=+$/, '');
   }
 
-  /**
-   * Send a simple text email
-   */
-  async sendTextEmail(
-    userId: string,
-    fromEmail: string,
-    to: string | string[],
-    subject: string,
-    text: string,
-  ): Promise<SendEmailResult> {
-    return this.sendEmail(userId, fromEmail, {
-      to,
-      subject,
-      text,
-    });
-  }
 
-  /**
-   * Send an HTML email
-   */
-  async sendHtmlEmail(
-    userId: string,
-    fromEmail: string,
-    to: string | string[],
-    subject: string,
-    html: string,
-    text?: string,
-  ): Promise<SendEmailResult> {
-    return this.sendEmail(userId, fromEmail, {
-      to,
-      subject,
-      html,
-      text,
-    });
-  }
 }
 

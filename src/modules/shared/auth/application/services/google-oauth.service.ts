@@ -182,7 +182,10 @@ export class GoogleOAuthService {
     if (!credentials.access_token) {
       throw new Error('Failed to refresh access token');
     }
-
+    await tokenRecord.update({
+      accessToken: credentials.access_token!,
+      expiresAt: credentials.expiry_date!
+    }, encryptionKey)
     // Encrypt and update token
     await this.tokenRepository.update(tokenRecord.id, tokenRecord);
     this.logger.log(
@@ -204,7 +207,7 @@ export class GoogleOAuthService {
     // Decrypt access token to revoke
     const encryptionKey = this.configService.get<string>(
       Configkey.APP_SECRET
-    )!; 
+    )!;
     try {
       await this.oauth2Client.revokeToken(await tokenRecord.getAccessToken(encryptionKey));
       this.logger.log(`Revoked token`);
@@ -223,12 +226,12 @@ export class GoogleOAuthService {
    * Get OAuth2Client with valid credentials for a user
    */
   async getAuthenticatedClient(
-    clientId: string,
     scope: string,
+    clientId: string = this.clientId,
   ): Promise<OAuth2Client> {
     const accessToken = await this.getValidAccessToken(clientId, scope);
     this.oauth2Client.setCredentials({
-      access_token: accessToken,
+      access_token: accessToken
     });
     return this.oauth2Client;
   }

@@ -68,14 +68,14 @@ export class AuthToken extends AggregateRoot<string> {
   async update(
     data: {
       accessToken: string;
-      expiresAt: Date;
+      expiresAt: number;
       tokenType?: string;
     },
     encryptionKey: string,
   ): Promise<AuthToken> {
     this._accessToken = await encryptText(data.accessToken, encryptionKey);
     this._tokenType = data.tokenType;
-    this._expiresAt = data.expiresAt;
+    this._expiresAt = new Date(data.expiresAt);
     this.touch();
     return this;
   }

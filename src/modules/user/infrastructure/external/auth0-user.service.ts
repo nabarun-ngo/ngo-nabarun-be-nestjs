@@ -135,27 +135,27 @@ export class Auth0UserService {
     return UserMapper.toAuthUser(updated);
   }
 
-  // async updateUser(id: string, user: Partial<User>): Promise<User> {
-  //   try {
-  //     const response = await this.managementClient.users.update(
-  //       { id },
-  //       { ...user },
-  //     );
-  //     return response.data;
-  //   } catch (e) {
-  //     this.logger.error(`Failed to update user ${id}: ${e.message}`, e.stack);
-  //     throw new ThirdPartyException('Could not update user.', e);
-  //   }
-  // }
+  async updateUser(id: string, user: Partial<User>): Promise<User> {
+    try {
+      const response = await this.managementClient.users.update(
+       id,
+        { ...user },
+      );
+      return response.data;
+    } catch (e) {
+      this.logger.error(`Failed to update user ${id}: ${e.message}`, e.stack);
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
 
-  // async deleteUser(id: string): Promise<void> {
-  //   try {
-  //     await this.managementClient.users.delete({ id });
-  //   } catch (e) {
-  //     this.logger.error(`Failed to delete user ${id}: ${e.message}`, e.stack);
-  //     throw new ThirdPartyException('Could not delete user.', e);
-  //   }
-  // }
+  async deleteUser(id: string): Promise<void> {
+    try {
+      await this.managementClient.users.delete( id );
+    } catch (e) {
+      this.logger.error(`Failed to delete user ${id}: ${e.message}`, e.stack);
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
 
   async assignRolesToUser(userId: string, roleIds: string[]): Promise<void> {
     try {
@@ -186,20 +186,20 @@ export class Auth0UserService {
     }
   }
 
-  // async assignUsersToRole(roleId: string, userIds: string[]): Promise<void> {
-  //   try {
-  //     await this.managementClient.roles.assignUsers(
-  //       { id: roleId },
-  //       { users: userIds },
-  //     );
-  //   } catch (e) {
-  //     this.logger.error(
-  //       `Failed to assign users to role ${roleId}: ${e.message}`,
-  //       e.stack,
-  //     );
-  //     throw new ThirdPartyException('Could not assign users to role.', e);
-  //   }
-  // }
+  async assignUsersToRole(roleId: string, userIds: string[]): Promise<void> {
+    try {
+      await this.managementClient.roles.users.assign(
+        roleId,
+        { users: userIds },
+      );
+    } catch (e) {
+      this.logger.error(
+        `Failed to assign users to role ${roleId}: ${e.message}`,
+        e.stack,
+      );
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
 
   async getRoles(): Promise<Role[]> {
     const cachedRoles = await this.cacheManager.get<Auth0Role[]>('ALL_ROLES');
@@ -248,42 +248,6 @@ export class Auth0UserService {
   //       e.stack,
   //     );
   //     throw new ThirdPartyException('Could not fetch scopes.', e);
-  //   }
-  // }
-
-  // async linkIdentity(
-  //   primaryId: string,
-  //   secondaryId: string,
-  //   provider: string,
-  //   connectionId?: string,
-  // ): Promise<void> {
-  //   try {
-  //     await this.managementClient.users.link(
-  //       { id: primaryId },
-  //       { user_id: secondaryId, provider, connection_id: connectionId },
-  //     );
-  //   } catch (e) {
-  //     this.logger.error(
-  //       `Failed to link identity for user ${primaryId}: ${e.message}`,
-  //       e.stack,
-  //     );
-  //     throw new ThirdPartyException('Could not link user identity.', e);
-  //   }
-  // }
-
-  // async unlinkIdentity(
-  //   primaryId: string,
-  //   provider: string,
-  //   secondaryUserId: string,
-  // ): Promise<void> {
-  //   try {
-  //     await this.managementClient.userBlocks.unblock({ id: primaryId });
-  //   } catch (e) {
-  //     this.logger.error(
-  //       `Failed to unlink identity for user ${primaryId}: ${e.message}`,
-  //       e.stack,
-  //     );
-  //     throw new ThirdPartyException('Could not unlink user identity.', e);
   //   }
   // }
 

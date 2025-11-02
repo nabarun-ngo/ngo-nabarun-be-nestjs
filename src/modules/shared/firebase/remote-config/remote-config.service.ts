@@ -50,4 +50,6 @@ export class RemoteConfigService {
     await this.cacheManager.set('REMOTE_CONFIG_PARAMS', result);
     return result;
   }
+
+  
 }

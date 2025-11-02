@@ -106,7 +106,7 @@ export class User extends AggregateRoot<string> {
 
   public createPassword() {
     return generatePassword({
-      length: 8,
+      length: 14,
       includeUppercase: true,
       includeLowercase: true,
       includeNumbers: true,

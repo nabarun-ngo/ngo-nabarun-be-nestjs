@@ -8,10 +8,11 @@ import { UserJobsHandler } from './application/handlers/user-jobs.handler';
 import { Auth0UserService } from './infrastructure/external/auth0-user.service';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { UserMetadataService } from './infrastructure/external/user-metadata.service';
+import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 
 @Module({
   controllers: [UserController],
-  imports: [FirebaseModule],
+  imports: [FirebaseModule,CorrespondenceModule],
   providers: [
     CreateUserUseCase,
     {

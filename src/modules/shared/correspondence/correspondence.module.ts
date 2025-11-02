@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { GmailService } from './services/gmail.service';
 import { CorrespondenceService } from './services/correspondence.service';
 import { FirebaseModule } from '../firebase/firebase.module';
+import helpers from 'handlebars-helpers';
+import Handlebars from "handlebars";
+
+// Register all helpers
+helpers({ handlebars: Handlebars });
 
 @Module({
-  imports: [ConfigModule,FirebaseModule],
+  imports: [FirebaseModule],
   controllers: [],
-  providers: [GmailService, CorrespondenceService],
+  providers: [
+    GmailService, CorrespondenceService],
   exports: [CorrespondenceService],
 })
-export class CorrespondenceModule {}
+export class CorrespondenceModule { }
 

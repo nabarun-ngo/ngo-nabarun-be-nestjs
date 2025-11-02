@@ -8,7 +8,8 @@ import { Auth0UserService } from "../../infrastructure/external/auth0-user.servi
 import { USER_REPOSITORY } from "../../domain/repositories/user.repository.interface";
 import type { IUserRepository } from "../../domain/repositories/user.repository.interface";
 import { Role } from "../../domain/model/role.model";
-import { User } from "../../domain/model/user.model";
+import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
+import { EmailTemplateName } from "src/modules/shared/correspondence/dtos/email.dto";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -21,7 +22,8 @@ export class UserJobsHandler {
   constructor(
     private readonly metadataService: UserMetadataService,
     private readonly auth0UserService: Auth0UserService,
-    @Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository
+    @Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository,
+    private readonly corrService: CorrespondenceService
 
   ) { }
 
@@ -39,12 +41,21 @@ export class UserJobsHandler {
     password: string,
   }>): Promise<JobResult> {
     try {
-      this.logger.log(`Processing email job: ${job.id} to ${job.data.name} , ${job.data.email} Password ${job.data.password}`);
-
-      // Simulate email sending
-
+      this.logger.log(`Processing email job: ${job.id}`);
+      const result = await this.corrService.sendTemplatedEmail({
+        templateName: EmailTemplateName.USER_ONBOARDED,
+        data: {
+          name: job.data.name,
+          password: job.data.password,
+        },
+        options: {
+          recipients: {
+            to: job.data.email,
+          }
+        }
+      });
       this.logger.log(`Email sent successfully: ${job.id}`);
-      return jobSuccessResponse({ messageId: `email-${job.id}` });
+      return jobSuccessResponse({ messageId: `email-${job.id}`, result});
     } catch (error) {
       this.logger.error(`Failed to send email: ${job.id}`, error);
       return jobFailureResponse(error);
@@ -59,7 +70,7 @@ export class UserJobsHandler {
       delay: 2000,
     },
   })
-  async updateUserRole(job: Job<{userId: string; newRoles: Role[];}>) {
+  async updateUserRole(job: Job<{ userId: string; newRoles: Role[]; }>) {
     try {
       const user = await this.userRepo.findById(job.data.userId);
       if (!user) {
@@ -87,6 +98,8 @@ export class UserJobsHandler {
         await this.userRepo.updateRoles(user?.id!, user.getRoles() as Role[]);
       }
 
+      //send role updated email
+
       return jobSuccessResponse({
         userId: user.id,
         authUserId: user.authUserId,
@@ -98,6 +111,6 @@ export class UserJobsHandler {
     }
   }
 
-  
+
 }
 
