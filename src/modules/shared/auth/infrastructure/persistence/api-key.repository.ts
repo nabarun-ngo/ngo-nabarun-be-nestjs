@@ -7,10 +7,8 @@ import { ApiKey } from "../../domain/api-key.model";
 export class ApiKeyRepository implements IApiKeyRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
     async findByKeyId(key: string): Promise<ApiKey | null> {
-        const apiKey = await this.prisma.apiKey.findFirst({
-            where: {
-                apiKeyId: key
-            }
+        const apiKey = await this.prisma.apiKey.findUnique({
+            where: { apiKeyId: key }
         })
         return apiKey ? this.toApiKey(apiKey!) : null;
     }
@@ -27,7 +25,7 @@ export class ApiKeyRepository implements IApiKeyRepository {
     }
 
     async findById(id: string): Promise<ApiKey | null> {
-        const apiKey = await this.prisma.apiKey.findFirst({
+        const apiKey = await this.prisma.apiKey.findUnique({
             where: {
                 id: id
             }

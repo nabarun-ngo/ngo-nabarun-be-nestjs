@@ -6,10 +6,12 @@ import UserRepository from './infrastructure/persistence/user.repository';
 import { UserEventsHandler } from './application/handlers/user-events.handler';
 import { UserJobsHandler } from './application/handlers/user-jobs.handler';
 import { Auth0UserService } from './infrastructure/external/auth0-user.service';
+import { FirebaseModule } from '../shared/firebase/firebase.module';
+import { UserMetadataService } from './infrastructure/external/user-metadata.service';
 
 @Module({
   controllers: [UserController],
-  imports: [],
+  imports: [FirebaseModule],
   providers: [
     CreateUserUseCase,
     {
@@ -18,7 +20,8 @@ import { Auth0UserService } from './infrastructure/external/auth0-user.service';
     },
     Auth0UserService,
     UserEventsHandler,
-    UserJobsHandler
+    UserJobsHandler,
+    UserMetadataService
   ],
   exports: [],
 })

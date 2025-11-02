@@ -132,6 +132,7 @@ export class UserMapper {
       aadharNumber: user.aadharNumber ?? null,
       donationPauseStart: user.donationPauseStart ?? null,
       donationPauseEnd: user.donationPauseEnd ?? null,
+      deletedAt : null
     };
   }
 

@@ -9,6 +9,7 @@ import { BusinessException } from '../../../../shared/exceptions/business-except
 import { toUserDTO } from '../dto/mapper';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';
+import { UserMetadataService } from '../../infrastructure/external/user-metadata.service';
 
 @Injectable()
 export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
@@ -17,6 +18,7 @@ export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
     private readonly userRepository: IUserRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly auth0User: Auth0UserService,
+    private readonly metadataService: UserMetadataService
   ) {}
 
   async execute(request: CreateUserDto): Promise<UserDto> {
@@ -38,12 +40,11 @@ export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
       isTemporary: request.isTemporary || false,
     });
 
+    user.changeStatus(UserStatus.ACTIVE);
     const auth0User = await this.auth0User.createUser(user, false);
 
     user.updateAdmin({
-      status: UserStatus.ACTIVE,
       userId: auth0User.id,
-      roles: [],
     });
 
     // Save to repository

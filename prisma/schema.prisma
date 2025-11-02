@@ -43,10 +43,13 @@ model UserProfile {
   donationPauseStart DateTime?
   donationPauseEnd   DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  version   BigInt   @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   BigInt    @default(0)
+  deletedAt DateTime?
 
+  @@index([email])
+  @@index([authUserId])
   @@map("user_profiles")
 }
 
@@ -87,7 +90,7 @@ model Link {
   id        String @id @default(uuid())
   linkName  String @db.VarChar(20)
   linkType  String @db.VarChar(20)
-  linkValue String @db.VarChar(50)
+  linkValue String @db.Text
 
   // Relation to UserProfile (UserEntity in JPA)
   user   UserProfile? @relation(fields: [userId], references: [id])
@@ -142,7 +145,7 @@ model ApiKey {
   id          String    @id @default(uuid())
   name        String    @db.VarChar(20)
   apiKey      String    @db.Text
-  apiKeyId    String   @db.VarChar(50)
+  apiKeyId    String    @unique @db.VarChar(50)
   permissions String    @db.Text
   rateLimit   BigInt?   @db.BigInt()
   expiresAt   DateTime?

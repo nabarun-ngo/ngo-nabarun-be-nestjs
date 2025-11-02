@@ -32,7 +32,10 @@ export interface SimpleJobOptions {
 export interface JobResult<T = any> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: {
+    message: string;
+    stack?: string;
+  };
   metadata?: Record<string, any>;
 }
 

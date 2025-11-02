@@ -24,10 +24,6 @@ export class Role extends BaseDomain<string> {
    * getters
    */
 
-  get id(): string {
-    return this._id;
-  }
-
   get roleCode(): string {
     return this._roleCode;
   }

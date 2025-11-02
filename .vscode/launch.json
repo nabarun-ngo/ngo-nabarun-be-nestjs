@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug NestJS Framework",
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "npm: build", // Optional: if you need to build before debugging
+      "program": "${workspaceFolder}/src/main.ts", // Adjust if your entry file is different
+      "console": "integratedTerminal",
+      "restart": true // Optional: automatically restart on file changes
+    }
+  ]
+}

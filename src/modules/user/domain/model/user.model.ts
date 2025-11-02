@@ -18,7 +18,6 @@ export enum LoginMethod {
   PASSWORD = 'PASSWORD',
 }
 
-@Expose()
 export class User extends AggregateRoot<string> {
   private _fullName: string;
   private _initials: string;
@@ -190,11 +189,11 @@ export class User extends AggregateRoot<string> {
     newRoles: Role[],
     defaultRoles: Role[],
   ): { toAdd: Role[]; toRemove: Role[] } {
-    if (!newRoles) return { toAdd: [], toRemove: [] };
+   //if (!newRoles) return { toAdd: [], toRemove: [] };
 
     const activeRoles = this._roles.filter((r) => !r.expireAt);
-    const currentRoles = [...activeRoles];
-    const incomingRoles = [...newRoles];
+    const currentRoles = activeRoles ? [...activeRoles] :[];
+    const incomingRoles = newRoles ? [...newRoles] : [];
 
     // Ensure default roles are always present
     defaultRoles?.forEach((dr) => {
@@ -217,7 +216,7 @@ export class User extends AggregateRoot<string> {
       if (!role.expireAt) role.expire();
     });
 
-    this._roles.push(...newRoles);
+    this._roles.push(...incomingRoles);
     return { toAdd, toRemove };
   }
 

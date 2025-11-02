@@ -70,16 +70,21 @@ export class ApiKey extends AggregateRoot<string> {
 
     private static generateSecureKey(length: number = 32): string {
         const buffer = crypto.randomBytes(length);
-        const keyId = crypto.randomBytes(length).toString('base64', 0, 12).replaceAll("_", ""); 
+        const keyId = crypto.randomBytes(length).toString('base64', 0, 12).replaceAll("_", "");
         return `sk_${keyId}_${buffer.toString('base64url')}`;
     }
 
     static fetchKeyId(apiKey: string): string {
-        const parts = apiKey.split('_');
-        if (parts.length < 3 || parts[0] !== 'sk') {
-            throw new Error('Invalid API key format');
+        try {
+            const parts = apiKey.split('_');
+            if (parts.length < 3 || parts[0] !== 'sk') {
+                throw new Error('Invalid API key format');
+            }
+            return parts[1];
+        } catch (e) {
+            return '';
         }
-        return parts[1];
+
     }
 
 

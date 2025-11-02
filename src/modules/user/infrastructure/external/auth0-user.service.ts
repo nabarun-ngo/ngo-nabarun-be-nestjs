@@ -1,19 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ThirdPartyException } from '../../../../shared/exceptions/third-party-exception';
 import { LoginMethod, User, UserStatus } from '../../domain/model/user.model';
 import { ManagementClient } from 'auth0';
 import { UserMapper } from '../user.mapper';
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
+import { Role } from '../../domain/model/role.model';
+import { CACHE_MANAGER ,Cache } from '@nestjs/cache-manager';
 
 export type Auth0User = Awaited<ReturnType<ManagementClient['users']['get']>>;
+export type Auth0Role = Awaited<ReturnType<ManagementClient['roles']['get']>>;
 
 @Injectable()
 export class Auth0UserService {
   private readonly logger = new Logger(Auth0UserService.name);
   private readonly managementClient: ManagementClient;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService, 
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
+  ) {
     const domain = this.configService.get<string>(Configkey.AUTH0_DOMAIN)!;
     const clientId = this.configService.get<string>(Configkey.AUTH0_MANAGEMENT_CLIENT_ID)!;
     const clientSecret = this.configService.get<string>(Configkey.AUTH0_MANAGEMENT_CLIENT_SECRET)!;
@@ -152,35 +157,34 @@ export class Auth0UserService {
   //   }
   // }
 
-  // async assignRolesToUser(userId: string, roleIds: string[]): Promise<void> {
-  //   try {
-  //     await this.managementClient.users.assignRoles(
-  //       { id: userId },
-  //       { roles: roleIds },
-  //     );
-  //   } catch (e) {
-  //     this.logger.error(
-  //       `Failed to assign roles to user ${userId}: ${e.message}`,
-  //       e.stack,
-  //     );
-  //     throw new ThirdPartyException('Could not assign roles to user.', e);
-  //   }
-  // }
+  async assignRolesToUser(userId: string, roleIds: string[]): Promise<void> {
+    try {
+      await this.managementClient.users.roles.assign(userId, {
+        roles: roleIds
+      });
+      this.logger.log(`Assigned roles ${roleIds} to user ${userId}`);
+    } catch (e) {
+      this.logger.error(
+        `Failed to assign roles to user ${userId}: ${e.message}`,
+        e.stack,
+      );
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
 
-  // async removeRolesFromUser(userId: string, roleIds: string[]): Promise<void> {
-  //   try {
-  //     await this.managementClient.users.removeRoles(
-  //       { id: userId },
-  //       { roles: roleIds },
-  //     );
-  //   } catch (e) {
-  //     this.logger.error(
-  //       `Failed to remove roles from user ${userId}: ${e.message}`,
-  //       e.stack,
-  //     );
-  //     throw new ThirdPartyException('Could not remove roles from user.', e);
-  //   }
-  // }
+  async removeRolesFromUser(userId: string, roleIds: string[]): Promise<void> {
+    try {
+      await this.managementClient.users.roles.delete(userId,
+        { roles: roleIds }
+      );
+    } catch (e) {
+      this.logger.error(
+        `Failed to remove roles from user ${userId}: ${e.message}`,
+        e.stack,
+      );
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
 
   // async assignUsersToRole(roleId: string, userIds: string[]): Promise<void> {
   //   try {
@@ -197,15 +201,21 @@ export class Auth0UserService {
   //   }
   // }
 
-  // async getRoles(): Promise<RolesResponse['roles']> {
-  //   try {
-  //     const response = await this.managementClient.roles.getAll();
-  //     return response.data.roles;
-  //   } catch (e) {
-  //     this.logger.error(`Failed to get roles: ${e.message}`, e.stack);
-  //     throw new ThirdPartyException('Could not fetch roles.', e);
-  //   }
-  // }
+  async getRoles(): Promise<Role[]> {
+    const cachedRoles = await this.cacheManager.get<Auth0Role[]>('ALL_ROLES');
+    var allRoles =  cachedRoles ?? (await this.managementClient.roles.list()).data;
+    if(!cachedRoles){
+      await this.cacheManager.set<Auth0Role[]>('ALL_ROLES',allRoles);
+    }
+    try {
+      return allRoles.map((role) => {
+        return new Role(role.id!, role.name!, role.description!, role.name!);
+      });      
+    } catch (e) {
+      this.logger.error(`Failed to get roles: ${e.message}`, e.stack);
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
 
   // async loginWithUser(options: LoginWithPasswordOptions) {
   //   try {
