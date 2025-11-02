@@ -9,7 +9,7 @@ import { USER_REPOSITORY } from "../../domain/repositories/user.repository.inter
 import type { IUserRepository } from "../../domain/repositories/user.repository.interface";
 import { Role } from "../../domain/model/role.model";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
-import { EmailTemplateName } from "src/modules/shared/correspondence/dtos/email.dto";
+import { EmailTemplateName, SendEmailResult } from "src/modules/shared/correspondence/dtos/email.dto";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,6 +46,7 @@ export class UserJobsHandler {
         templateName: EmailTemplateName.USER_ONBOARDED,
         data: {
           name: job.data.name,
+          email: job.data.email,
           password: job.data.password,
         },
         options: {
@@ -55,7 +56,7 @@ export class UserJobsHandler {
         }
       });
       this.logger.log(`Email sent successfully: ${job.id}`);
-      return jobSuccessResponse({ messageId: `email-${job.id}`, result});
+      return jobSuccessResponse({ messageId: `email-${job.id}`, result });
     } catch (error) {
       this.logger.error(`Failed to send email: ${job.id}`, error);
       return jobFailureResponse(error);
@@ -98,13 +99,32 @@ export class UserJobsHandler {
         await this.userRepo.updateRoles(user?.id!, user.getRoles() as Role[]);
       }
 
-      //send role updated email
+      let emailResult={};
+      if (user.getRoles().length > 0) {
+        //send role updated email
+        emailResult =await this.corrService.sendTemplatedEmail({
+          templateName: EmailTemplateName.ROLE_ASSIGNED,
+          data: {
+            assigneeName: user.fullName,
+            roleNames: user.getRoles().map(role => role.roleName).join(', '),
+            assignedBy: '',
+            effectiveDate: user.getRoles()[0].createdAt.toISOString()
+          },
+          options: {
+            recipients: {
+              to: user.email,
+            }
+          }
+        })
+      }
+
 
       return jobSuccessResponse({
         userId: user.id,
         authUserId: user.authUserId,
         roleIdsToAdd,
-        roleIdsToRemove
+        roleIdsToRemove,
+        emailResult
       });
     } catch (error) {
       return jobFailureResponse(error);
