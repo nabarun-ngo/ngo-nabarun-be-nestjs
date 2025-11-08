@@ -9,6 +9,12 @@ generator client {
   output   = "../generated/prisma"
 }
 
+generator prismaClassGenerator {
+    provider = "prisma-class-generator"
+    output   = "../generated/prisma/classes"
+    dryRun = false
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("POSTGRES_URL")
@@ -30,6 +36,8 @@ model UserProfile {
   phoneNumbers     PhoneNumber[]
   addresses        Address[]
   socialMediaLinks Link[]
+  taskAssignments  TaskAssignment[]
+  tasks            WorkflowTask[]
 
   email              String    @unique @db.VarChar(100)
   isPublic           Boolean?
@@ -47,6 +55,9 @@ model UserProfile {
   updatedAt DateTime  @updatedAt
   version   BigInt    @default(0)
   deletedAt DateTime?
+
+  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
+  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
 
   @@index([email])
   @@index([authUserId])
@@ -156,4 +167,110 @@ model ApiKey {
 
   @@index([apiKeyId])
   @@map("api_keys")
+}
+
+model WorkflowInstance {
+  id            String  @id @default(uuid())
+  name          String
+  type          String  @db.VarChar(50)
+  description   String  @db.Text
+  status        String  @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  currentStepId String? @db.VarChar(100)
+
+  initiatedBy   UserProfile? @relation(name: "InitiatedBy", fields: [initiatedById], references: [id])
+  initiatedById String?
+
+  initiatedFor   UserProfile? @relation(name: "InitiatedFor", fields: [initiatedForId], references: [id])
+  initiatedForId String?
+
+  completedAt DateTime?
+  remarks     String?   @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   BigInt   @default(0)
+
+  steps WorkflowStep[]
+
+  @@index([type, status])
+  @@index([status])
+  @@index([initiatedForId])
+  @@map("workflow_instances")
+}
+
+model WorkflowStep {
+  id              String           @id @default(uuid())
+  instanceId      String
+  instance        WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stepId          String           @db.VarChar(50) // Step ID from definition
+  name            String           @db.VarChar(200)
+  description     String?          @db.Text
+  status          String           @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
+  orderIndex      Int
+  onSuccessStepId String?          @db.VarChar(50)
+  onFailureStepId String?          @db.VarChar(50)
+  failureReason   String?          @db.Text
+  startedAt       DateTime? // When step was started
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tasks WorkflowTask[]
+
+  @@index([instanceId])
+  @@index([instanceId, orderIndex])
+  @@map("workflow_steps")
+}
+
+model WorkflowTask {
+  id             String       @id @default(uuid())
+  stepId         String
+  step           WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  taskId         String       @db.VarChar(50) // Task ID from definition
+  name           String       @db.VarChar(200)
+  description    String?      @db.Text
+  type           String       @db.VarChar(20) // VERIFICATION, APPROVAL, AUTOMATIC
+  status         String       @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
+  handler        String?      @db.VarChar(255) // Handler class name for automatic tasks
+  checklist      String?      @db.Text // JSON checklist data
+  autoCloseable  Boolean?     @db.Boolean
+  autoCloseRefId String?      @db.VarChar(50)
+  jobId          String?      @db.VarChar(255) // Job ID if automatic task
+  resultData     String?      @db.Text // JSON result data
+  completedAt    DateTime?
+  completedBy    String?      @db.VarChar(255)
+  failureReason  String?      @db.Text
+  assignedTo     UserProfile? @relation(fields: [assignedToId], references: [id])
+  assignedToId   String       @db.VarChar(255) // User ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments TaskAssignment[]
+
+  @@index([stepId])
+  @@index([status])
+  @@index([jobId])
+  @@map("workflow_tasks")
+}
+
+model TaskAssignment {
+  id           String       @id @default(uuid())
+  taskId       String
+  task         WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignedTo   UserProfile  @relation(fields: [assignedToId], references: [id])
+  assignedToId String       @db.VarChar(255) // User ID
+  roleName     String?      @db.VarChar(50) // Role name if assigned by role
+  assignedBy   String?      @db.VarChar(255)
+  status       String       @db.VarChar(20) // PENDING, ACCEPTED, REJECTED, COMPLETED
+  acceptedAt   DateTime?
+  completedAt  DateTime?
+  notes        String?      @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([assignedToId, status])
+  @@map("task_assignments")
 }

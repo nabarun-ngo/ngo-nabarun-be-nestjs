@@ -7,6 +7,7 @@ import { DatabaseModule } from './modules/shared/database/database.module';
 import { AuthModule } from './modules/shared/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
+import { WorkflowModule } from './modules/workflow/workflow.module';
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import KeyvRedis from '@keyv/redis';
       postgresUrl: process.env.POSTGRES_URL,
     }),
     UserModule,
-    AuthModule
+    AuthModule,
+    WorkflowModule
   ],
 })
 export class AppModule { }

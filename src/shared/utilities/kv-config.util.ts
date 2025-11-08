@@ -27,3 +27,12 @@ export function parseKeyValueConfigs(
     throw new Error(`Invalid KeyValueConfig JSON: ${err.message}`);
   }
 }
+
+
+export function parsefromString<T>(
+  jsonString: string,
+): T {
+  const raw = JSON.parse(jsonString);
+  return raw as T;
+}
+

@@ -1,37 +1,34 @@
 import { LoginMethod, User, UserStatus } from '../domain/model/user.model';
-import {
-  Address as PrismaAddress,
-  Link as PrismaLink,
-  PhoneNumber as PrismaPhoneNumber,
-  UserProfile,
-  UserRole as PrismaUserRole,
-} from 'generated/prisma';
 import { PhoneNumber } from '../domain/model/phone-number.vo';
 import { Role } from '../domain/model/role.model';
 import { Address } from '../domain/model/address.model';
 import { Link, LinkType } from '../domain/model/link.model';
 import { Auth0User } from './external/auth0-user.service';
+import { Prisma } from 'generated/prisma';
 
-export class UserMapper {
+export class UserInfraMapper {
   static toUser(
-    model: UserProfile,
-    roles?: PrismaUserRole[],
-    phoneNumbers?: PrismaPhoneNumber[],
-    addresses?: PrismaAddress[],
-    socialMediaLinks?: PrismaLink[],
+    model: Prisma.UserProfileGetPayload<{
+      include: {
+        roles?: true;
+        phoneNumbers?: true;
+        addresses?: true;
+        socialMediaLinks?: true;
+      };
+    }>,
   ): User {
     const primaryNumber =
-      phoneNumbers == null ? null : phoneNumbers.find((p) => p.primary)!;
+      model.phoneNumbers == null ? null : model.phoneNumbers.find((p) => p.primary)!;
     const secondaryNumber =
-      phoneNumbers == null ? null : phoneNumbers.find((p) => !p.primary);
+      model.phoneNumbers == null ? null : model.phoneNumbers.find((p) => !p.primary);
     const presentAddress =
-      addresses == null
+      model.addresses == null
         ? null
-        : addresses.find((a) => a.addressType === 'PRESENT');
+        : model.addresses.find((a) => a.addressType === 'PRESENT');
     const permanentAddress =
-      addresses == null
+      model.addresses == null
         ? null
-        : addresses.find((a) => a.addressType == 'PERMANENT');
+        : model.addresses.find((a) => a.addressType == 'PERMANENT');
 
     return new User(
       model.id,
@@ -40,11 +37,11 @@ export class UserMapper {
       model.email,
       primaryNumber
         ? PhoneNumber.create(
-            primaryNumber.phoneCode!,
-            primaryNumber.phoneNumber!,
-            primaryNumber.hidden,
-            primaryNumber.primary,
-          )
+          primaryNumber.phoneCode!,
+          primaryNumber.phoneNumber!,
+          primaryNumber.hidden,
+          primaryNumber.primary,
+        )
         : undefined,
       model.status as UserStatus,
       model.isTemporary,
@@ -54,43 +51,43 @@ export class UserMapper {
       model.gender!,
       model.about!,
       model.picture!,
-      roles!.map(
+      model.roles!.map(
         (r) =>
           new Role(r.id, r.roleCode, r.roleName, r.authRoleCode, r.expireAt!),
       ),
       secondaryNumber
         ? PhoneNumber.create(
-            secondaryNumber.phoneCode!,
-            secondaryNumber.phoneNumber!,
-            secondaryNumber.hidden,
-            secondaryNumber.primary,
-          )
+          secondaryNumber.phoneCode!,
+          secondaryNumber.phoneNumber!,
+          secondaryNumber.hidden,
+          secondaryNumber.primary,
+        )
         : undefined,
       presentAddress
         ? new Address(
-            presentAddress.id,
-            presentAddress.addressLine1!,
-            presentAddress.addressLine2!,
-            presentAddress.addressLine3!,
-            presentAddress.hometown!,
-            presentAddress.zipCode!,
-            presentAddress.state!,
-            presentAddress.district!,
-            presentAddress.country!,
-          )
+          presentAddress.id,
+          presentAddress.addressLine1!,
+          presentAddress.addressLine2!,
+          presentAddress.addressLine3!,
+          presentAddress.hometown!,
+          presentAddress.zipCode!,
+          presentAddress.state!,
+          presentAddress.district!,
+          presentAddress.country!,
+        )
         : undefined,
       permanentAddress
         ? new Address(
-            permanentAddress.id,
-            permanentAddress.addressLine1!,
-            permanentAddress.addressLine2!,
-            permanentAddress.addressLine3!,
-            permanentAddress.hometown!,
-            permanentAddress.zipCode!,
-            permanentAddress.state!,
-            permanentAddress.district!,
-            permanentAddress.country!,
-          )
+          permanentAddress.id,
+          permanentAddress.addressLine1!,
+          permanentAddress.addressLine2!,
+          permanentAddress.addressLine3!,
+          permanentAddress.hometown!,
+          permanentAddress.zipCode!,
+          permanentAddress.state!,
+          permanentAddress.district!,
+          permanentAddress.country!,
+        )
         : undefined,
       model.isPublic!,
       model.authUserId!,
@@ -98,7 +95,7 @@ export class UserMapper {
       model.loginMethods
         ? (model.loginMethods.split(',') as LoginMethod[])
         : [],
-      socialMediaLinks?.map(
+      model.socialMediaLinks?.map(
         (l) => new Link(l.id, l.linkName, l.linkType as LinkType, l.linkValue),
       ),
       model.donationPauseStart!,
@@ -110,30 +107,44 @@ export class UserMapper {
 
   static toUserPersistence(
     user: User,
-  ): Omit<UserProfile, 'createdAt' | 'updatedAt' | 'version'> {
+  ): Partial<Prisma.UserProfileUpdateInput | Prisma.UserProfileCreateInput> {
     return {
       id: user.id,
-      title: user.title ?? null,
+      title: user.title,
       firstName: user.firstName,
-      middleName: user.middleName ?? null,
+      middleName: user.middleName,
       lastName: user.lastName,
-      dateOfBirth: user.dateOfBirth ?? null,
-      gender: user.gender ?? null,
-      about: user.about ?? null,
-      picture: user.picture ?? null,
+      dateOfBirth: user.dateOfBirth,
+      gender: user.gender,
+      about: user.about,
+      picture: user.picture,
       email: user.email,
       isPublic: user.isPublic,
-      authUserId: user.authUserId ?? null,
+      authUserId: user.authUserId,
       status: user.status,
       isTemporary: user.isTemporary,
-      isSameAddress: user.isSameAddress ?? null,
+      isSameAddress: user.isSameAddress,
       loginMethods: user.loginMethod.join(','),
-      panNumber: user.panNumber ?? null,
-      aadharNumber: user.aadharNumber ?? null,
-      donationPauseStart: user.donationPauseStart ?? null,
-      donationPauseEnd: user.donationPauseEnd ?? null,
-      deletedAt : null
+      panNumber: user.panNumber,
+      aadharNumber: user.aadharNumber,
+      donationPauseStart: user.donationPauseStart,
+      donationPauseEnd: user.donationPauseEnd,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
+  }
+
+  static toRolePersistance(
+    role: Role,
+  ): Partial<PrismaModel.UserRole> {
+    return {
+      id: role.id,
+      roleCode: role.roleCode,
+      roleName: role.roleName,
+      authRoleCode: role.authRoleCode,
+      expireAt: role.expireAt,
+      createdAt: role.createdAt,      
+    }
   }
 
   static toAuthUser(a0User: Auth0User) {

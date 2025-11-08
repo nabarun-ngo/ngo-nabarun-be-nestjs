@@ -24,6 +24,6 @@ import { CorrespondenceModule } from '../shared/correspondence/correspondence.mo
     UserJobsHandler,
     UserMetadataService
   ],
-  exports: [],
+  exports: [USER_REPOSITORY],
 })
 export class UserModule {}

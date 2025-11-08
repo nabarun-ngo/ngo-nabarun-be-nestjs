@@ -2,7 +2,6 @@ import { AggregateRoot } from '../../../../shared/models/aggregate-root';
 import { UserCreatedEvent } from '../events/user-created.event';
 import { randomUUID } from 'crypto';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
-import { Expose } from 'class-transformer';
 import { Role } from './role.model';
 import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.vo';
@@ -19,45 +18,7 @@ export enum LoginMethod {
 }
 
 export class User extends AggregateRoot<string> {
-  private _fullName: string;
-  private _initials: string;
-  constructor(
-    protected _id: string,
-    private _firstName: string,
-    private _lastName: string,
-    private _email: string,
-    private _primaryNumber?: PhoneNumber,
-    private _status: UserStatus = UserStatus.DRAFT,
-    private _isTemporary: boolean = false,
-    private _title?: string,
-    private _middleName?: string,
-    private _dateOfBirth?: Date,
-    private _gender?: string,
-    private _about?: string,
-    private _picture?: string,
-    private _roles: Role[] = [],
-    private _secondaryNumber?: PhoneNumber,
-    private _presentAddress?: Address,
-    private _permanentAddress?: Address,
-    private _isPublic: boolean = true,
-    private _authUserId?: string,
-    private _isSameAddress?: boolean,
-    private _loginMethod: LoginMethod[] = [
-      LoginMethod.EMAIL,
-      LoginMethod.PASSWORD,
-    ],
-    private _socialMediaLinks: Link[] = [],
-    private _donationPauseStart?: Date,
-    private _donationPauseEnd?: Date,
-    private _panNumber?: string,
-    private _aadharNumber?: string,
-    private _isProfileCompleted: boolean = false,
-  ) {
-    super(_id);
-    this._fullName = this.computeFullName();
-    this._initials = this.computeInitials();
-    this._picture = this.generatePictureUrl();
-  }
+
 
   // Factory
   public static create(data: {
@@ -87,14 +48,14 @@ export class User extends AggregateRoot<string> {
 
   // Domain behaviors
   private computeFullName(): string {
-    const f = this._firstName ?? '';
+    const f = this.firstName ?? '';
     const l = this._lastName ?? '';
     return (f + ' ' + l).trim();
   }
 
   private computeInitials(): string {
-    if (!this._firstName || !this._lastName) return '';
-    return (this._firstName[0] + this._lastName[0]).toUpperCase();
+    if (!this.firstName || !this._lastName) return '';
+    return (this.firstName[0] + this._lastName[0]).toUpperCase();
   }
 
   private generatePictureUrl() {
@@ -132,7 +93,7 @@ export class User extends AggregateRoot<string> {
     socialMediaLinks?: Link[];
   }): void {
     this._title = detail.title ?? this._title;
-    this._firstName = detail.firstName ?? this._firstName;
+    this._firstName = detail.firstName ?? this.firstName;
     this._middleName = detail.middleName ?? this._middleName;
     this._lastName = detail.lastName ?? this._lastName;
     this._fullName = this.computeFullName();
@@ -148,7 +109,7 @@ export class User extends AggregateRoot<string> {
     this._isPublic = detail.isPublicProfile ?? this._isPublic;
     this._socialMediaLinks = detail.socialMediaLinks ?? this._socialMediaLinks;
     this._isProfileCompleted = !!(
-      this._firstName &&
+      this.firstName &&
       this._lastName &&
       this._dateOfBirth &&
       this._gender &&
@@ -189,10 +150,10 @@ export class User extends AggregateRoot<string> {
     newRoles: Role[],
     defaultRoles: Role[],
   ): { toAdd: Role[]; toRemove: Role[] } {
-   //if (!newRoles) return { toAdd: [], toRemove: [] };
+    //if (!newRoles) return { toAdd: [], toRemove: [] };
 
     const activeRoles = this._roles.filter((r) => !r.expireAt);
-    const currentRoles = activeRoles ? [...activeRoles] :[];
+    const currentRoles = activeRoles ? [...activeRoles] : [];
     const incomingRoles = newRoles ? [...newRoles] : [];
 
     // Ensure default roles are always present
@@ -248,6 +209,99 @@ export class User extends AggregateRoot<string> {
   /**
    * Getters
    */
+  // region
+
+  private _fullName: string;
+  private _initials: string;
+  private _firstName: string;
+  private _lastName: string;
+  private _email: string;
+  private _primaryNumber?: PhoneNumber;
+  private _status: UserStatus;
+  private _isTemporary: boolean;
+  private _title?: string;
+  private _middleName?: string;
+  private _dateOfBirth?: Date;
+  private _gender?: string;
+  private _about?: string;
+  private _picture?: string;
+  private _roles: Role[];
+  private _secondaryNumber?: PhoneNumber;
+  private _presentAddress?: Address;
+  private _permanentAddress?: Address;
+  private _isPublic: boolean;
+  private _authUserId?: string;
+  private _isSameAddress?: boolean;
+  private _loginMethod: LoginMethod[];
+  private _socialMediaLinks: Link[];
+  private _donationPauseStart?: Date;
+  private _donationPauseEnd?: Date;
+  private _panNumber?: string;
+  private _aadharNumber?: string;
+  private _isProfileCompleted: boolean;
+  constructor(
+    id: string,
+    firstName: string,
+    lastName: string,
+    email: string,
+    primaryNumber?: PhoneNumber,
+    status: UserStatus = UserStatus.DRAFT,
+    isTemporary: boolean = false,
+    title?: string,
+    middleName?: string,
+    dateOfBirth?: Date,
+    gender?: string,
+    about?: string,
+    picture?: string,
+    roles: Role[] = [],
+    secondaryNumber?: PhoneNumber,
+    presentAddress?: Address,
+    permanentAddress?: Address,
+    isPublic: boolean = true,
+    authUserId?: string,
+    isSameAddress?: boolean,
+    loginMethod: LoginMethod[] = [
+      LoginMethod.EMAIL,
+      LoginMethod.PASSWORD,
+    ],
+    socialMediaLinks: Link[] = [],
+    donationPauseStart?: Date,
+    donationPauseEnd?: Date,
+    panNumber?: string,
+    aadharNumber?: string,
+    isProfileCompleted: boolean = false,
+  ) {
+    super(id);
+    this._fullName = this.computeFullName();
+    this._initials = this.computeInitials();
+    this._picture = this.generatePictureUrl();
+    this._firstName = firstName;
+    this._lastName = lastName;
+    this._email = email;
+    this._primaryNumber = primaryNumber;
+    this._status = status;
+    this._isTemporary = isTemporary;
+    this._title = title;
+    this._middleName = middleName;
+    this._dateOfBirth = dateOfBirth;
+    this._gender = gender;
+    this._about = about;
+    this._picture = picture;
+    this._roles = roles;
+    this._secondaryNumber = secondaryNumber;
+    this._presentAddress = presentAddress;
+    this._permanentAddress = permanentAddress;
+    this._isPublic = isPublic;
+    this._authUserId = authUserId;
+    this._isSameAddress = isSameAddress;
+    this._loginMethod = loginMethod;
+    this._socialMediaLinks = socialMediaLinks;
+    this._donationPauseStart = donationPauseStart;
+    this._donationPauseEnd = donationPauseEnd;
+    this._panNumber = panNumber;
+    this._aadharNumber = aadharNumber;
+    this._isProfileCompleted = isProfileCompleted;
+  }
 
   get fullName(): string {
     return this._fullName;
@@ -364,4 +418,6 @@ export class User extends AggregateRoot<string> {
   get isProfileCompleted(): boolean {
     return this._isProfileCompleted;
   }
+
+  // endregion
 }

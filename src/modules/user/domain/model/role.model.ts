@@ -1,15 +1,28 @@
 import { randomUUID } from 'crypto';
 import { BaseDomain } from 'src/shared/models/base-domain';
+import { User } from './user.model';
 
 export class Role extends BaseDomain<string> {
+  private _roleCode: string;
+  private _roleName: string;
+  private _authRoleCode: string;
+  private _expireAt?: Date;
+  private _createdBy?: User;
   constructor(
-    protected _id: string,
-    private _roleCode: string,
-    private _roleName: string,
-    private _authRoleCode: string,
-    private _expireAt?: Date,
+    id: string,
+    roleCode: string,
+    roleName: string,
+    authRoleCode: string,
+    expireAt?: Date,
+    createdBy?: User
+
   ) {
-    super(_id);
+    super(id);
+    this._roleCode = roleCode;
+    this._roleName = roleName;
+    this._authRoleCode = authRoleCode;
+    this._expireAt = expireAt;
+    this._createdBy = createdBy;
   }
 
   static create(roleCode: string, roleName: string, authRoleCode: string) {
@@ -38,5 +51,9 @@ export class Role extends BaseDomain<string> {
 
   get expireAt(): Date | undefined {
     return this._expireAt;
+  }
+
+  get createdBy(): User | undefined {
+    return this._createdBy;
   }
 }

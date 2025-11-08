@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from '../../domain/repositories/user.repository.interface';
 import { User } from '../../domain/model/user.model';
-import { UserMapper } from '../user.mapper';
 import {
   UserProfile,
   PhoneNumber as PrismaPhoneNumber,
@@ -13,13 +12,15 @@ import {
 import { UserFilter } from '../../domain/value-objects/user-filter.vo';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { Role } from '../../domain/model/role.model';
+import { UserInfraMapper } from '../user-infra.mapper';
+import { PrismaModel } from 'generated/prisma/classes';
 
 @Injectable()
 class UserRepository implements IUserRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
   async findAll(filter: UserFilter): Promise<User[]> {
-    const users = await this.prisma.userProfile.findMany({
+    const users:PrismaModel.UserProfile[] = await this.prisma.userProfile.findMany({
       where: {
         firstName: filter.props.firstName,
         lastName: filter.props.lastName,
@@ -35,7 +36,7 @@ class UserRepository implements IUserRepository {
         : undefined,
     });
 
-    return users.map((user) => UserMapper.toUser(user, user.roles));
+    return users.map((user) => UserInfraMapper.toUser(user));
   }
 
   async findById(id: string): Promise<User | null> {
@@ -47,18 +48,9 @@ class UserRepository implements IUserRepository {
         addresses: true,
         socialMediaLinks: true,
       },
-    })) as UserProfile & {
-      roles: PrismaUserRole[];
-      phoneNumbers: PrismaPhoneNumber[];
-      addresses: PrismaAddress[];
-      socialMediaLinks: PrismaLink[];
-    };
-    return UserMapper.toUser(
-      user,
-      user.roles ?? [],
-      user.phoneNumbers ?? [],
-      user.addresses ??[],
-      user.socialMediaLinks ?? [],
+    }))
+    return UserInfraMapper.toUser(
+      user
     );
   }
   async findByEmail(email: string): Promise<User | null> {
@@ -82,6 +74,9 @@ class UserRepository implements IUserRepository {
             roleCode: role.roleCode,
             roleName: role.roleName,
             authRoleCode: role.authRoleCode,
+            createdAt: role.createdAt,
+            createdBy : role.createdBy,
+            expireAt: role.expireAt,
           })),
         },
         phoneNumbers: {
