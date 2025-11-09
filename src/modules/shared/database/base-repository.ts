@@ -18,18 +18,18 @@ export abstract class PrismaBaseRepository<
   TPrismaDelegate,
   TWhereUniqueInput,
   TWhereInput = any,
-  TInclude = any,
+  //TInclude = any,
   TGetOutput = any,
   TCreateInput = any,
   TUpdateInput = any,
 > {
-  constructor(protected readonly prisma: PrismaPostgresService) {}
+  constructor(private readonly prisma: PrismaPostgresService) {}
 
   /**
    * Get the Prisma delegate for this repository
    * Must be implemented by concrete repositories
    */
-  protected abstract getDelegate(): TPrismaDelegate;
+  protected abstract getDelegate(prisma: PrismaPostgresService): TPrismaDelegate;
 
   /**
    * Map Prisma model to domain model
@@ -38,24 +38,16 @@ export abstract class PrismaBaseRepository<
   protected abstract toDomain(prismaModel: TGetOutput): TDomain | null;
 
   /**
-   * Get default include pattern for this repository
-   * Override to provide default relations
-   */
-  protected getDefaultInclude(): TInclude | undefined {
-    return undefined;
-  }
-
-  /**
    * Find a single record by unique identifier
    */
-  protected async findUnique(
+  protected async findUnique<TInclude = any>(
     where: TWhereUniqueInput,
     include?: TInclude,
   ): Promise<TDomain | null> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.findUnique({
       where,
-      include: include ?? this.getDefaultInclude(),
+      include: include ,
     });
     return this.toDomain(result);
   }
@@ -63,14 +55,14 @@ export abstract class PrismaBaseRepository<
   /**
    * Find first record matching criteria
    */
-  protected async findFirst(
+  protected async findFirst<TInclude = any>(
     where: TWhereInput,
     include?: TInclude,
   ): Promise<TDomain | null> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.findFirst({
       where,
-      include: include ?? this.getDefaultInclude(),
+      include: include,
     });
     return this.toDomain(result);
   }
@@ -78,7 +70,7 @@ export abstract class PrismaBaseRepository<
   /**
    * Find many records matching criteria
    */
-  protected async findMany(
+  protected async findMany<TInclude = any>(
     where?: TWhereInput,
     include?: TInclude,
     options?: {
@@ -87,12 +79,13 @@ export abstract class PrismaBaseRepository<
       orderBy?: any;
     },
   ): Promise<TDomain[]> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const results = await delegate.findMany({
       where,
-      include: include ?? this.getDefaultInclude(),
+      include: include,
       ...options,
     });
+    console.log(where)
     return results
       .map((r: any) => this.toDomain(r))
       .filter((d: TDomain | null): d is TDomain => d !== null);
@@ -101,14 +94,14 @@ export abstract class PrismaBaseRepository<
   /**
    * Create a new record
    */
-  protected async createRecord(
+  protected async createRecord<TInclude = any>(
     data: TCreateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.create({
       data,
-      include: include ?? this.getDefaultInclude(),
+      include: include,
     });
     const domain = this.toDomain(result);
     if (!domain) {
@@ -120,16 +113,16 @@ export abstract class PrismaBaseRepository<
   /**
    * Update an existing record
    */
-  protected async updateRecord(
+  protected async updateRecord<TInclude = any>(
     where: TWhereUniqueInput,
     data: TUpdateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.update({
       where,
       data,
-      include: include ?? this.getDefaultInclude(),
+      include: include,
     });
     const domain = this.toDomain(result);
     if (!domain) {
@@ -141,18 +134,18 @@ export abstract class PrismaBaseRepository<
   /**
    * Upsert a record (update if exists, create otherwise)
    */
-  protected async upsertRecord(
+  protected async upsertRecord<TInclude = any>(
     where: TWhereUniqueInput,
     create: TCreateInput,
     update: TUpdateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.upsert({
       where,
       create,
       update,
-      include: include ?? this.getDefaultInclude(),
+      include: include,
     });
     const domain = this.toDomain(result);
     if (!domain) {
@@ -165,7 +158,7 @@ export abstract class PrismaBaseRepository<
    * Soft delete a record (sets deletedAt timestamp)
    */
   protected async softDelete(where: TWhereUniqueInput): Promise<void> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     await delegate.update({
       where,
       data: { deletedAt: new Date() },
@@ -176,7 +169,7 @@ export abstract class PrismaBaseRepository<
    * Hard delete a record (permanently removes from database)
    */
   protected async hardDelete(where: TWhereUniqueInput): Promise<void> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     await delegate.delete({ where });
   }
 
@@ -184,7 +177,7 @@ export abstract class PrismaBaseRepository<
    * Count records matching criteria
    */
   protected async count(where?: TWhereInput): Promise<number> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     return delegate.count({ where });
   }
 
@@ -213,7 +206,7 @@ export abstract class PrismaBaseRepository<
     data: TCreateInput[],
     skipDuplicates?: boolean,
   ): Promise<number> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.createMany({
       data,
       skipDuplicates,
@@ -228,7 +221,7 @@ export abstract class PrismaBaseRepository<
     where: TWhereInput,
     data: TUpdateInput,
   ): Promise<number> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.updateMany({
       where,
       data,
@@ -240,7 +233,7 @@ export abstract class PrismaBaseRepository<
    * Batch delete multiple records
    */
   protected async deleteMany(where: TWhereInput): Promise<number> {
-    const delegate = this.getDelegate() as any;
+    const delegate = this.getDelegate(this.prisma) as any;
     const result = await delegate.deleteMany({ where });
     return result.count;
   }
@@ -248,7 +241,7 @@ export abstract class PrismaBaseRepository<
   /**
    * Find records with pagination
    */
-  protected async findPaginated(
+  protected async findPaginated<TInclude = any>(
     where: TWhereInput,
     page: number,
     pageSize: number,

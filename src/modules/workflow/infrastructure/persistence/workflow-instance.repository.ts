@@ -6,6 +6,9 @@ import { Prisma } from 'generated/prisma';
 import { PrismaBaseRepository, RepositoryHelpers } from 'src/modules/shared/database';
 import { WorkflowPersistence } from '../types/workflow-persistence.types';
 import { WorkflowInfraMapper } from '../workflow-infra.mapper';
+import { DefaultArgs } from 'generated/prisma/runtime/library';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 class WorkflowInstanceRepository
@@ -14,25 +17,18 @@ class WorkflowInstanceRepository
     PrismaPostgresService['workflowInstance'],
     Prisma.WorkflowInstanceWhereUniqueInput,
     Prisma.WorkflowInstanceWhereInput,
-    WorkflowPersistence.WithOnlySteps,
     Prisma.WorkflowInstanceCreateInput,
     Prisma.WorkflowInstanceUpdateInput
   >
   implements IWorkflowInstanceRepository
 {
+  protected getDelegate(prisma: PrismaPostgresService): Prisma.WorkflowInstanceDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    return prisma.workflowInstance;
+  }
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
-
-  protected getDelegate() {
-    return this.prisma.workflowInstance;
-  }
-
-  protected toDomain(prismaModel: any): WorkflowInstance | null {
-    return WorkflowInfraMapper.toWorkflowInstanceDomain(prismaModel);
-  }
-
-  async findAll(filter?: WorkflowFilter): Promise<WorkflowInstance[]> {
+  findAll(filter?: WorkflowFilter | undefined): Promise<WorkflowInstance[]> {
     const where: Prisma.WorkflowInstanceWhereInput = {
       type: filter?.type,
       status: filter?.status,
@@ -40,11 +36,20 @@ class WorkflowInstanceRepository
     };
 
     return this.findMany(
-      where,
-      undefined,
-      RepositoryHelpers.buildPaginationOptions(filter?.pageIndex, filter?.pageSize),
+      where
     );
   }
+  findPaged(filter?: BaseFilter<WorkflowFilter> | undefined): Promise<PagedResult<WorkflowInstance>> {
+    throw new Error('Method not implemented.');
+  }
+
+  
+
+  protected toDomain(prismaModel: any): WorkflowInstance | null {
+    return WorkflowInfraMapper.toWorkflowInstanceDomain(prismaModel);
+  }
+
+ 
 
   async findById(id: string): Promise<WorkflowInstance | null> {
     return this.findUnique({ id });

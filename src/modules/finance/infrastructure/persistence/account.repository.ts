@@ -6,6 +6,9 @@ import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgr
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { AccountPersistence } from '../types/finance-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class AccountRepository
@@ -20,13 +23,17 @@ class AccountRepository
   >
   implements IAccountRepository
 {
+  protected getDelegate(prisma: PrismaPostgresService): Prisma.AccountDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    return prisma.account;
+  }
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
-
-  protected getDelegate() {
-    return this.prisma.account;
+  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Account>> {
+    throw new Error('Method not implemented.');
   }
+
+  
 
   protected toDomain(prismaModel: any): Account | null {
     return FinanceInfraMapper.toAccountDomain(prismaModel);

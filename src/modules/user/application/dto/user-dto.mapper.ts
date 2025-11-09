@@ -6,7 +6,7 @@ import {
   PhoneNumberDto,
   RoleDto,
   UserDto,
-} from './create-user.dto';
+} from './user.dto';
 import { PhoneNumber } from '../../domain/model/phone-number.vo';
 import { Address } from '../../domain/model/address.model';
 import { Link } from '../../domain/model/link.model';

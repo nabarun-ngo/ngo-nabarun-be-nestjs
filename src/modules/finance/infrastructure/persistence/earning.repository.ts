@@ -6,6 +6,9 @@ import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgr
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { EarningPersistence } from '../types/finance-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class EarningRepository
@@ -20,13 +23,16 @@ class EarningRepository
   >
   implements IEarningRepository
 {
+  protected getDelegate(prisma: PrismaPostgresService): Prisma.EarningDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    return prisma.earning;
+  }
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
-
-  protected getDelegate() {
-    return this.prisma.earning;
+  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Earning>> {
+    throw new Error('Method not implemented.');
   }
+
 
   protected toDomain(prismaModel: any): Earning | null {
     return FinanceInfraMapper.toEarningDomain(prismaModel);

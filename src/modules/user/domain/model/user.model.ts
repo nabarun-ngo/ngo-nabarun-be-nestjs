@@ -17,8 +17,16 @@ export enum LoginMethod {
   PASSWORD = 'PASSWORD',
 }
 
-export class User extends AggregateRoot<string> {
+export class UserFilterProps {
+  readonly firstName?: string;
+  readonly lastName?: string;
+  readonly email?: string;
+  readonly status?: UserStatus;
+  readonly roleCode?: string;
+  readonly phoneNumber?: string;
+}
 
+export class User extends AggregateRoot<string> {
 
   // Factory
   public static create(data: {
@@ -272,7 +280,6 @@ export class User extends AggregateRoot<string> {
     isProfileCompleted: boolean = false,
   ) {
     super(id);
-    this._fullName = this.computeFullName();
     this._initials = this.computeInitials();
     this._picture = this.generatePictureUrl();
     this._firstName = firstName;
@@ -301,6 +308,7 @@ export class User extends AggregateRoot<string> {
     this._panNumber = panNumber;
     this._aadharNumber = aadharNumber;
     this._isProfileCompleted = isProfileCompleted;
+    this._fullName = this.computeFullName();
   }
 
   get fullName(): string {

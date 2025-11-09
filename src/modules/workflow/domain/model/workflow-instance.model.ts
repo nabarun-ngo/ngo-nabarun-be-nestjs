@@ -6,7 +6,6 @@ import { User } from 'src/modules/user/domain/model/user.model';
 import { WorkflowCreatedEvent } from '../events/workflow-created.event';
 import { StepStartedEvent } from '../events/step-started.event';
 import { BaseDomain } from 'src/shared/models/base-domain';
-import { BaseFilterProps } from 'src/shared/models/base-filter-props';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -21,10 +20,10 @@ export enum WorkflowType {
 
 }
 
-export interface WorkflowFilter extends BaseFilterProps{
-  initiatedBy?: string;
-  status?: string;
-  type?: string;
+export interface WorkflowFilter {
+  readonly initiatedBy?: string;
+  readonly status?: string;
+  readonly type?: string;
 }
 
 

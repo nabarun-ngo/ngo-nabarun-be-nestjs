@@ -6,6 +6,9 @@ import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgr
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { DonationPersistence } from '../types/finance-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class DonationRepository
@@ -20,13 +23,17 @@ class DonationRepository
   >
   implements IDonationRepository
 {
+  protected getDelegate(prisma: PrismaPostgresService): Prisma.DonationDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    return prisma.donation;
+  }
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
-
-  protected getDelegate() {
-    return this.prisma.donation;
+  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Donation>> {
+    throw new Error('Method not implemented.');
   }
+
+
 
   protected toDomain(prismaModel: any): Donation | null {
     return FinanceInfraMapper.toDonationDomain(prismaModel);

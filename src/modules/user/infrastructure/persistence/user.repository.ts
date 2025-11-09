@@ -1,17 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from '../../domain/repositories/user.repository.interface';
-import { User } from '../../domain/model/user.model';
+import { User, UserFilterProps } from '../../domain/model/user.model';
 import { Address, Prisma } from 'generated/prisma';
-import { UserFilter } from '../../domain/value-objects/user-filter.vo';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { Role } from '../../domain/model/role.model';
 import { UserInfraMapper } from '../user-infra.mapper';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { RepositoryHelpers } from 'src/modules/shared/database/repository-helpers';
 import { UserPersistence } from '../types/user-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
-class UserRepository 
+class UserRepository
   extends PrismaBaseRepository<
     User,
     PrismaPostgresService['userProfile'],
@@ -21,41 +22,52 @@ class UserRepository
     Prisma.UserProfileCreateInput,
     Prisma.UserProfileUpdateInput
   >
-  implements IUserRepository 
-{
+  implements IUserRepository {
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
 
-  protected getDelegate() {
-    return this.prisma.userProfile;
+  protected getDelegate(prisma: PrismaPostgresService) {
+    return prisma.userProfile;
   }
 
   protected toDomain(prismaModel: any): User | null {
     return UserInfraMapper.toUserDomain(prismaModel);
   }
 
-  async findAll(filter: UserFilter): Promise<User[]> {
-    const where: Prisma.UserProfileWhereInput = {
-      firstName: filter.props.firstName,
-      lastName: filter.props.lastName,
-      email: filter.props.email,
-      status: filter.props.status,
-      deletedAt: null,
-    };
-
-    return this.findMany(
-      where,
-      undefined,
-      RepositoryHelpers.buildPaginationOptions(
-        filter.props.pageIndex,
-        filter.props.pageSize,
-      ),
-    );
+  async findPaged(filter?: BaseFilter<UserFilterProps> | undefined): Promise<PagedResult<User>> {
+    const result = await this.findPaginated<Prisma.UserProfileInclude>(this.whereQuery(filter?.props), filter?.pageIndex ?? 0, filter?.pageSize ?? 10, {
+      roles: true
+    });
+    return new PagedResult<User>(result.data, result.total, result.page, result.pageSize);
   }
 
+  findAll(filter?: UserFilterProps | undefined): Promise<User[]> {
+    return this.findMany(this.whereQuery(filter), {
+      roles: true,
+    });
+  }
+
+  private whereQuery(props? : UserFilterProps){
+    const where: Prisma.UserProfileWhereInput = {
+      ...(props?.firstName ? { firstName: { contains: props?.firstName, mode: 'insensitive' } } : {}),
+      ...(props?.lastName ? { lastName: { contains: props?.lastName, mode: 'insensitive' } } : {}),
+      ...(props?.email ? { email: { contains: props?.email, mode: 'insensitive' } } : {}),
+      ...(props?.status ? { status: props?.status } : {}),
+      ...(props?.roleCode ? { roles: { some: { roleCode: props?.roleCode } } } : {}),
+      ...(props?.phoneNumber ? { phoneNumbers: { some: { phoneNumber: props?.phoneNumber } } } : {}),
+    };
+    return where;
+  }
+
+
   async findById(id: string): Promise<User | null> {
-    return this.findUnique({ id });
+    return this.findUnique<Prisma.UserProfileInclude>({ id },{
+      addresses: true,
+      phoneNumbers: true,
+      roles: true,
+      socialMediaLinks: true,
+    });
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -74,14 +86,14 @@ class UserRepository
       phoneNumbers: {
         create: user.primaryNumber
           ? [
-              {
-                id: user.primaryNumber.id,
-                phoneCode: user.primaryNumber.phoneCode,
-                phoneNumber: user.primaryNumber.phoneNumber,
-                hidden: user.primaryNumber.hidden,
-                primary: true,
-              },
-            ]
+            {
+              id: user.primaryNumber.id,
+              phoneCode: user.primaryNumber.phoneCode,
+              phoneNumber: user.primaryNumber.phoneNumber,
+              hidden: user.primaryNumber.hidden,
+              primary: true,
+            },
+          ]
           : [],
       },
     };

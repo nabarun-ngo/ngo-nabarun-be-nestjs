@@ -6,6 +6,9 @@ import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgr
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { ExpensePersistence } from '../types/finance-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class ExpenseRepository
@@ -20,13 +23,17 @@ class ExpenseRepository
   >
   implements IExpenseRepository
 {
+  protected getDelegate(prisma: PrismaPostgresService): Prisma.ExpenseDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    return prisma.expense;
+  }
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
-
-  protected getDelegate() {
-    return this.prisma.expense;
+  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Expense>> {
+    throw new Error('Method not implemented.');
   }
+
+ 
 
   protected toDomain(prismaModel: any): Expense | null {
     return FinanceInfraMapper.toExpenseDomain(prismaModel);

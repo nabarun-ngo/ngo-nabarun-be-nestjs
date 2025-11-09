@@ -6,6 +6,9 @@ import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgr
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { TransactionPersistence } from '../types/finance-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class TransactionRepository
@@ -14,19 +17,22 @@ class TransactionRepository
     PrismaPostgresService['transaction'],
     Prisma.TransactionWhereUniqueInput,
     Prisma.TransactionWhereInput,
-    TransactionPersistence.Base,
     Prisma.TransactionCreateInput,
     Prisma.TransactionUpdateInput
   >
   implements ITransactionRepository
 {
+  protected getDelegate(prisma: PrismaPostgresService): Prisma.TransactionDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    return prisma.transaction;
+  }
   constructor(prisma: PrismaPostgresService) {
     super(prisma);
   }
-
-  protected getDelegate() {
-    return this.prisma.transaction;
+  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Transaction>> {
+    throw new Error('Method not implemented.');
   }
+
+ 
 
   protected toDomain(prismaModel: any): Transaction | null {
     return FinanceInfraMapper.toTransactionDomain(prismaModel);

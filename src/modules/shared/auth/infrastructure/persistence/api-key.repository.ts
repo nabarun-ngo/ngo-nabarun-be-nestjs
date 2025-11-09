@@ -2,10 +2,15 @@ import { PrismaPostgresService } from "src/modules/shared/database/prisma-postgr
 import { IApiKeyRepository } from "../../domain/api-key.repository.interface";
 import { Injectable } from "@nestjs/common";
 import { ApiKey } from "../../domain/api-key.model";
+import { BaseFilter } from "src/shared/models/base-filter-props";
+import { PagedResult } from "src/shared/models/paged-result";
 
 @Injectable()
 export class ApiKeyRepository implements IApiKeyRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
+    findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<ApiKey>> {
+        throw new Error("Method not implemented.");
+    }
     async findByKeyId(key: string): Promise<ApiKey | null> {
         const apiKey = await this.prisma.apiKey.findUnique({
             where: { apiKeyId: key }

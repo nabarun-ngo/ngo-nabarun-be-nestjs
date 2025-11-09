@@ -9,6 +9,7 @@ import { Auth0UserService } from './infrastructure/external/auth0-user.service';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { UserMetadataService } from './infrastructure/external/user-metadata.service';
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
+import { UserService } from './application/services/user.service';
 
 @Module({
   controllers: [UserController],
@@ -22,7 +23,8 @@ import { CorrespondenceModule } from '../shared/correspondence/correspondence.mo
     Auth0UserService,
     UserEventsHandler,
     UserJobsHandler,
-    UserMetadataService
+    UserMetadataService,
+    UserService
   ],
   exports: [USER_REPOSITORY],
 })
