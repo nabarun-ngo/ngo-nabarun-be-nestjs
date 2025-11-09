@@ -29,6 +29,18 @@ export class PhoneNumber extends BaseDomain<string> {
     return new PhoneNumber(randomUUID(), phoneCode, phoneNumber, hidden);
   }
 
+  public update(detail:PhoneNumber){
+    this._phoneCode = detail.phoneCode;
+    this._phoneNumber = detail.phoneNumber;
+    this._hidden = detail.hidden;
+    this.touch();
+    return this;
+  }
+
+  public show(): void {
+    this._hidden = false;
+  }
+
   public hide(): void {
     this._hidden = true;
   }

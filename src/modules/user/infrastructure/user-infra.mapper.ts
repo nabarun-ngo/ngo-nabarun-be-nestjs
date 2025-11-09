@@ -29,18 +29,17 @@ export class UserInfraMapper {
       UserMapperHelpers.extractAddresses(model);
     const socialLinks = UserMapperHelpers.extractSocialLinks(model);
     const roles = UserMapperHelpers.extractRoles(model);
-
     return new User(
       model.id,
       model.firstName,
       model.lastName,
       model.email,
       primaryNumber
-        ? PhoneNumber.create(
+        ? new PhoneNumber(
+            primaryNumber.id,
             primaryNumber.phoneCode ?? '',
             primaryNumber.phoneNumber ?? '',
             primaryNumber.hidden,
-            primaryNumber.primary,
           )
         : undefined,
       model.status as UserStatus,
@@ -61,11 +60,11 @@ export class UserInfraMapper {
         ),
       ),
       secondaryNumber
-        ? PhoneNumber.create(
+        ? new PhoneNumber(
+            secondaryNumber.id,
             secondaryNumber.phoneCode ?? '',
             secondaryNumber.phoneNumber ?? '',
             secondaryNumber.hidden,
-            secondaryNumber.primary,
           )
         : undefined,
       presentAddress

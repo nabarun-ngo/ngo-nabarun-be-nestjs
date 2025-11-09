@@ -39,8 +39,8 @@ export class UserMapperHelpers {
       ? model.addresses
       : [];
 
-    const present = addresses.find((a) => a.addressType === 'PRESENT') ?? null;
-    const permanent = addresses.find((a) => a.addressType === 'PERMANENT') ?? null;
+    const present = addresses.find((a) => a.addressType === 'present') ?? null;
+    const permanent = addresses.find((a) => a.addressType === 'permanent') ?? null;
 
     return { present, permanent };
   }

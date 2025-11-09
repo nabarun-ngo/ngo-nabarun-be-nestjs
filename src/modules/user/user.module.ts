@@ -10,12 +10,14 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { UserMetadataService } from './infrastructure/external/user-metadata.service';
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 import { UserService } from './application/services/user.service';
+import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
 
 @Module({
   controllers: [UserController],
   imports: [FirebaseModule,CorrespondenceModule],
   providers: [
     CreateUserUseCase,
+    UpdateUserUseCase,
     {
       provide: USER_REPOSITORY,
       useClass: UserRepository,

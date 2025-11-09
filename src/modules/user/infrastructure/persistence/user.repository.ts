@@ -102,6 +102,7 @@ class UserRepository
   }
 
   async update(id: string, user: User): Promise<User> {
+    //console.log(user)
     const now = new Date();
     const data = UserInfraMapper.toUserCreatePersistence(user);
 
@@ -227,6 +228,8 @@ class UserRepository
 
   async updateRoles(id: string, roles: Role[]): Promise<void> {
     const now = new Date();
+
+    console.log(roles)
 
     await this.executeTransaction(async (tx) => {
       // Expire old roles

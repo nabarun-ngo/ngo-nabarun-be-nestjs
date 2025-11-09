@@ -8,9 +8,10 @@ import {
   HttpStatus,
   Query,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
-import { CreateUserDto, UserDto, UserFilterDto } from '../../application/dto/user.dto';
+import { CreateUserDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
@@ -70,31 +71,31 @@ export class UserController {
     return await this.userService.getById(id);
   }
   
-  // @Put(':id/profile')
-  // @ApiOperation({ summary: 'Update user profile (self-update)' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'User profile updated successfully',
-  //   type: UserResult,
-  // })
-  // async updateMyDetails(
-  //   @Param('id') id: string,
-  //   @Body() command: UserSelfUpdateCommand,
-  // ): Promise<UserResult> {
-  //   return this.userService.updateMyDetails(id, command);
-  // }
-  //
-  // @Put(':id')
-  // @ApiOperation({ summary: 'Update user (admin update)' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'User updated successfully',
-  //   type: UserResult,
-  // })
-  // async updateUser(
-  //   @Param('id') id: string,
-  //   @Body() command: UserUpdateCommand,
-  // ): Promise<UserResult> {
-  //   return this.userService.updateUser(id, command);
-  // }
+  @Put(':id/profile')
+  @ApiOperation({ summary: 'Update user profile (self-update)' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile updated successfully',
+    type: UserDto,
+  })
+  async updateMyDetails(
+    @Param('id') id: string,
+    @Body() command: UserUpdateDto,
+  ): Promise<UserDto> {
+    return await this.userService.updateProfile(id, command);
+  }
+  
+  @Put(':id')
+  @ApiOperation({ summary: 'Update user (admin update)' })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+    type: UserDto,
+  })
+  async updateUser(
+    @Param('id') id: string,
+    @Body() command: UserUpdateAdminDto,
+  ): Promise<UserDto> {
+    return await this.userService.updateUser(id, command);
+  }
 }

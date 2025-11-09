@@ -135,11 +135,25 @@ export class Auth0UserService {
     return UserInfraMapper.toAuthUser(updated);
   }
 
-  async updateUser(id: string, user: Partial<User>): Promise<User> {
+  async updateUser(id: string, user: Partial<User>, password?: string): Promise<User> {
     try {
       const response = await this.managementClient.users.update(
        id,
-        { ...user },
+        { 
+          email: user.email,
+          given_name: user.firstName,
+          family_name: user.lastName,
+          name: user.fullName,
+          picture: user.picture,
+          blocked: user.status == UserStatus.BLOCKED,
+          password: user.updateAuth ? password : undefined,
+          user_metadata: {
+            profile_id: user.id,
+            active_user: user.status == UserStatus.ACTIVE,
+            reset_password: true,
+            profile_updated: user.isProfileCompleted,
+          }
+         },
       );
       return response.data;
     } catch (e) {

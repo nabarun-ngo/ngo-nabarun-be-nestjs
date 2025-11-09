@@ -236,10 +236,6 @@ export class UserUpdateAdminDto {
   @IsBoolean()
   isActiveDonor?: boolean;
 
-  
-  @IsOptional()
-  @IsString()
-  userId?: string;
 }
 
 export class UserFilterDto {

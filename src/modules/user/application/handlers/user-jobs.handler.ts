@@ -96,6 +96,7 @@ export class UserJobsHandler {
       }
 
       if (roleIdsToAdd?.length > 0 || roleIdsToRemove?.length > 0) {
+        console.log("saving roles")
         await this.userRepo.updateRoles(user?.id!, user.getRoles() as Role[]);
       }
 

@@ -11,6 +11,7 @@ import { generatePassword } from '../../../../shared/utilities/password-util';
 export enum UserStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
+  BLOCKED = "BLOCKED",
 }
 export enum LoginMethod {
   EMAIL = 'EMAIL',
@@ -26,7 +27,30 @@ export class UserFilterProps {
   readonly phoneNumber?: string;
 }
 
+export class UserProfileProps {
+  title?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  dateOfBirth?: Date;
+  gender?: string;
+  about?: string;
+  picture?: string;
+  primaryNumber?: PhoneNumber;
+  secondaryNumber?: PhoneNumber;
+  presentAddress?: Address;
+  permanentAddress?: Address;
+  isAddressSame?: boolean;
+  isPublicProfile?: boolean;
+  socialMediaLinks?: Link[];
+}
+
+export class UserAttributesProps {
+  status?: UserStatus;
+  userId?: string;
+}
 export class User extends AggregateRoot<string> {
+  private _updateAuth: boolean = false;
 
   // Factory
   public static create(data: {
@@ -83,23 +107,7 @@ export class User extends AggregateRoot<string> {
     });
   }
 
-  public updateUser(detail: {
-    title?: string;
-    firstName?: string;
-    middleName?: string;
-    lastName?: string;
-    dateOfBirth?: Date;
-    gender?: string;
-    about?: string;
-    picture?: string;
-    primaryNumber?: PhoneNumber;
-    secondaryNumber?: PhoneNumber;
-    presentAddress?: Address;
-    permanentAddress?: Address;
-    isAddressSame?: boolean;
-    isPublicProfile?: boolean;
-    socialMediaLinks?: Link[];
-  }): void {
+  public updateUser(detail: UserProfileProps): void {
     this._title = detail.title ?? this._title;
     this._firstName = detail.firstName ?? this.firstName;
     this._middleName = detail.middleName ?? this._middleName;
@@ -109,10 +117,32 @@ export class User extends AggregateRoot<string> {
     this._gender = detail.gender ?? this._gender;
     this._about = detail.about ?? this._about;
     this._picture = detail.picture ?? this._picture;
-    this._primaryNumber = detail.primaryNumber ?? this._primaryNumber;
-    this._secondaryNumber = detail.secondaryNumber ?? this._secondaryNumber;
-    this._presentAddress = detail.presentAddress ?? this._presentAddress;
-    this._permanentAddress = detail.permanentAddress ?? this._permanentAddress;
+
+    if (detail.primaryNumber) {
+      this._primaryNumber = this._primaryNumber?.update(detail.primaryNumber) ??
+        PhoneNumber.create(detail.primaryNumber.phoneCode, detail.primaryNumber.phoneNumber);
+    }
+
+    if (detail.secondaryNumber) {
+      this._secondaryNumber = this.secondaryNumber?.update(detail.secondaryNumber) ??
+        PhoneNumber.create(detail.secondaryNumber.phoneCode, detail.secondaryNumber.phoneNumber);
+    }
+
+    if (detail.presentAddress) {
+      const address = detail.presentAddress;
+      this._presentAddress = this._presentAddress?.update(detail.presentAddress) ??
+        Address.create(address.addressLine1, address.addressLine2, address.addressLine3,
+          address.hometown, address.zipCode, address.state,
+          address.district, address.country);
+    }
+    if (detail.permanentAddress) {
+      const address = detail.permanentAddress;
+      this._permanentAddress = this._permanentAddress?.update(detail.permanentAddress) ??
+        Address.create(address.addressLine1, address.addressLine2, address.addressLine3,
+          address.hometown, address.zipCode, address.state,
+          address.district, address.country)
+    }
+
     this._isSameAddress = detail.isAddressSame ?? this._isSameAddress;
     this._isPublic = detail.isPublicProfile ?? this._isPublic;
     this._socialMediaLinks = detail.socialMediaLinks ?? this._socialMediaLinks;
@@ -127,17 +157,19 @@ export class User extends AggregateRoot<string> {
     this._fullName = this.computeFullName();
     this._initials = this.computeInitials();
     this._picture = this.generatePictureUrl();
+
+    this._updateAuth = (detail.firstName !== undefined ||
+      detail.lastName !== undefined ||
+      detail.picture !== undefined ||
+      this._isProfileCompleted);
+
     this.touch();
   }
 
-  public updateAdmin(detail: {
-    roles?: Role[];
-    status?: UserStatus;
-    userId?: string;
-  }): void {
-    this._roles = detail.roles ?? this._roles;
+  public updateAdmin(detail: UserAttributesProps): void {
     this._status = detail.status ?? this._status;
     this._authUserId = detail.userId ?? this._authUserId;
+    this._updateAuth = true;
     this.touch();
   }
 
@@ -167,7 +199,7 @@ export class User extends AggregateRoot<string> {
     // Ensure default roles are always present
     defaultRoles?.forEach((dr) => {
       if (!incomingRoles.some((r) => r.roleCode === dr.roleCode)) {
-        incomingRoles.push(dr);
+        incomingRoles.push(Role.create(dr.roleCode, dr.roleName, dr.authRoleCode));
       }
     });
 
@@ -185,7 +217,9 @@ export class User extends AggregateRoot<string> {
       if (!role.expireAt) role.expire();
     });
 
-    this._roles.push(...incomingRoles);
+    incomingRoles.forEach((role) => {
+      this._roles.push(Role.create(role.roleCode, role.roleName, role.authRoleCode));
+    });
     return { toAdd, toRemove };
   }
 
@@ -425,6 +459,10 @@ export class User extends AggregateRoot<string> {
 
   get isProfileCompleted(): boolean {
     return this._isProfileCompleted;
+  }
+
+  get updateAuth(): boolean {
+    return this._updateAuth;
   }
 
   // endregion
