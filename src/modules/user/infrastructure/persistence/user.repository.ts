@@ -48,7 +48,7 @@ class UserRepository
     });
   }
 
-  private whereQuery(props? : UserFilterProps){
+  private whereQuery(props?: UserFilterProps) {
     const where: Prisma.UserProfileWhereInput = {
       ...(props?.firstName ? { firstName: { contains: props?.firstName, mode: 'insensitive' } } : {}),
       ...(props?.lastName ? { lastName: { contains: props?.lastName, mode: 'insensitive' } } : {}),
@@ -62,7 +62,7 @@ class UserRepository
 
 
   async findById(id: string): Promise<User | null> {
-    return this.findUnique<Prisma.UserProfileInclude>({ id },{
+    return this.findUnique<Prisma.UserProfileInclude>({ id }, {
       addresses: true,
       phoneNumbers: true,
       roles: true,
@@ -228,36 +228,30 @@ class UserRepository
 
   async updateRoles(id: string, roles: Role[]): Promise<void> {
     const now = new Date();
-
-    console.log(roles)
-
     await this.executeTransaction(async (tx) => {
       // Expire old roles
       await tx.userRole.updateMany({
         where: { userId: id, expireAt: null },
         data: { expireAt: now },
       });
-      // Upsert new roles
+
+      console.log(await tx.userRole.findMany({ where: { userId: id } }))
+
       await Promise.all(
+        // Create new roles
         roles.map((role) =>
-          tx.userRole.upsert({
-            where: { id: role.id },
-            update: {
-              roleCode: role.roleCode,
-              roleName: role.roleName,
-              authRoleCode: role.authRoleCode,
-              expireAt: null,
-            },
-            create: {
+          tx.userRole.create({
+            data: {
               id: role.id,
               userId: id,
               roleCode: role.roleCode,
               roleName: role.roleName,
               authRoleCode: role.authRoleCode,
+              isDefault: role.isDefault,
               createdAt: now,
             },
           }),
-        ),
+        )
       );
     });
   }

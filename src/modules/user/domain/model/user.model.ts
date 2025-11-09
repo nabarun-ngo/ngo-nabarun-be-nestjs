@@ -48,9 +48,11 @@ export class UserProfileProps {
 export class UserAttributesProps {
   status?: UserStatus;
   userId?: string;
+  roles?: Role[];
 }
 export class User extends AggregateRoot<string> {
   private _updateAuth: boolean = false;
+  private _password?: string;
 
   // Factory
   public static create(data: {
@@ -74,6 +76,13 @@ export class User extends AggregateRoot<string> {
       UserStatus.DRAFT,
       data.isTemporary,
     );
+    user._password = generatePassword({
+      length: 14,
+      includeUppercase: true,
+      includeLowercase: true,
+      includeNumbers: true,
+      includeSymbols: true,
+    })
     user.addDomainEvent(new UserCreatedEvent(user.id, user));
     return user;
   }
@@ -95,16 +104,6 @@ export class User extends AggregateRoot<string> {
       /\s+/g,
       '',
     );
-  }
-
-  public createPassword() {
-    return generatePassword({
-      length: 14,
-      includeUppercase: true,
-      includeLowercase: true,
-      includeNumbers: true,
-      includeSymbols: true,
-    });
   }
 
   public updateUser(detail: UserProfileProps): void {
@@ -141,11 +140,23 @@ export class User extends AggregateRoot<string> {
         Address.create(address.addressLine1, address.addressLine2, address.addressLine3,
           address.hometown, address.zipCode, address.state,
           address.district, address.country)
-    }
+    } 
 
     this._isSameAddress = detail.isAddressSame ?? this._isSameAddress;
     this._isPublic = detail.isPublicProfile ?? this._isPublic;
-    this._socialMediaLinks = detail.socialMediaLinks ?? this._socialMediaLinks;
+
+    if(detail.socialMediaLinks && detail.socialMediaLinks.length > 0){
+      detail.socialMediaLinks.forEach(link => {
+        const existing = this._socialMediaLinks.find(f=>f.linkType === link.linkType);
+        console.log(existing)
+        if(existing){
+          existing.update(link);
+        }else{
+          this._socialMediaLinks.push(Link.create(link.linkName, link.linkType, link.linkValue));
+        }
+      })
+    }
+
     this._isProfileCompleted = !!(
       this.firstName &&
       this._lastName &&
@@ -167,6 +178,9 @@ export class User extends AggregateRoot<string> {
   }
 
   public updateAdmin(detail: UserAttributesProps): void {
+    if(detail.roles && detail.roles.length > 0){
+      this.updateRoles(detail.roles, []);// no need to pass default role
+    }
     this._status = detail.status ?? this._status;
     this._authUserId = detail.userId ?? this._authUserId;
     this._updateAuth = true;
@@ -199,7 +213,7 @@ export class User extends AggregateRoot<string> {
     // Ensure default roles are always present
     defaultRoles?.forEach((dr) => {
       if (!incomingRoles.some((r) => r.roleCode === dr.roleCode)) {
-        incomingRoles.push(Role.create(dr.roleCode, dr.roleName, dr.authRoleCode));
+        incomingRoles.push(Role.create(dr.roleCode, dr.roleName, dr.authRoleCode, true));
       }
     });
 
@@ -210,7 +224,7 @@ export class User extends AggregateRoot<string> {
       (r) =>
         !incomingRoles.some((ir) => ir.roleCode === r.roleCode) &&
         !defaultRoles.some((dr) => dr.roleCode === r.roleCode),
-    );
+    ).filter((r) => !r.isDefault);
 
     // Expire existing active roles
     this._roles.forEach((role) => {
@@ -224,7 +238,11 @@ export class User extends AggregateRoot<string> {
   }
 
   public changeStatus(newStatus: UserStatus): void {
-    if (newStatus) this._status = newStatus;
+    if (newStatus) { 
+      this._status = newStatus;
+      this._updateAuth = true;
+      this.touch();
+    }
   }
 
   // Getters (read-only views)
@@ -463,6 +481,10 @@ export class User extends AggregateRoot<string> {
 
   get updateAuth(): boolean {
     return this._updateAuth;
+  }
+
+  get password(){
+    return this._password;
   }
 
   // endregion

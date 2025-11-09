@@ -10,6 +10,7 @@ import type { IUserRepository } from "../../domain/repositories/user.repository.
 import { Role } from "../../domain/model/role.model";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { EmailTemplateName, SendEmailResult } from "src/modules/shared/correspondence/dtos/email.dto";
+import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -20,9 +21,7 @@ export class UserJobsHandler {
   private readonly logger = new Logger(UserJobsHandler.name);
 
   constructor(
-    private readonly metadataService: UserMetadataService,
-    private readonly auth0UserService: Auth0UserService,
-    @Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository,
+    private readonly assignRoleUseCase: AssignRoleUseCase,
     private readonly corrService: CorrespondenceService
 
   ) { }
@@ -73,60 +72,10 @@ export class UserJobsHandler {
   })
   async updateUserRole(job: Job<{ userId: string; newRoles: Role[]; }>) {
     try {
-      const user = await this.userRepo.findById(job.data.userId);
-      if (!user) {
-        throw new Error(`User with id ${job.data.userId} not found`);
-      }
-      const defaultRole = await this.metadataService.getDefaultRoles();
-      const allRoles = await this.auth0UserService.getRoles();
-      const roleRecord: Record<string, string> = Object.fromEntries(
-        allRoles.map(role => [role.authRoleCode, role.id])
-      );
-
-      const { toAdd, toRemove } = user?.updateRoles(job.data.newRoles, defaultRole);
-      const roleIdsToAdd = toAdd?.map(role => roleRecord[role.authRoleCode])!;
-      const roleIdsToRemove = toRemove?.map(role => roleRecord[role.authRoleCode])!;
-
-      if (roleIdsToAdd?.length > 0) {
-        await this.auth0UserService.assignRolesToUser(user.authUserId!, roleIdsToAdd);
-      }
-
-      if (roleIdsToRemove?.length > 0) {
-        await this.auth0UserService.removeRolesFromUser(user.authUserId!, roleIdsToRemove!)
-      }
-
-      if (roleIdsToAdd?.length > 0 || roleIdsToRemove?.length > 0) {
-        console.log("saving roles")
-        await this.userRepo.updateRoles(user?.id!, user.getRoles() as Role[]);
-      }
-
-      let emailResult={};
-      if (user.getRoles().length > 0) {
-        //send role updated email
-        emailResult =await this.corrService.sendTemplatedEmail({
-          templateName: EmailTemplateName.ROLE_ASSIGNED,
-          data: {
-            assigneeName: user.fullName,
-            roleNames: user.getRoles().map(role => role.roleName).join(', '),
-            assignedBy: '',
-            effectiveDate: user.getRoles()[0].createdAt.toISOString()
-          },
-          options: {
-            recipients: {
-              to: user.email,
-            }
-          }
-        })
-      }
+      
 
 
-      return jobSuccessResponse({
-        userId: user.id,
-        authUserId: user.authUserId,
-        roleIdsToAdd,
-        roleIdsToRemove,
-        emailResult
-      });
+      return jobSuccessResponse();
     } catch (error) {
       return jobFailureResponse(error);
     }

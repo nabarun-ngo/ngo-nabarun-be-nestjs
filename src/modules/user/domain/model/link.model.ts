@@ -20,7 +20,15 @@ export class Link extends BaseDomain<string> {
   }
 
   static create(linkName: string, linkType: LinkType, linkValue: string) {
+    console.log("Link created")
     return new Link(randomUUID(), linkName, linkType, linkValue);
+  }
+
+  update(link:Link){
+    this._linkName = link.linkName;
+    this._linkType = link.linkType;
+    this._linkValue = link.linkValue;
+    this.touch();
   }
 
 

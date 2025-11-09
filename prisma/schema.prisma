@@ -60,10 +60,11 @@ model UserProfile {
 }
 
 model UserRole {
-  id           String @id
-  roleCode     String @db.VarChar(20)
-  roleName     String @db.VarChar(50)
-  authRoleCode String @db.VarChar(20)
+  id           String  @id
+  roleCode     String  @db.VarChar(20)
+  roleName     String  @db.VarChar(50)
+  authRoleCode String  @db.VarChar(20)
+  isDefault    Boolean @default(false)
 
   // Relation to UserProfile (UserEntity in JPA)
   user   UserProfile @relation(fields: [userId], references: [id])
@@ -275,13 +276,13 @@ model TaskAssignment {
 // ====================================
 
 model Account {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(100)
-  type        String   @db.VarChar(20) // MAIN, PROJECT, EVENT, RESERVE
-  balance     Decimal  @db.Decimal(15, 2)
-  currency    String   @db.VarChar(3) // USD, INR, etc.
-  status      String   @db.VarChar(20) // ACTIVE, INACTIVE, CLOSED
-  description String?  @db.Text
+  id          String  @id @default(uuid())
+  name        String  @db.VarChar(100)
+  type        String  @db.VarChar(20) // MAIN, PROJECT, EVENT, RESERVE
+  balance     Decimal @db.Decimal(15, 2)
+  currency    String  @db.VarChar(3) // USD, INR, etc.
+  status      String  @db.VarChar(20) // ACTIVE, INACTIVE, CLOSED
+  description String? @db.Text
 
   // Relations
   transactions Transaction[]
@@ -298,21 +299,21 @@ model Account {
 }
 
 model Donation {
-  id            String   @id @default(uuid())
-  type          String   @db.VarChar(20) // REGULAR, ONE_TIME
-  amount        Decimal  @db.Decimal(10, 2)
-  currency      String   @db.VarChar(3)
-  status        String   @db.VarChar(20) // RAISED, PAID, CANCELLED, FAILED
-  
+  id       String  @id @default(uuid())
+  type     String  @db.VarChar(20) // REGULAR, ONE_TIME
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @db.VarChar(3)
+  status   String  @db.VarChar(20) // RAISED, PAID, CANCELLED, FAILED
+
   // Donor information
-  donorId       String?  @db.VarChar(255) // UserId for internal members
-  donorName     String?  @db.VarChar(100) // Name for guest donations
-  donorEmail    String?  @db.VarChar(100) // Email for guest donations
-  
-  description   String?  @db.Text
-  raisedDate    DateTime
-  paidDate      DateTime?
-  
+  donorId    String? @db.VarChar(255) // UserId for internal members
+  donorName  String? @db.VarChar(100) // Name for guest donations
+  donorEmail String? @db.VarChar(100) // Email for guest donations
+
+  description String?   @db.Text
+  raisedDate  DateTime
+  paidDate    DateTime?
+
   // Relations
   transactionId String?      @unique @db.VarChar(255)
   transaction   Transaction? @relation(fields: [transactionId], references: [id])
@@ -330,26 +331,26 @@ model Donation {
 }
 
 model Transaction {
-  id              String   @id @default(uuid())
-  type            String   @db.VarChar(20) // DONATION, EXPENSE, EARNING, TRANSFER
-  amount          Decimal  @db.Decimal(15, 2)
-  currency        String   @db.VarChar(3)
-  status          String   @db.VarChar(20) // PENDING, COMPLETED, FAILED, REVERSED
-  
+  id       String  @id @default(uuid())
+  type     String  @db.VarChar(20) // DONATION, EXPENSE, EARNING, TRANSFER
+  amount   Decimal @db.Decimal(15, 2)
+  currency String  @db.VarChar(3)
+  status   String  @db.VarChar(20) // PENDING, COMPLETED, FAILED, REVERSED
+
   // Account relation
-  accountId       String   @db.VarChar(255)
-  account         Account  @relation(fields: [accountId], references: [id])
-  
+  accountId String  @db.VarChar(255)
+  account   Account @relation(fields: [accountId], references: [id])
+
   // Reference to source
-  referenceId     String?  @db.VarChar(255) // Donation ID, Expense ID, etc.
-  referenceType   String?  @db.VarChar(50) // Donation, Expense, Earning
-  
+  referenceId   String? @db.VarChar(255) // Donation ID, Expense ID, etc.
+  referenceType String? @db.VarChar(50) // Donation, Expense, Earning
+
   description     String   @db.Text
-  metadata        Json?    // Additional data as JSON
+  metadata        Json? // Additional data as JSON
   transactionDate DateTime
-  
+
   // Relations
-  donation        Donation?
+  donation Donation?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -363,30 +364,30 @@ model Transaction {
 }
 
 model Expense {
-  id            String   @id @default(uuid())
-  category      String   @db.VarChar(30) // PROJECT, EVENT, ADHOC, OPERATIONAL, ADMINISTRATIVE
-  amount        Decimal  @db.Decimal(10, 2)
-  currency      String   @db.VarChar(3)
-  status        String   @db.VarChar(20) // PENDING, APPROVED, PAID, REJECTED
-  description   String   @db.Text
-  
+  id          String  @id @default(uuid())
+  category    String  @db.VarChar(30) // PROJECT, EVENT, ADHOC, OPERATIONAL, ADMINISTRATIVE
+  amount      Decimal @db.Decimal(10, 2)
+  currency    String  @db.VarChar(3)
+  status      String  @db.VarChar(20) // PENDING, APPROVED, PAID, REJECTED
+  description String  @db.Text
+
   // Reference to project/event
-  referenceId   String?  @db.VarChar(255)
-  referenceType String?  @db.VarChar(50)
-  
+  referenceId   String? @db.VarChar(255)
+  referenceType String? @db.VarChar(50)
+
   // User relations
-  requestedBy   String   @db.VarChar(255) // User ID
-  approvedBy    String?  @db.VarChar(255) // User ID
-  
+  requestedBy String  @db.VarChar(255) // User ID
+  approvedBy  String? @db.VarChar(255) // User ID
+
   // Account and transaction
   accountId     String?  @db.VarChar(255)
   account       Account? @relation(fields: [accountId], references: [id])
   transactionId String?  @unique @db.VarChar(255)
-  
-  receiptUrl    String?  @db.VarChar(500)
-  expenseDate   DateTime
-  approvedDate  DateTime?
-  paidDate      DateTime?
+
+  receiptUrl   String?   @db.VarChar(500)
+  expenseDate  DateTime
+  approvedDate DateTime?
+  paidDate     DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -400,25 +401,25 @@ model Expense {
 }
 
 model Earning {
-  id            String   @id @default(uuid())
-  category      String   @db.VarChar(30) // SERVICE, PRODUCT, GRANT, SPONSORSHIP, OTHER
-  amount        Decimal  @db.Decimal(10, 2)
-  currency      String   @db.VarChar(3)
-  status        String   @db.VarChar(20) // PENDING, RECEIVED, CANCELLED
-  description   String   @db.Text
-  source        String   @db.VarChar(100) // Source of earning
-  
+  id          String  @id @default(uuid())
+  category    String  @db.VarChar(30) // SERVICE, PRODUCT, GRANT, SPONSORSHIP, OTHER
+  amount      Decimal @db.Decimal(10, 2)
+  currency    String  @db.VarChar(3)
+  status      String  @db.VarChar(20) // PENDING, RECEIVED, CANCELLED
+  description String  @db.Text
+  source      String  @db.VarChar(100) // Source of earning
+
   // Reference to project/event
-  referenceId   String?  @db.VarChar(255)
-  referenceType String?  @db.VarChar(50)
-  
+  referenceId   String? @db.VarChar(255)
+  referenceType String? @db.VarChar(50)
+
   // Account and transaction
   accountId     String?  @db.VarChar(255)
   account       Account? @relation(fields: [accountId], references: [id])
   transactionId String?  @unique @db.VarChar(255)
-  
-  earningDate   DateTime
-  receivedDate  DateTime?
+
+  earningDate  DateTime
+  receivedDate DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

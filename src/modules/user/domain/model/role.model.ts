@@ -8,11 +8,13 @@ export class Role extends BaseDomain<string> {
   private _authRoleCode: string;
   private _expireAt?: Date;
   private _createdBy?: User;
+  private _isDefault: boolean;
   constructor(
     id: string,
     roleCode: string,
     roleName: string,
     authRoleCode: string,
+    defaultRole?: boolean,
     expireAt?: Date,
     createdBy?: User
 
@@ -23,10 +25,11 @@ export class Role extends BaseDomain<string> {
     this._authRoleCode = authRoleCode;
     this._expireAt = expireAt;
     this._createdBy = createdBy;
+    this._isDefault = defaultRole ?? false;
   }
 
-  static create(roleCode: string, roleName: string, authRoleCode: string) {
-    return new Role(randomUUID(), roleCode, roleName, authRoleCode);
+  static create(roleCode: string, roleName: string, authRoleCode: string, defaultRole?: boolean) {
+    return new Role(randomUUID(), roleCode, roleName, authRoleCode, defaultRole);
   }
   expire() {
     this._expireAt = new Date();
@@ -55,5 +58,9 @@ export class Role extends BaseDomain<string> {
 
   get createdBy(): User | undefined {
     return this._createdBy;
+  }
+
+  get isDefault(): boolean {
+    return this._isDefault;
   }
 }

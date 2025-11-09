@@ -87,7 +87,7 @@ export class Auth0UserService {
             profile_updated: newUser.isProfileCompleted,
           },
           password:
-            lm == LoginMethod.PASSWORD ? newUser.createPassword() : undefined,
+            lm == LoginMethod.PASSWORD ? newUser.password! : undefined,
           email_verified: emailVerified,
         });
       }

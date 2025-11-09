@@ -11,6 +11,7 @@ import { UserMetadataService } from './infrastructure/external/user-metadata.ser
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 import { UserService } from './application/services/user.service';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
+import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
 
 @Module({
   controllers: [UserController],
@@ -26,7 +27,8 @@ import { UpdateUserUseCase } from './application/use-cases/update-user.use-case'
     UserEventsHandler,
     UserJobsHandler,
     UserMetadataService,
-    UserService
+    UserService,
+    AssignRoleUseCase
   ],
   exports: [USER_REPOSITORY],
 })

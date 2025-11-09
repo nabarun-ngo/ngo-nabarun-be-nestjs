@@ -56,6 +56,7 @@ export class UserInfraMapper {
           r.roleCode,
           r.roleName,
           r.authRoleCode,
+          MapperUtils.nullToUndefined(r.isDefault),
           MapperUtils.nullToUndefined(r.expireAt),
         ),
       ),
