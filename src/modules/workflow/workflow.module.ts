@@ -3,7 +3,7 @@ import { WorkflowController } from './presentation/controllers/workflow.controll
 import { StartWorkflowUseCase } from './application/use-cases/start-workflow.use-case';
 import { CompleteTaskUseCase } from './application/use-cases/complete-task.use-case';
 import { WorkflowService } from './application/services/workflow.service';
-import { WorkflowInstanceRepository } from './infrastructure/persistence/workflow-instance.repository';
+import WorkflowInstanceRepository from './infrastructure/persistence/workflow-instance.repository';
 import {
   WORKFLOW_INSTANCE_REPOSITORY,
 } from './domain/repositories/workflow-instance.repository.interface';

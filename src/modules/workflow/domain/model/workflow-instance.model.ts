@@ -5,6 +5,8 @@ import { WorkflowDefinition } from '../vo/workflow-def.vo';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { WorkflowCreatedEvent } from '../events/workflow-created.event';
 import { StepStartedEvent } from '../events/step-started.event';
+import { BaseDomain } from 'src/shared/models/base-domain';
+import { BaseFilterProps } from 'src/shared/models/base-filter-props';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -18,6 +20,13 @@ export enum WorkflowType {
   JOIN_REQUEST = 'JOIN_REQUEST',
 
 }
+
+export interface WorkflowFilter extends BaseFilterProps{
+  initiatedBy?: string;
+  status?: string;
+  type?: string;
+}
+
 
 export class WorkflowInstance extends AggregateRoot<string> {
   private _steps: WorkflowStep[] = [];

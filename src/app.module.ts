@@ -8,6 +8,7 @@ import { AuthModule } from './modules/shared/auth/auth.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
 import { WorkflowModule } from './modules/workflow/workflow.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
     }),
     UserModule,
     AuthModule,
-    WorkflowModule
+    WorkflowModule,
+    FinanceModule,
   ],
 })
 export class AppModule { }

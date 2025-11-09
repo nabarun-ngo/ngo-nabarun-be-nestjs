@@ -9,12 +9,6 @@ generator client {
   output   = "../generated/prisma"
 }
 
-generator prismaClassGenerator {
-    provider = "prisma-class-generator"
-    output   = "../generated/prisma/classes"
-    dryRun = false
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("POSTGRES_URL")
@@ -38,6 +32,7 @@ model UserProfile {
   socialMediaLinks Link[]
   taskAssignments  TaskAssignment[]
   tasks            WorkflowTask[]
+  donations        Donation[]
 
   email              String    @unique @db.VarChar(100)
   isPublic           Boolean?
@@ -273,4 +268,164 @@ model TaskAssignment {
   @@index([taskId])
   @@index([assignedToId, status])
   @@map("task_assignments")
+}
+
+// ====================================
+// FINANCE MODULE MODELS
+// ====================================
+
+model Account {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  type        String   @db.VarChar(20) // MAIN, PROJECT, EVENT, RESERVE
+  balance     Decimal  @db.Decimal(15, 2)
+  currency    String   @db.VarChar(3) // USD, INR, etc.
+  status      String   @db.VarChar(20) // ACTIVE, INACTIVE, CLOSED
+  description String?  @db.Text
+
+  // Relations
+  transactions Transaction[]
+  expenses     Expense[]
+  earnings     Earning[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   BigInt    @default(0)
+  deletedAt DateTime?
+
+  @@index([type, status])
+  @@map("accounts")
+}
+
+model Donation {
+  id            String   @id @default(uuid())
+  type          String   @db.VarChar(20) // REGULAR, ONE_TIME
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @db.VarChar(3)
+  status        String   @db.VarChar(20) // RAISED, PAID, CANCELLED, FAILED
+  
+  // Donor information
+  donorId       String?  @db.VarChar(255) // UserId for internal members
+  donorName     String?  @db.VarChar(100) // Name for guest donations
+  donorEmail    String?  @db.VarChar(100) // Email for guest donations
+  
+  description   String?  @db.Text
+  raisedDate    DateTime
+  paidDate      DateTime?
+  
+  // Relations
+  transactionId String?      @unique @db.VarChar(255)
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  donor         UserProfile? @relation(fields: [donorId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   BigInt    @default(0)
+  deletedAt DateTime?
+
+  @@index([donorId, status])
+  @@index([type, status])
+  @@index([raisedDate])
+  @@map("donations")
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  type            String   @db.VarChar(20) // DONATION, EXPENSE, EARNING, TRANSFER
+  amount          Decimal  @db.Decimal(15, 2)
+  currency        String   @db.VarChar(3)
+  status          String   @db.VarChar(20) // PENDING, COMPLETED, FAILED, REVERSED
+  
+  // Account relation
+  accountId       String   @db.VarChar(255)
+  account         Account  @relation(fields: [accountId], references: [id])
+  
+  // Reference to source
+  referenceId     String?  @db.VarChar(255) // Donation ID, Expense ID, etc.
+  referenceType   String?  @db.VarChar(50) // Donation, Expense, Earning
+  
+  description     String   @db.Text
+  metadata        Json?    // Additional data as JSON
+  transactionDate DateTime
+  
+  // Relations
+  donation        Donation?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   BigInt    @default(0)
+  deletedAt DateTime?
+
+  @@index([accountId, transactionDate])
+  @@index([type, status])
+  @@index([referenceId, referenceType])
+  @@map("transactions")
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  category      String   @db.VarChar(30) // PROJECT, EVENT, ADHOC, OPERATIONAL, ADMINISTRATIVE
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @db.VarChar(3)
+  status        String   @db.VarChar(20) // PENDING, APPROVED, PAID, REJECTED
+  description   String   @db.Text
+  
+  // Reference to project/event
+  referenceId   String?  @db.VarChar(255)
+  referenceType String?  @db.VarChar(50)
+  
+  // User relations
+  requestedBy   String   @db.VarChar(255) // User ID
+  approvedBy    String?  @db.VarChar(255) // User ID
+  
+  // Account and transaction
+  accountId     String?  @db.VarChar(255)
+  account       Account? @relation(fields: [accountId], references: [id])
+  transactionId String?  @unique @db.VarChar(255)
+  
+  receiptUrl    String?  @db.VarChar(500)
+  expenseDate   DateTime
+  approvedDate  DateTime?
+  paidDate      DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   BigInt    @default(0)
+  deletedAt DateTime?
+
+  @@index([category, status])
+  @@index([requestedBy])
+  @@index([status])
+  @@map("expenses")
+}
+
+model Earning {
+  id            String   @id @default(uuid())
+  category      String   @db.VarChar(30) // SERVICE, PRODUCT, GRANT, SPONSORSHIP, OTHER
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @db.VarChar(3)
+  status        String   @db.VarChar(20) // PENDING, RECEIVED, CANCELLED
+  description   String   @db.Text
+  source        String   @db.VarChar(100) // Source of earning
+  
+  // Reference to project/event
+  referenceId   String?  @db.VarChar(255)
+  referenceType String?  @db.VarChar(50)
+  
+  // Account and transaction
+  accountId     String?  @db.VarChar(255)
+  account       Account? @relation(fields: [accountId], references: [id])
+  transactionId String?  @unique @db.VarChar(255)
+  
+  earningDate   DateTime
+  receivedDate  DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   BigInt    @default(0)
+  deletedAt DateTime?
+
+  @@index([category, status])
+  @@index([source])
+  @@map("earnings")
 }

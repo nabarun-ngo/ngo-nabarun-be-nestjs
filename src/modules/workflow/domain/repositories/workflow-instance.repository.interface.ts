@@ -1,7 +1,9 @@
+import e from 'express';
 import { IRepository } from '../../../../shared/interfaces/repository.interface';
-import { WorkflowInstance } from '../model/workflow-instance.model';
+import { WorkflowFilter, WorkflowInstance } from '../model/workflow-instance.model';
 
-export interface IWorkflowInstanceRepository extends IRepository<WorkflowInstance, string> {
+
+export interface IWorkflowInstanceRepository extends IRepository<WorkflowInstance, string,WorkflowFilter> {
   findById(id: string, includeSteps?: boolean): Promise<WorkflowInstance | null>;
   findByType(type: string, status?: string): Promise<WorkflowInstance[]>;
   findByInitiator(initiatedBy: string): Promise<WorkflowInstance[]>;

@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ThirdPartyException } from '../../../../shared/exceptions/third-party-exception';
 import { LoginMethod, User, UserStatus } from '../../domain/model/user.model';
 import { ManagementClient } from 'auth0';
-import { UserMapper } from '../user-infra.mapper';
+import { UserInfraMapper } from '../user-infra.mapper';
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { Role } from '../../domain/model/role.model';
@@ -42,7 +42,7 @@ export class Auth0UserService {
         await this.managementClient.users.listUsersByEmail({
           email: email,
         });
-      return users.map((user) => UserMapper.toAuthUser(user));
+      return users.map((user) => UserInfraMapper.toAuthUser(user));
     } catch (e) {
       this.logger.error(`Failed to get user by email ${email}: ${e}`);
       throw new ThirdPartyException('auth0', e as Error);
@@ -53,7 +53,7 @@ export class Auth0UserService {
     try {
       const users: Auth0User[] = (await this.managementClient.users.list())
         .data;
-      return users.map((user) => UserMapper.toAuthUser(user));
+      return users.map((user) => UserInfraMapper.toAuthUser(user));
     } catch (e) {
       this.logger.error(`Failed to get users: ${e}`);
       throw new ThirdPartyException('auth0', e as Error);
@@ -63,7 +63,7 @@ export class Auth0UserService {
   async getUser(id: string): Promise<User> {
     try {
       const user = await this.managementClient.users.get(id);
-      return UserMapper.toAuthUser(user);
+      return UserInfraMapper.toAuthUser(user);
     } catch (e) {
       this.logger.error(`Failed to get user ${id}: ${e}`);
       throw new ThirdPartyException('auth0', e as Error);
@@ -75,7 +75,7 @@ export class Auth0UserService {
       for (const lm of newUser.loginMethod) {
         await this.managementClient.users.create({
           email: newUser.email,
-          connection: UserMapper.loginMethod2Connection(lm),
+          connection: UserInfraMapper.loginMethod2Connection(lm),
           given_name: newUser.firstName,
           family_name: newUser.lastName,
           name: newUser.fullName,
@@ -106,7 +106,7 @@ export class Auth0UserService {
     });
 
     if (users.length > 0 && users.length == 1) {
-      return UserMapper.toAuthUser(users[0]);
+      return UserInfraMapper.toAuthUser(users[0]);
     }
 
     const primary = users[0];
@@ -132,7 +132,7 @@ export class Auth0UserService {
       user_metadata: mergedMetadata
     });
     this.logger.log(`Linked ${users.length} Auth0 identities for user ${email}`);
-    return UserMapper.toAuthUser(updated);
+    return UserInfraMapper.toAuthUser(updated);
   }
 
   async updateUser(id: string, user: Partial<User>): Promise<User> {
@@ -252,3 +252,4 @@ export class Auth0UserService {
   // }
 
 }
+

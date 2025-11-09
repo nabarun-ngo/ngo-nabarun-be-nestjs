@@ -5,30 +5,30 @@ import { Address } from '../domain/model/address.model';
 import { Link, LinkType } from '../domain/model/link.model';
 import { Auth0User } from './external/auth0-user.service';
 import { Prisma } from 'generated/prisma';
+import { UserPersistence } from './types/user-persistence.types';
+import { UserMapperHelpers } from './user-mapper-helpers';
+import { MapperUtils } from 'src/modules/shared/database/mapper-utils';
+import { CommonMappers } from 'src/modules/shared/database/common-mappers';
 
 export class UserInfraMapper {
-  static toUser(
-    model: Prisma.UserProfileGetPayload<{
-      include: {
-        roles?: true;
-        phoneNumbers?: true;
-        addresses?: true;
-        socialMediaLinks?: true;
-      };
-    }>,
-  ): User {
-    const primaryNumber =
-      model.phoneNumbers == null ? null : model.phoneNumbers.find((p) => p.primary)!;
-    const secondaryNumber =
-      model.phoneNumbers == null ? null : model.phoneNumbers.find((p) => !p.primary);
-    const presentAddress =
-      model.addresses == null
-        ? null
-        : model.addresses.find((a) => a.addressType === 'PRESENT');
-    const permanentAddress =
-      model.addresses == null
-        ? null
-        : model.addresses.find((a) => a.addressType == 'PERMANENT');
+  /**
+   * Converts a Prisma UserProfile persistence model to a User domain model
+   * Fully type-safe with explicit type handling for optional relations
+   * @param model - Prisma query result (can be Full, WithRoles, or WithAuth)
+   * @returns User domain model or null if model is null
+   */
+  static toUserDomain(
+    model: UserPersistence.Full | UserPersistence.WithRoles | UserPersistence.WithAuth | null,
+  ): User | null {
+    if (!model) return null;
+
+    // Use type-safe helpers to extract relations
+    const { primary: primaryNumber, secondary: secondaryNumber } =
+      UserMapperHelpers.extractPhoneNumbers(model);
+    const { present: presentAddress, permanent: permanentAddress } =
+      UserMapperHelpers.extractAddresses(model);
+    const socialLinks = UserMapperHelpers.extractSocialLinks(model);
+    const roles = UserMapperHelpers.extractRoles(model);
 
     return new User(
       model.id,
@@ -37,114 +37,159 @@ export class UserInfraMapper {
       model.email,
       primaryNumber
         ? PhoneNumber.create(
-          primaryNumber.phoneCode!,
-          primaryNumber.phoneNumber!,
-          primaryNumber.hidden,
-          primaryNumber.primary,
-        )
+            primaryNumber.phoneCode ?? '',
+            primaryNumber.phoneNumber ?? '',
+            primaryNumber.hidden,
+            primaryNumber.primary,
+          )
         : undefined,
       model.status as UserStatus,
       model.isTemporary,
-      model.title!,
-      model.middleName!,
-      model.dateOfBirth!,
-      model.gender!,
-      model.about!,
-      model.picture!,
-      model.roles!.map(
-        (r) =>
-          new Role(r.id, r.roleCode, r.roleName, r.authRoleCode, r.expireAt!),
+      MapperUtils.nullToUndefined(model.title),
+      MapperUtils.nullToUndefined(model.middleName),
+      MapperUtils.nullToUndefined(model.dateOfBirth),
+      MapperUtils.nullToUndefined(model.gender),
+      MapperUtils.nullToUndefined(model.about),
+      MapperUtils.nullToUndefined(model.picture),
+      MapperUtils.mapArray(roles, (r) =>
+        new Role(
+          r.id,
+          r.roleCode,
+          r.roleName,
+          r.authRoleCode,
+          MapperUtils.nullToUndefined(r.expireAt),
+        ),
       ),
       secondaryNumber
         ? PhoneNumber.create(
-          secondaryNumber.phoneCode!,
-          secondaryNumber.phoneNumber!,
-          secondaryNumber.hidden,
-          secondaryNumber.primary,
-        )
+            secondaryNumber.phoneCode ?? '',
+            secondaryNumber.phoneNumber ?? '',
+            secondaryNumber.hidden,
+            secondaryNumber.primary,
+          )
         : undefined,
       presentAddress
         ? new Address(
-          presentAddress.id,
-          presentAddress.addressLine1!,
-          presentAddress.addressLine2!,
-          presentAddress.addressLine3!,
-          presentAddress.hometown!,
-          presentAddress.zipCode!,
-          presentAddress.state!,
-          presentAddress.district!,
-          presentAddress.country!,
-        )
+            presentAddress.id,
+            presentAddress.addressLine1 ?? '',
+            presentAddress.addressLine2 ?? '',
+            presentAddress.addressLine3 ?? '',
+            presentAddress.hometown ?? '',
+            presentAddress.zipCode ?? '',
+            presentAddress.state ?? '',
+            presentAddress.district ?? '',
+            presentAddress.country ?? '',
+          )
         : undefined,
       permanentAddress
         ? new Address(
-          permanentAddress.id,
-          permanentAddress.addressLine1!,
-          permanentAddress.addressLine2!,
-          permanentAddress.addressLine3!,
-          permanentAddress.hometown!,
-          permanentAddress.zipCode!,
-          permanentAddress.state!,
-          permanentAddress.district!,
-          permanentAddress.country!,
-        )
+            permanentAddress.id,
+            permanentAddress.addressLine1 ?? '',
+            permanentAddress.addressLine2 ?? '',
+            permanentAddress.addressLine3 ?? '',
+            permanentAddress.hometown ?? '',
+            permanentAddress.zipCode ?? '',
+            permanentAddress.state ?? '',
+            permanentAddress.district ?? '',
+            permanentAddress.country ?? '',
+          )
         : undefined,
-      model.isPublic!,
-      model.authUserId!,
-      model.isSameAddress!,
+      MapperUtils.withDefault(model.isPublic, true),
+      MapperUtils.nullToUndefined(model.authUserId),
+      MapperUtils.nullToUndefined(model.isSameAddress),
       model.loginMethods
-        ? (model.loginMethods.split(',') as LoginMethod[])
-        : [],
-      model.socialMediaLinks?.map(
-        (l) => new Link(l.id, l.linkName, l.linkType as LinkType, l.linkValue),
+        ? CommonMappers.splitToArray(model.loginMethods) as LoginMethod[]
+        : [LoginMethod.EMAIL, LoginMethod.PASSWORD],
+      MapperUtils.mapArray(socialLinks, (l) =>
+        new Link(l.id, l.linkName, l.linkType as LinkType, l.linkValue),
       ),
-      model.donationPauseStart!,
-      model.donationPauseEnd!,
-      model.panNumber!,
-      model.aadharNumber!,
+      MapperUtils.nullToUndefined(model.donationPauseStart),
+      MapperUtils.nullToUndefined(model.donationPauseEnd),
+      MapperUtils.nullToUndefined(model.panNumber),
+      MapperUtils.nullToUndefined(model.aadharNumber),
     );
   }
 
-  static toUserPersistence(
-    user: User,
-  ): Partial<Prisma.UserProfileUpdateInput | Prisma.UserProfileCreateInput> {
+  // static toUserPersistence(
+  //   user: User,
+  // ): Partial<Prisma.UserProfileUpdateInput | Prisma.UserProfileCreateInput> {
+  //   return {
+  //     id: user.id,
+  //     title: user.title,
+  //     firstName: user.firstName,
+  //     middleName: user.middleName,
+  //     lastName: user.lastName,
+  //     dateOfBirth: user.dateOfBirth,
+  //     gender: user.gender,
+  //     about: user.about,
+  //     picture: user.picture,
+  //     email: user.email,
+  //     isPublic: user.isPublic,
+  //     authUserId: user.authUserId,
+  //     status: user.status,
+  //     isTemporary: user.isTemporary,
+  //     isSameAddress: user.isSameAddress,
+  //     loginMethods: user.loginMethod.join(','),
+  //     panNumber: user.panNumber,
+  //     aadharNumber: user.aadharNumber,
+  //     donationPauseStart: user.donationPauseStart,
+  //     donationPauseEnd: user.donationPauseEnd,
+  //     createdAt: user.createdAt,
+  //     updatedAt: user.updatedAt
+  //   };
+  // }
+
+  /**
+   * Convert User domain model to Prisma create input
+   * Fully type-safe conversion with explicit null handling
+   */
+  static toUserCreatePersistence(user: User): Prisma.UserProfileCreateInput {
     return {
       id: user.id,
-      title: user.title,
+      title: MapperUtils.undefinedToNull(user.title),
       firstName: user.firstName,
-      middleName: user.middleName,
+      middleName: MapperUtils.undefinedToNull(user.middleName),
       lastName: user.lastName,
-      dateOfBirth: user.dateOfBirth,
-      gender: user.gender,
-      about: user.about,
-      picture: user.picture,
+      dateOfBirth: MapperUtils.undefinedToNull(user.dateOfBirth),
+      gender: MapperUtils.undefinedToNull(user.gender),
+      about: MapperUtils.undefinedToNull(user.about),
+      picture: MapperUtils.undefinedToNull(user.picture),
       email: user.email,
-      isPublic: user.isPublic,
-      authUserId: user.authUserId,
+      isPublic: MapperUtils.undefinedToNull(user.isPublic),
+      authUserId: MapperUtils.undefinedToNull(user.authUserId),
       status: user.status,
       isTemporary: user.isTemporary,
-      isSameAddress: user.isSameAddress,
-      loginMethods: user.loginMethod.join(','),
-      panNumber: user.panNumber,
-      aadharNumber: user.aadharNumber,
-      donationPauseStart: user.donationPauseStart,
-      donationPauseEnd: user.donationPauseEnd,
+      isSameAddress: MapperUtils.undefinedToNull(user.isSameAddress),
+      loginMethods: CommonMappers.joinToString([...user.loginMethod]),
+      panNumber: MapperUtils.undefinedToNull(user.panNumber),
+      aadharNumber: MapperUtils.undefinedToNull(user.aadharNumber),
+      donationPauseStart: MapperUtils.undefinedToNull(user.donationPauseStart),
+      donationPauseEnd: MapperUtils.undefinedToNull(user.donationPauseEnd),
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     };
   }
 
-  static toRolePersistance(
-    role: Role,
-  ): Partial<PrismaModel.UserRole> {
+  /**
+   * Convert Role domain model to Prisma persistence format
+   * Type-safe role mapping
+   */
+  static toRolePersistance(role: Role): {
+    id: string;
+    roleCode: string;
+    roleName: string;
+    authRoleCode: string;
+    expireAt: Date | null;
+    createdAt: Date;
+  } {
     return {
       id: role.id,
       roleCode: role.roleCode,
       roleName: role.roleName,
       authRoleCode: role.authRoleCode,
-      expireAt: role.expireAt,
-      createdAt: role.createdAt,      
-    }
+      expireAt: MapperUtils.undefinedToNull(role.expireAt),
+      createdAt: role.createdAt,
+    };
   }
 
   static toAuthUser(a0User: Auth0User) {

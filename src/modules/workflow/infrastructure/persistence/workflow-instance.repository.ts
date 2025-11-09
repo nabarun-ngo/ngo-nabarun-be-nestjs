@@ -1,201 +1,121 @@
 import { Injectable } from '@nestjs/common';
 import { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
-import { WorkflowInstance } from '../../domain/model/workflow-instance.model';
-import { WorkflowMapper } from '../workflow.mapper';
+import { WorkflowFilter, WorkflowInstance } from '../../domain/model/workflow-instance.model';
 import { PrismaPostgresService } from '../../../shared/database/prisma-postgres.service';
-import { WorkflowInfraMapper } from '../WorkflowInfraMapper';
+import { Prisma } from 'generated/prisma';
+import { PrismaBaseRepository, RepositoryHelpers } from 'src/modules/shared/database';
+import { WorkflowPersistence } from '../types/workflow-persistence.types';
+import { WorkflowInfraMapper } from '../workflow-infra.mapper';
 
 @Injectable()
-export class WorkflowInstanceRepository
-  implements IWorkflowInstanceRepository {
-  constructor(private readonly prisma: PrismaPostgresService) { }
-  findAll(filter?: any): Promise<WorkflowInstance[]> {
-    throw new Error('Method not implemented.');
+class WorkflowInstanceRepository
+  extends PrismaBaseRepository<
+    WorkflowInstance,
+    PrismaPostgresService['workflowInstance'],
+    Prisma.WorkflowInstanceWhereUniqueInput,
+    Prisma.WorkflowInstanceWhereInput,
+    WorkflowPersistence.WithOnlySteps,
+    Prisma.WorkflowInstanceCreateInput,
+    Prisma.WorkflowInstanceUpdateInput
+  >
+  implements IWorkflowInstanceRepository
+{
+  constructor(prisma: PrismaPostgresService) {
+    super(prisma);
   }
 
-  async findById(
-    id: string,
-    includeSteps: boolean = false,
-  ): Promise<WorkflowInstance> {
-    const instance = await this.prisma.workflowInstance.findUnique({
-      where: { id },
-      include: includeSteps
-        ? {
-          steps: {
-            include: {
-              tasks: {
-                include: {
-                  assignments: true,
-                },
-                orderBy: { createdAt: 'asc' },
-              },
-            },
-            orderBy: { orderIndex: 'asc' },
-          },
-        }
-        : undefined,
-    });
-    return WorkflowMapper.toWorkflowInstance(instance!);
+  protected getDelegate() {
+    return this.prisma.workflowInstance;
   }
 
-  async findByType(
-    type: string,
-    status?: string,
-  ): Promise<WorkflowInstance[]> {
-    const instances = await this.prisma.workflowInstance.findMany({
-      where: {
-        type,
-        status: status || undefined,
-      },
-      include: {
-        steps: {
-          include: {
-            tasks: {
-              include: {
-                assignments: true,
-              },
-            },
-          },
-          orderBy: { orderIndex: 'asc' },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  protected toDomain(prismaModel: any): WorkflowInstance | null {
+    return WorkflowInfraMapper.toWorkflowInstanceDomain(prismaModel);
+  }
 
-    return instances.map((inst) => WorkflowMapper.toWorkflowInstance(inst));
+  async findAll(filter?: WorkflowFilter): Promise<WorkflowInstance[]> {
+    const where: Prisma.WorkflowInstanceWhereInput = {
+      type: filter?.type,
+      status: filter?.status,
+      initiatedById: filter?.initiatedBy,
+    };
+
+    return this.findMany(
+      where,
+      undefined,
+      RepositoryHelpers.buildPaginationOptions(filter?.pageIndex, filter?.pageSize),
+    );
+  }
+
+  async findById(id: string): Promise<WorkflowInstance | null> {
+    return this.findUnique({ id });
+  }
+
+  async findByType(type: string, status?: string): Promise<WorkflowInstance[]> {
+    return this.findMany({ type, status: status || undefined });
   }
 
   async findByInitiator(initiatedBy: string): Promise<WorkflowInstance[]> {
-    const instances = await this.prisma.workflowInstance.findMany({
-      where: { initiatedById: initiatedBy },
-      include: {
-        steps: {
-          include: {
-            tasks: {
-              include: {
-                assignments: true,
-              },
-            },
-          },
-          orderBy: { orderIndex: 'asc' },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return instances.map((inst) => WorkflowMapper.toWorkflowInstance(inst));
+    return this.findMany({ initiatedById: initiatedBy });
   }
 
   async findByStatus(status: string): Promise<WorkflowInstance[]> {
-    const instances = await this.prisma.workflowInstance.findMany({
-      where: { status },
-      include: {
-        steps: {
-          include: {
-            tasks: {
-              include: {
-                assignments: true,
-              },
-            },
-          },
-          orderBy: { orderIndex: 'asc' },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return instances.map((inst) => WorkflowMapper.toWorkflowInstance(inst));
+    return this.findMany({ status });
   }
 
   async create(instance: WorkflowInstance): Promise<WorkflowInstance> {
-    const prismaData = WorkflowInfraMapper.toPersistence(instance);
-    const created = await this.prisma.workflowInstance.create({
-      data: {
-        ...prismaData,
-        steps: {
-          create: instance.steps.map((step) => ({
-            ...WorkflowMapper.toPrismaWorkflowStep(step),
-            // tasks: {
-            //   create: step.tasks.map((task) => ({
-            //     ...WorkflowMapper.toPrismaWorkflowTask(task),
-            //     assignments: {
-            //       create: task.assignments.map((assignment) =>
-            //         WorkflowMapper.toPrismaTaskAssignment(assignment),
-            //       ),
-            //     },
-            //   })),
-            // },
-          })),
-        },
+    const createData: Prisma.WorkflowInstanceCreateInput = {
+      ...WorkflowInfraMapper.toWorkflowInstanceCreatePersistence(instance),
+      steps: {
+        create: instance.steps.map((step) =>
+          WorkflowInfraMapper.toWorkflowStepPersistence(step),
+        ),
       },
-      include: {
-        steps: true,
-        initiatedBy:true,
-        initiatedFor:true
-      },
-    },
-    );
+    };
 
-    return WorkflowInfraMapper.toDomain(created);
+    return this.createRecord(createData);
   }
 
-  async update(
-    id: string,
-    instance: WorkflowInstance,
-  ): Promise<WorkflowInstance> {
-    const prismaData = WorkflowInfraMapper.toPersistence(instance);
+  async update(id: string, instance: WorkflowInstance): Promise<WorkflowInstance> {
+    const data = WorkflowInfraMapper.toWorkflowInstanceUpdatePersistence(instance);
 
-    // Update instance
-    await this.prisma.workflowInstance.update({
-      where: { id },
-      data: prismaData,
-    });
+    return this.executeTransaction(async (tx) => {
+      await tx.workflowInstance.update({ where: { id }, data });
 
-    // Update steps and tasks (simplified - in production, you'd want more sophisticated update logic)
-    for (const step of instance.steps) {
-      const stepData = WorkflowMapper.toPrismaWorkflowStep(step);
-      await this.prisma.workflowStep.upsert({
-        where: { id: step.id },
-        update: stepData,
-        create: {
-          ...stepData,
-          instanceId: id,
+      await Promise.all(
+        instance.steps.map((step) => {
+          const stepData = WorkflowInfraMapper.toWorkflowStepPersistence(step);
+          return tx.workflowStep.upsert({
+            where: { id: step.id },
+            update: stepData,
+            create: { ...stepData, instanceId: id },
+          });
+        }),
+      );
+
+      const updated = await tx.workflowInstance.findUnique({
+        where: { id },
+        include: { 
+          steps: true,
+          initiatedBy: true,
+          initiatedFor: true
         },
       });
 
-      for (const task of step.tasks) {
-        const taskData = WorkflowMapper.toPrismaWorkflowTask(task);
-        // await this.prisma.workflowTask.upsert({
-        //   where: { id: task.id },
-        //   update: taskData,
-        //   create: {
-        //     ...taskData,
-        //     stepId: step.id, // Ensure stepId is explicitly set for creation
-            
-        //   },
-        // });
-
-        for (const assignment of task.assignments) {
-          const assignmentData =
-            WorkflowMapper.toPrismaTaskAssignment(assignment);
-          await this.prisma.taskAssignment.upsert({
-            where: { id: assignment.id },
-            update: assignmentData,
-            create: {
-              ...assignmentData,
-              taskId: task.id,
-            },
-          });
-        }
+      if (!updated) {
+        throw new Error('Failed to retrieve updated workflow instance');
       }
-    }
 
-    return this.findById(id, true)!;
+      const mappedInstance = WorkflowInfraMapper.toWorkflowInstanceDomain(updated);
+      if (!mappedInstance) {
+        throw new Error('Failed to map updated workflow instance');
+      }
+      return mappedInstance;
+    });
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.workflowInstance.delete({
-      where: { id },
-    });
+    await this.softDelete({ id });
   }
 }
+
+export default WorkflowInstanceRepository;
