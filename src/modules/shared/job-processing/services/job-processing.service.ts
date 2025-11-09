@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JobData, JobOptions, JobResult, Job } from '../interfaces/job.interface';
+import { JobName } from '../decorators/process-job.decorator';
 
 @Injectable()
 export class JobProcessingService {
@@ -15,7 +16,7 @@ export class JobProcessingService {
    * Add a job to the default queue
    */
   async addJob<T = JobData>(
-    name: string,
+    name: JobName,
     data: T,
     options?: JobOptions,
   ): Promise<Job<T>> {

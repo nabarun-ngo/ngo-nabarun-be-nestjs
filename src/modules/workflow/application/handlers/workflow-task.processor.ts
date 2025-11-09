@@ -1,5 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
+import { JobName, ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
 import type { Job, JobResult } from '../../../shared/job-processing/interfaces/job.interface';
 import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
@@ -37,7 +37,7 @@ export class WorkflowTaskProcessor {
   //start-workflow-step
 
   @ProcessJob({
-    name: 'start-workflow-step',
+    name: JobName.START_WORKFLOW_STEP,
     concurrency: 5,
     attempts: 3,
     backoff: {
@@ -55,7 +55,7 @@ export class WorkflowTaskProcessor {
   }
 
   @ProcessJob({
-    name: 'workflow-automatic-task',
+    name: JobName.TASK_AUTOMATIC,
     concurrency: 5,
     attempts: 3,
     backoff: {

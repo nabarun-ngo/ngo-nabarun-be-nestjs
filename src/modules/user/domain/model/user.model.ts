@@ -7,6 +7,7 @@ import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.vo';
 import { Link } from './link.model';
 import { generatePassword } from '../../../../shared/utilities/password-util';
+import { RoleAssignedEvent } from '../events/role-assigned.event';
 
 export enum UserStatus {
   DRAFT = 'DRAFT',
@@ -234,6 +235,10 @@ export class User extends AggregateRoot<string> {
     incomingRoles.forEach((role) => {
       this._roles.push(Role.create(role.roleCode, role.roleName, role.authRoleCode));
     });
+
+    if(toAdd.length > 0 || toRemove.length > 0){
+      this.addDomainEvent(new RoleAssignedEvent(this.id, this))
+    }
     return { toAdd, toRemove };
   }
 

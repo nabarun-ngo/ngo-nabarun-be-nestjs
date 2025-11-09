@@ -22,6 +22,7 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
         private readonly userRepository: IUserRepository,
         private readonly metadataService: UserMetadataService,
         private readonly auth0UserService: Auth0UserService,
+        private readonly eventEmitter: EventEmitter2,
     ) { }
 
     async execute(request: AssignUserRolesProps): Promise<void> {
@@ -53,7 +54,12 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
 
         }
 
-        let emailResult = {};
+       // Emit domain events
+        for (const event of user.domainEvents) {
+            this.eventEmitter.emit(event.constructor.name, event);
+        }
+        user.clearEvents();
+
         
     }
 }

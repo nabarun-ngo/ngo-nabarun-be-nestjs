@@ -5,10 +5,8 @@ import { USER_REPOSITORY } from '../../domain/repositories/user.repository.inter
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';
-import { AppEventEmitter } from 'src/modules/shared/common/app-event-emitter.service';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
-import { Address } from '../../domain/model/address.model';
-import { Link } from '../../domain/model/link.model';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 
 class CreateUserProps {
     id: string;
@@ -22,7 +20,7 @@ export class UpdateUserUseCase implements IUseCase<CreateUserProps, User> {
     constructor(
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
-        private readonly eventEmitter: AppEventEmitter,
+        private readonly eventEmitter: EventEmitter2,
         private readonly auth0User: Auth0UserService,
     ) { }
 
@@ -47,7 +45,7 @@ export class UpdateUserUseCase implements IUseCase<CreateUserProps, User> {
 
         // Emit domain events
         for (const event of existingUser.domainEvents) {
-            this.eventEmitter.publish(event.constructor.name, event);
+            this.eventEmitter.emit(event.constructor.name, event);
         }
         existingUser.clearEvents();
 

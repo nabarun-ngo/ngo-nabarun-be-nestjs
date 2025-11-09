@@ -5,12 +5,18 @@ import { Injectable, Logger } from "@nestjs/common";
 import { RoleAssignedEvent } from "../../domain/events/role-assigned.event";
 import { EmailTemplateName } from "src/modules/shared/correspondence/dtos/email.dto";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
+import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
+import { JobName } from "src/modules/shared/job-processing/decorators/process-job.decorator";
 
 @Injectable()
 export class UserEventsHandler {
   private readonly logger = new Logger(UserEventsHandler.name);
 
-  constructor(private readonly corrService: CorrespondenceService) { }
+  constructor(
+    private readonly corrService: CorrespondenceService,
+    private readonly jobProcessingService: JobProcessingService,
+  
+    ) { }
 
   @OnEvent(UserCreatedEvent.name, { async: true })
   async handleUserCreatedEvent(event: UserCreatedEvent) {
@@ -29,21 +35,15 @@ export class UserEventsHandler {
       }
     });
     this.logger.log(`Onboarding Email sent successfully!!`);
-    // await this.jobProcessingService.addJob('send-onboarding-email', {
-    //   name: event.user.fullName,
-    //   email: event.user.email,
-    //   password: event.user.createPassword(),
-    // });
-    // await this.jobProcessingService.addJob('update-user-role', {
-    //   userId: event.user.id,
-    //   newRoles: []
-    // });
+    await this.jobProcessingService.addJob(JobName.UPDATE_USER_ROLE, {
+      userId: event.user.id,
+      newRoles: []
+    });
   }
 
   @OnEvent(RoleAssignedEvent.name, { async: true })
   async handleRoleAssignedEvent(event: RoleAssignedEvent) {
     this.logger.log(`Handling ${RoleAssignedEvent.name} event: for user ${event.user.email} `)
-    throw new Error("Method not implemented.");
     const user = event.user;
     let emailResult = {};
     if (user.getRoles().length > 0) {

@@ -8,6 +8,7 @@ import { WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto, TaskAssignmentDt
 import { JobProcessingService } from '../../../shared/job-processing/services/job-processing.service';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { randomUUID } from 'crypto';
+import { JobName } from 'src/modules/shared/job-processing/decorators/process-job.decorator';
 
 @Injectable()
 export class WorkflowService {
@@ -65,7 +66,7 @@ export class WorkflowService {
     try {
       // Create job for automatic task
       const job = await this.jobProcessingService.addJob(
-        'workflow-automatic-task',
+        JobName.TASK_AUTOMATIC,
         {
           instanceId: instance.id,
           stepId: step.id,
@@ -102,7 +103,7 @@ export class WorkflowService {
     try {
       // Execute pre-creation task synchronously
       const job = await this.jobProcessingService.addJob(
-        'workflow-pre-creation-task',
+        JobName.TASK_AUTOMATIC,
         {
           handler: preTask.handler,
           requestData,

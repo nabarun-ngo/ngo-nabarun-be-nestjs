@@ -9,7 +9,6 @@ import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { FinanceModule } from './modules/finance/finance.module';
-import { CommonModule } from './modules/shared/common/common.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { CommonModule } from './modules/shared/common/common.module';
       isGlobal: true,
       cache: true, // Memory optimization
     }),
-    CommonModule,
     EventEmitterModule.forRoot({
       wildcard: false,
       delimiter: '.',
