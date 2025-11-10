@@ -1,120 +1,111 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from '../../domain/repositories/user.repository.interface';
-import { User } from '../../domain/model/user.model';
-import { UserMapper } from '../user.mapper';
-import {
-  UserProfile,
-  PhoneNumber as PrismaPhoneNumber,
-  Link as PrismaLink,
-  Address as PrismaAddress,
-  UserRole as PrismaUserRole,
-  Address,
-} from 'generated/prisma';
-import { UserFilter } from '../../domain/value-objects/user-filter.vo';
+import { User, UserFilterProps } from '../../domain/model/user.model';
+import { Address, Prisma } from 'generated/prisma';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { Role } from '../../domain/model/role.model';
+import { UserInfraMapper } from '../user-infra.mapper';
+import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
+import { RepositoryHelpers } from 'src/modules/shared/database/repository-helpers';
+import { UserPersistence } from '../types/user-persistence.types';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
-class UserRepository implements IUserRepository {
-  constructor(private readonly prisma: PrismaPostgresService) { }
-
-  async findAll(filter: UserFilter): Promise<User[]> {
-    const users = await this.prisma.userProfile.findMany({
-      where: {
-        firstName: filter.props.firstName,
-        lastName: filter.props.lastName,
-        email: filter.props.email,
-        status: filter.props.status,
-      },
-      include: {
-        roles: true,
-      },
-      take: filter.props.pageSize,
-      skip: filter.props.pageIndex
-        ? filter.props.pageIndex * filter.props.pageSize!
-        : undefined,
-    });
-
-    return users.map((user) => UserMapper.toUser(user, user.roles));
+class UserRepository
+  extends PrismaBaseRepository<
+    User,
+    PrismaPostgresService['userProfile'],
+    Prisma.UserProfileWhereUniqueInput,
+    Prisma.UserProfileWhereInput,
+    UserPersistence.Full,
+    Prisma.UserProfileCreateInput,
+    Prisma.UserProfileUpdateInput
+  >
+  implements IUserRepository {
+  constructor(prisma: PrismaPostgresService) {
+    super(prisma);
   }
+
+  protected getDelegate(prisma: PrismaPostgresService) {
+    return prisma.userProfile;
+  }
+
+  protected toDomain(prismaModel: any): User | null {
+    return UserInfraMapper.toUserDomain(prismaModel);
+  }
+
+  async findPaged(filter?: BaseFilter<UserFilterProps> | undefined): Promise<PagedResult<User>> {
+    const result = await this.findPaginated<Prisma.UserProfileInclude>(this.whereQuery(filter?.props), filter?.pageIndex ?? 0, filter?.pageSize ?? 10, {
+      roles: true
+    });
+    return new PagedResult<User>(result.data, result.total, result.page, result.pageSize);
+  }
+
+  findAll(filter?: UserFilterProps | undefined): Promise<User[]> {
+    return this.findMany(this.whereQuery(filter), {
+      roles: true,
+    });
+  }
+
+  private whereQuery(props?: UserFilterProps) {
+    const where: Prisma.UserProfileWhereInput = {
+      ...(props?.firstName ? { firstName: { contains: props?.firstName, mode: 'insensitive' } } : {}),
+      ...(props?.lastName ? { lastName: { contains: props?.lastName, mode: 'insensitive' } } : {}),
+      ...(props?.email ? { email: { contains: props?.email, mode: 'insensitive' } } : {}),
+      ...(props?.status ? { status: props?.status } : {}),
+      ...(props?.roleCode ? { roles: { some: { roleCode: props?.roleCode } } } : {}),
+      ...(props?.phoneNumber ? { phoneNumbers: { some: { phoneNumber: props?.phoneNumber } } } : {}),
+    };
+    return where;
+  }
+
 
   async findById(id: string): Promise<User | null> {
-    const user = (await this.prisma.userProfile.findUnique({
-      where: { id: id },
-      include: {
-        roles: true,
-        phoneNumbers: true,
-        addresses: true,
-        socialMediaLinks: true,
-      },
-    })) as UserProfile & {
-      roles: PrismaUserRole[];
-      phoneNumbers: PrismaPhoneNumber[];
-      addresses: PrismaAddress[];
-      socialMediaLinks: PrismaLink[];
-    };
-    return UserMapper.toUser(
-      user,
-      user.roles ?? [],
-      user.phoneNumbers ?? [],
-      user.addresses ??[],
-      user.socialMediaLinks ?? [],
-    );
-  }
-  async findByEmail(email: string): Promise<User | null> {
-    const user = await this.prisma.userProfile.findUnique({
-      where: { email: email },
-      include: {
-        roles: true,
-        phoneNumbers: true,
-      },
+    return this.findUnique<Prisma.UserProfileInclude>({ id }, {
+      addresses: true,
+      phoneNumbers: true,
+      roles: true,
+      socialMediaLinks: true,
     });
-    return user == null ? null : UserMapper.toUser(user, user?.roles);
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.findFirst({
+      email,
+      deletedAt: null,
+    });
   }
 
   async create(user: User): Promise<User> {
-    const created_user = await this.prisma.userProfile.create({
-      data: {
-        ...UserMapper.toUserPersistence(user),
-        roles: {
-          create: user.roles.map((role) => ({
-            id: role.id,
-            roleCode: role.roleCode,
-            roleName: role.roleName,
-            authRoleCode: role.authRoleCode,
-          })),
-        },
-        phoneNumbers: {
-          create: user.primaryNumber
-            ? [
-              {
-                id: user.primaryNumber.id,
-                phoneCode: user.primaryNumber.phoneCode,
-                phoneNumber: user.primaryNumber.phoneNumber,
-                hidden: user.primaryNumber.hidden,
-                primary: true,
-              },
-            ]
-            : [],
-        },
+    const createData: Prisma.UserProfileCreateInput = {
+      ...UserInfraMapper.toUserCreatePersistence(user),
+      roles: {
+        create: user.roles.map((role) => UserInfraMapper.toRolePersistance(role)),
       },
-      include: {
-        roles: true,
-        phoneNumbers: true,
+      phoneNumbers: {
+        create: user.primaryNumber
+          ? [
+            {
+              id: user.primaryNumber.id,
+              phoneCode: user.primaryNumber.phoneCode,
+              phoneNumber: user.primaryNumber.phoneNumber,
+              hidden: user.primaryNumber.hidden,
+              primary: true,
+            },
+          ]
+          : [],
       },
-    });
-    return UserMapper.toUser(
-      created_user,
-      created_user.roles,
-      created_user.phoneNumbers,
-    );
+    };
+
+    return this.createRecord(createData);
   }
 
   async update(id: string, user: User): Promise<User> {
     const now = new Date();
-    const data = UserMapper.toUserPersistence(user);
+    const data = UserInfraMapper.toUserCreatePersistence(user);
 
-    const tx = await this.prisma.$transaction(async (tx) => {
+    return this.executeTransaction(async (tx) => {
       // 1. Update core profile
       await tx.userProfile.update({
         where: { id },
@@ -123,25 +114,27 @@ class UserRepository implements IUserRepository {
 
       // 2. Upsert phone numbers
       const phoneNumbers = [user.primaryNumber, user.secondaryNumber].filter(Boolean);
-      await Promise.all(phoneNumbers.map((phone, index) =>
-        tx.phoneNumber.upsert({
-          where: { id: phone!.id },
-          update: {
-            phoneCode: phone!.phoneCode,
-            phoneNumber: phone!.phoneNumber,
-            hidden: phone!.hidden,
-            primary: index === 0,
-          },
-          create: {
-            id: phone!.id,
-            userId: id,
-            phoneCode: phone!.phoneCode,
-            phoneNumber: phone!.phoneNumber,
-            hidden: phone!.hidden,
-            primary: index === 0,
-          },
-        })
-      ));
+      await Promise.all(
+        phoneNumbers.map((phone, index) =>
+          tx.phoneNumber.upsert({
+            where: { id: phone!.id },
+            update: {
+              phoneCode: phone!.phoneCode,
+              phoneNumber: phone!.phoneNumber,
+              hidden: phone!.hidden,
+              primary: index === 0,
+            },
+            create: {
+              id: phone!.id,
+              userId: id,
+              phoneCode: phone!.phoneCode,
+              phoneNumber: phone!.phoneNumber,
+              hidden: phone!.hidden,
+              primary: index === 0,
+            },
+          }),
+        ),
+      );
 
       // 3. Upsert addresses
       const addresses: Address[] = [];
@@ -158,7 +151,7 @@ class UserRepository implements IUserRepository {
           district: user.presentAddress.district ?? null,
           country: user.presentAddress.country ?? null,
           addressType: 'present',
-          version: BigInt(1), // or use domain version if available
+          version: BigInt(1),
         });
       }
 
@@ -179,95 +172,89 @@ class UserRepository implements IUserRepository {
         });
       }
 
-
-
-      await Promise.all(addresses.map(addr =>
-        tx.address.upsert({
-          where: { id: addr.id },
-          update: { ...addr },
-          create: { ...addr },
-        })
-      ));
+      await Promise.all(
+        addresses.map((addr) =>
+          tx.address.upsert({
+            where: { id: addr.id },
+            update: { ...addr },
+            create: { ...addr },
+          }),
+        ),
+      );
 
       // 4. Upsert social links
-      await Promise.all(user.socialMediaLinks.map(link =>
-        tx.link.upsert({
-          where: { id: link.id },
-          update: {
-            linkName: link.linkName,
-            linkType: link.linkType,
-            linkValue: link.linkValue,
-            updatedAt: now,
-          },
-          create: {
-            id: link.id,
-            userId: id,
-            linkName: link.linkName,
-            linkType: link.linkType,
-            linkValue: link.linkValue,
-            createdAt: now,
-            updatedAt: now,
-          },
-        })
-      ));
+      await Promise.all(
+        user.socialMediaLinks.map((link) =>
+          tx.link.upsert({
+            where: { id: link.id },
+            update: {
+              linkName: link.linkName,
+              linkType: link.linkType,
+              linkValue: link.linkValue,
+              updatedAt: now,
+            },
+            create: {
+              id: link.id,
+              userId: id,
+              linkName: link.linkName,
+              linkType: link.linkType,
+              linkValue: link.linkValue,
+              createdAt: now,
+              updatedAt: now,
+            },
+          }),
+        ),
+      );
 
       // 5. Return updated profile
       const updated = await tx.userProfile.findUnique({
         where: { id },
         include: {
+          roles: true,
           phoneNumbers: true,
           addresses: true,
           socialMediaLinks: true,
         },
       });
 
-      return UserMapper.toUser(
-        updated!,
-        [], // roles handled separately
-        updated!.phoneNumbers,
-        updated!.addresses,
-        updated!.socialMediaLinks,
-      );
+      const mappedUser = UserInfraMapper.toUserDomain(updated);
+      if (!mappedUser) {
+        throw new Error('Failed to map updated user');
+      }
+      return mappedUser;
     });
-
-    return tx;
   }
 
   async updateRoles(id: string, roles: Role[]): Promise<void> {
     const now = new Date();
-
-    await this.prisma.$transaction(async (tx) => {
+    await this.executeTransaction(async (tx) => {
       // Expire old roles
       await tx.userRole.updateMany({
         where: { userId: id, expireAt: null },
         data: { expireAt: now },
       });
-      // Upsert new roles
-      await Promise.all(roles.map(role =>
-        tx.userRole.upsert({
-          where: { id: role.id },
-          update: {
-            roleCode: role.roleCode,
-            roleName: role.roleName,
-            authRoleCode: role.authRoleCode,
-            expireAt: null,
-          },
-          create: {
-            id: role.id,
-            userId: id,
-            roleCode: role.roleCode,
-            roleName: role.roleName,
-            authRoleCode: role.authRoleCode,
-            createdAt: now,
-          },
-        })
-      ));
+
+      await Promise.all(
+        // Create new roles
+        roles.map((role) =>
+          tx.userRole.create({
+            data: {
+              id: role.id,
+              userId: id,
+              roleCode: role.roleCode,
+              roleName: role.roleName,
+              authRoleCode: role.authRoleCode,
+              isDefault: role.isDefault,
+              createdAt: now,
+            },
+          }),
+        )
+      );
     });
   }
 
-
   async delete(id: string): Promise<void> {
-    await this.prisma.userProfile.update({ where: { id }, data: { deletedAt: new Date() }});
+    await this.softDelete({ id });
   }
 }
 

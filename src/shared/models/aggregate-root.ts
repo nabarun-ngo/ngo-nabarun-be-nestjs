@@ -4,7 +4,7 @@ import { DomainEvent } from './domain-event';
 export abstract class AggregateRoot<T> extends BaseDomain<T> {
   private _domainEvents: DomainEvent[] = [];
 
-  get domainEvents(): DomainEvent[] {
+  get domainEvents(): ReadonlyArray<DomainEvent> {
     return this._domainEvents;
   }
 

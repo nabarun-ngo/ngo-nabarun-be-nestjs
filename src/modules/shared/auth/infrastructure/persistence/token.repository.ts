@@ -3,10 +3,15 @@ import { AuthToken } from '../../domain/auth-token.model';
 import { ITokenRepository } from '../../domain/token.repository.interface';
 import { Prisma } from 'generated/prisma';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 export class TokenRepository implements ITokenRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
+    findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<AuthToken>> {
+        throw new Error('Method not implemented.');
+    }
 
     async findByAttribute(attribute: {
         provider: string,

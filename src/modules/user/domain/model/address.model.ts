@@ -1,6 +1,8 @@
+import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 
 export class Address extends BaseDomain<string> {
+  
   constructor(
     protected _id: string,
     private _addressLine1: string,
@@ -13,6 +15,23 @@ export class Address extends BaseDomain<string> {
     private _country: string,
   ) {
     super(_id);
+  }
+
+  static create(addressLine1: string, addressLine2: string | undefined, addressLine3: string | undefined, hometown: string, zipCode: string, state: string, district: string, country: string): Address {
+    return new Address(randomUUID(),addressLine1, addressLine2, addressLine3, hometown, zipCode, state, district, country);
+  }
+
+  public update(detail:Address){
+    this._addressLine1 = detail.addressLine1;
+    this._addressLine2 = detail.addressLine2;
+    this._addressLine3 = detail.addressLine3;
+    this._hometown = detail.hometown;
+    this._zipCode = detail.zipCode;
+    this._state = detail.state;
+    this._district = detail.district;
+    this._country = detail.country;
+    this.touch();
+    return this;
   }
 
   /**

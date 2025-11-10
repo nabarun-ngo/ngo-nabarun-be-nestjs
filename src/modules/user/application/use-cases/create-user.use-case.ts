@@ -3,25 +3,32 @@ import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { User, UserStatus } from '../../domain/model/user.model';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
-import { CreateUserDto, UserDto } from '../dto/create-user.dto';
 import { PhoneNumber } from '../../domain/model/phone-number.vo';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { toUserDTO } from '../dto/mapper';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';
-import { UserMetadataService } from '../../infrastructure/external/user-metadata.service';
+
+class CreateUserProps {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: {
+    code: string;
+    number: string;
+  };
+  isTemporary: boolean;
+}
 
 @Injectable()
-export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
+export class CreateUserUseCase implements IUseCase<CreateUserProps, User> {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly auth0User: Auth0UserService,
-    private readonly metadataService: UserMetadataService
-  ) {}
+  ) { }
 
-  async execute(request: CreateUserDto): Promise<UserDto> {
+  async execute(request: CreateUserProps): Promise<User> {
     // Check if user exists
     const existingUser = await this.userRepository.findByEmail(request.email);
     if (existingUser) {
@@ -56,6 +63,6 @@ export class CreateUserUseCase implements IUseCase<CreateUserDto, UserDto> {
     }
     user.clearEvents();
 
-    return toUserDTO(savedUser);
+    return savedUser;
   }
 }

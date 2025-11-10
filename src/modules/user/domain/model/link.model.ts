@@ -23,6 +23,13 @@ export class Link extends BaseDomain<string> {
     return new Link(randomUUID(), linkName, linkType, linkValue);
   }
 
+  update(link:Link){
+    this._linkName = link.linkName;
+    this._linkType = link.linkType;
+    this._linkValue = link.linkValue;
+    this.touch();
+  }
+
 
   get linkName(): string {
     return this._linkName;

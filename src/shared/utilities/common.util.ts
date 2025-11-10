@@ -1,6 +1,6 @@
 import { JobResult } from "src/modules/shared/job-processing/interfaces/job.interface";
 
-export function jobSuccessResponse(data?: any) :JobResult {
+export function jobSuccessResponse(data?: any): JobResult {
     return {
         success: true,
         data: data,
@@ -10,7 +10,7 @@ export function jobSuccessResponse(data?: any) :JobResult {
     };
 }
 
-export function jobFailureResponse(error:Error, data?: any) : JobResult {
+export function jobFailureResponse(error: Error, data?: any): JobResult {
     return {
         success: false,
         error: {

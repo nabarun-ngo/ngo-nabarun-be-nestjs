@@ -1,4 +1,8 @@
+import { BaseFilter } from "../models/base-filter-props";
+import { PagedResult } from "../models/paged-result";
+
 export interface IRepository<T, ID, F = any> {
+  findPaged(filter?: BaseFilter<F>): Promise<PagedResult<T>>;
   findAll(filter?: F): Promise<T[]>;
   findById(id: ID): Promise<T | null>;
   create(entity: T): Promise<T>;

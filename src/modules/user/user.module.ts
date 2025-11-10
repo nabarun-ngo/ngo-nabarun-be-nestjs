@@ -9,12 +9,16 @@ import { Auth0UserService } from './infrastructure/external/auth0-user.service';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { UserMetadataService } from './infrastructure/external/user-metadata.service';
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
+import { UserService } from './application/services/user.service';
+import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
+import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
 
 @Module({
   controllers: [UserController],
   imports: [FirebaseModule,CorrespondenceModule],
   providers: [
     CreateUserUseCase,
+    UpdateUserUseCase,
     {
       provide: USER_REPOSITORY,
       useClass: UserRepository,
@@ -22,8 +26,10 @@ import { CorrespondenceModule } from '../shared/correspondence/correspondence.mo
     Auth0UserService,
     UserEventsHandler,
     UserJobsHandler,
-    UserMetadataService
+    UserMetadataService,
+    UserService,
+    AssignRoleUseCase
   ],
-  exports: [],
+  exports: [USER_REPOSITORY],
 })
 export class UserModule {}

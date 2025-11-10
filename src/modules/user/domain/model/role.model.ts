@@ -1,19 +1,35 @@
 import { randomUUID } from 'crypto';
 import { BaseDomain } from 'src/shared/models/base-domain';
+import { User } from './user.model';
 
 export class Role extends BaseDomain<string> {
+  private _roleCode: string;
+  private _roleName: string;
+  private _authRoleCode: string;
+  private _expireAt?: Date;
+  private _createdBy?: User;
+  private _isDefault: boolean;
   constructor(
-    protected _id: string,
-    private _roleCode: string,
-    private _roleName: string,
-    private _authRoleCode: string,
-    private _expireAt?: Date,
+    id: string,
+    roleCode: string,
+    roleName: string,
+    authRoleCode: string,
+    defaultRole?: boolean,
+    expireAt?: Date,
+    createdBy?: User
+
   ) {
-    super(_id);
+    super(id);
+    this._roleCode = roleCode;
+    this._roleName = roleName;
+    this._authRoleCode = authRoleCode;
+    this._expireAt = expireAt;
+    this._createdBy = createdBy;
+    this._isDefault = defaultRole ?? false;
   }
 
-  static create(roleCode: string, roleName: string, authRoleCode: string) {
-    return new Role(randomUUID(), roleCode, roleName, authRoleCode);
+  static create(roleCode: string, roleName: string, authRoleCode: string, defaultRole?: boolean) {
+    return new Role(randomUUID(), roleCode, roleName, authRoleCode, defaultRole);
   }
   expire() {
     this._expireAt = new Date();
@@ -38,5 +54,13 @@ export class Role extends BaseDomain<string> {
 
   get expireAt(): Date | undefined {
     return this._expireAt;
+  }
+
+  get createdBy(): User | undefined {
+    return this._createdBy;
+  }
+
+  get isDefault(): boolean {
+    return this._isDefault;
   }
 }
