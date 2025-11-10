@@ -2,11 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
 import { WorkflowFilter, WorkflowInstance } from '../../domain/model/workflow-instance.model';
 import { PrismaPostgresService } from '../../../shared/database/prisma-postgres.service';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { PrismaBaseRepository, RepositoryHelpers } from 'src/modules/shared/database';
 import { WorkflowPersistence } from '../types/workflow-persistence.types';
 import { WorkflowInfraMapper } from '../workflow-infra.mapper';
-import { DefaultArgs } from 'generated/prisma/runtime/library';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 
@@ -22,7 +21,7 @@ class WorkflowInstanceRepository
   >
   implements IWorkflowInstanceRepository
 {
-  protected getDelegate(prisma: PrismaPostgresService): Prisma.WorkflowInstanceDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+  protected getDelegate(prisma: PrismaPostgresService){
     return prisma.workflowInstance;
   }
   constructor(prisma: PrismaPostgresService) {

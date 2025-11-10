@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { Account, AccountType } from '../../domain/model/account.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { AccountPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class AccountRepository
@@ -23,7 +22,7 @@ class AccountRepository
   >
   implements IAccountRepository
 {
-  protected getDelegate(prisma: PrismaPostgresService): Prisma.AccountDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+  protected getDelegate(prisma: PrismaPostgresService) {
     return prisma.account;
   }
   constructor(prisma: PrismaPostgresService) {

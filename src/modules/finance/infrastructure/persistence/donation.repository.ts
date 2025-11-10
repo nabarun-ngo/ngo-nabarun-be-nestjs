@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
 import { Donation, DonationStatus, DonationType } from '../../domain/model/donation.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { DonationPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class DonationRepository
@@ -23,7 +22,7 @@ class DonationRepository
   >
   implements IDonationRepository
 {
-  protected getDelegate(prisma: PrismaPostgresService): Prisma.DonationDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+  protected getDelegate(prisma: PrismaPostgresService) {
     return prisma.donation;
   }
   constructor(prisma: PrismaPostgresService) {

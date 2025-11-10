@@ -57,7 +57,7 @@ Create a namespace with Prisma payload types:
 
 ```typescript
 // user-persistence.types.ts
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 
 export namespace UserPersistence {
   export type Full = Prisma.UserProfileGetPayload<{
@@ -76,7 +76,7 @@ export namespace UserPersistence {
 // user.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 
 @Injectable()
 class UserRepository 
