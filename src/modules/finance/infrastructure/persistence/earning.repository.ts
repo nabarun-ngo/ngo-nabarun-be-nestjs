@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { IEarningRepository } from '../../domain/repositories/earning.repository.interface';
 import { Earning, EarningCategory } from '../../domain/model/earning.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { EarningPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class EarningRepository
@@ -23,7 +22,7 @@ class EarningRepository
   >
   implements IEarningRepository
 {
-  protected getDelegate(prisma: PrismaPostgresService): Prisma.EarningDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+  protected getDelegate(prisma: PrismaPostgresService){
     return prisma.earning;
   }
   constructor(prisma: PrismaPostgresService) {

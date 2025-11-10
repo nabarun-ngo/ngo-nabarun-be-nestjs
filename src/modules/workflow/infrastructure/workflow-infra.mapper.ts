@@ -10,7 +10,7 @@ import {
   UserProfile as PrismaUserProfile,
   Prisma,
   UserProfile,
-} from 'generated/prisma';
+} from 'prisma/client';
 import { UserInfraMapper } from 'src/modules/user/infrastructure/user-infra.mapper';
 import { WorkflowPersistence } from './types/workflow-persistence.types';
 

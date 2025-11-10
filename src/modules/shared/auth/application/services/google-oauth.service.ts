@@ -12,6 +12,10 @@ export class GoogleOAuthService {
   private readonly clientSecret: string;
   private readonly redirectUri: string;
   private readonly oauth2Client: OAuth2Client;
+  private readonly scopes : string[] = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+  ];
 
 
   constructor(
@@ -41,17 +45,10 @@ export class GoogleOAuthService {
    * Generate OAuth authorization URL
    */
   getAuthUrl(state?: string): { url: string; state: string | undefined; clientId: string } {
-    const scopes = this.configService
-      .get<string>(
-        Configkey.GOOGLE_SCOPES,
-        'https://www.googleapis.com/auth/gmail.send',
-      )
-      .split(',')
-      .map((s) => s.trim());
-
+  
     const url = this.oauth2Client.generateAuthUrl({
       access_type: 'offline', // Required to get refresh token
-      scope: [...scopes, 'openid', 'email', 'profile'],
+      scope: [...this.scopes, 'openid', 'email', 'profile'],
       prompt: 'consent', // Force consent to get refresh token
       state: state || undefined,
       response_type: 'code',

@@ -1,5 +1,5 @@
 import { PrismaPostgresService } from '../database/prisma-postgres.service';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 
 /**
  * Type-safe base repository for Prisma models

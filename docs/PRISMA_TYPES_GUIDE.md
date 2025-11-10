@@ -20,7 +20,7 @@ Prisma generates powerful types based on your queries, but they're complex to wo
 
 ```typescript
 // infrastructure/types/user-persistence.types.ts
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 
 export namespace UserPersistence {
   // Full user with all relations

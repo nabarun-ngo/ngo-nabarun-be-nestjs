@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { Transaction, TransactionType } from '../../domain/model/transaction.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { TransactionPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DefaultArgs } from 'generated/prisma/runtime/library';
 
 @Injectable()
 class TransactionRepository
@@ -22,7 +21,7 @@ class TransactionRepository
   >
   implements ITransactionRepository
 {
-  protected getDelegate(prisma: PrismaPostgresService): Prisma.TransactionDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+  protected getDelegate(prisma: PrismaPostgresService) {
     return prisma.transaction;
   }
   constructor(prisma: PrismaPostgresService) {

@@ -259,7 +259,7 @@ npx prisma generate
 
 ```typescript
 // src/modules/product/infrastructure/types/product-persistence.types.ts
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 
 export namespace ProductPersistence {
   /**
@@ -295,7 +295,7 @@ export namespace ProductPersistence {
 ```typescript
 // src/modules/product/infrastructure/product-infra.mapper.ts
 import { Product, ProductStatus } from '../domain/model/product.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { ProductPersistence } from './types/product-persistence.types';
 import { MapperUtils } from 'src/modules/shared/database/mapper-utils';
 
@@ -355,7 +355,7 @@ export class ProductInfraMapper {
 import { Injectable } from '@nestjs/common';
 import { IProductRepository } from '../../domain/repositories/product.repository.interface';
 import { Product } from '../../domain/model/product.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from 'prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { ProductInfraMapper } from '../product-infra.mapper';
