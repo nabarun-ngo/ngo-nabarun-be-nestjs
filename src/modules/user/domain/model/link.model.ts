@@ -20,7 +20,6 @@ export class Link extends BaseDomain<string> {
   }
 
   static create(linkName: string, linkType: LinkType, linkValue: string) {
-    console.log("Link created")
     return new Link(randomUUID(), linkName, linkType, linkValue);
   }
 

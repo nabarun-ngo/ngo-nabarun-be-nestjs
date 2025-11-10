@@ -1,10 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { User, UserStatus } from '../../domain/model/user.model';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
-import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';
 import { Role } from '../../domain/model/role.model';
@@ -31,16 +28,23 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
         if (!user) {
             throw new Error(`User with id ${request.userId} not found`);
         }
-        const defaultRole = await this.metadataService.getDefaultRoles();
-        const allRoles = await this.auth0UserService.getRoles();
-        const roleRecord: Record<string, string> = Object.fromEntries(
-            allRoles.map(role => [role.authRoleCode, role.id])
-        );
+        const allRoleList = await this.metadataService.getAllRoles();
+        const defaultRole = allRoleList.filter(f=>f.isDefault);
+        const allRoleMap = allRoleList.reduce((acc, role) => {
+            acc[role.roleCode] = role;
+            return acc;
+        }, {} as Record<string, Role>);
 
-        const { toAdd, toRemove } = user?.updateRoles(request.newRoles, defaultRole);
-        const roleIdsToAdd = toAdd?.map(role => roleRecord[role.authRoleCode])!;
-        const roleIdsToRemove = toRemove?.map(role => roleRecord[role.authRoleCode])!;
-
+        const allAuth0Roles = (await this.auth0UserService.getRoles()).reduce((acc, role) => {
+            acc[role.authRoleCode] = role.id;
+            return acc;
+        }, {} as Record<string, string>);;
+        
+        const newRoles = request.newRoles.map(role => allRoleMap[role.roleCode]);
+        const { toAdd, toRemove } = user?.updateRoles(newRoles, defaultRole);
+        const roleIdsToAdd = toAdd?.map(role => allAuth0Roles[role.authRoleCode])!;
+        const roleIdsToRemove = toRemove?.map(role => allAuth0Roles[role.authRoleCode])!;
+    
         if (roleIdsToAdd?.length > 0) {
             await this.auth0UserService.assignRolesToUser(user.authUserId!, roleIdsToAdd);
         }

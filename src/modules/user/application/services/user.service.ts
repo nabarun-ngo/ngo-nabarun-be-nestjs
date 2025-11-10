@@ -12,6 +12,7 @@ import { Role } from "../../domain/model/role.model";
 import { PhoneNumber } from "../../domain/model/phone-number.vo";
 import { Address } from "../../domain/model/address.model";
 import { Link, LinkType } from "../../domain/model/link.model";
+import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 
 
 @Injectable()
@@ -23,6 +24,7 @@ export class UserService {
         private readonly userRepository: IUserRepository,
         private readonly createUseCase: CreateUserUseCase,
         private readonly updateUseCase: UpdateUserUseCase,
+        private readonly assignRoleUseCase: AssignRoleUseCase,
     ) { }
 
     async list(filterDto: BaseFilter<UserFilterDto>): Promise<PagedResult<UserDto>> {
@@ -116,5 +118,14 @@ export class UserService {
         return toUserDTO(updatedUser);
 
     }
+
+    async assignRole(userId: string, roleCodes: string[]): Promise<void> {
+        const roles = roleCodes.map(code => new Role('', code,'',''));
+        await this.assignRoleUseCase.execute({
+            userId: userId,
+            newRoles: roles
+        });
+    }
+
 
 }

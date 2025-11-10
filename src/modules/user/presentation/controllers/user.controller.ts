@@ -11,7 +11,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
-import { CreateUserDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
+import { CreateUserDto, RoleDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
@@ -97,5 +97,20 @@ export class UserController {
     @Body() command: UserUpdateAdminDto,
   ): Promise<UserDto> {
     return await this.userService.updateUser(id, command);
+  }
+
+
+  @Post(':id/assign-role')
+  @ApiOperation({ summary: 'Assign Role to user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Role Assigned successfully',
+
+  })
+  async assignRole(
+    @Param('id') id: string,
+    @Body() roles: string[],
+  ): Promise<void> {
+    await this.userService.assignRole(id, roles);
   }
 }

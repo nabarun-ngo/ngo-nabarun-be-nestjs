@@ -18,13 +18,10 @@ export class Address extends BaseDomain<string> {
   }
 
   static create(addressLine1: string, addressLine2: string | undefined, addressLine3: string | undefined, hometown: string, zipCode: string, state: string, district: string, country: string): Address {
-        console.log("Created...")
-
     return new Address(randomUUID(),addressLine1, addressLine2, addressLine3, hometown, zipCode, state, district, country);
   }
 
   public update(detail:Address){
-    console.log("Updated...")
     this._addressLine1 = detail.addressLine1;
     this._addressLine2 = detail.addressLine2;
     this._addressLine3 = detail.addressLine3;

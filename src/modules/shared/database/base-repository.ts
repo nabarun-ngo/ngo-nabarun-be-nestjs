@@ -85,7 +85,6 @@ export abstract class PrismaBaseRepository<
       include: include,
       ...options,
     });
-    console.log(where)
     return results
       .map((r: any) => this.toDomain(r))
       .filter((d: TDomain | null): d is TDomain => d !== null);

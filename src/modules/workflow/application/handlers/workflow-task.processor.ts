@@ -49,7 +49,6 @@ export class WorkflowTaskProcessor {
     const data = job.data;
     const workflow = await this.instanceRepository.findById(data.instanceId, true);
     const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!);
-    console.log("helloooo");
 
     return jobSuccessResponse();
   }

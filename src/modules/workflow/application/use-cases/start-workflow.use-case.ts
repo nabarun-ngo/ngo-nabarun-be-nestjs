@@ -47,7 +47,6 @@ export class StartWorkflowUseCase implements IUseCase<StartWorkflowDto, Workflow
     instance.start();
     // Emit domain events
     instance.domainEvents.forEach((event) => {
-      console.log(event.constructor.name);
       this.eventEmitter.emit(event.constructor.name, event);
     });
     instance.clearEvents();

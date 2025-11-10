@@ -102,7 +102,6 @@ class UserRepository
   }
 
   async update(id: string, user: User): Promise<User> {
-    //console.log(user)
     const now = new Date();
     const data = UserInfraMapper.toUserCreatePersistence(user);
 
@@ -234,8 +233,6 @@ class UserRepository
         where: { userId: id, expireAt: null },
         data: { expireAt: now },
       });
-
-      console.log(await tx.userRole.findMany({ where: { userId: id } }))
 
       await Promise.all(
         // Create new roles

@@ -21,7 +21,7 @@ export function toUserDTO(user: User): UserDto {
     blocked: false,
     status: user.status,
     createdOn: user.createdAt,
-    roles: user.roles
+    roles: user.getRoles()
       .filter((role) => role != null)
       .map((role) => toRoleDTO(role)),
     loginMethod: user.loginMethod as LoginMethod[],

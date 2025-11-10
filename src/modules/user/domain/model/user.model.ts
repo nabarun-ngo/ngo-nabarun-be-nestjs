@@ -149,7 +149,6 @@ export class User extends AggregateRoot<string> {
     if(detail.socialMediaLinks && detail.socialMediaLinks.length > 0){
       detail.socialMediaLinks.forEach(link => {
         const existing = this._socialMediaLinks.find(f=>f.linkType === link.linkType);
-        console.log(existing)
         if(existing){
           existing.update(link);
         }else{
@@ -174,7 +173,7 @@ export class User extends AggregateRoot<string> {
       detail.lastName !== undefined ||
       detail.picture !== undefined ||
       this._isProfileCompleted);
-
+    console.log('Update Auth Flag:', this._updateAuth);
     this.touch();
   }
 

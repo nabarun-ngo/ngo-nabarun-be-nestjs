@@ -7,10 +7,9 @@ import { parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 export class UserMetadataService {
     constructor(private readonly configService: RemoteConfigService) { }
 
-    async getDefaultRoles(): Promise<Role[]> {
+    async getAllRoles(): Promise<Role[]> {
         const remoteConfig = await this.configService.getAllKeyValues();
         const roles = parseKeyValueConfigs(remoteConfig['USER_ROLES'].value);
-        const defaultRole = roles.filter(f => f.getAttribute<boolean>('DEFAULT'))
-        return defaultRole.map(r => new Role('', r.KEY, r.VALUE, r.getAttribute<string>('AUTH0_ROLE')));
+        return roles.map(r => new Role('', r.KEY, r.VALUE, r.getAttribute<string>('AUTH0_ROLE'),r.getAttribute<boolean>('DEFAULT')));
     }
 }
