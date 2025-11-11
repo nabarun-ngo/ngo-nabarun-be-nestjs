@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (needed for build)
-RUN npm ci
+RUN npm install
 
 # ============================
 # 2️⃣ Build Stage
@@ -81,7 +81,7 @@ RUN addgroup -g 1001 -S nodejs && \
 USER nestjs
 
 # Expose application port
-EXPOSE 3000
+EXPOSE 8080
 
 # Use startup script
 ENTRYPOINT ["./start.sh"]
