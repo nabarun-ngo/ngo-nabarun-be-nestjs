@@ -45,7 +45,7 @@ RUN npx prisma generate
 FROM node:20-alpine AS production
 
 # Set NODE_ENV
-ENV NODE_ENV=production
+#ENV NODE_ENV=production
 
 WORKDIR /app
 
@@ -81,7 +81,7 @@ RUN addgroup -g 1001 -S nodejs && \
 USER nestjs
 
 # Expose application port
-EXPOSE 8080
+#EXPOSE 8080
 
 # Use startup script
 ENTRYPOINT ["./start.sh"]
