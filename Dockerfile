@@ -45,7 +45,7 @@ RUN npx prisma generate
 FROM node:20-alpine AS production
 
 # Set NODE_ENV
-ENV NODE_ENV=production
+#ENV NODE_ENV=production
 
 WORKDIR /app
 
