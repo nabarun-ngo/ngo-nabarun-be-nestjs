@@ -24,6 +24,7 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source files
 COPY package*.json ./
 COPY tsconfig*.json ./
+COPY nest-cli.json ./
 COPY prisma ./prisma
 COPY src ./src
 
@@ -81,7 +82,7 @@ RUN addgroup -g 1001 -S nodejs && \
 USER nestjs
 
 # Expose application port
-#EXPOSE 8080
+EXPOSE 8080
 
 # Use startup script
 ENTRYPOINT ["./start.sh"]
