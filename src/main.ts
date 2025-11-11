@@ -32,10 +32,11 @@ async function bootstrap() {
   //app.useGlobalFilters(new GlobalExceptionFilter());
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
-
+  console.log(`Environment: ${process.env.NODE_ENV} Port: ${process.env.PORT}`);
   const port = process.env.PORT || 8080;
   await app.listen(port, '0.0.0.0');
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+
+  console.log(`Application is running on: ${await app.getUrl()}`);
+  console.log(`Swagger documentation: ${await app.getUrl()}/api/docs`);
 }
 bootstrap();
