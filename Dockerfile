@@ -73,6 +73,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
+# Copy migrate script
+COPY migrate.sh ./migrate.sh
+RUN chmod +x ./migrate.sh
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001 && \
