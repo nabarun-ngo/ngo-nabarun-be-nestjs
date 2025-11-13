@@ -24,9 +24,5 @@ doppler run \
     --project="$DOPPLER_PROJECT" \
     --config="$DOPPLER_CONFIG" \
     -- sh -c '
-        echo "🗄️  Running Prisma migrations..."
-        npx prisma migrate deploy
-        
-        echo "✅ Migrations complete"
         echo "🚀 Starting application..."
         exec node dist/main'
