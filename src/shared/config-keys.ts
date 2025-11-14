@@ -30,4 +30,5 @@ export enum Configkey {
     APP_LOGIN_URL = 'APP_LOGIN_URL',
     EMAIL_SENDER = "EMAIL_SENDER",
     NODE_ENV = "NODE_ENV",
+    LOG_LEVEL = "LOG_LEVEL",
 }
