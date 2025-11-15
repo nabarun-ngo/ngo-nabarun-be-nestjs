@@ -15,7 +15,7 @@ export class DocumentMapping extends BaseDomain<string> {
 
     static create(params: {
         refId: string;
-        refType: DocumentMappingRefType,
+        refType: DocumentMappingRefType;
     }) {
         return new DocumentMapping(
             randomUUID(),

@@ -10,7 +10,7 @@ import KeyvRedis from '@keyv/redis';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { config } from './config/config';
-import { AddTestModule } from './add-test/add-test.module';
+import { DMSModule } from './modules/shared/dms/dms.module';
 
 @Module({
   imports: [
@@ -46,7 +46,7 @@ import { AddTestModule } from './add-test/add-test.module';
     AuthModule,
     WorkflowModule,
     FinanceModule,
-    AddTestModule,
+    DMSModule
   ],
 })
 export class AppModule { }

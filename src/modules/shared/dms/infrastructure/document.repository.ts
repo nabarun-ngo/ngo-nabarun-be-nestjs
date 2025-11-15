@@ -62,7 +62,7 @@ export class DocumentRepository
             fileSize: entity.fileSize,
             isPublic: entity.isPublic,
             mappings: {
-                create: entity.mappings.map(m => ({
+                create: entity.getMappings().map(m => ({
                     entityId: m.refId,
                     entityType: m.refType,
                     createdAt: m.createdAt,
@@ -76,7 +76,7 @@ export class DocumentRepository
             publicToken: entity.publicToken,
             isPublic: entity.isPublic,
             mappings: {
-                create: entity.mappings.map(m => ({
+                create: entity.getMappings().map(m => ({
                     entityId: m.refId,
                     entityType: m.refType,
                     createdAt: m.createdAt,
@@ -102,12 +102,12 @@ export class DocumentRepository
             prismaModel.publicToken,
             prismaModel.contentType,
             Number(prismaModel.fileSize),
-            prismaModel.mappings.map(m => new DocumentMapping(
+            prismaModel.mappings ? prismaModel.mappings.map(m => new DocumentMapping(
                 m.id,
                 m.entityId,
                 m.entityType as DocumentMappingRefType,
                 m.createdAt,
-            )),
+            )) : [],
             prismaModel.isPublic,
         );
     }

@@ -8,8 +8,8 @@ export interface DocumentProps {
     refType: DocumentMappingRefType;
 }
 
-export class Document extends AggregateRoot<string>{
-    
+export class Document extends AggregateRoot<string> {
+
     constructor(
         _id: string,
         private _fileName: string,
@@ -22,7 +22,7 @@ export class Document extends AggregateRoot<string>{
         private _uploadedBy?: User,
         _createdAt?: Date,
         private _fileUrl?: string,
-    ) { 
+    ) {
         super(_id, _createdAt);
     }
 
@@ -38,7 +38,7 @@ export class Document extends AggregateRoot<string>{
         return new Document(
             randomUUID(),
             params.fileName,
-            randomUUID() + '-' + params.fileName,
+            'uploads/' + randomUUID() + '-' + params.fileName,
             randomUUID(),
             params.contentType,
             params.fileSize,
@@ -71,21 +71,23 @@ export class Document extends AggregateRoot<string>{
     get fileSize() {
         return this._fileSize;
     }
-    get mappings() {
-        return this._mappings;
-    }
+  
     get isPublic() {
         return this._isPublic;
     }
     get uploadedBy() {
         return this._uploadedBy;
     }
-   
+
     get fileUrl(): string | undefined {
         return this._fileUrl;
     }
 
     set fileUrl(url: string) {
         this._fileUrl = url;
+    }
+
+    getMappings(): ReadonlyArray<DocumentMapping> {
+        return this._mappings;
     }
 }

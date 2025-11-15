@@ -116,7 +116,6 @@ export class User extends AggregateRoot<string> {
     this._dateOfBirth = detail.dateOfBirth ?? this._dateOfBirth;
     this._gender = detail.gender ?? this._gender;
     this._about = detail.about ?? this._about;
-    this._picture = detail.picture ?? this._picture;
 
     if (detail.primaryNumber) {
       this._primaryNumber = this._primaryNumber?.update(detail.primaryNumber) ??
@@ -167,8 +166,7 @@ export class User extends AggregateRoot<string> {
     );
     this._fullName = this.computeFullName();
     this._initials = this.computeInitials();
-    this._picture = this.generatePictureUrl();
-
+    this._picture = detail.picture ?? this._picture ?? this.generatePictureUrl();
     this._updateAuth = (detail.firstName !== undefined ||
       detail.lastName !== undefined ||
       detail.picture !== undefined ||

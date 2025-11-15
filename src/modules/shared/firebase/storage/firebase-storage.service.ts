@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { FIREBASE_ADMIN } from "../firebase-core.module";
 import * as admin from 'firebase-admin';
 import * as querystring from 'querystring';
+import { metadata } from "reflect-metadata/no-conflict";
 
 @Injectable()
 export class FirebaseStorageService {
@@ -15,18 +16,19 @@ export class FirebaseStorageService {
         content: Buffer
     ): Promise<string> {
         const bucket = this.app.storage().bucket();
-        const file = bucket.file(filePath);
 
         try {
+            console.log('Uploading file to Firebase Storage:', filePath);
+            const file = bucket.file(filePath);
             await file.save(content, {
                 metadata: {
-                    contentType,
+                    contentType: contentType,
                     metadata: {
                         firebaseStorageDownloadTokens: token,
                     },
                 },
-                resumable: false,
             });
+
             const encodedBucket = querystring.escape(bucket.name);
             const encodedFileName = querystring.escape(filePath);
             const encodedToken = querystring.escape(token);
@@ -61,6 +63,18 @@ export class FirebaseStorageService {
         } catch (error) {
             throw new Error(`Firebase getSignedUrl failed: ${(error as Error).message}`);
         }
+    }
+
+    async downloadFile(filePath: string): Promise<NodeJS.ReadableStream> {
+        const bucket = this.app.storage().bucket();
+        const file = bucket.file(filePath);
+
+        const exists = await file.exists();
+        if (!exists) {
+            throw new Error('File not found');
+        }
+
+        return file.createReadStream(); // readable stream
     }
 
 }
