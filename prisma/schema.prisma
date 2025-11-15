@@ -53,6 +53,7 @@ model UserProfile {
 
   initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
   receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
+  documentsUploaded   DocumentReference[] @relation("uploadedBy")
 
   @@index([email])
   @@index([authUserId])
@@ -429,4 +430,35 @@ model Earning {
   @@index([category, status])
   @@index([source])
   @@map("earnings")
+}
+
+model DocumentReference {
+  id          String  @id @default(uuid())
+  fileName    String  @db.VarChar(500)
+  remotePath  String  @db.VarChar(1000)
+  publicToken String  @db.VarChar(255)
+  contentType String  @db.VarChar(100)
+  fileSize    BigInt  @db.BigInt()
+  isPublic    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  mappings DocumentMapping[]
+  uploadedBy UserProfile? @relation(name: "uploadedBy", fields: [uploadedById], references: [id])
+  uploadedById String?
+
+  @@map("document_references")
+}
+
+model DocumentMapping {
+  id                  String            @id @default(uuid())
+  documentReferenceId String            @db.VarChar(255)
+  documentReference   DocumentReference @relation(fields: [documentReferenceId], references: [id], onDelete: Cascade)
+  entityType          String            @db.VarChar(100) // e.g., UserProfile, Expense
+  entityId            String            @db.VarChar(255) // ID of the entity
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("document_mappings")
 }
