@@ -7,13 +7,14 @@ import WorkflowInstanceRepository from './infrastructure/persistence/workflow-in
 import {
   WORKFLOW_INSTANCE_REPOSITORY,
 } from './domain/repositories/workflow-instance.repository.interface';
-import { WorkflowTaskProcessor } from './application/handlers/workflow-task.processor';
+import { WorkflowJobProcessor } from './application/handlers/workflow-job.processor';
 import { WorkflowHandlerRegistry } from './application/handlers/workflow-handler.registry';
 import { JobProcessingModule } from '../shared/job-processing/job-processing.module';
 import { UserModule } from '../user/user.module';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { WorkflowDefService } from './infrastructure/external/workflow-def.service';
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
+import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
 
 @Module({
   imports: [JobProcessingModule, UserModule,FirebaseModule],
@@ -26,10 +27,11 @@ import { WorkflowEventsHandler } from './application/handlers/workflow-event.han
       provide: WORKFLOW_INSTANCE_REPOSITORY,
       useClass: WorkflowInstanceRepository,
     },
-    WorkflowTaskProcessor,
+    WorkflowJobProcessor,
     WorkflowHandlerRegistry,
     WorkflowDefService,
-    WorkflowEventsHandler
+    WorkflowEventsHandler,
+    StartWorkflowStepUseCase
   ],
   exports: [
     WorkflowService,

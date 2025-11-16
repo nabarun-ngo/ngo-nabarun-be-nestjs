@@ -42,9 +42,8 @@ export class StartWorkflowUseCase implements IUseCase<StartWorkflowDto, Workflow
     });
 
     // Save instance
-    const savedInstance = await this.instanceRepository.create(instance);
-
     instance.start();
+    const savedInstance = await this.instanceRepository.create(instance);
     // Emit domain events
     instance.domainEvents.forEach((event) => {
       this.eventEmitter.emit(event.constructor.name, event);

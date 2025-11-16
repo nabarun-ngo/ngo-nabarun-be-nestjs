@@ -15,6 +15,7 @@ import { UserInfraMapper } from 'src/modules/user/infrastructure/user-infra.mapp
 import { WorkflowPersistence } from './types/workflow-persistence.types';
 
 export class WorkflowInfraMapper {
+  
 
   /**
    * Convert Prisma persistence shape (with only steps) to Domain model
@@ -245,7 +246,7 @@ export class WorkflowInfraMapper {
     return WorkflowInfraMapper.toWorkflowStepPersistence(domain);
   }
 
-  static toPrismaWorkflowTask(domain: WorkflowTask) {
+  static toPrismaWorkflowTask(domain: WorkflowTask) : Prisma.WorkflowTaskCreateInput | Prisma.WorkflowTaskUpdateInput {
     return {
       id: domain.id,
       taskId: domain.taskId,

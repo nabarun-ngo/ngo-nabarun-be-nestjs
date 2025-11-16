@@ -96,6 +96,22 @@ class WorkflowInstanceRepository
         }),
       );
 
+      // await Promise.all(
+      //   instance.steps.map((step) => {
+      //     return Promise.all(
+      //       step.tasks.map((task) => {
+      //         const taskData = WorkflowInfraMapper.toPrismaWorkflowTask(task);
+      //         return tx.workflowTask.upsert({
+      //           where: { id: task.id },
+      //           update: taskData,
+      //           create: { ...taskData as any, stepId: step.id },
+      //           });
+      //       }),
+      //     );
+      //   }),
+      // );
+
+
       const updated = await tx.workflowInstance.findUnique({
         where: { id },
         include: { 
