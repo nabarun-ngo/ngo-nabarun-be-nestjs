@@ -6,7 +6,7 @@ import { log } from "console";
 
 export const config = {
   app: {
-    name: process.env[Configkey.APP_NAME] || 'NABARUN',
+    name: process.env[Configkey.APP_NAME] || '',
     port: parseInt(process.env.PORT || '8082'),
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
