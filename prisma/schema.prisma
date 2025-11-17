@@ -238,7 +238,7 @@ model WorkflowTask {
   completedBy    String?      @db.VarChar(255)
   failureReason  String?      @db.Text
   assignedTo     UserProfile? @relation(fields: [assignedToId], references: [id])
-  assignedToId   String       @db.VarChar(255) // User ID
+  assignedToId   String?       @db.VarChar(255) // User ID
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -18,7 +18,7 @@ class UserRepository
     PrismaPostgresService['userProfile'],
     Prisma.UserProfileWhereUniqueInput,
     Prisma.UserProfileWhereInput,
-    UserPersistence.Full,
+    Prisma.UserProfileGetPayload<any>,
     Prisma.UserProfileCreateInput,
     Prisma.UserProfileUpdateInput
   >
@@ -50,12 +50,12 @@ class UserRepository
 
   private whereQuery(props?: UserFilterProps) {
     const where: Prisma.UserProfileWhereInput = {
-      ...(props?.firstName ? { firstName: { contains: props?.firstName, mode: 'insensitive' } } : {}),
-      ...(props?.lastName ? { lastName: { contains: props?.lastName, mode: 'insensitive' } } : {}),
-      ...(props?.email ? { email: { contains: props?.email, mode: 'insensitive' } } : {}),
-      ...(props?.status ? { status: props?.status } : {}),
-      ...(props?.roleCode ? { roles: { some: { roleCode: props?.roleCode } } } : {}),
-      ...(props?.phoneNumber ? { phoneNumbers: { some: { phoneNumber: props?.phoneNumber } } } : {}),
+      ...(props?.firstName ? { firstName: { contains: props.firstName, mode: 'insensitive' } } : {}),
+      ...(props?.lastName ? { lastName: { contains: props.lastName, mode: 'insensitive' } } : {}),
+      ...(props?.email ? { email: { contains: props.email, mode: 'insensitive' } } : {}),
+      ...(props?.status ? { status: props.status } : {}),
+      ...(props?.roleCodes ? { roles: { some: { roleCode: { in: props.roleCodes } } } } : {}),
+      ...(props?.phoneNumber ? { phoneNumbers: { some: { phoneNumber: props.phoneNumber } } } : {}),
     };
     return where;
   }

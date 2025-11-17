@@ -16,6 +16,7 @@ class TransactionRepository
     PrismaPostgresService['transaction'],
     Prisma.TransactionWhereUniqueInput,
     Prisma.TransactionWhereInput,
+    Prisma.TransactionGetPayload<any>,
     Prisma.TransactionCreateInput,
     Prisma.TransactionUpdateInput
   >

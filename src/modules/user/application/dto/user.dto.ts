@@ -246,7 +246,7 @@ export class UserFilterDto {
   @ApiPropertyOptional() @IsOptional() readonly lastName?: string;
   @ApiPropertyOptional() @IsOptional() readonly email?: string;
   @ApiPropertyOptional() @IsOptional() readonly status?: UserStatus;
-  @ApiPropertyOptional() @IsOptional() readonly roleCode?: string;
+  @ApiPropertyOptional() @IsOptional() readonly roleCodes?: string[];
   @ApiPropertyOptional() @IsOptional() readonly phoneNumber?: string;
 
 }

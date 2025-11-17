@@ -4,7 +4,7 @@ import { Document, DocumentProps } from "../domain/document.model";
 import { PrismaBaseRepository, PrismaPostgresService } from "../../database";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
-import { DocumentReference, Prisma } from "prisma/client";
+import { DocumentReference, Prisma, PrismaClient } from "prisma/client";
 import { DefaultArgs } from "prisma/client/runtime/library";
 import { DocumentMapping, DocumentMappingRefType } from "../domain/mapping.model";
 import { IDocumentRepository } from "../domain/document.repository.interface";
@@ -14,12 +14,10 @@ import { IDocumentRepository } from "../domain/document.repository.interface";
 export class DocumentRepository
     extends PrismaBaseRepository<
         Document,
-        PrismaPostgresService['documentReference'],
+        PrismaClient['documentReference'],
         Prisma.DocumentReferenceWhereUniqueInput,
         Prisma.DocumentReferenceWhereInput,
-        Prisma.DocumentReferenceGetPayload<{
-            include: { mappings: true }
-        }>,
+        Prisma.DocumentReferenceGetPayload<any>,
         Prisma.DocumentReferenceCreateInput,
         Prisma.DocumentReferenceUpdateInput>
     implements IDocumentRepository {

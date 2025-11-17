@@ -24,7 +24,7 @@ export class UserFilterProps {
   readonly lastName?: string;
   readonly email?: string;
   readonly status?: UserStatus;
-  readonly roleCode?: string;
+  readonly roleCodes?: string[];
   readonly phoneNumber?: string;
 }
 
@@ -171,7 +171,6 @@ export class User extends AggregateRoot<string> {
       detail.lastName !== undefined ||
       detail.picture !== undefined ||
       this._isProfileCompleted);
-    console.log('Update Auth Flag:', this._updateAuth);
     this.touch();
   }
 

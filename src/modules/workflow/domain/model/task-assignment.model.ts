@@ -1,5 +1,6 @@
 import { User } from 'src/modules/user/domain/model/user.model';
 import { BaseDomain } from '../../../../shared/models/base-domain';
+import { randomUUID } from 'crypto';
 
 export enum TaskAssignmentStatus {
   PENDING = 'PENDING',
@@ -55,6 +56,24 @@ export class TaskAssignment extends BaseDomain<string> {
 
   get notes(): string | undefined {
     return this._notes;
+  }
+
+  static create(data:{
+    taskId: string;
+    assignedTo: User;
+    roleName?: string | null;
+    assignedBy?: string;
+  }): TaskAssignment {
+    return new TaskAssignment(
+      randomUUID(),
+      data.taskId,
+      data.assignedTo,
+      data.roleName || null,
+      TaskAssignmentStatus.PENDING,
+      undefined,
+      undefined,
+      data.assignedBy,
+    );
   }
 
   public accept(): void {

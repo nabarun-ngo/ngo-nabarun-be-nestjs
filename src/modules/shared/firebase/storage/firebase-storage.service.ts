@@ -18,7 +18,6 @@ export class FirebaseStorageService {
         const bucket = this.app.storage().bucket();
 
         try {
-            console.log('Uploading file to Firebase Storage:', filePath);
             const file = bucket.file(filePath);
             await file.save(content, {
                 metadata: {

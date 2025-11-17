@@ -15,9 +15,10 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { WorkflowDefService } from './infrastructure/external/workflow-def.service';
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
+import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 
 @Module({
-  imports: [JobProcessingModule, UserModule,FirebaseModule],
+  imports: [JobProcessingModule, UserModule,FirebaseModule,CorrespondenceModule],
   controllers: [WorkflowController],
   providers: [
     StartWorkflowUseCase,

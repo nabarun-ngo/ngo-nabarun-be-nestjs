@@ -91,14 +91,14 @@ export class FinanceInfraMapper {
     );
   }
 
-  static toTransactionCreatePersistence(domain: Transaction): Prisma.TransactionUncheckedCreateInput {
+  static toTransactionCreatePersistence(domain: Transaction): Prisma.TransactionCreateInput {
     return {
       id: domain.id,
       type: domain.type,
       amount: domain.amount,
       currency: domain.currency,
       status: domain.status,
-      accountId: domain.accountId,
+      account: { connect: { id: domain.accountId } },
       referenceId: MapperUtils.undefinedToNull(domain.referenceId),
       referenceType: MapperUtils.undefinedToNull(domain.referenceType),
       description: domain.description,

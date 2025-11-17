@@ -246,16 +246,19 @@ export class WorkflowInfraMapper {
     return WorkflowInfraMapper.toWorkflowStepPersistence(domain);
   }
 
-  static toPrismaWorkflowTask(domain: WorkflowTask) : Prisma.WorkflowTaskCreateInput | Prisma.WorkflowTaskUpdateInput {
+   static toPrismaWorkflowTask(domain: WorkflowTask) : Prisma.WorkflowTaskCreateInput {
     return {
       id: domain.id,
       taskId: domain.taskId,
+      step: { connect: { id: domain.stepId } },
       name: domain.name,
       description: domain.description ?? null,
       type: domain.type,
       status: domain.status,
       handler: domain.handler ?? null,
-      checklist: domain.checkList ? JSON.stringify(domain.checkList) : null,
+      checklist: domain.checkList && domain.checkList.length > 0
+        ? domain.checkList.join('!~!')
+        : null,
       autoCloseable: domain.isAutoCloseable ?? null,
       autoCloseRefId: domain.autoCloseRefId ?? null,
       jobId: domain.jobId ?? null,
@@ -267,20 +270,22 @@ export class WorkflowInfraMapper {
       updatedAt: domain.updatedAt ?? new Date(),
     };
   }
-
-  static toPrismaTaskAssignment(assignment: TaskAssignment): any {
+  static toPrismaTaskAssignment(assignment: TaskAssignment): Prisma.TaskAssignmentCreateInput {
     return {
       id: assignment.id,
-      taskId: assignment.taskId,
-      assignedTo: assignment.assignedTo,
+      task: { connect: { id: assignment.taskId } },
+      assignedTo :{ connect: { id: assignment.assignedTo.id } },
       roleName: assignment.roleName,
       assignedBy: assignment.assignedBy,
       status: assignment.status,
       acceptedAt: assignment.acceptedAt,
       completedAt: assignment.completedAt,
       notes: assignment.notes,
-      createdAt: assignment.createdAt,
-      updatedAt: assignment.updatedAt,
+      createdAt: assignment.createdAt ?? new Date(),
+      updatedAt: assignment.updatedAt ?? new Date(),
     };
   }
 }
+ 
+
+

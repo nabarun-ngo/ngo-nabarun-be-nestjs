@@ -36,7 +36,7 @@ export class UserService {
                 status: filterDto.props?.status,
                 firstName: filterDto.props?.firstName,
                 lastName: filterDto.props?.lastName,
-                roleCode: filterDto.props?.roleCode,
+                roleCodes: filterDto.props?.roleCodes,
                 phoneNumber: filterDto.props?.phoneNumber
             }
         }
