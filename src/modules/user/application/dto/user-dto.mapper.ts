@@ -7,7 +7,7 @@ import {
   RoleDto,
   UserDto,
 } from './user.dto';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
+import { PhoneNumber } from '../../domain/model/phone-number.model';
 import { Address } from '../../domain/model/address.model';
 import { Link } from '../../domain/model/link.model';
 

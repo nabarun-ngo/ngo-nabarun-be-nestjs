@@ -4,24 +4,33 @@ import { BaseDomain } from 'src/shared/models/base-domain';
 
 @Expose()
 export class PhoneNumber extends BaseDomain<string> {
+
+  // 🔒 TRUE private fields
+  #phoneCode: string;
+  #phoneNumber: string;
+  #hidden: boolean;
+
   constructor(
     protected _id: string,
-    private _phoneCode: string,
-    private _phoneNumber: string,
-    private _hidden = false,
+    phoneCode: string,
+    phoneNumber: string,
+    hidden = false,
   ) {
     super(_id);
+
+    this.#phoneCode = phoneCode;
+    this.#phoneNumber = phoneNumber;
+    this.#hidden = hidden;
   }
 
   get fullNumber(): string {
-    return `+${this._phoneCode} ${this._phoneNumber}`;
+    return `+${this.#phoneCode} ${this.#phoneNumber}`;
   }
 
   public static create(
     phoneCode: string,
     phoneNumber: string,
     hidden = false,
-    primary = false,
   ): PhoneNumber {
     if (!phoneCode || !phoneNumber) {
       throw new Error('phoneCode and phoneNumber are required');
@@ -29,39 +38,37 @@ export class PhoneNumber extends BaseDomain<string> {
     return new PhoneNumber(randomUUID(), phoneCode, phoneNumber, hidden);
   }
 
-  public update(detail:PhoneNumber){
-    this._phoneCode = detail.phoneCode;
-    this._phoneNumber = detail.phoneNumber;
-    this._hidden = detail.hidden;
+  public update(detail: PhoneNumber) {
+    this.#phoneCode = detail.phoneCode;
+    this.#phoneNumber = detail.phoneNumber;
+    this.#hidden = detail.hidden;
     this.touch();
     return this;
   }
 
   public show(): void {
-    this._hidden = false;
+    this.#hidden = false;
   }
 
   public hide(): void {
-    this._hidden = true;
+    this.#hidden = true;
   }
 
-  /**
-   * Getters
-   */
+  // === Getters (required for BaseDomain.toJson()) ===
 
   get id(): string {
     return this._id;
   }
 
   get phoneCode(): string {
-    return this._phoneCode;
+    return this.#phoneCode;
   }
 
   get phoneNumber(): string {
-    return this._phoneNumber;
+    return this.#phoneNumber;
   }
 
   get hidden(): boolean {
-    return this._hidden;
+    return this.#hidden;
   }
 }

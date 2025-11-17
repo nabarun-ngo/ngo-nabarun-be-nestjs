@@ -53,7 +53,6 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                         roleName: u.roles.find(r => task.assignedTo?.roleNames.includes(r.roleCode))?.roleCode!
                     }));
                     task.setAssignments(assignments);
-                    console.log(task.toJson())
                     this.corrService.sendTemplatedEmail({
                         templateName: EmailTemplateName.TASK_ASSIGNED,
                         data: {...task.toJson(),workflowId: workflow.id},

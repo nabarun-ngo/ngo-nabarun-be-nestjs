@@ -9,7 +9,7 @@ import { BaseFilter } from "src/shared/models/base-filter-props";
 import { UserFilterProps } from "../../domain/model/user.model";
 import { UpdateUserUseCase } from "../use-cases/update-user.use-case";
 import { Role } from "../../domain/model/role.model";
-import { PhoneNumber } from "../../domain/model/phone-number.vo";
+import { PhoneNumber } from "../../domain/model/phone-number.model";
 import { Address } from "../../domain/model/address.model";
 import { Link, LinkType } from "../../domain/model/link.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";

@@ -1,5 +1,5 @@
 import { LoginMethod, User, UserStatus } from '../domain/model/user.model';
-import { PhoneNumber } from '../domain/model/phone-number.vo';
+import { PhoneNumber } from '../domain/model/phone-number.model';
 import { Role } from '../domain/model/role.model';
 import { Address } from '../domain/model/address.model';
 import { Link, LinkType } from '../domain/model/link.model';
