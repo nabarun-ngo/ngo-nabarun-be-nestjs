@@ -1,8 +1,8 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { API_KEY_REPOSITORY } from '../../domain/api-key.repository.interface';
-import type { IApiKeyRepository } from '../../domain/api-key.repository.interface';
-import { ApiKey } from '../../domain/api-key.model';
+import { API_KEY_REPOSITORY, type IApiKeyRepository } from '../../domain/repository/api-key.repository.interface';
+import { ApiKey } from '../../domain/models/api-key.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AuthUser } from '../../domain/models/api-user.model';
 
 @Injectable()
 export class ApiKeyService {
@@ -14,7 +14,7 @@ export class ApiKeyService {
   ) {
   }
 
-  async validateApiKey(apiKey: string): Promise<ApiKey> {
+  async validateApiKey(apiKey: string): Promise<AuthUser> {
     if (!apiKey) {
       throw new UnauthorizedException('API key is required');
     }
@@ -39,7 +39,14 @@ export class ApiKeyService {
       this.apiKeys.set(keyId, keyInfo);
     }
 
-    return keyInfo;
+    return {
+      sub: `apikey:${keyInfo.id}`,
+      name: keyInfo.name,
+      permissions: keyInfo.permissions,
+      profile_name: keyInfo.name,
+      user_id: keyInfo.id,
+      type: 'jwt',
+    } as AuthUser;
   }
 
   async generateApiKey(

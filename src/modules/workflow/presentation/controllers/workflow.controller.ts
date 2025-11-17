@@ -21,6 +21,8 @@ import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow
 import { WorkflowService } from '../../application/services/workflow.service';
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
 import { WorkflowDtoMapper } from '../WorkflowDtoMapper';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 @ApiTags('Workflows')
 @ApiSecurity('api-key')
@@ -44,7 +46,8 @@ export class WorkflowController {
     description: 'Workflow started successfully',
     type: SuccessResponse<WorkflowInstanceDto>,
   })
-  async startWorkflow(@Body() dto: StartWorkflowDto): Promise<SuccessResponse<WorkflowInstanceDto>> {
+  async startWorkflow(@Body() dto: StartWorkflowDto,@CurrentUser() user:AuthUser): Promise<SuccessResponse<WorkflowInstanceDto>> {
+    console.log(user)
     const result = await this.startWorkflowUseCase.execute(dto);
     return new SuccessResponse<WorkflowInstanceDto>(result);
   }

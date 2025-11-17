@@ -15,7 +15,7 @@ import {
 import { ApiKeyService } from '../../application/services/api-key.service';
 import { ApiKeyDto, CreateApiKeyDto } from '../dto/api-key.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
-import { ApiKey } from '../../domain/api-key.model';
+import { ApiKey } from '../../domain/models/api-key.model';
 import { Public } from '../../application/decorators/public.decorator';
 
 

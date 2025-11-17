@@ -56,8 +56,6 @@ export class UnifiedAuthGuard implements CanActivate {
     try {
       const user = await this.authService.verifyToken(token);
       request.user = user;
-      request.user.permissions = user.permissions || [];
-      request.authType = 'jwt';
       return true;
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired JWT token');
@@ -72,15 +70,8 @@ export class UnifiedAuthGuard implements CanActivate {
     }
 
 
-    const keyInfo = await this.apiKeyService.validateApiKey(apiKey);
-    request.user = {
-      sub: `apikey:${keyInfo.name}`,
-      apiKey: true,
-      name: keyInfo.name,
-    };
-    request.user.permissions = keyInfo.permissions;
-    request.apiKeyInfo = keyInfo;
-    request.authType = 'apikey';
+    const user = await this.apiKeyService.validateApiKey(apiKey);
+    request.user = user;
     return true;
   }
 
