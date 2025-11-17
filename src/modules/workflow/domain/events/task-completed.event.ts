@@ -6,7 +6,7 @@ export class TaskCompletedEvent extends DomainEvent {
     aggregateId: string,
     public readonly instanceId: string,
     public readonly stepId: string,
-    public readonly task: WorkflowTask,
+    public readonly taskId: string,
   ) {
     super(aggregateId);
   }

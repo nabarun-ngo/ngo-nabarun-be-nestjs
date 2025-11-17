@@ -12,9 +12,9 @@ export class WorkflowEventsHandler {
 
   @OnEvent(StepStartedEvent.name)
   async handleUserCreatedEvent(event: StepStartedEvent) {    
-    await this.jobProcessingService.addJob<{ instanceId: string; step: WorkflowStep }>(JobName.START_WORKFLOW_STEP, {
+    await this.jobProcessingService.addJob<{ instanceId: string; stepId: string }>(JobName.START_WORKFLOW_STEP, {
       instanceId: event.instanceId,
-      step: event.step,
+      stepId: event.stepId,
     });
   }
 

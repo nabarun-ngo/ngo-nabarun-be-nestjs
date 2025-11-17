@@ -2,8 +2,6 @@ import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 import { StepDTO, StepTransitionsDTO } from '../vo/workflow-def.vo';
 import { WorkflowTask } from './workflow-task.model';
-import { WorkflowInstance } from './workflow-instance.model';
-import { StepStartedEvent } from '../events/step-started.event';
 
 export enum WorkflowStepStatus {
   PENDING = 'PENDING',
@@ -13,26 +11,56 @@ export enum WorkflowStepStatus {
 }
 
 export class WorkflowStep extends BaseDomain<string> {
-  private _tasks: WorkflowTask[] = [];
+  // 🔒 Pure private fields
+  #stepId: string;
+  #name: string;
+  #description: string;
+  #status: WorkflowStepStatus;
+  #orderIndex: number;
+
+  #onSuccessStepId?: string;
+  #onFailureStepId?: string;
+
+  #completedAt?: Date;
+  #failureReason?: string;
+  #startedAt?: Date;
+
+  #tasks: WorkflowTask[] = [];
 
   constructor(
-    protected _id: string,
-    private _stepId: string,
-    private _name: string,
-    private _description: string,
-    private _status: WorkflowStepStatus,
-    private _orderIndex: number,
-    private _onSuccessStepId?: string,
-    private _onFailureStepId?: string,
-
-    private _completedAt?: Date,
-    private _failureReason?: string,
-    private _startedAt?: Date,
+    id: string,
+    stepId: string,
+    name: string,
+    description: string,
+    status: WorkflowStepStatus,
+    orderIndex: number,
+    onSuccessStepId?: string,
+    onFailureStepId?: string,
+    completedAt?: Date,
+    failureReason?: string,
+    startedAt?: Date,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
-    super(_id, createdAt, updatedAt);
+    super(id, createdAt, updatedAt);
+
+    this.#stepId = stepId;
+    this.#name = name;
+    this.#description = description;
+    this.#status = status;
+    this.#orderIndex = orderIndex;
+
+    this.#onSuccessStepId = onSuccessStepId;
+    this.#onFailureStepId = onFailureStepId;
+
+    this.#completedAt = completedAt;
+    this.#failureReason = failureReason;
+    this.#startedAt = startedAt;
   }
+
+  // -----------------------------------
+  //        Factory
+  // -----------------------------------
 
   static create(step: StepDTO): WorkflowStep {
     const instance = new WorkflowStep(
@@ -43,100 +71,117 @@ export class WorkflowStep extends BaseDomain<string> {
       WorkflowStepStatus.PENDING,
       step.orderIndex,
     );
-    instance.setTransitions(step.transitions);
+
+    instance.#setTransitions(step.transitions);
     return instance;
   }
-  private setTransitions(transitions: StepTransitionsDTO) {
-    this._onSuccessStepId = transitions.onSuccess!;
-    this._onFailureStepId = transitions.onFailure!;
+
+  // -----------------------------------
+  //        Private methods
+  // -----------------------------------
+
+  #setTransitions(transitions: StepTransitionsDTO) {
+    this.#onSuccessStepId = transitions.onSuccess!;
+    this.#onFailureStepId = transitions.onFailure!;
     this.touch();
   }
 
-  public setTasks(tasks: WorkflowTask[]): void {
-    this._tasks = [...tasks];
+  // -----------------------------------
+  //        Mutators
+  // -----------------------------------
+
+  setTasks(tasks: WorkflowTask[]) {
+    this.#tasks = [...tasks];
     this.touch();
   }
 
-  public start(): void {
-    if (this._status == WorkflowStepStatus.IN_PROGRESS) {
-      throw new Error(`Cannot start step in status: ${this._status}`);
+  start() {
+    if (this.#status === WorkflowStepStatus.IN_PROGRESS) {
+      throw new Error(`Cannot start step in status: ${this.#status}`);
     }
-    this._status = WorkflowStepStatus.IN_PROGRESS;
-    this._startedAt = new Date();
+    this.#status = WorkflowStepStatus.IN_PROGRESS;
+    this.#startedAt = new Date();
     this.touch();
   }
 
-  public complete() {
-    if (this._status !== WorkflowStepStatus.IN_PROGRESS) {
-      throw new Error(`Cannot complete step in status: ${this._status}`);
+  complete(): string | undefined {
+    if (this.#status !== WorkflowStepStatus.IN_PROGRESS) {
+      throw new Error(`Cannot complete step in status: ${this.#status}`);
     }
-    this._status = WorkflowStepStatus.COMPLETED;
-    this._completedAt = new Date();
+    this.#status = WorkflowStepStatus.COMPLETED;
+    this.#completedAt = new Date();
     this.touch();
-    return this._onSuccessStepId;
+    return this.#onSuccessStepId;
   }
 
-  public fail(reason: string) {
-    this._status = WorkflowStepStatus.FAILED;
-    this._failureReason = reason;
+  fail(reason: string): string | undefined {
+    this.#status = WorkflowStepStatus.FAILED;
+    this.#failureReason = reason;
     this.touch();
-    return this._onFailureStepId;
+    return this.#onFailureStepId;
   }
 
-  public isCompleted(): boolean {
-    return this._status === WorkflowStepStatus.COMPLETED;
+  // -----------------------------------
+  //        Read-only API
+  // -----------------------------------
+
+  get stepId() {
+    return this.#stepId;
   }
 
-  public isFailed(): boolean {
-    return this._status === WorkflowStepStatus.FAILED;
+  get name() {
+    return this.#name;
   }
 
-  public isAllTasksCompleted(): boolean {
-    return this._tasks.length > 0 && this._tasks.every(task => task.isCompleted());
+  get description() {
+    return this.#description;
   }
 
-  get stepId(): string {
-    return this._stepId;
+  get status() {
+    return this.#status;
   }
 
-  get name(): string {
-    return this._name;
-  }
-
-  get description(): string | null {
-    return this._description;
-  }
-
-  get status(): WorkflowStepStatus {
-    return this._status;
-  }
-
-  get orderIndex(): number {
-    return this._orderIndex;
+  get orderIndex() {
+    return this.#orderIndex;
   }
 
   get tasks(): ReadonlyArray<WorkflowTask> {
-    return [...this._tasks];
+    return [...this.#tasks];
   }
 
-  get completedAt(): Date | undefined {
-    return this._completedAt;
+  get completedAt() {
+    return this.#completedAt;
   }
 
-  get onSuccessStepId(): string | undefined {
-    return this._onSuccessStepId;
+  get failureReason() {
+    return this.#failureReason;
   }
 
-  get onFailureStepId(): string | undefined {
-    return this._onFailureStepId
+  get startedAt() {
+    return this.#startedAt;
   }
 
-  get failureReason(): string | undefined {
-    return this._failureReason;
+  get onSuccessStepId() {
+    return this.#onSuccessStepId;
   }
 
-  get startedAt(): Date | undefined {
-    return this._startedAt;
+  get onFailureStepId() {
+    return this.#onFailureStepId;
+  }
+
+  // -----------------------------------
+  //        Query helpers
+  // -----------------------------------
+
+  isCompleted() {
+    return this.#status === WorkflowStepStatus.COMPLETED;
+  }
+
+  isFailed() {
+    return this.#status === WorkflowStepStatus.FAILED;
+  }
+
+  isAllTasksCompleted() {
+    return this.#tasks.length > 0 && this.#tasks.every(t => t.isCompleted());
   }
 }
-

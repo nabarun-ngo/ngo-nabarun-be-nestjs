@@ -46,18 +46,17 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                     //task.startAutomaticTask();
                 }
                 else {
-                    console.log('Assigning users for task assignment with roles:', task.assignedTo?.roleNames);
                     const users = await this.userRepository.findAll({ roleCodes: task.assignedTo?.roleNames! });
-                    console.log('Users for task assignment:', users.map(m => `${m.fullName} (${m.id})`));
                     const assignments = users.map(u => TaskAssignment.create({
                         taskId: task.id,
                         assignedTo: u,
                         roleName: u.roles.find(r => task.assignedTo?.roleNames.includes(r.roleCode))?.roleCode!
                     }));
                     task.setAssignments(assignments);
+                    console.log(task.toJson())
                     this.corrService.sendTemplatedEmail({
                         templateName: EmailTemplateName.TASK_ASSIGNED,
-                        data: task,
+                        data: {...task.toJson(),workflowId: workflow.id},
                         options: {
                             recipients: { to: users.map(user => user.email) }
                         }

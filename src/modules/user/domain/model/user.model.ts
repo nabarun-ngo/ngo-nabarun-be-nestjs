@@ -371,11 +371,6 @@ export class User extends AggregateRoot<string> {
   get initials(): string {
     return this._initials;
   }
-
-  get id(): string {
-    return this._id;
-  }
-
   get firstName(): string {
     return this._firstName;
   }

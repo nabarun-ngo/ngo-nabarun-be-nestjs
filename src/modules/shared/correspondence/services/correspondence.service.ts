@@ -25,7 +25,7 @@ export class CorrespondenceService {
    * Automatically uses the authenticated Gmail account for the user
    */
   async sendTemplatedEmail(request: SendEmailRequest): Promise<SendEmailResult> {
-
+    const from = request.fromName ?? this.configService.get<string>(Configkey.APP_NAME)!;
     const data = request.templateData ?? await this.getEmailTemplateData(request.templateName!, request.data!);
     const html = await this.buildEmailHtml(data);
     const isProdMode = this.configService.get<string | boolean>(Configkey.ENABLE_PROD_MODE);
@@ -34,7 +34,7 @@ export class CorrespondenceService {
       return await this.gmailService.sendEmail(html, {
         ...request.options,
         subject: request.options.subject ?? data.subject
-      }, request.fromEmail!);
+      }, from);
     } else if (isMockingEnabled === 'true' || isMockingEnabled === true) {
       const mockedEmail = this.configService.get<string>(Configkey.MOCKED_EMAIL_ADDRESS);
       this.logger.log(`Sending mocked email to ${mockedEmail}`)
@@ -42,7 +42,7 @@ export class CorrespondenceService {
         ...request.options,
         subject: request.options.subject ?? data.subject,
         recipients: { to: mockedEmail}
-      }, request.fromEmail!);
+      },from);
     } else {
       return Promise.resolve({
         success: false,

@@ -53,9 +53,7 @@ export class Document extends AggregateRoot<string> {
         return mapping;
     }
 
-    get id() {
-        return this._id;
-    }
+    
     get fileName() {
         return this._fileName;
     }

@@ -20,33 +20,66 @@ export enum WorkflowTaskStatus {
 
 export class WorkflowTask extends BaseDomain<string> {
 
-  private _assignments: TaskAssignment[] = [];
+  // 🔒 All private fields
+  #step: WorkflowStep;
+  #taskId: string;
+  #name: string;
+  #description: string | null;
+  #type: WorkflowTaskType;
+  #status: WorkflowTaskStatus;
+  #handler?: string;
+  #checkList?: string[];
+  #isAutoCloseable?: boolean;
+  #assignedTo?: AssignedToDTO;
+  #jobId?: string;
+  #autoCloseRefId?: string;
+  #completedAt?: Date;
+  #completedBy?: string;
+  #failureReason?: string;
+
+  #assignments: TaskAssignment[] = [];
 
   constructor(
-    protected _id: string,
-    private _step: WorkflowStep,
-    private _taskId: string,
-    private _name: string,
-    private _description: string | null,
-    private _type: WorkflowTaskType,
-    private _status: WorkflowTaskStatus,
-    private _handler?: string,
-    private _checkList?: string[],
-    private _isAutoCloseable?: boolean,
-    private _assignedTo?: AssignedToDTO,
-    private _jobId?: string,
-    private _autoCloseRefId?: string,
-    private _completedAt?: Date,
-    private _completedBy?: string,
-    private _failureReason?: string,
+    id: string,
+    step: WorkflowStep,
+    taskId: string,
+    name: string,
+    description: string | null,
+    type: WorkflowTaskType,
+    status: WorkflowTaskStatus,
+    handler?: string,
+    checkList?: string[],
+    isAutoCloseable?: boolean,
+    assignedTo?: AssignedToDTO,
+    jobId?: string,
+    autoCloseRefId?: string,
+    completedAt?: Date,
+    completedBy?: string,
+    failureReason?: string,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
-    super(_id, createdAt, updatedAt);
+    super(id, createdAt, updatedAt);
+
+    this.#step = step;
+    this.#taskId = taskId;
+    this.#name = name;
+    this.#description = description;
+    this.#type = type;
+    this.#status = status;
+    this.#handler = handler;
+    this.#checkList = checkList;
+    this.#isAutoCloseable = isAutoCloseable;
+    this.#assignedTo = assignedTo;
+    this.#jobId = jobId;
+    this.#autoCloseRefId = autoCloseRefId;
+    this.#completedAt = completedAt;
+    this.#completedBy = completedBy;
+    this.#failureReason = failureReason;
   }
 
   static create(step: WorkflowStep, task: TaskDTO): WorkflowTask {
-    const instance = new WorkflowTask(
+    return new WorkflowTask(
       randomUUID(),
       step,
       task.taskId,
@@ -57,128 +90,125 @@ export class WorkflowTask extends BaseDomain<string> {
       task.handler,
       task.taskDetail?.checklist,
       task.taskDetail?.isAutoCloseable,
-
       task.taskDetail?.assignedTo,
     );
-    return instance;
   }
 
-
-  public addAssignment(assignment: TaskAssignment): void {
-    this._assignments.push(assignment);
+  // 🔧 Mutators
+  addAssignment(assignment: TaskAssignment): void {
+    this.#assignments.push(assignment);
     this.touch();
   }
 
-  public setAssignments(assignments: TaskAssignment[]): void {
-    this._assignments = [...assignments];
+  setAssignments(assignments: TaskAssignment[]): void {
+    this.#assignments = [...assignments];
     this.touch();
   }
 
-  public start(): void {
-    if (this._status !== WorkflowTaskStatus.PENDING) {
-      throw new Error(`Cannot start task in status: ${this._status}`);
+  start(): void {
+    if (this.#status !== WorkflowTaskStatus.PENDING) {
+      throw new Error(`Cannot start task in status: ${this.#status}`);
     }
-    this._status = WorkflowTaskStatus.IN_PROGRESS;
+    this.#status = WorkflowTaskStatus.IN_PROGRESS;
     this.touch();
   }
 
-  public complete(completedBy?: string): void {
-    if (this._status !== WorkflowTaskStatus.IN_PROGRESS && this._status !== WorkflowTaskStatus.PENDING) {
-      throw new Error(`Cannot complete task in status: ${this._status}`);
+  complete(completedBy?: string): void {
+    if (this.#status !== WorkflowTaskStatus.IN_PROGRESS && this.#status !== WorkflowTaskStatus.PENDING) {
+      throw new Error(`Cannot complete task in status: ${this.#status}`);
     }
-    this._status = WorkflowTaskStatus.COMPLETED;
-    this._completedBy = completedBy;
-    this._completedAt = new Date();
+    this.#status = WorkflowTaskStatus.COMPLETED;
+    this.#completedBy = completedBy;
+    this.#completedAt = new Date();
     this.touch();
   }
 
-  public fail(reason: string): void {
-    this._status = WorkflowTaskStatus.FAILED;
-    this._failureReason = reason;
+  fail(reason: string): void {
+    this.#status = WorkflowTaskStatus.FAILED;
+    this.#failureReason = reason;
     this.touch();
   }
 
-  public setJobId(jobId: string): void {
-    this._jobId = jobId;
+  setJobId(jobId: string): void {
+    this.#jobId = jobId;
     this.touch();
   }
 
-  public isCompleted(): boolean {
-    return this._status === WorkflowTaskStatus.COMPLETED;
+  // 🔍 Query Methods
+  isCompleted(): boolean {
+    return this.#status === WorkflowTaskStatus.COMPLETED;
   }
 
-  public isAutomatic(): boolean {
-    return this._type === WorkflowTaskType.AUTOMATIC;
+  isAutomatic(): boolean {
+    return this.#type === WorkflowTaskType.AUTOMATIC;
   }
 
-  public requiresManualAction(): boolean {
-    return this._type !== WorkflowTaskType.AUTOMATIC;
+  requiresManualAction(): boolean {
+    return this.#type !== WorkflowTaskType.AUTOMATIC;
   }
 
+  // 🔓 Getters (Public Read-Only API)
   get stepId(): string {
-    return this._step.stepId;
+    return this.#step.stepId;
   }
 
   get taskId(): string {
-    return this._taskId;
+    return this.#taskId;
   }
 
   get name(): string {
-    return this._name;
+    return this.#name;
   }
 
   get description(): string | null {
-    return this._description;
+    return this.#description;
   }
 
   get type(): WorkflowTaskType {
-    return this._type;
+    return this.#type;
   }
 
   get status(): WorkflowTaskStatus {
-    return this._status;
+    return this.#status;
   }
 
   get handler(): string | undefined {
-    return this._handler;
+    return this.#handler;
   }
 
   get checkList(): string[] | undefined {
-    return this._checkList;
+    return this.#checkList;
   }
 
   get isAutoCloseable(): boolean | undefined {
-    return this._isAutoCloseable;
+    return this.#isAutoCloseable;
   }
 
   get autoCloseRefId(): string | undefined {
-    return this._autoCloseRefId;
+    return this.#autoCloseRefId;
   }
 
-
   get assignedTo(): AssignedToDTO | undefined {
-    return this._assignedTo;
+    return this.#assignedTo;
   }
 
   get jobId(): string | undefined {
-    return this._jobId;
+    return this.#jobId;
   }
 
   get assignments(): TaskAssignment[] {
-    return [...this._assignments];
+    return [...this.#assignments];
   }
 
   get completedAt(): Date | undefined {
-    return this._completedAt;
+    return this.#completedAt;
   }
 
   get completedBy(): string | undefined {
-    return this._completedBy;
+    return this.#completedBy;
   }
 
   get failureReason(): string | undefined {
-    return this._failureReason;
+    return this.#failureReason;
   }
-
 }
-

@@ -153,7 +153,7 @@ export class GoogleOAuthService {
     const encryptionKey = this.configService.get<string>(
       Configkey.APP_SECRET
     )!;
-    return tokenRecord.getAccessToken(encryptionKey);
+    return await tokenRecord.getAccessToken(encryptionKey);
   }
 
   /**
@@ -169,7 +169,8 @@ export class GoogleOAuthService {
     // Decrypt refresh token
     const encryptionKey = this.configService.get<string>(
       Configkey.APP_SECRET
-    )!;    // Set refresh token and get new access token
+    )!;    
+    // Set refresh token and get new access token
     this.oauth2Client.setCredentials({
       refresh_token: await tokenRecord.getRefreshToken(encryptionKey),
     });
@@ -228,7 +229,7 @@ export class GoogleOAuthService {
   ): Promise<OAuth2Client> {
     const accessToken = await this.getValidAccessToken(clientId, scope);
     this.oauth2Client.setCredentials({
-      access_token: accessToken
+      access_token: accessToken,
     });
     return this.oauth2Client;
   }

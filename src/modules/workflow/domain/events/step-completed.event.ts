@@ -5,7 +5,7 @@ export class StepCompletedEvent extends DomainEvent {
   constructor(
     aggregateId: string,
     public readonly instanceId: string,
-    public readonly step: WorkflowStep,
+    public readonly stepId: string,
   ) {
     super(aggregateId);
   }
