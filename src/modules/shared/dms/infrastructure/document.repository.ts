@@ -4,8 +4,7 @@ import { Document, DocumentProps } from "../domain/document.model";
 import { PrismaBaseRepository, PrismaPostgresService } from "../../database";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
-import { DocumentReference, Prisma, PrismaClient } from "prisma/client";
-import { DefaultArgs } from "prisma/client/runtime/library";
+import { DocumentReference, Prisma, PrismaClient } from "@prisma/client";
 import { DocumentMapping, DocumentMappingRefType } from "../domain/mapping.model";
 import { IDocumentRepository } from "../domain/document.repository.interface";
 
@@ -87,7 +86,7 @@ export class DocumentRepository
         return await this.hardDelete({ id });
     }
 
-    protected getDelegate(prisma: PrismaPostgresService): Prisma.DocumentReferenceDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
+    protected getDelegate(prisma: PrismaPostgresService) {
         return prisma.documentReference;
     }
     protected toDomain(prismaModel: Prisma.DocumentReferenceGetPayload<{

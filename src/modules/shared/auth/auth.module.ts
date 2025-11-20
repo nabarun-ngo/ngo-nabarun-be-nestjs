@@ -40,7 +40,7 @@ import { API_KEY_REPOSITORY } from './domain/repository/api-key.repository.inter
     ApiKeyService,
     PermissionsGuard,
     UnifiedAuthGuard,
-    ApiKeyEventsHandler
+    ApiKeyEventsHandler,
   ],
   exports: [GoogleOAuthService], 
 })

@@ -32,8 +32,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
   #name: string;
   #description: string;
   #status: WorkflowInstanceStatus;
-  #initiatedBy?: User;
-  #initiatedFor?: User;
+  #initiatedBy?: string;
+  #initiatedFor?: string;
   #requestData?: Record<string, string>;
   #currentStepId?: string;
   #completedAt?: Date;
@@ -46,8 +46,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     name: string,
     description: string,
     status: WorkflowInstanceStatus,
-    initiatedBy?: User,
-    initiatedFor?: User,
+    initiatedBy?: string,
+    initiatedFor?: string,
     requestData?: Record<string, string>,
     currentStepId?: string,
     completedAt?: Date,
@@ -69,13 +69,22 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#remarks = remarks;
   }
 
-  static create(data: { type: WorkflowType; definition: WorkflowDefinition; }) {
+  static create(data: { 
+    type: WorkflowType; 
+    definition: WorkflowDefinition;
+    requestedBy: string;
+    data?: Record<string, any>
+    requestedFor?: string;
+  }) {
     const instance = new WorkflowInstance(
       randomUUID(),
       data.type,
       data.definition.name,
       data.definition.description,
       WorkflowInstanceStatus.PENDING,
+      data.requestedBy,
+      data.requestedFor,
+      data.data,
     );
 
     data.definition.steps.forEach(step => {
@@ -162,9 +171,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
 
-  get initiatedBy(): User | undefined { return this.#initiatedBy; }
+  get initiatedBy(): string | undefined { return this.#initiatedBy; }
 
-  get initiatedFor(): User | undefined { return this.#initiatedFor; }
+  get initiatedFor(): string | undefined { return this.#initiatedFor; }
 
   get completedAt(): Date | undefined { return this.#completedAt; }
 

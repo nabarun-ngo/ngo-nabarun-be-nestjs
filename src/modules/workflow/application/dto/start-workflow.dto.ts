@@ -25,10 +25,10 @@ export class StartWorkflowDto {
   @IsNotEmpty()
   data: Record<string, any>;
 
-  @ApiProperty({ description: 'User ID who initiated the workflow', required: false })
+  @ApiProperty({ description: 'User ID for whom the workflow is initiated', required: false })
   @IsOptional()
   @IsString()
-  initiatedBy?: string;
+  requestedFor?:string;
 }
 
 export class TaskAssignmentDto {

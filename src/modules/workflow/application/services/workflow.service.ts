@@ -4,21 +4,44 @@ import { WorkflowInstance, WorkflowInstanceStatus } from '../../domain/model/wor
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 import { TaskAssignment, TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
-import { WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto, TaskAssignmentDto } from '../dto/start-workflow.dto';
+import { WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto, TaskAssignmentDto, StartWorkflowDto } from '../dto/start-workflow.dto';
 import { JobProcessingService } from '../../../shared/job-processing/services/job-processing.service';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { randomUUID } from 'crypto';
 import { JobName } from 'src/modules/shared/job-processing/decorators/process-job.decorator';
+import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
+import { WorkflowDtoMapper } from '../../presentation/WorkflowDtoMapper';
+import { StartWorkflowUseCase } from '../use-cases/start-workflow.use-case';
+import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 @Injectable()
 export class WorkflowService {
   private readonly logger = new Logger(WorkflowService.name);
 
   constructor(
-    @Inject(workflowInstanceRepositoryInterface.WORKFLOW_INSTANCE_REPOSITORY)
-    private readonly instanceRepository: workflowInstanceRepositoryInterface.IWorkflowInstanceRepository,
+    @Inject(WORKFLOW_INSTANCE_REPOSITORY)
+    private readonly instanceRepository: IWorkflowInstanceRepository,
     private readonly jobProcessingService: JobProcessingService,
-  ) {}
+    private readonly workflowStart: StartWorkflowUseCase,
+  ) { }
+
+  async createWorkflow(input: StartWorkflowDto,requestedBy:AuthUser) {
+    const workflow = await this.workflowStart.execute({
+      type: input.type,
+      data: input.data,
+      requestedBy:requestedBy.profile_id!,
+      requestedFor: input.requestedFor ,
+    });
+    return WorkflowDtoMapper.toDto(workflow);
+  }
+
+
+  /**
+   * 
+   * @param instanceId 
+   * @param stepId 
+   * @returns 
+   */
 
   async processStep(instanceId: string, stepId: string | null): Promise<void> {
     if (!stepId) {
@@ -181,7 +204,7 @@ export class WorkflowService {
 
     if (nextStepIndex < instance.steps.length) {
       const nextStep = instance.steps[nextStepIndex];
-     // instance.moveToStep(nextStep.stepId);
+      // instance.moveToStep(nextStep.stepId);
       await this.processStep(instance.id, nextStep.stepId);
     } else {
       // All steps completed
@@ -197,7 +220,7 @@ export class WorkflowService {
 
     // Get step history from existing steps, ordered by creation/execution
     const stepHistory = instance.steps
-     // .sort((a, b) => a.orderIndex - b.orderIndex)
+      // .sort((a, b) => a.orderIndex - b.orderIndex)
       .map((step) => ({
         stepId: step.stepId,
         name: step.name,

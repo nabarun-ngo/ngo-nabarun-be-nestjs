@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IExpenseRepository } from '../../domain/repositories/expense.repository.interface';
 import { Expense, ExpenseCategory, ExpenseStatus } from '../../domain/model/expense.model';
-import { Prisma } from 'prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';

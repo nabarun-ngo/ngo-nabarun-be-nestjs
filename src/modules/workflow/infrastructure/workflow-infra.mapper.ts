@@ -2,53 +2,30 @@ import { WorkflowInstance, WorkflowInstanceStatus, WorkflowType } from '../domai
 import { WorkflowStep, WorkflowStepStatus } from '../domain/model/workflow-step.model';
 import { WorkflowTask, WorkflowTaskType, WorkflowTaskStatus } from '../domain/model/workflow-task.model';
 import { TaskAssignment, TaskAssignmentStatus } from '../domain/model/task-assignment.model';
-import {
-  WorkflowInstance as PrismaWorkflowInstance,
-  WorkflowStep as PrismaWorkflowStep,
-  WorkflowTask as PrismaWorkflowTask,
-  TaskAssignment as PrismaTaskAssignment,
-  UserProfile as PrismaUserProfile,
-  Prisma,
-  UserProfile,
-} from 'prisma/client';
-import { UserInfraMapper } from 'src/modules/user/infrastructure/user-infra.mapper';
-import { WorkflowPersistence } from './types/workflow-persistence.types';
+import { Prisma, TaskAssignment as PrismaTaskAssignment } from '@prisma/client';
+import { PrismaWorkflowInstanceWithSteps, PrismaWorkflowInstanceWithTasks, PrismaWorkflowTasks } from './persistence/workflow-instance.repository';
 
 export class WorkflowInfraMapper {
-  
-
-  /**
-   * Convert Prisma persistence shape (with only steps) to Domain model
-   * Used by repository for queries with steps included
-   */
-  static toDomain(p: WorkflowPersistence.WithOnlySteps): WorkflowInstance {
-    return WorkflowInfraMapper.toWorkflowInstanceDomain(p);
-  }
-
-  /**
-   * Convert Prisma persistence shape (with only steps) to Domain model
-   * Primary mapper method matching user module pattern
-   */
-  static toWorkflowInstanceDomain(p: WorkflowPersistence.WithOnlySteps | any): WorkflowInstance {
+  static toDomainWithSteps(prisma: PrismaWorkflowInstanceWithSteps) {
     const instance = new WorkflowInstance(
-      p.id,
-      p.type as WorkflowType,
-      p.name,
-      p.description,
-      p.status as WorkflowInstanceStatus,
-      undefined, // Users not included in WithOnlySteps type
-      undefined, // Users not included in WithOnlySteps type
+      prisma.id,
+      prisma.type as WorkflowType,
+      prisma.name,
+      prisma.description,
+      prisma.status as WorkflowInstanceStatus,
+      prisma.initiatedBy?.id,
+      prisma.initiatedFor?.id,
       undefined,
-      p.currentStepId ?? undefined,
-      p.completedAt ?? undefined,
-      p.remarks ?? undefined,
-      p.createdAt,
-      p.updatedAt,
+      prisma.currentStepId ?? undefined,
+      prisma.completedAt ?? undefined,
+      prisma.remarks ?? undefined,
+      prisma.createdAt,
+      prisma.updatedAt,
     );
 
-    if (p.steps && p.steps.length) {
-      // ensure deterministic order
-      const sorted = p.steps.slice().sort((a, b) => a.orderIndex - b.orderIndex);
+    // Steps if included
+    if (prisma.steps) {
+      const sorted = prisma.steps.slice().sort((a, b) => a.orderIndex - b.orderIndex);
       sorted.forEach((s) => {
         const step = new WorkflowStep(
           s.id,
@@ -72,55 +49,66 @@ export class WorkflowInfraMapper {
     return instance;
   }
 
-  static toWorkflowInstance(
-    prisma: PrismaWorkflowInstance & {
-      initiatedBy?: PrismaUserProfile;
-      initiatedFor?: PrismaUserProfile;
-      steps?: PrismaWorkflowStep[];
-    },
-  ): WorkflowInstance {
+
+  /**
+   * Convert Prisma persistence shape (with only steps) to Domain model
+   * Used by repository for queries with steps included
+   */
+
+  static toDomainWithTasks(prisma: PrismaWorkflowInstanceWithTasks): WorkflowInstance {
     const instance = new WorkflowInstance(
       prisma.id,
       prisma.type as WorkflowType,
       prisma.name,
       prisma.description,
       prisma.status as WorkflowInstanceStatus,
-      undefined, // User mapping requires proper includes
-      undefined, // User mapping requires proper includes
+      prisma.initiatedBy?.id,
+      prisma.initiatedFor?.id,
       undefined,
-      prisma.currentStepId!,
-      prisma.completedAt || undefined,
-      prisma.remarks || undefined,
+      prisma.currentStepId ?? undefined,
+      prisma.completedAt ?? undefined,
+      prisma.remarks ?? undefined,
       prisma.createdAt,
-      prisma.updatedAt
+      prisma.updatedAt,
     );
 
+    // Steps if included
     if (prisma.steps) {
-      prisma.steps.map((step) => new WorkflowStep(
-        step.id,
-        step.stepId,
-        step.name,
-        step.description!,
-        step.status as WorkflowStepStatus,
-        step.orderIndex,
-        step.onSuccessStepId || undefined,
-        step.onFailureStepId || undefined,
-        step.completedAt || undefined,
-        step.failureReason || undefined,
-        step.startedAt || undefined,
-        step.createdAt,
-        step.updatedAt,
-      )).forEach(step => instance.addSteps(step));
+      const sorted = prisma.steps.slice().sort((a, b) => a.orderIndex - b.orderIndex);
+      sorted.forEach((s) => {
+        const step = new WorkflowStep(
+          s.id,
+          s.stepId,
+          s.name,
+          s.description ?? '',
+          s.status as WorkflowStepStatus,
+          s.orderIndex,
+          s.onSuccessStepId ?? undefined,
+          s.onFailureStepId ?? undefined,
+          s.completedAt ?? undefined,
+          s.failureReason ?? undefined,
+          s.startedAt ?? undefined,
+          s.createdAt,
+          s.updatedAt,
+        );
+
+        // Tasks if included
+        if (s.tasks) {
+          const tasks = s.tasks.map((t) => {
+            return this.toWorkflowTask(t);
+          });
+          step.setTasks(tasks);
+        }
+
+        instance.addSteps(step);
+      });
     }
 
     return instance;
   }
 
   static toWorkflowTask(
-    step: PrismaWorkflowStep,
-    prisma: PrismaWorkflowTask & {
-      assignments?: PrismaTaskAssignment[];
-    },
+    prisma:PrismaWorkflowTasks
   ): WorkflowTask {
     const task = new WorkflowTask(
       prisma.id,
@@ -144,18 +132,16 @@ export class WorkflowInfraMapper {
     );
 
     if (prisma.assignments) {
-      //const assignments = prisma.assignments.map((assignment) =>
-        //this.toTaskAssignment(assignment),
-      //);
-      //task.setAssignments(assignments);
+      const assignments = prisma.assignments.map((assignment: PrismaTaskAssignment) =>
+      this.toTaskAssignment(assignment),
+      );
+      task.setAssignments(assignments);
     }
 
     return task;
   }
 
-  static toTaskAssignment(prisma: PrismaTaskAssignment 
-    &{assign: UserProfile}
-  ): TaskAssignment {
+  static toTaskAssignment(prisma: PrismaTaskAssignment): TaskAssignment {
     return new TaskAssignment(
       prisma.id,
       prisma.taskId,
@@ -171,15 +157,13 @@ export class WorkflowInfraMapper {
     );
   }
 
-  static toPersistence(domain: WorkflowInstance): Prisma.WorkflowInstanceUncheckedCreateInput {
-    return WorkflowInfraMapper.toWorkflowInstanceCreatePersistence(domain);
-  }
+
 
   /**
    * Convert Domain model to Prisma create input
    * Used for creating new workflow instances
    */
-  static toWorkflowInstanceCreatePersistence(domain: WorkflowInstance): Prisma.WorkflowInstanceUncheckedCreateInput {
+  static toWorkflowInstanceCreatePersistence(domain: WorkflowInstance): Prisma.WorkflowInstanceCreateInput {
     return {
       id: domain.id,
       name: domain.name,
@@ -187,13 +171,13 @@ export class WorkflowInfraMapper {
       description: domain.description,
       status: domain.status,
       currentStepId: domain.currentStepId ?? null,
-      initiatedById: domain.initiatedBy?.id ?? null,
-      initiatedForId: domain.initiatedFor?.id ?? null,
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
-      createdAt: (domain as any).createdAt ?? new Date(),
-      updatedAt: (domain as any).updatedAt ?? new Date(),
-      version: BigInt(0),
+      createdAt: domain.createdAt ?? new Date(),
+      updatedAt: domain.updatedAt ?? new Date(),
+      //version: BigInt(0),
+      initiatedBy: { connect: { id: domain.initiatedBy! } },
+      initiatedFor: { connect: { id: domain.initiatedFor! } },
       // steps: handled separately via nested create/update
     };
   }
@@ -209,8 +193,8 @@ export class WorkflowInfraMapper {
       description: domain.description,
       status: domain.status,
       currentStepId: domain.currentStepId ?? null,
-      initiatedById: domain.initiatedBy?.id ?? null,
-      initiatedForId: domain.initiatedFor?.id ?? null,
+      initiatedById: domain.initiatedBy ?? null,
+      initiatedForId: domain.initiatedFor ?? null,
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
       updatedAt: new Date(),
@@ -242,11 +226,7 @@ export class WorkflowInfraMapper {
     };
   }
 
-  static toPrismaWorkflowStep(domain: WorkflowStep) {
-    return WorkflowInfraMapper.toWorkflowStepPersistence(domain);
-  }
-
-   static toPrismaWorkflowTask(domain: WorkflowTask) : Prisma.WorkflowTaskCreateInput {
+  static toPrismaWorkflowTask(domain: WorkflowTask): Prisma.WorkflowTaskCreateInput {
     return {
       id: domain.id,
       taskId: domain.taskId,
@@ -274,7 +254,7 @@ export class WorkflowInfraMapper {
     return {
       id: assignment.id,
       task: { connect: { id: assignment.taskId } },
-      assignedTo :{ connect: { id: assignment.assignedTo.id } },
+      assignedTo: { connect: { id: assignment.assignedTo.id } },
       roleName: assignment.roleName,
       assignedBy: assignment.assignedBy,
       status: assignment.status,
@@ -286,6 +266,6 @@ export class WorkflowInfraMapper {
     };
   }
 }
- 
+
 
 

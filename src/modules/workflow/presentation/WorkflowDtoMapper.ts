@@ -20,7 +20,7 @@ export class WorkflowDtoMapper {
       currentStepId: domain.currentStepId ?? null,
       requestData: domain.requestData ?? {},
       resultData: undefined,
-      initiatedBy: domain.initiatedBy?.id,
+      initiatedBy: domain.initiatedBy,
       completedBy: undefined,
       completedAt: domain.completedAt,
       failureReason: domain.remarks,

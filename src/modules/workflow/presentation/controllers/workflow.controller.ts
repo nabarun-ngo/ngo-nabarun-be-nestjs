@@ -28,10 +28,9 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
 @ApiSecurity('api-key')
 @ApiBearerAuth('jwt')
 @Controller('workflows')
-@UseApiKey()
+//@UseApiKey()
 export class WorkflowController {
   constructor(
-    private readonly startWorkflowUseCase: StartWorkflowUseCase,
     private readonly completeTaskUseCase: CompleteTaskUseCase,
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly instanceRepository: IWorkflowInstanceRepository,
@@ -48,11 +47,11 @@ export class WorkflowController {
   })
   async startWorkflow(@Body() dto: StartWorkflowDto,@CurrentUser() user:AuthUser): Promise<SuccessResponse<WorkflowInstanceDto>> {
     console.log(user)
-    const result = await this.startWorkflowUseCase.execute(dto);
+    const result = await this.workflowService.createWorkflow(dto,user);
     return new SuccessResponse<WorkflowInstanceDto>(result);
   }
 
-  @Post('tasks/complete')
+  @Post('tasks/complete') 
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Complete a workflow task' })
   @ApiResponse({

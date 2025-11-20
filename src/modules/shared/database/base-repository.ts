@@ -1,5 +1,5 @@
 import { PrismaPostgresService } from '../database/prisma-postgres.service';
-import { Prisma } from 'prisma/client';
+import { Prisma } from '@prisma/client';
 
 /**
  * A strictly typed Prisma base repository with no `any` usage.
@@ -14,19 +14,7 @@ import { Prisma } from 'prisma/client';
  */
 export abstract class PrismaBaseRepository<
   TDomain,
-  TDelegate extends {
-    findUnique(args: any): Promise<TGetOutput | null>;
-    findFirst(args: any): Promise<TGetOutput | null>;
-    findMany(args: any): Promise<TGetOutput[]>;
-    create(args: any): Promise<TGetOutput>;
-    update(args: any): Promise<TGetOutput>;
-    upsert(args: any): Promise<TGetOutput>;
-    delete(args: any): Promise<TGetOutput>;
-    count(args: any): Promise<number>;
-    createMany(args: any): Promise<{ count: number }>;
-    updateMany(args: any): Promise<{ count: number }>;
-    deleteMany(args: any): Promise<{ count: number }>;
-  },
+  TDelegate,
   TWhereUniqueInput,
   TWhereInput,
   TGetOutput,
@@ -43,7 +31,9 @@ export abstract class PrismaBaseRepository<
     where: TWhereUniqueInput,
     include?: TInclude,
   ): Promise<TDomain | null> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      findUnique(args: { where: TWhereUniqueInput; include?: TInclude }): Promise<TGetOutput | null>;
+    };
     const result = await delegate.findUnique({
       where,
       include,
@@ -56,7 +46,9 @@ export abstract class PrismaBaseRepository<
     where: TWhereInput,
     include?: TInclude,
   ): Promise<TDomain | null> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      findFirst(args: { where: TWhereInput; include?: TInclude }): Promise<TGetOutput | null>;
+    };
     const result = await delegate.findFirst({
       where,
       include,
@@ -74,7 +66,15 @@ export abstract class PrismaBaseRepository<
       orderBy?: Record<string, 'asc' | 'desc'>;
     },
   ): Promise<TDomain[]> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      findMany(args: {
+        where?: TWhereInput;
+        include?: TInclude;
+        take?: number;
+        skip?: number;
+        orderBy?: Record<string, 'asc' | 'desc'>;
+      }): Promise<TGetOutput[]>;
+    };
 
     const results = await delegate.findMany({
       where,
@@ -92,8 +92,10 @@ export abstract class PrismaBaseRepository<
     data: TCreateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate(this.prisma);
-
+    const delegate = this.getDelegate(this.prisma) as {
+      create(args: { data: TCreateInput; include?: TInclude }): Promise<TGetOutput>;
+    };
+    console.log(data)
     const result = await delegate.create({
       data,
       include,
@@ -110,7 +112,9 @@ export abstract class PrismaBaseRepository<
     data: TUpdateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      update(args: { where: TWhereUniqueInput; data: TUpdateInput; include?: TInclude }): Promise<TGetOutput>;
+    };
 
     const result = await delegate.update({
       where,
@@ -130,7 +134,14 @@ export abstract class PrismaBaseRepository<
     update: TUpdateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      upsert(args: {
+        where: TWhereUniqueInput;
+        create: TCreateInput;
+        update: TUpdateInput;
+        include?: TInclude;
+      }): Promise<TGetOutput>;
+    };
 
     const result = await delegate.upsert({
       where,
@@ -146,7 +157,9 @@ export abstract class PrismaBaseRepository<
 
   /** Soft delete */
   protected async softDelete(where: TWhereUniqueInput): Promise<void> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      update(args: { where: TWhereUniqueInput; data: { deletedAt: Date } }): Promise<unknown>;
+    };
     await delegate.update({
       where,
       data: { deletedAt: new Date() },
@@ -155,13 +168,17 @@ export abstract class PrismaBaseRepository<
 
   /** Hard delete */
   protected async hardDelete(where: TWhereUniqueInput): Promise<void> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      delete(args: { where: TWhereUniqueInput }): Promise<unknown>;
+    };
     await delegate.delete({ where });
   }
 
   /** Count */
   protected async count(where?: TWhereInput): Promise<number> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      count(args: { where?: TWhereInput }): Promise<number>;
+    };
     return delegate.count({ where });
   }
 
@@ -182,7 +199,9 @@ export abstract class PrismaBaseRepository<
     data: TCreateInput[],
     skipDuplicates?: boolean,
   ): Promise<number> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      createMany(args: { data: TCreateInput[]; skipDuplicates?: boolean }): Promise<{ count: number }>;
+    };
     const result = await delegate.createMany({
       data,
       skipDuplicates,
@@ -195,7 +214,9 @@ export abstract class PrismaBaseRepository<
     where: TWhereInput,
     data: TUpdateInput,
   ): Promise<number> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      updateMany(args: { where: TWhereInput; data: TUpdateInput }): Promise<{ count: number }>;
+    };
     const result = await delegate.updateMany({
       where,
       data,
@@ -205,7 +226,9 @@ export abstract class PrismaBaseRepository<
 
   /** Delete many */
   protected async deleteMany(where: TWhereInput): Promise<number> {
-    const delegate = this.getDelegate(this.prisma);
+    const delegate = this.getDelegate(this.prisma) as {
+      deleteMany(args: { where: TWhereInput }): Promise<{ count: number }>;
+    };
     const result = await delegate.deleteMany({ where });
     return result.count;
   }

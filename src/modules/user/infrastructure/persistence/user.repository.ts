@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IUserRepository } from '../../domain/repositories/user.repository.interface';
 import { User, UserFilterProps } from '../../domain/model/user.model';
-import { Address, Prisma } from 'prisma/client';
+import { Address, Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { Role } from '../../domain/model/role.model';
 import { UserInfraMapper } from '../user-infra.mapper';
