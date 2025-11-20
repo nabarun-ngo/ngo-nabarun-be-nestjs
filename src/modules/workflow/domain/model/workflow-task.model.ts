@@ -3,6 +3,7 @@ import { BaseDomain } from '../../../../shared/models/base-domain';
 import { AssignedToDTO, TaskDTO } from '../vo/workflow-def.vo';
 import { TaskAssignment } from './task-assignment.model';
 import { WorkflowStep } from './workflow-step.model';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum WorkflowTaskType {
   VERIFICATION = 'VERIFICATION',
@@ -16,6 +17,11 @@ export enum WorkflowTaskStatus {
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   SKIPPED = 'SKIPPED',
+}
+
+export class TaskFilter {
+  readonly assignedTo?: string;
+  readonly status?: string[];
 }
 
 export class WorkflowTask extends BaseDomain<string> {
@@ -80,7 +86,7 @@ export class WorkflowTask extends BaseDomain<string> {
 
   static create(step: WorkflowStep, task: TaskDTO): WorkflowTask {
     return new WorkflowTask(
-      randomUUID(),
+      `NWT${generateUniqueNDigitNumber(6)}`,
       step,
       task.taskId,
       task.name,

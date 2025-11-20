@@ -6,12 +6,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = []
 }
 
 datasource db {
   provider = "postgresql"
-  relationMode = "foreignKeys"
+  url      = env("POSTGRES_URL")
 }
 
 model UserProfile {
@@ -51,9 +50,9 @@ model UserProfile {
   version   BigInt    @default(0)
   deletedAt DateTime?
 
-  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
-  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
-  documentsUploaded   DocumentReference[] @relation("uploadedBy")
+  initiatedWorkflows WorkflowInstance[]  @relation("InitiatedBy")
+  receivedWorkflows  WorkflowInstance[]  @relation("InitiatedFor")
+  documentsUploaded  DocumentReference[] @relation("uploadedBy")
 
   @@index([email])
   @@index([authUserId])
@@ -173,12 +172,13 @@ model WorkflowInstance {
   description   String  @db.Text
   status        String  @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
   currentStepId String? @db.VarChar(100)
+  data          String? @db.Text
 
   initiatedBy   UserProfile? @relation(name: "InitiatedBy", fields: [initiatedById], references: [id])
-  initiatedById String? @db.VarChar(100)
+  initiatedById String?      @db.VarChar(100)
 
   initiatedFor   UserProfile? @relation(name: "InitiatedFor", fields: [initiatedForId], references: [id])
-  initiatedForId String? @db.VarChar(100)
+  initiatedForId String?      @db.VarChar(100)
 
   completedAt DateTime?
   remarks     String?   @db.VarChar(255)
@@ -238,7 +238,7 @@ model WorkflowTask {
   completedBy    String?      @db.VarChar(255)
   failureReason  String?      @db.Text
   assignedTo     UserProfile? @relation(fields: [assignedToId], references: [id])
-  assignedToId   String?       @db.VarChar(255) // User ID
+  assignedToId   String?      @db.VarChar(255) // User ID
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -443,8 +443,8 @@ model DocumentReference {
 
   createdAt DateTime @default(now())
 
-  mappings DocumentMapping[]
-  uploadedBy UserProfile? @relation(name: "uploadedBy", fields: [uploadedById], references: [id])
+  mappings     DocumentMapping[]
+  uploadedBy   UserProfile?      @relation(name: "uploadedBy", fields: [uploadedById], references: [id])
   uploadedById String?
 
   @@map("document_references")

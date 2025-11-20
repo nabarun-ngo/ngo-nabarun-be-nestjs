@@ -5,8 +5,8 @@ import { randomUUID } from 'crypto';
 export enum TaskAssignmentStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',
+  REMOVED = 'REMOVED',
   REJECTED = 'REJECTED',
-  COMPLETED = 'COMPLETED',
 }
 
 export class TaskAssignment extends BaseDomain<string> {
@@ -126,17 +126,13 @@ export class TaskAssignment extends BaseDomain<string> {
     ) {
       throw new Error(`Cannot complete assignment in status: ${this.#status}`);
     }
-    this.#status = TaskAssignmentStatus.COMPLETED;
+   // this.#status = TaskAssignmentStatus.COMPLETED;
     this.#notes = notes;
     this.#completedAt = new Date();
     this.touch();
   }
 
   // -------- HELPERS --------
-
-  public isCompleted(): boolean {
-    return this.#status === TaskAssignmentStatus.COMPLETED;
-  }
 
   public isPending(): boolean {
     return this.#status === TaskAssignmentStatus.PENDING;

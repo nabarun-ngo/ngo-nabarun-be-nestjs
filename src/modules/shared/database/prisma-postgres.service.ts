@@ -5,7 +5,6 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -15,8 +14,14 @@ export class PrismaPostgresService
   private readonly logger = new Logger(PrismaPostgresService.name);
 
   constructor(@Inject('POSTGRES_URL') dbUrl: string) {
-    const adapter = new PrismaPg({ dbUrl })
-    super({adapter: adapter});
+     super({
+      datasources: {
+        db: {
+          url: dbUrl!, 
+        },
+      },
+      log: ['error', 'warn'],
+    });
   }
   async onApplicationShutdown(signal?: string) {
     this.logger.log(`Application shutdown: ${signal}`);

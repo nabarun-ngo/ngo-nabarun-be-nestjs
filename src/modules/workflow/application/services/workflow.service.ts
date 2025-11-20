@@ -1,8 +1,8 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import * as workflowInstanceRepositoryInterface from '../../domain/repositories/workflow-instance.repository.interface';
-import { WorkflowInstance, WorkflowInstanceStatus } from '../../domain/model/workflow-instance.model';
+import { WorkflowFilter, WorkflowInstance, WorkflowInstanceStatus } from '../../domain/model/workflow-instance.model';
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
-import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
+import { TaskFilter, WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 import { TaskAssignment, TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 import { WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto, TaskAssignmentDto, StartWorkflowDto } from '../dto/start-workflow.dto';
 import { JobProcessingService } from '../../../shared/job-processing/services/job-processing.service';
@@ -13,9 +13,13 @@ import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '
 import { WorkflowDtoMapper } from '../../presentation/WorkflowDtoMapper';
 import { StartWorkflowUseCase } from '../use-cases/start-workflow.use-case';
 import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { UpdateTaskDto } from '../dto/complete-task.dto';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 export class WorkflowService {
+
   private readonly logger = new Logger(WorkflowService.name);
 
   constructor(
@@ -25,12 +29,45 @@ export class WorkflowService {
     private readonly workflowStart: StartWorkflowUseCase,
   ) { }
 
-  async createWorkflow(input: StartWorkflowDto,requestedBy:AuthUser) {
+  async getWorkflows(filter: BaseFilter<WorkflowFilter>): Promise<PagedResult<WorkflowInstanceDto>> {
+    const result = await this.instanceRepository.findPaged({
+      pageIndex: filter.pageIndex,
+      pageSize: filter.pageSize,
+      props: filter.props,
+    });
+    return new PagedResult<WorkflowInstanceDto>(
+      result.items.map(m => WorkflowDtoMapper.toDto(m)),
+      result.total,
+      result.page,
+      result.size,
+    );
+  }
+
+  async getWorkflow(id: string, includeTask: boolean): Promise<WorkflowInstanceDto> {
+    const instance = await this.instanceRepository.findById(id, includeTask);
+    return WorkflowDtoMapper.toDto(instance!);
+  }
+
+  async getWorkflowTasks(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTaskDto>> {
+    const instance = await this.instanceRepository.findTasksPaged(filter);
+    return new PagedResult<WorkflowTaskDto>(
+      instance.items.map(m => WorkflowDtoMapper.taskDomainToDto(m)),
+      instance.total,
+      instance.page,
+      instance.size,
+    );
+  }
+
+  async updateTask(dto: UpdateTaskDto): Promise<WorkflowTaskDto> {
+    throw new Error('Method not implemented.');
+  }
+
+  async createWorkflow(input: StartWorkflowDto, requestedBy: AuthUser) {
     const workflow = await this.workflowStart.execute({
       type: input.type,
       data: input.data,
-      requestedBy:requestedBy.profile_id!,
-      requestedFor: input.requestedFor ,
+      requestedBy: requestedBy.profile_id!,
+      requestedFor: input.requestedFor,
     });
     return WorkflowDtoMapper.toDto(workflow);
   }

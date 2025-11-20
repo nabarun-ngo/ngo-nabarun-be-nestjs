@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { WorkflowInfraMapper } from '../workflow-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { TaskFilter, WorkflowTask } from '../../domain/model/workflow-task.model';
 
 export type PrismaWorkflowInstanceWithSteps = Prisma.WorkflowInstanceGetPayload<{
   include: { steps: true, initiatedBy: true, initiatedFor: true }
@@ -16,7 +17,7 @@ export type PrismaWorkflowInstanceWithTasks = Prisma.WorkflowInstanceGetPayload<
 }>;
 
 export type PrismaWorkflowTasks = Prisma.WorkflowTaskGetPayload<{
-  include:{
+  include: {
     assignments: true
   }
 }>;
@@ -26,16 +27,43 @@ class WorkflowInstanceRepository
   implements IWorkflowInstanceRepository {
 
   constructor(private readonly prisma: PrismaPostgresService) { }
-
-  async findAll(filter?: WorkflowFilter | undefined): Promise<WorkflowInstance[]> {
-    const where: Prisma.WorkflowInstanceWhereInput = {
-      type: filter?.type,
-      status: filter?.status,
-      initiatedById: filter?.initiatedBy,
+  async findTasksPaged(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTask>> {
+    const where: Prisma.WorkflowTaskWhereInput = {
+      ...(filter.props?.assignedTo ? { assignedToId: filter.props.assignedTo } : {}),
+      ...(filter.props?.status ? { status: { in: filter.props.status } } : {}),
     };
+    const [data, total] = await Promise.all([
+      this.prisma.workflowTask.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          assignments: {
+            include: {
+              assignedTo: true,
+            },
+          },
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.workflowTask.count({
+        where
+      })
+    ]);
+
+     return new PagedResult<WorkflowTask>(
+      data.map(m => WorkflowInfraMapper.toWorkflowTask(m)),
+      total, 
+      filter?.pageIndex ?? 0, 
+      filter?.pageSize ?? 0
+    );
+  }
+
+  async findAll(filter?: WorkflowFilter): Promise<WorkflowInstance[]> {
 
     const workflows: PrismaWorkflowInstanceWithSteps[] = await this.prisma.workflowInstance.findMany({
-      where,
+      where: this.whereQuery(filter),
+      orderBy: { createdAt: 'desc' },
       include: {
         steps: true,
         initiatedBy: true,
@@ -46,14 +74,47 @@ class WorkflowInstanceRepository
     return workflows.map(w => WorkflowInfraMapper.toDomainWithSteps(w));
   }
 
-  findPaged(filter?: BaseFilter<WorkflowFilter> | undefined): Promise<PagedResult<WorkflowInstance>> {
-    throw new Error('Method not implemented.');
+  async findPaged(filter?: BaseFilter<WorkflowFilter> | undefined): Promise<PagedResult<WorkflowInstance>> {
+
+    const [data, total] = await Promise.all([
+      this.prisma.workflowInstance.findMany({
+        where: this.whereQuery(filter?.props),
+        orderBy: { createdAt: 'desc' },
+        include: {
+          steps: true,
+          initiatedBy: true,
+          initiatedFor: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.workflowInstance.count({
+        where: this.whereQuery(filter?.props),
+      })
+    ]);
+
+    return new PagedResult<WorkflowInstance>(
+      data.map(m => WorkflowInfraMapper.toDomainWithSteps(m)),
+      total, 
+      filter?.pageIndex ?? 0, 
+      filter?.pageSize ?? 0
+    );
   }
 
-  async findById(id: string, includeTask: boolean=false): Promise<WorkflowInstance | null> {
-    if(includeTask){
-      const workflow0: PrismaWorkflowInstanceWithTasks| null= await this.prisma.workflowInstance.findUnique({
-        where:{id},
+  private whereQuery(props?: WorkflowFilter): Prisma.WorkflowInstanceWhereInput {
+    const where: Prisma.WorkflowInstanceWhereInput = {
+      ...(props?.type ? { type: props.type } : {}),
+      ...(props?.status ? { status: props.status } : {}),
+      ...(props?.initiatedBy ? { initiatedById: props.initiatedBy } : {}),
+      ...(props?.initiatedFor ? { initiatedForId: props.initiatedFor } : {}),
+    }
+    return where;
+  }
+
+  async findById(id: string, includeTask: boolean = false): Promise<WorkflowInstance | null> {
+    if (includeTask) {
+      const workflow0: PrismaWorkflowInstanceWithTasks | null = await this.prisma.workflowInstance.findUnique({
+        where: { id },
         include: {
           steps: {
             include: {
@@ -74,8 +135,8 @@ class WorkflowInstanceRepository
       });
       return WorkflowInfraMapper.toDomainWithTasks(workflow0!);
     }
-    const workflow0: PrismaWorkflowInstanceWithSteps| null= await this.prisma.workflowInstance.findUnique({
-      where:{id},
+    const workflow0: PrismaWorkflowInstanceWithSteps | null = await this.prisma.workflowInstance.findUnique({
+      where: { id },
       include: {
         steps: true,
         initiatedBy: true,
@@ -85,28 +146,15 @@ class WorkflowInstanceRepository
 
     return WorkflowInfraMapper.toDomainWithSteps(workflow0!);
 
-   
+
   }
 
-  async findByType(type: string, status?: string): Promise<WorkflowInstance[]> {
-    return await this.findAll({
-      type
-    });
-  }
-
-  async findByInitiator(initiatedBy: string): Promise<WorkflowInstance[]> {
-    return this.findAll({ initiatedBy });
-  }
-
-  async findByStatus(status: string): Promise<WorkflowInstance[]> {
-    return this.findAll({ status });
-  }
 
   async create(instance: WorkflowInstance): Promise<WorkflowInstance> {
     const createData: Prisma.WorkflowInstanceCreateInput = {
       ...WorkflowInfraMapper.toWorkflowInstanceCreatePersistence(instance),
       initiatedBy: { connect: { id: instance.initiatedBy! } },
-      initiatedFor: { connect: { id: instance.initiatedFor! } },
+      initiatedFor: instance.initiatedFor ? { connect: { id: instance.initiatedFor! } } : undefined,
       steps: {
         create: instance.steps.map((step) =>
           WorkflowInfraMapper.toWorkflowStepPersistence(step),
@@ -180,7 +228,7 @@ class WorkflowInstanceRepository
       );
 
       // Retrieve the updated instance with all relations
-      const updated: PrismaWorkflowInstanceWithTasks | null= await tx.workflowInstance.findUnique({
+      const updated: PrismaWorkflowInstanceWithTasks | null = await tx.workflowInstance.findUnique({
         where: { id },
         include: {
           steps: {
@@ -215,12 +263,12 @@ class WorkflowInstanceRepository
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.workflowInstance.update({ 
-      where: {id:id},
-      data:{
-         
+    await this.prisma.workflowInstance.update({
+      where: { id: id },
+      data: {
+
       }
-     });
+    });
   }
 }
 

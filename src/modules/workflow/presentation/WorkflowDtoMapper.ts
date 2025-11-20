@@ -48,7 +48,7 @@ export class WorkflowDtoMapper {
   }
 
 
-  private static taskDomainToDto(task: WorkflowTask): WorkflowTaskDto {
+  static taskDomainToDto(task: WorkflowTask): WorkflowTaskDto {
     return {
       id: task.id,
       stepId: task.stepId,
@@ -75,7 +75,7 @@ export class WorkflowDtoMapper {
     return {
       id: a.id,
       taskId: a.taskId,
-      assignedTo: a.assignedTo.id,
+      assignedTo: a.assignedTo?.id,
       roleName: a.roleName,
       status: a.status,
       acceptedAt: a.acceptedAt,

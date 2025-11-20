@@ -5,9 +5,9 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { WorkflowInstanceDto } from './start-workflow.dto';
+import { WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
 
-export class CompleteTaskDto {
+export class UpdateTaskDto {
   @ApiProperty({ description: 'Workflow instance ID' })
   @IsString()
   @IsNotEmpty()
@@ -18,14 +18,20 @@ export class CompleteTaskDto {
   @IsNotEmpty()
   taskId: string;
 
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  status: WorkflowTaskStatus;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  remarks: string;
+
   @ApiProperty({ description: 'Result data from task completion', required: false })
   @IsOptional()
   @IsObject()
-  resultData?: Record<string, any>;
+  resultData?: Record<string, string>;
 
-  @ApiProperty({ description: 'User ID who completed the task', required: false })
-  @IsOptional()
-  @IsString()
-  completedBy?: string;
 }
 

@@ -5,6 +5,7 @@ import { WorkflowDefinition } from '../vo/workflow-def.vo';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { WorkflowCreatedEvent } from '../events/workflow-created.event';
 import { StepStartedEvent } from '../events/step-started.event';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -21,6 +22,7 @@ export enum WorkflowType {
 
 export interface WorkflowFilter {
   readonly initiatedBy?: string;
+  readonly initiatedFor?: string;
   readonly status?: string;
   readonly type?: string;
 }
@@ -77,13 +79,13 @@ export class WorkflowInstance extends AggregateRoot<string> {
     requestedFor?: string;
   }) {
     const instance = new WorkflowInstance(
-      randomUUID(),
+      `NW${generateUniqueNDigitNumber(6)}`,
       data.type,
       data.definition.name,
       data.definition.description,
       WorkflowInstanceStatus.PENDING,
       data.requestedBy,
-      data.requestedFor,
+      data.requestedFor ?? data.requestedBy,
       data.data,
     );
 
@@ -163,7 +165,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   get status(): WorkflowInstanceStatus { return this.#status; }
 
-  get requestData(): Record<string, any> {
+  get requestData(): Record<string, string> {
     return this.#requestData ? { ...this.#requestData } : {};
   }
 

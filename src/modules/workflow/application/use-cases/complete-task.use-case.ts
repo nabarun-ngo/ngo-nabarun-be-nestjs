@@ -4,21 +4,20 @@ import {  WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflo
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { CompleteTaskDto } from '../dto/complete-task.dto';
+import { UpdateTaskDto } from '../dto/complete-task.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
 import { WorkflowInstanceDto } from '../dto/start-workflow.dto';
 import { WorkflowDtoMapper } from '../../presentation/WorkflowDtoMapper';
 
 @Injectable()
-export class CompleteTaskUseCase implements IUseCase<CompleteTaskDto, WorkflowInstanceDto> {
+export class CompleteTaskUseCase implements IUseCase<UpdateTaskDto, WorkflowInstanceDto> {
   constructor(
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly instanceRepository: IWorkflowInstanceRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly workflowService: WorkflowService,
   ) {}
 
-  async execute(request: CompleteTaskDto): Promise<WorkflowInstanceDto> {
+  async execute(request: UpdateTaskDto): Promise<WorkflowInstanceDto> {
     // Find instance with steps and tasks
     const instance = await this.instanceRepository.findById(request.instanceId, true);
     if (!instance) {
