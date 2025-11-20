@@ -29,8 +29,6 @@ model UserProfile {
   phoneNumbers     PhoneNumber[]
   addresses        Address[]
   socialMediaLinks Link[]
-  taskAssignments  TaskAssignment[]
-  tasks            WorkflowTask[]
   donations        Donation[]
 
   email              String    @unique @db.VarChar(100)
@@ -53,6 +51,7 @@ model UserProfile {
   initiatedWorkflows WorkflowInstance[]  @relation("InitiatedBy")
   receivedWorkflows  WorkflowInstance[]  @relation("InitiatedFor")
   documentsUploaded  DocumentReference[] @relation("uploadedBy")
+  taskAssignments    TaskAssignment[] @relation("taskAssignments")
 
   @@index([email])
   @@index([authUserId])
@@ -215,7 +214,6 @@ model WorkflowStep {
   tasks WorkflowTask[]
 
   @@index([instanceId])
-  @@index([instanceId, orderIndex])
   @@map("workflow_steps")
 }
 
@@ -237,8 +235,6 @@ model WorkflowTask {
   completedAt    DateTime?
   completedBy    String?      @db.VarChar(255)
   failureReason  String?      @db.Text
-  assignedTo     UserProfile? @relation(fields: [assignedToId], references: [id])
-  assignedToId   String?      @db.VarChar(255) // User ID
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -253,9 +249,9 @@ model WorkflowTask {
 
 model TaskAssignment {
   id           String       @id @default(uuid())
-  taskId       String
   task         WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assignedTo   UserProfile  @relation(fields: [assignedToId], references: [id])
+  taskId       String
+  assignedTo   UserProfile  @relation(name: "taskAssignments", fields: [assignedToId], references: [id])
   assignedToId String       @db.VarChar(255) // User ID
   roleName     String?      @db.VarChar(50) // Role name if assigned by role
   assignedBy   String?      @db.VarChar(255)
@@ -264,8 +260,8 @@ model TaskAssignment {
   completedAt  DateTime?
   notes        String?      @db.Text
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([taskId])
   @@index([assignedToId, status])

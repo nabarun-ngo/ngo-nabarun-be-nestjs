@@ -1,9 +1,10 @@
 import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
-import { AssignedToDTO, TaskDTO } from '../vo/workflow-def.vo';
-import { TaskAssignment } from './task-assignment.model';
+import { TaskAssignment, TaskAssignmentStatus } from './task-assignment.model';
 import { WorkflowStep } from './workflow-step.model';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
+import { User } from 'src/modules/user/domain/model/user.model';
+import { TaskDTO } from '../vo/workflow-def.vo';
 
 export enum WorkflowTaskType {
   VERIFICATION = 'VERIFICATION',
@@ -36,7 +37,6 @@ export class WorkflowTask extends BaseDomain<string> {
   #handler?: string;
   #checkList?: string[];
   #isAutoCloseable?: boolean;
-  #assignedTo?: AssignedToDTO;
   #jobId?: string;
   #autoCloseRefId?: string;
   #completedAt?: Date;
@@ -56,7 +56,6 @@ export class WorkflowTask extends BaseDomain<string> {
     handler?: string,
     checkList?: string[],
     isAutoCloseable?: boolean,
-    assignedTo?: AssignedToDTO,
     jobId?: string,
     autoCloseRefId?: string,
     completedAt?: Date,
@@ -76,7 +75,6 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#handler = handler;
     this.#checkList = checkList;
     this.#isAutoCloseable = isAutoCloseable;
-    this.#assignedTo = assignedTo;
     this.#jobId = jobId;
     this.#autoCloseRefId = autoCloseRefId;
     this.#completedAt = completedAt;
@@ -96,7 +94,6 @@ export class WorkflowTask extends BaseDomain<string> {
       task.handler,
       task.taskDetail?.checklist,
       task.taskDetail?.isAutoCloseable,
-      task.taskDetail?.assignedTo,
     );
   }
 
@@ -194,8 +191,8 @@ export class WorkflowTask extends BaseDomain<string> {
     return this.#autoCloseRefId;
   }
 
-  get assignedTo(): AssignedToDTO | undefined {
-    return this.#assignedTo;
+  get assignedTo(): User | undefined {
+    return this.#assignments.find((a) => a.status === TaskAssignmentStatus.ACCEPTED)?.assignedTo;
   }
 
   get jobId(): string | undefined {

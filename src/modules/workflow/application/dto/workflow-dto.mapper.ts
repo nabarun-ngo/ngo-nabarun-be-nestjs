@@ -1,8 +1,9 @@
-import { TaskAssignmentDto, WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto } from "../application/dto/start-workflow.dto";
-import { TaskAssignment } from "../domain/model/task-assignment.model";
-import { WorkflowInstance } from "../domain/model/workflow-instance.model";
-import { WorkflowStep } from "../domain/model/workflow-step.model";
-import { WorkflowTask } from "../domain/model/workflow-task.model";
+import { toUserDTO } from "src/modules/user/application/dto/user-dto.mapper";
+import { TaskAssignmentDto, WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto } from "./workflow.dto";
+import { TaskAssignment } from "../../domain/model/task-assignment.model";
+import { WorkflowInstance } from "../../domain/model/workflow-instance.model";
+import { WorkflowStep } from "../../domain/model/workflow-step.model";
+import { WorkflowTask } from "../../domain/model/workflow-task.model";
 
 
 /**
@@ -19,13 +20,15 @@ export class WorkflowDtoMapper {
       status: domain.status,
       currentStepId: domain.currentStepId ?? null,
       requestData: domain.requestData ?? {},
-      resultData: undefined,
-      initiatedBy: domain.initiatedBy,
-      completedBy: undefined,
+      resultData: domain.requestData ?? {},
+      initiatedById: domain.initiatedBy?.id ?? undefined,
+      initiatedByName: domain.initiatedBy?.fullName ?? undefined,
+      initiatedForId: domain.initiatedFor?.id ?? undefined,
+      initiatedForName: domain.initiatedFor?.fullName ?? undefined,
       completedAt: domain.completedAt,
       failureReason: domain.remarks,
-      createdAt: (domain as any).createdAt,
-      updatedAt: (domain as any).updatedAt,
+      createdAt: domain.createdAt,
+      updatedAt: domain.updatedAt,
       steps: domain.steps.map(s => this.stepDomainToDto(s)),
     };
   }
@@ -59,7 +62,8 @@ export class WorkflowDtoMapper {
       status: task.status,
       handler: task.handler,
       checklist: task.checkList,
-      assignedTo: task.assignedTo?.userId,
+      assignedToId: task.assignedTo?.id,
+      assignedToName: task.assignedTo?.fullName,
       jobId: task.jobId,
       resultData: undefined,
       completedAt: task.completedAt,
@@ -75,7 +79,8 @@ export class WorkflowDtoMapper {
     return {
       id: a.id,
       taskId: a.taskId,
-      assignedTo: a.assignedTo?.id,
+      assignedToId: a.assignedTo.id,
+      assignedToName: a.assignedTo.fullName,
       roleName: a.roleName,
       status: a.status,
       acceptedAt: a.acceptedAt,

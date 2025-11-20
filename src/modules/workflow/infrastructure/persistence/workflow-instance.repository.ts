@@ -13,12 +13,26 @@ export type PrismaWorkflowInstanceWithSteps = Prisma.WorkflowInstanceGetPayload<
 }>;
 
 export type PrismaWorkflowInstanceWithTasks = Prisma.WorkflowInstanceGetPayload<{
-  include: { steps: { include: { tasks: { include: { assignments: true } } } }, initiatedBy: true, initiatedFor: true }
+  include: {
+    steps: {
+      include: {
+        tasks: {
+          include: {
+            assignments: { include: { assignedTo: true } }
+          }
+        }
+      }
+    }, initiatedBy: true, initiatedFor: true
+  }
 }>;
 
 export type PrismaWorkflowTasks = Prisma.WorkflowTaskGetPayload<{
   include: {
-    assignments: true
+    assignments: {
+      include: {
+        assignedTo: true
+      }
+    }
   }
 }>;
 
@@ -51,10 +65,10 @@ class WorkflowInstanceRepository
       })
     ]);
 
-     return new PagedResult<WorkflowTask>(
+    return new PagedResult<WorkflowTask>(
       data.map(m => WorkflowInfraMapper.toWorkflowTask(m)),
-      total, 
-      filter?.pageIndex ?? 0, 
+      total,
+      filter?.pageIndex ?? 0,
       filter?.pageSize ?? 0
     );
   }
@@ -95,8 +109,8 @@ class WorkflowInstanceRepository
 
     return new PagedResult<WorkflowInstance>(
       data.map(m => WorkflowInfraMapper.toDomainWithSteps(m)),
-      total, 
-      filter?.pageIndex ?? 0, 
+      total,
+      filter?.pageIndex ?? 0,
       filter?.pageSize ?? 0
     );
   }
@@ -153,8 +167,8 @@ class WorkflowInstanceRepository
   async create(instance: WorkflowInstance): Promise<WorkflowInstance> {
     const createData: Prisma.WorkflowInstanceCreateInput = {
       ...WorkflowInfraMapper.toWorkflowInstanceCreatePersistence(instance),
-      initiatedBy: { connect: { id: instance.initiatedBy! } },
-      initiatedFor: instance.initiatedFor ? { connect: { id: instance.initiatedFor! } } : undefined,
+      initiatedBy: instance.initiatedBy ? { connect: { id: instance.initiatedBy?.id! } } : undefined,
+      initiatedFor: instance.initiatedFor ? { connect: { id: instance.initiatedFor.id! } } : undefined,
       steps: {
         create: instance.steps.map((step) =>
           WorkflowInfraMapper.toWorkflowStepPersistence(step),

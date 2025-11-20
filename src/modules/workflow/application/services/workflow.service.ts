@@ -4,16 +4,15 @@ import { WorkflowFilter, WorkflowInstance, WorkflowInstanceStatus } from '../../
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
 import { TaskFilter, WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 import { TaskAssignment, TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
-import { WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto, TaskAssignmentDto, StartWorkflowDto } from '../dto/start-workflow.dto';
+import { WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto, TaskAssignmentDto, StartWorkflowDto, UpdateTaskDto } from '../dto/workflow.dto';
 import { JobProcessingService } from '../../../shared/job-processing/services/job-processing.service';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { randomUUID } from 'crypto';
 import { JobName } from 'src/modules/shared/job-processing/decorators/process-job.decorator';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
-import { WorkflowDtoMapper } from '../../presentation/WorkflowDtoMapper';
+import { WorkflowDtoMapper } from '../dto/workflow-dto.mapper';
 import { StartWorkflowUseCase } from '../use-cases/start-workflow.use-case';
 import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
-import { UpdateTaskDto } from '../dto/complete-task.dto';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 

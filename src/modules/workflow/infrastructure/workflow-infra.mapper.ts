@@ -2,8 +2,9 @@ import { WorkflowInstance, WorkflowInstanceStatus, WorkflowType } from '../domai
 import { WorkflowStep, WorkflowStepStatus } from '../domain/model/workflow-step.model';
 import { WorkflowTask, WorkflowTaskType, WorkflowTaskStatus } from '../domain/model/workflow-task.model';
 import { TaskAssignment, TaskAssignmentStatus } from '../domain/model/task-assignment.model';
-import { Prisma, TaskAssignment as PrismaTaskAssignment } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaWorkflowInstanceWithSteps, PrismaWorkflowInstanceWithTasks, PrismaWorkflowTasks } from './persistence/workflow-instance.repository';
+import { User } from 'src/modules/user/domain/model/user.model';
 
 export class WorkflowInfraMapper {
   static toDomainWithSteps(prisma: PrismaWorkflowInstanceWithSteps) {
@@ -13,8 +14,8 @@ export class WorkflowInfraMapper {
       prisma.name,
       prisma.description,
       prisma.status as WorkflowInstanceStatus,
-      prisma.initiatedBy?.id,
-      prisma.initiatedFor?.id,
+      new User(prisma.initiatedBy?.id!, prisma.initiatedBy?.firstName!, prisma.initiatedBy?.lastName!, prisma.initiatedBy?.email!),
+      new User(prisma.initiatedFor?.id!, prisma.initiatedFor?.firstName!, prisma.initiatedFor?.lastName!, prisma.initiatedFor?.email!),
       prisma.data ? JSON.parse(prisma.data) : undefined,
       prisma.currentStepId ?? undefined,
       prisma.completedAt ?? undefined,
@@ -45,7 +46,6 @@ export class WorkflowInfraMapper {
         instance.addSteps(step);
       });
     }
-
     return instance;
   }
 
@@ -62,8 +62,8 @@ export class WorkflowInfraMapper {
       prisma.name,
       prisma.description,
       prisma.status as WorkflowInstanceStatus,
-      prisma.initiatedBy?.id,
-      prisma.initiatedFor?.id,
+      new User(prisma.initiatedBy?.id!, prisma.initiatedBy?.firstName!, prisma.initiatedBy?.lastName!, prisma.initiatedBy?.email!),
+      new User(prisma.initiatedFor?.id!, prisma.initiatedFor?.firstName!, prisma.initiatedFor?.lastName!, prisma.initiatedFor?.email!),
       prisma.data ? JSON.parse(prisma.data) : undefined,
       prisma.currentStepId ?? undefined,
       prisma.completedAt ?? undefined,
@@ -108,7 +108,7 @@ export class WorkflowInfraMapper {
   }
 
   static toWorkflowTask(
-    prisma:PrismaWorkflowTasks
+    prisma: PrismaWorkflowTasks
   ): WorkflowTask {
     const task = new WorkflowTask(
       prisma.id,
@@ -121,19 +121,18 @@ export class WorkflowInfraMapper {
       prisma.handler || undefined,
       prisma.checklist?.split('!~!'),
       prisma.autoCloseable || undefined,
-      undefined,
       prisma.jobId || undefined,
       prisma.autoCloseRefId || undefined,
       prisma.completedAt || undefined,
-      undefined,
+      prisma.completedBy || undefined,
       prisma.failureReason || undefined,
       prisma.createdAt,
       prisma.updatedAt,
     );
 
     if (prisma.assignments) {
-      const assignments = prisma.assignments.map((assignment: PrismaTaskAssignment) =>
-      this.toTaskAssignment(assignment),
+      const assignments = prisma.assignments.map((assignment) =>
+        this.toTaskAssignment(assignment),
       );
       task.setAssignments(assignments);
     }
@@ -141,11 +140,20 @@ export class WorkflowInfraMapper {
     return task;
   }
 
-  static toTaskAssignment(prisma: PrismaTaskAssignment): TaskAssignment {
+  static toTaskAssignment(prisma: Prisma.TaskAssignmentGetPayload<{
+    include: {
+      assignedTo: true
+    }
+  }>): TaskAssignment {
     return new TaskAssignment(
       prisma.id,
       prisma.taskId,
-      undefined as any, // User mapping requires proper includes
+      new User(
+        prisma.assignedTo.id,
+        prisma.assignedTo.firstName,
+        prisma.assignedTo.lastName,
+        prisma.assignedTo.email
+      ),
       prisma.roleName || null,
       prisma.status as TaskAssignmentStatus,
       prisma.createdAt,
@@ -177,8 +185,8 @@ export class WorkflowInfraMapper {
       updatedAt: domain.updatedAt ?? new Date(),
       data: domain.requestData ? JSON.stringify(domain.requestData) : null,
       //version: BigInt(0),
-      initiatedBy: { connect: { id: domain.initiatedBy! } },
-      initiatedFor: { connect: { id: domain.initiatedFor! } },
+      initiatedBy: { connect: { id: domain.initiatedBy?.id! } },
+      initiatedFor: { connect: { id: domain.initiatedFor?.id! } },
       // steps: handled separately via nested create/update
     };
   }
@@ -187,15 +195,15 @@ export class WorkflowInfraMapper {
    * Convert Domain model to Prisma update input
    * Used for updating existing workflow instances
    */
-  static toWorkflowInstanceUpdatePersistence(domain: WorkflowInstance): Prisma.WorkflowInstanceUncheckedUpdateInput {
+  static toWorkflowInstanceUpdatePersistence(domain: WorkflowInstance): Prisma.WorkflowInstanceUpdateInput {
     return {
       name: domain.name,
       type: domain.type,
       description: domain.description,
       status: domain.status,
       currentStepId: domain.currentStepId ?? null,
-      initiatedById: domain.initiatedBy ?? null,
-      initiatedForId: domain.initiatedFor ?? null,
+      initiatedBy: { connect: { id: domain.initiatedBy?.id! } },
+      initiatedFor: { connect: { id: domain.initiatedFor?.id! } },
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
       updatedAt: new Date(),

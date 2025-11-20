@@ -10,25 +10,20 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
-import { StartWorkflowDto, WorkflowInstanceDto, WorkflowTaskDto } from '../../application/dto/start-workflow.dto';
-import { CreateWorkflowDefinitionDto } from '../../application/dto/create-workflow-definition.dto';
-import { WorkflowStepHistoryDto } from '../../application/dto/step-history.dto';
+import { StartWorkflowDto, UpdateTaskDto, WorkflowInstanceDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
-import { WorkflowDtoMapper } from '../WorkflowDtoMapper';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
-import { UpdateTaskDto } from '../../application/dto/complete-task.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 
 @ApiTags('Workflows')
 @ApiBearerAuth('jwt')
 @Controller('workflows')
-//@UseApiKey()
 export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,
-  ) { }
+  ) {}
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)

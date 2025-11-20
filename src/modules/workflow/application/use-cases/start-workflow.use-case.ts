@@ -5,10 +5,10 @@ import type { IWorkflowInstanceRepository } from '../../domain/repositories/work
 import { WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { StartWorkflowDto, WorkflowInstanceDto } from '../dto/start-workflow.dto';
+import { StartWorkflowDto, WorkflowInstanceDto } from '../dto/workflow.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
-import { WorkflowDtoMapper } from '../../presentation/WorkflowDtoMapper';
+import { WorkflowDtoMapper } from '../dto/workflow-dto.mapper';
 import { StepStartedEvent } from '../../domain/events/step-started.event';
 import { User } from 'src/modules/user/domain/model/user.model';
 

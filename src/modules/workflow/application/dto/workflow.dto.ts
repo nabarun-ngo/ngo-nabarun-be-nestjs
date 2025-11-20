@@ -3,12 +3,8 @@ import {
   IsNotEmpty,
   IsObject,
   IsOptional,
-  ValidateNested,
-  IsEnum,
-  IsArray,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import { WorkflowInstanceStatus, WorkflowType } from '../../domain/model/workflow-instance.model';
 import { WorkflowTaskType, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
@@ -28,13 +24,43 @@ export class StartWorkflowDto {
   @ApiProperty({ description: 'User ID for whom the workflow is initiated', required: false })
   @IsOptional()
   @IsString()
-  requestedFor?:string;
+  requestedFor?: string;
 }
+
+export class UpdateTaskDto {
+  @ApiProperty({ description: 'Workflow instance ID' })
+  @IsString()
+  @IsNotEmpty()
+  instanceId: string;
+
+  @ApiProperty({ description: 'Task ID to complete' })
+  @IsString()
+  @IsNotEmpty()
+  taskId: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  status: WorkflowTaskStatus;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  remarks: string;
+
+  @ApiProperty({ description: 'Result data from task completion', required: false })
+  @IsOptional()
+  @IsObject()
+  resultData?: Record<string, string>;
+
+}
+
 
 export class TaskAssignmentDto {
   id: string;
   taskId: string;
-  assignedTo: string;
+  assignedToId: string;
+  assignedToName: string;
   roleName: string | null;
   status: TaskAssignmentStatusEnum;
   acceptedAt?: Date;
@@ -53,7 +79,8 @@ export class WorkflowTaskDto {
   checklist?: string[];
   createdAt: Date;
   updatedAt: Date;
-  assignedTo?: string;
+  assignedToId?: string;
+  assignedToName?: string;
   handler?: string;
   jobId?: string;
   resultData?: Record<string, any>;
@@ -85,8 +112,10 @@ export class WorkflowInstanceDto {
   currentStepId: string | null;
   requestData: Record<string, any>;
   resultData?: Record<string, any>;
-  initiatedBy?: string;
-  completedBy?: string;
+  initiatedById?: string;
+  initiatedByName?: string;
+  initiatedForId?: string;
+  initiatedForName?: string;
   completedAt?: Date;
   failureReason?: string;
   createdAt: Date;

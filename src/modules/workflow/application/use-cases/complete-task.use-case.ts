@@ -4,10 +4,9 @@ import {  WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflo
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { UpdateTaskDto } from '../dto/complete-task.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
-import { WorkflowInstanceDto } from '../dto/start-workflow.dto';
-import { WorkflowDtoMapper } from '../../presentation/WorkflowDtoMapper';
+import { UpdateTaskDto, WorkflowInstanceDto } from '../dto/workflow.dto';
+import { WorkflowDtoMapper } from '../dto/workflow-dto.mapper';
 
 @Injectable()
 export class CompleteTaskUseCase implements IUseCase<UpdateTaskDto, WorkflowInstanceDto> {
