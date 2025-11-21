@@ -40,7 +40,7 @@ export class WorkflowController {
 
 
 
-  @Post('tasks/update')
+  @Post(':id/tasks/:taskId/update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a workflow task' })
   @ApiResponse({
@@ -48,12 +48,14 @@ export class WorkflowController {
     description: 'Task updated successfully',
     type: SuccessResponse<WorkflowTaskDto>,
   })
-  async updateTask(@Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
-    const result = await this.workflowService.updateTask(dto,user);
+  async updateTask(@Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
+    const result = await this.workflowService.updateTask(id, taskId, dto, user);
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
-  @Get('instance/:id')
+  @Get(':id/instances')
   @ApiOperation({ summary: 'Get workflow instance by ID' })
   @ApiResponse({
     status: 200,

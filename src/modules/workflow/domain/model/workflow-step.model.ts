@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
-import { StepDTO, StepTransitionsDTO } from '../vo/workflow-def.vo';
 import { WorkflowTask } from './workflow-task.model';
+import { StepDef, StepTransitionsDef } from '../vo/workflow-def.vo';
 
 export enum WorkflowStepStatus {
   PENDING = 'PENDING',
@@ -62,7 +62,7 @@ export class WorkflowStep extends BaseDomain<string> {
   //        Factory
   // -----------------------------------
 
-  static create(step: StepDTO): WorkflowStep {
+  static create(step: StepDef): WorkflowStep {
     const instance = new WorkflowStep(
       randomUUID(),
       step.stepId,
@@ -80,7 +80,7 @@ export class WorkflowStep extends BaseDomain<string> {
   //        Private methods
   // -----------------------------------
 
-  #setTransitions(transitions: StepTransitionsDTO) {
+  #setTransitions(transitions: StepTransitionsDef) {
     this.#onSuccessStepId = transitions.onSuccess!;
     this.#onFailureStepId = transitions.onFailure!;
     this.touch();

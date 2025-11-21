@@ -5,25 +5,23 @@ import type { IWorkflowInstanceRepository } from '../../domain/repositories/work
 import { WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { StartWorkflowDto, WorkflowInstanceDto } from '../dto/workflow.dto';
-import { WorkflowService } from '../../application/services/workflow.service';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
-import { WorkflowDtoMapper } from '../dto/workflow-dto.mapper';
-import { StepStartedEvent } from '../../domain/events/step-started.event';
-import { User } from 'src/modules/user/domain/model/user.model';
+import { AutomaticTaskService } from '../services/automatic-task.service';
 
 @Injectable()
 export class StartWorkflowUseCase implements IUseCase<{
-    type: WorkflowType;
-    data: Record<string, string>;
-    requestedBy: string;
-    requestedFor?: string;
-  }, WorkflowInstance> {
+  type: WorkflowType;
+  data: Record<string, string>;
+  requestedBy: string;
+  requestedFor?: string;
+}, WorkflowInstance> {
   constructor(
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly instanceRepository: IWorkflowInstanceRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly definitionRepository: WorkflowDefService,
+    private readonly taskService: AutomaticTaskService,
+
   ) { }
 
   async execute(request: {
@@ -38,12 +36,12 @@ export class StartWorkflowUseCase implements IUseCase<{
       throw new BusinessException(`Workflow definition not found for type: ${request.type}`);
     }
 
-    // Execute pre-creation tasks
-    // if (definition.preCreationTasks) {
-    //   for (const preTask of definition.preCreationTasks) {
-    //     await this.workflowService.executeAutomaticTask(preTask, request.data);
-    //   }
-    // }
+    //Execute pre-creation tasks
+    if (definition.preCreationTasks) {
+      for (const preTask of definition.preCreationTasks) {
+        await this.taskService.handleTask(preTask, request.data, definition);
+      }
+    }
 
     // Create workflow instance
     const instance = WorkflowInstance.create({

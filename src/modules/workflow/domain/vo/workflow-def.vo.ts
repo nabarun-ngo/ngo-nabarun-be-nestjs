@@ -1,47 +1,41 @@
 import { WorkflowTaskType } from "../model/workflow-task.model";
 
 // Base DTOs for reusability
-export interface AssignedToDTO {
+export interface AssignedToDef {
   userId: string;
   roleGroup?: string;
   roleNames: string[];
 }
 
-export interface TaskDetailDTO {
-  assignedTo: AssignedToDTO;
-  isAutoCloseable: boolean;
-  checklist: string[];
+export interface TaskDetailDef {
+  assignedTo?: AssignedToDef;
+  isAutoCloseable?: boolean;
+  checklist?: string[];
+  data?: Record<string, any>;
 }
 
 
-export interface TaskDTO {
+export interface TaskDef {
   taskId: string;
   name: string;
   description: string;
   type: WorkflowTaskType;
   handler?: string; // only for AUTOMATIC tasks
-  taskDetail?: TaskDetailDTO; // only for VERIFICATION/APPROVAL tasks
+  taskDetail?: TaskDetailDef; // only for VERIFICATION/APPROVAL tasks
 }
 
-export interface StepTransitionsDTO {
+export interface StepTransitionsDef {
   onSuccess: string | null;
   onFailure: string | null;
 }
 
-export interface StepDTO {
+export interface StepDef {
   orderIndex: number;
   stepId: string;
   name: string;
   description: string;
-  tasks: TaskDTO[];
-  transitions: StepTransitionsDTO;
-}
-
-export interface PreCreationTaskDTO {
-  taskId: string;
-  type: "AUTOMATIC";
-  handler: string;
-  description: string;
+  tasks: TaskDef[];
+  transitions: StepTransitionsDef;
 }
 
 // Root Workflow DTO
@@ -49,6 +43,6 @@ export interface WorkflowDefinition {
   name: string;
   description: string;
   fields: string[];
-  preCreationTasks: PreCreationTaskDTO[];
-  steps: StepDTO[];
+  preCreationTasks: TaskDef[];
+  steps: StepDef[];
 }

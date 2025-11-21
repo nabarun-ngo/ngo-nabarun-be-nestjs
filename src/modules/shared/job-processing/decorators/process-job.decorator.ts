@@ -7,7 +7,6 @@ export enum JobName{
   UPDATE_USER_ROLE='update-user-role',
   TASK_AUTOMATIC = "TASK_AUTOMATIC",
   START_WORKFLOW_STEP = "START_WORKFLOW_STEP",
-  CHECK_WORKFLOW_STATE = "CHECK_WORKFLOW_STATE",
 }
 
 export interface ProcessJobOptions {

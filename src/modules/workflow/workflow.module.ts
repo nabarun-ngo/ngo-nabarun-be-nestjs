@@ -8,7 +8,6 @@ import {
   WORKFLOW_INSTANCE_REPOSITORY,
 } from './domain/repositories/workflow-instance.repository.interface';
 import { WorkflowJobProcessor } from './application/handlers/workflow-job.processor';
-import { WorkflowHandlerRegistry } from './application/handlers/workflow-handler.registry';
 import { JobProcessingModule } from '../shared/job-processing/job-processing.module';
 import { UserModule } from '../user/user.module';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
@@ -16,6 +15,7 @@ import { WorkflowDefService } from './infrastructure/external/workflow-def.servi
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
+import { AutomaticTaskService } from './application/services/automatic-task.service';
 
 @Module({
   imports: [JobProcessingModule, UserModule,FirebaseModule,CorrespondenceModule],
@@ -29,10 +29,10 @@ import { CorrespondenceModule } from '../shared/correspondence/correspondence.mo
       useClass: WorkflowInstanceRepository,
     },
     WorkflowJobProcessor,
-    WorkflowHandlerRegistry,
     WorkflowDefService,
     WorkflowEventsHandler,
-    StartWorkflowStepUseCase
+    StartWorkflowStepUseCase,
+    AutomaticTaskService
   ],
   exports: [
     WorkflowService,

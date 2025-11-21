@@ -1,11 +1,10 @@
-import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 import { TaskAssignment, TaskAssignmentStatus } from './task-assignment.model';
 import { WorkflowStep } from './workflow-step.model';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { User } from 'src/modules/user/domain/model/user.model';
-import { TaskDTO } from '../vo/workflow-def.vo';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { TaskDef } from '../vo/workflow-def.vo';
 
 export enum WorkflowTaskType {
   VERIFICATION = 'VERIFICATION',
@@ -83,7 +82,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#failureReason = failureReason;
   }
 
-  static create(step: WorkflowStep, task: TaskDTO): WorkflowTask {
+  static create(step: WorkflowStep, task: TaskDef): WorkflowTask {
     return new WorkflowTask(
       `NWT${generateUniqueNDigitNumber(6)}`,
       step,

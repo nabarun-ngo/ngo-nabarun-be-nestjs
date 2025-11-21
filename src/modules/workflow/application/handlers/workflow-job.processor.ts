@@ -1,16 +1,11 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { JobName, ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
 import type { Job, JobResult } from '../../../shared/job-processing/interfaces/job.interface';
-import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
-import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { WorkflowService } from '../services/workflow.service';
-import { WorkflowHandlerRegistry } from './workflow-handler.registry';
-import { StepStartedEvent } from '../../domain/events/step-started.event';
-import { jobSuccessResponse } from 'src/shared/utilities/common.util';
-import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
+import { jobFailureResponse, jobSuccessResponse } from 'src/shared/utilities/common.util';
 import { WorkflowStep } from '../../domain/model/workflow-step.model';
 import { StartWorkflowStepUseCase } from '../use-cases/start-workflow-step.use-case';
+import { WorkflowTask } from '../../domain/model/workflow-task.model';
+import { WorkflowService } from '../services/workflow.service';
 
 export interface WorkflowAutomaticTaskJobData {
   instanceId: string;
@@ -26,7 +21,9 @@ export class WorkflowJobProcessor {
 
   constructor(
     private readonly startWorkflowStep: StartWorkflowStepUseCase,
-    
+    private readonly workflowService: WorkflowService,
+
+
   ) { }
 
   @ProcessJob({
@@ -45,7 +42,7 @@ export class WorkflowJobProcessor {
   }
 
   @ProcessJob({
-    name: JobName.CHECK_WORKFLOW_STATE,
+    name: JobName.TASK_AUTOMATIC,
     concurrency: 5,
     attempts: 3,
     backoff: {
@@ -53,10 +50,17 @@ export class WorkflowJobProcessor {
       delay: 2000,
     },
   })
-  async processMextWorkflowStep(job: Job<{ instanceId: string; step: WorkflowStep }>): Promise<JobResult> {
+  async processAytomaticTask(job: Job<{
+    instanceId: string;
+    task: WorkflowTask,
+  }>): Promise<JobResult> {
     const data = job.data;
-
-    return jobSuccessResponse();
+    try {
+      this.workflowService.processAutomaticTask(data.instanceId, data.task.id);
+      return jobSuccessResponse();
+    } catch (e) {
+      return jobFailureResponse(e);
+    }
   }
 
 }

@@ -37,18 +37,6 @@ export class StartWorkflowDto {
 }
 
 export class UpdateTaskDto {
-  @ApiProperty({ description: 'Workflow instance ID', required: true })
-  @IsDefined()
-  @IsString()
-  @IsNotEmpty()
-  instanceId: string;
-
-  @ApiProperty({ description: 'Task ID to complete', required: true })
-  @IsDefined()
-  @IsString()
-  @IsNotEmpty()
-  taskId: string;
-
   @ApiProperty({ description: 'Task status', required: true })
   @IsDefined()
   @IsString()
