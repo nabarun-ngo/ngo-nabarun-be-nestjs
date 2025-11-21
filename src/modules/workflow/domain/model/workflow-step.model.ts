@@ -96,7 +96,7 @@ export class WorkflowStep extends BaseDomain<string> {
   }
 
   start() {
-    if (this.#status === WorkflowStepStatus.IN_PROGRESS) {
+    if (this.#status === WorkflowStepStatus.COMPLETED || this.#status === WorkflowStepStatus.FAILED) {
       throw new Error(`Cannot start step in status: ${this.#status}`);
     }
     this.#status = WorkflowStepStatus.IN_PROGRESS;

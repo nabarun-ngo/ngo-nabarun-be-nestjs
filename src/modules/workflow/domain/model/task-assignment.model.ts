@@ -110,6 +110,14 @@ export class TaskAssignment extends BaseDomain<string> {
     this.touch();
   }
 
+  remove(){
+    if (this.#status !== TaskAssignmentStatus.PENDING) {
+      throw new Error(`Cannot reject assignment in status: ${this.#status}`);
+    }
+    this.#status = TaskAssignmentStatus.REMOVED;
+    this.touch();
+  }
+
   public reject(notes?: string): void {
     if (this.#status !== TaskAssignmentStatus.PENDING) {
       throw new Error(`Cannot reject assignment in status: ${this.#status}`);

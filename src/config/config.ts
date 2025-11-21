@@ -2,7 +2,6 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import compression from "compression";
 import { configureSwagger } from "./swagger-config";
 import { Configkey } from "src/shared/config-keys";
-import { log } from "console";
 
 export const config = {
   app: {

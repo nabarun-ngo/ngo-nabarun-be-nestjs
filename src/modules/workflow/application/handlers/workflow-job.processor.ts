@@ -26,6 +26,7 @@ export class WorkflowJobProcessor {
 
   constructor(
     private readonly startWorkflowStep: StartWorkflowStepUseCase,
+    
   ) { }
 
   @ProcessJob({
@@ -40,6 +41,21 @@ export class WorkflowJobProcessor {
   async processStartWorkflowStep(job: Job<{ instanceId: string; step: WorkflowStep }>): Promise<JobResult> {
     const data = job.data;
     await this.startWorkflowStep.execute(data.instanceId);
+    return jobSuccessResponse();
+  }
+
+  @ProcessJob({
+    name: JobName.CHECK_WORKFLOW_STATE,
+    concurrency: 5,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+  })
+  async processMextWorkflowStep(job: Job<{ instanceId: string; step: WorkflowStep }>): Promise<JobResult> {
+    const data = job.data;
+
     return jobSuccessResponse();
   }
 

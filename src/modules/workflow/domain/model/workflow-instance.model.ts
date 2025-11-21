@@ -6,6 +6,9 @@ import { User } from 'src/modules/user/domain/model/user.model';
 import { WorkflowCreatedEvent } from '../events/workflow-created.event';
 import { StepStartedEvent } from '../events/step-started.event';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { WorkflowTaskStatus } from './workflow-task.model';
+import { TaskCompletedEvent } from '../events/task-completed.event';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -71,8 +74,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#remarks = remarks;
   }
 
-  static create(data: { 
-    type: WorkflowType; 
+  static create(data: {
+    type: WorkflowType;
     definition: WorkflowDefinition;
     requestedBy: string;
     data?: Record<string, any>
@@ -84,8 +87,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
       data.definition.name,
       data.definition.description,
       WorkflowInstanceStatus.PENDING,
-      new User(data.requestedBy,'','',''),
-      data.requestedFor ? new User(data.requestedFor,'','','') : undefined,
+      new User(data.requestedBy, '', '', ''),
+      data.requestedFor ? new User(data.requestedFor, '', '', '') : undefined,
       data.data,
     );
 
@@ -117,14 +120,14 @@ export class WorkflowInstance extends AggregateRoot<string> {
   public moveToNextStep(): void {
     const current = this.steps.find(s => s.stepId === this.#currentStepId);
 
-    if (!current) {
+    if (this.isAllStepsCompleted) {
       this.complete();
       return;
     }
 
-    if (current.isCompleted()) {
+    if (current?.isCompleted()) {
       this.#currentStepId = current.onSuccessStepId;
-    } else if (current.isFailed()) {
+    } else if (current?.isFailed()) {
       this.#currentStepId = current.onFailureStepId;
     }
 
@@ -133,6 +136,42 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
     this.touch();
+  }
+
+  updateTask(taskId: string, status: WorkflowTaskStatus, user?:User, remarks?: string) {
+    const step = this.steps.find(s => s.stepId === this.#currentStepId);
+    const task = step?.tasks?.find(t => t.id === taskId);
+
+    if (!task) {
+      throw new BusinessException(`Task not found: ${taskId}`);
+    }
+
+    // Check if task can be completed
+    if (task.status !== WorkflowTaskStatus.PENDING &&
+      task.status !== WorkflowTaskStatus.IN_PROGRESS) {
+      throw new BusinessException(`Task cannot be completed in status: ${task.status}`);
+    }
+
+    switch (status) {
+      case WorkflowTaskStatus.IN_PROGRESS:
+        task.start(user!);
+        break;
+      case WorkflowTaskStatus.COMPLETED:
+        task.complete(user);
+        break;
+      case WorkflowTaskStatus.FAILED:
+        task.fail(remarks!);
+        break;
+    }
+
+    if(step?.isAllTasksCompleted()){
+      step.complete();
+      this.moveToNextStep();
+    }
+
+    this.touch();
+    this.addDomainEvent(new TaskCompletedEvent(this.id, step?.id!, task.id));
+    return task;
   }
 
   public complete(): void {
@@ -155,6 +194,11 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#remarks = reason;
     this.touch();
   }
+
+  get isAllStepsCompleted(): boolean {
+    return this.#steps.length > 0 && this.#steps.every(s => s.isCompleted());
+  }
+
 
   // --- GETTERS (auto-picked by toJson) ---
   get name(): string { return this.#name; }

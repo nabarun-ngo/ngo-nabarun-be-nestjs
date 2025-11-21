@@ -51,7 +51,9 @@ model UserProfile {
   initiatedWorkflows WorkflowInstance[]  @relation("InitiatedBy")
   receivedWorkflows  WorkflowInstance[]  @relation("InitiatedFor")
   documentsUploaded  DocumentReference[] @relation("uploadedBy")
-  taskAssignments    TaskAssignment[] @relation("taskAssignments")
+  taskAssignments    TaskAssignment[]    @relation("taskAssignments")
+  taskCompleted      WorkflowTask[]    @relation("taskCompletedBy")
+  //workflowTasks      WorkflowTask[]
 
   @@index([email])
   @@index([authUserId])
@@ -233,7 +235,8 @@ model WorkflowTask {
   jobId          String?      @db.VarChar(255) // Job ID if automatic task
   resultData     String?      @db.Text // JSON result data
   completedAt    DateTime?
-  completedBy    String?      @db.VarChar(255)
+  completedBy    UserProfile? @relation(name: "taskCompletedBy", fields: [completedById], references: [id])
+  completedById  String?      @db.VarChar(255)
   failureReason  String?      @db.Text
 
   createdAt DateTime @default(now())
@@ -262,6 +265,7 @@ model TaskAssignment {
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+
 
   @@index([taskId])
   @@index([assignedToId, status])

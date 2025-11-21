@@ -124,7 +124,7 @@ export class WorkflowInfraMapper {
       prisma.jobId || undefined,
       prisma.autoCloseRefId || undefined,
       prisma.completedAt || undefined,
-      prisma.completedBy || undefined,
+      new User(prisma.completedBy?.id!, prisma.completedBy?.firstName!, prisma.completedBy?.lastName!, prisma.completedBy?.email!),
       prisma.failureReason || undefined,
       prisma.createdAt,
       prisma.updatedAt,
@@ -235,11 +235,11 @@ export class WorkflowInfraMapper {
     };
   }
 
-  static toPrismaWorkflowTask(domain: WorkflowTask): Prisma.WorkflowTaskCreateInput {
+  static toPrismaWorkflowTaskPersistance(domain: WorkflowTask,stepId: string): Prisma.WorkflowTaskCreateInput {
     return {
       id: domain.id,
       taskId: domain.taskId,
-      step: { connect: { id: domain.stepId } },
+      step: { connect: { id: stepId } },
       name: domain.name,
       description: domain.description ?? null,
       type: domain.type,
@@ -253,7 +253,7 @@ export class WorkflowInfraMapper {
       jobId: domain.jobId ?? null,
       resultData: null, // if you later persist resultData
       completedAt: domain.completedAt ?? null,
-      completedBy: domain.completedBy ?? null,
+      completedBy: domain.completedBy?.id ? { connect: { id: domain.completedBy?.id! }} :{},
       failureReason: domain.failureReason ?? null,
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),

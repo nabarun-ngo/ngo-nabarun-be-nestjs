@@ -23,7 +23,7 @@ import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,
-  ) {}
+  ) { }
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
@@ -48,8 +48,8 @@ export class WorkflowController {
     description: 'Task updated successfully',
     type: SuccessResponse<WorkflowTaskDto>,
   })
-  async updateTask(@Body() dto: UpdateTaskDto): Promise<SuccessResponse<WorkflowTaskDto>> {
-    const result = await this.workflowService.updateTask(dto);
+  async updateTask(@Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
+    const result = await this.workflowService.updateTask(dto,user);
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
@@ -82,14 +82,14 @@ export class WorkflowController {
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
-    const instances=
-    await this.workflowService.getWorkflows({
-      pageIndex: page,
-      pageSize: size,
-      props:{
-        initiatedFor: user?.profile_id,
-      }
-    })
+    const instances =
+      await this.workflowService.getWorkflows({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          initiatedFor: user?.profile_id,
+        }
+      })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
@@ -107,14 +107,14 @@ export class WorkflowController {
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
-    const instances=
-    await this.workflowService.getWorkflows({
-      pageIndex: page,
-      pageSize: size,
-      props:{
-        initiatedBy: user?.profile_id,
-      }
-    })
+    const instances =
+      await this.workflowService.getWorkflows({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          initiatedBy: user?.profile_id,
+        }
+      })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
@@ -132,15 +132,15 @@ export class WorkflowController {
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
-    const instances=
-    await this.workflowService.getWorkflowTasks({
-      pageIndex: page,
-      pageSize: size,
-      props:{
-        assignedTo: user?.profile_id,
-        status: [TaskAssignmentStatus.PENDING, TaskAssignmentStatus.ACCEPTED]
-      }
-    })
+    const instances =
+      await this.workflowService.getWorkflowTasks({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          assignedTo: user?.profile_id,
+          status: [TaskAssignmentStatus.PENDING, TaskAssignmentStatus.ACCEPTED]
+        }
+      })
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
   }
 

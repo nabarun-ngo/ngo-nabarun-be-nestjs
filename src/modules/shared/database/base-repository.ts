@@ -95,7 +95,6 @@ export abstract class PrismaBaseRepository<
     const delegate = this.getDelegate(this.prisma) as {
       create(args: { data: TCreateInput; include?: TInclude }): Promise<TGetOutput>;
     };
-    console.log(data)
     const result = await delegate.create({
       data,
       include,

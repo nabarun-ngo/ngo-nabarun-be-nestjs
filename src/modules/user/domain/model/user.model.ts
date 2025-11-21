@@ -6,7 +6,7 @@ import { Role } from './role.model';
 import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.model';
 import { Link } from './link.model';
-import { generatePassword } from '../../../../shared/utilities/password-util';
+import { generatePassword, generateUniqueNDigitNumber } from '../../../../shared/utilities/password-util';
 import { RoleAssignedEvent } from '../events/role-assigned.event';
 
 export enum UserStatus {
@@ -108,16 +108,15 @@ export class User extends AggregateRoot<string> {
       UserStatus.DRAFT,
       data.isTemporary,
     );
-    user.#password = generatePassword({
-      length: 14,
-      includeUppercase: true,
-      includeLowercase: true,
-      includeNumbers: true,
-      includeSymbols: true,
-    });
+    user.generatePassword();
     user.addDomainEvent(new UserCreatedEvent(user.id, user));
     return user;
   }
+
+  private generatePassword() {
+    this.#password = `Nabarun@${generateUniqueNDigitNumber(6)}#Default`;
+  }
+
 
   // ---- Domain behaviors (helpers) ----
   private computeFullName(): string {

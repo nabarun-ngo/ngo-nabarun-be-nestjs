@@ -15,6 +15,8 @@ import { StartWorkflowUseCase } from '../use-cases/start-workflow.use-case';
 import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { CompleteTaskUseCase } from '../use-cases/complete-task.use-case';
+import { User } from 'src/modules/user/domain/model/user.model';
 
 @Injectable()
 export class WorkflowService {
@@ -24,8 +26,9 @@ export class WorkflowService {
   constructor(
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly instanceRepository: IWorkflowInstanceRepository,
-    private readonly jobProcessingService: JobProcessingService,
+    //private readonly jobProcessingService: JobProcessingService,
     private readonly workflowStart: StartWorkflowUseCase,
+    private readonly completeTask: CompleteTaskUseCase
   ) { }
 
   async getWorkflows(filter: BaseFilter<WorkflowFilter>): Promise<PagedResult<WorkflowInstanceDto>> {
@@ -57,8 +60,15 @@ export class WorkflowService {
     );
   }
 
-  async updateTask(dto: UpdateTaskDto): Promise<WorkflowTaskDto> {
-    throw new Error('Method not implemented.');
+  async updateTask(dto: UpdateTaskDto, authUser: AuthUser): Promise<WorkflowTaskDto> {
+    const instance = await this.completeTask.execute({
+      instanceId: dto.instanceId,
+      taskId: dto.taskId,
+      remarks: dto.remarks,
+      status: dto.status,
+      completedBy: new User(authUser.profile_id!, '', '', ''),
+    })
+    return WorkflowDtoMapper.taskDomainToDto(instance);
   }
 
   async createWorkflow(input: StartWorkflowDto, requestedBy: AuthUser) {
@@ -72,209 +82,209 @@ export class WorkflowService {
   }
 
 
-  /**
-   * 
-   * @param instanceId 
-   * @param stepId 
-   * @returns 
-   */
+  // /**
+  //  * 
+  //  * @param instanceId 
+  //  * @param stepId 
+  //  * @returns 
+  //  */
 
-  async processStep(instanceId: string, stepId: string | null): Promise<void> {
-    if (!stepId) {
-      this.logger.warn(`No stepId provided for instance ${instanceId}`);
-      return;
-    }
+  // async processStep(instanceId: string, stepId: string | null): Promise<void> {
+  //   if (!stepId) {
+  //     this.logger.warn(`No stepId provided for instance ${instanceId}`);
+  //     return;
+  //   }
 
-    const instance = await this.instanceRepository.findById(instanceId, true);
-    if (!instance) {
-      throw new BusinessException(`Workflow instance not found: ${instanceId}`);
-    }
+  //   const instance = await this.instanceRepository.findById(instanceId, true);
+  //   if (!instance) {
+  //     throw new BusinessException(`Workflow instance not found: ${instanceId}`);
+  //   }
 
-    const step = instance.steps.find((s) => s.stepId === stepId);
-    if (!step) {
-      throw new BusinessException(`Step not found: ${stepId}`);
-    }
+  //   const step = instance.steps.find((s) => s.stepId === stepId);
+  //   if (!step) {
+  //     throw new BusinessException(`Step not found: ${stepId}`);
+  //   }
 
-    step.start();
-    //instance.moveToStep(stepId);
+  //   step.start();
+  //   //instance.moveToStep(stepId);
 
-    // Process tasks in the step
-    for (const task of step.tasks) {
-      if (task.isAutomatic()) {
-        await this.processAutomaticTask(instance, step, task);
-      } else {
-        // Manual tasks - assignments are already created
-        task.start();
-      }
-    }
+  //   // Process tasks in the step
+  //   for (const task of step.tasks) {
+  //     if (task.isAutomatic()) {
+  //       await this.processAutomaticTask(instance, step, task);
+  //     } else {
+  //       // Manual tasks - assignments are already created
+  //       task.start();
+  //     }
+  //   }
 
-    await this.instanceRepository.update(instance.id, instance);
-  }
+  //   await this.instanceRepository.update(instance.id, instance);
+  // }
 
-  async processAutomaticTask(
-    instance: WorkflowInstance,
-    step: any,
-    task: WorkflowTask,
-  ): Promise<void> {
-    if (!task.handler) {
-      throw new BusinessException(`Handler not specified for automatic task: ${task.taskId}`);
-    }
+  // async processAutomaticTask(
+  //   instance: WorkflowInstance,
+  //   step: any,
+  //   task: WorkflowTask,
+  // ): Promise<void> {
+  //   if (!task.handler) {
+  //     throw new BusinessException(`Handler not specified for automatic task: ${task.taskId}`);
+  //   }
 
-    task.start();
+  //   task.start();
 
-    try {
-      // Create job for automatic task
-      const job = await this.jobProcessingService.addJob(
-        JobName.TASK_AUTOMATIC,
-        {
-          instanceId: instance.id,
-          stepId: step.id,
-          taskId: task.id,
-          handler: task.handler,
-          requestData: instance.requestData,
-        },
-        {
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
-          },
-        },
-      );
+  //   try {
+  //     // Create job for automatic task
+  //     const job = await this.jobProcessingService.addJob(
+  //       JobName.TASK_AUTOMATIC,
+  //       {
+  //         instanceId: instance.id,
+  //         stepId: step.id,
+  //         taskId: task.id,
+  //         handler: task.handler,
+  //         requestData: instance.requestData,
+  //       },
+  //       {
+  //         attempts: 3,
+  //         backoff: {
+  //           type: 'exponential',
+  //           delay: 2000,
+  //         },
+  //       },
+  //     );
 
-      task.setJobId(job.id!);
-      this.logger.log(`Created job ${job.id} for automatic task ${task.taskId}`);
-    } catch (error) {
-      this.logger.error(`Failed to create job for task ${task.id}`, error);
-      task.fail(error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    }
-  }
+  //     task.setJobId(job.id!);
+  //     this.logger.log(`Created job ${job.id} for automatic task ${task.taskId}`);
+  //   } catch (error) {
+  //     this.logger.error(`Failed to create job for task ${task.id}`, error);
+  //     task.fail(error instanceof Error ? error.message : 'Unknown error');
+  //     throw error;
+  //   }
+  // }
 
-  async executeAutomaticTask(
-    preTask: any,
-    requestData: Record<string, any>,
-  ): Promise<any> {
-    if (!preTask.handler) {
-      throw new BusinessException(`Handler not specified for pre-creation task: ${preTask.taskId}`);
-    }
+  // async executeAutomaticTask(
+  //   preTask: any,
+  //   requestData: Record<string, any>,
+  // ): Promise<any> {
+  //   if (!preTask.handler) {
+  //     throw new BusinessException(`Handler not specified for pre-creation task: ${preTask.taskId}`);
+  //   }
 
-    try {
-      // Execute pre-creation task synchronously
-      const job = await this.jobProcessingService.addJob(
-        JobName.TASK_AUTOMATIC,
-        {
-          handler: preTask.handler,
-          requestData,
-        },
-        {
-          attempts: 1,
-        },
-      );
+  //   try {
+  //     // Execute pre-creation task synchronously
+  //     const job = await this.jobProcessingService.addJob(
+  //       JobName.TASK_AUTOMATIC,
+  //       {
+  //         handler: preTask.handler,
+  //         requestData,
+  //       },
+  //       {
+  //         attempts: 1,
+  //       },
+  //     );
 
-      // Wait for job to complete (for pre-creation tasks, we might want synchronous execution)
-      // For now, we'll let it run asynchronously and check result later
-      return job;
-    } catch (error) {
-      this.logger.error(`Failed to execute pre-creation task ${preTask.taskId}`, error);
-      throw error;
-    }
-  }
+  //     // Wait for job to complete (for pre-creation tasks, we might want synchronous execution)
+  //     // For now, we'll let it run asynchronously and check result later
+  //     return job;
+  //   } catch (error) {
+  //     this.logger.error(`Failed to execute pre-creation task ${preTask.taskId}`, error);
+  //     throw error;
+  //   }
+  // }
 
-  async createTaskAssignments(
-    taskId: string,
-    assignmentConfig: any,
-    requestData: Record<string, any>,
-  ): Promise<TaskAssignment[]> {
-    const assignments: TaskAssignment[] = [];
+  // async createTaskAssignments(
+  //   taskId: string,
+  //   assignmentConfig: any,
+  //   requestData: Record<string, any>,
+  // ): Promise<TaskAssignment[]> {
+  //   const assignments: TaskAssignment[] = [];
 
-    // If roleNames specified, assign to users with those roles
-    if (assignmentConfig.roleNames && assignmentConfig.roleNames.length > 0) {
-      // TODO: Fetch users by roles from user repository
-      // For now, we'll create assignments with role names
-      // In production, you'd query the user repository to find users with these roles
-      for (const roleName of assignmentConfig.roleNames) {
-        // const assignment = new TaskAssignment(
-        //   randomUUID(),
-        //   taskId,
-        //   roleName,
-        //   TaskAssignmentStatus.PENDING,
-        // );
-        // assignments.push(assignment);
-      }
-    }
+  //   // If roleNames specified, assign to users with those roles
+  //   if (assignmentConfig.roleNames && assignmentConfig.roleNames.length > 0) {
+  //     // TODO: Fetch users by roles from user repository
+  //     // For now, we'll create assignments with role names
+  //     // In production, you'd query the user repository to find users with these roles
+  //     for (const roleName of assignmentConfig.roleNames) {
+  //       // const assignment = new TaskAssignment(
+  //       //   randomUUID(),
+  //       //   taskId,
+  //       //   roleName,
+  //       //   TaskAssignmentStatus.PENDING,
+  //       // );
+  //       // assignments.push(assignment);
+  //     }
+  //   }
 
-    // If individual user IDs provided
-    if (assignmentConfig.userIds && assignmentConfig.userIds.length > 0) {
-      for (const userId of assignmentConfig.userIds) {
-        const assignment = new TaskAssignment(
-          randomUUID(),
-          taskId,
-          userId,
-          null,
-          TaskAssignmentStatus.PENDING,
-        );
-        assignments.push(assignment);
-      }
-    }
+  //   // If individual user IDs provided
+  //   if (assignmentConfig.userIds && assignmentConfig.userIds.length > 0) {
+  //     for (const userId of assignmentConfig.userIds) {
+  //       const assignment = new TaskAssignment(
+  //         randomUUID(),
+  //         taskId,
+  //         userId,
+  //         null,
+  //         TaskAssignmentStatus.PENDING,
+  //       );
+  //       assignments.push(assignment);
+  //     }
+  //   }
 
-    return assignments;
-  }
+  //   return assignments;
+  // }
 
-  async moveToNextStep(instance: WorkflowInstance): Promise<void> {
-    const currentStepIndex = instance.steps.findIndex(
-      (s) => s.stepId === instance.currentStepId,
-    );
+  // async moveToNextStep(instance: WorkflowInstance): Promise<void> {
+  //   const currentStepIndex = instance.steps.findIndex(
+  //     (s) => s.stepId === instance.currentStepId,
+  //   );
 
-    if (currentStepIndex === -1) {
-      this.logger.warn(`Current step not found: ${instance.currentStepId}`);
-      return;
-    }
+  //   if (currentStepIndex === -1) {
+  //     this.logger.warn(`Current step not found: ${instance.currentStepId}`);
+  //     return;
+  //   }
 
-    const currentStep = instance.steps[currentStepIndex];
-    const nextStepIndex = currentStepIndex + 1;
+  //   const currentStep = instance.steps[currentStepIndex];
+  //   const nextStepIndex = currentStepIndex + 1;
 
-    // Check transitions
-    const stepDef = instance.requestData; // This should come from definition
-    // For now, we'll move to next step if available
+  //   // Check transitions
+  //   const stepDef = instance.requestData; // This should come from definition
+  //   // For now, we'll move to next step if available
 
-    if (nextStepIndex < instance.steps.length) {
-      const nextStep = instance.steps[nextStepIndex];
-      // instance.moveToStep(nextStep.stepId);
-      await this.processStep(instance.id, nextStep.stepId);
-    } else {
-      // All steps completed
-      instance.complete();
-    }
-  }
+  //   if (nextStepIndex < instance.steps.length) {
+  //     const nextStep = instance.steps[nextStepIndex];
+  //     // instance.moveToStep(nextStep.stepId);
+  //     await this.processStep(instance.id, nextStep.stepId);
+  //   } else {
+  //     // All steps completed
+  //     instance.complete();
+  //   }
+  // }
 
-  async getStepHistory(instanceId: string): Promise<any> {
-    const instance = await this.instanceRepository.findById(instanceId, true);
-    if (!instance) {
-      throw new BusinessException(`Workflow instance not found: ${instanceId}`);
-    }
+  // async getStepHistory(instanceId: string): Promise<any> {
+  //   const instance = await this.instanceRepository.findById(instanceId, true);
+  //   if (!instance) {
+  //     throw new BusinessException(`Workflow instance not found: ${instanceId}`);
+  //   }
 
-    // Get step history from existing steps, ordered by creation/execution
-    const stepHistory = instance.steps
-      // .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map((step) => ({
-        stepId: step.stepId,
-        name: step.name,
-        status: step.status,
-        orderIndex: step.orderIndex,
-        startedAt: step.startedAt,
-        completedAt: step.completedAt,
-        failureReason: step.failureReason,
-        createdAt: step.createdAt,
-        updatedAt: step.updatedAt,
-      }));
+  //   // Get step history from existing steps, ordered by creation/execution
+  //   const stepHistory = instance.steps
+  //     // .sort((a, b) => a.orderIndex - b.orderIndex)
+  //     .map((step) => ({
+  //       stepId: step.stepId,
+  //       name: step.name,
+  //       status: step.status,
+  //       orderIndex: step.orderIndex,
+  //       startedAt: step.startedAt,
+  //       completedAt: step.completedAt,
+  //       failureReason: step.failureReason,
+  //       createdAt: step.createdAt,
+  //       updatedAt: step.updatedAt,
+  //     }));
 
-    return {
-      instanceId: instance.id,
-      currentStepId: instance.currentStepId,
-      steps: stepHistory,
-    };
-  }
+  //   return {
+  //     instanceId: instance.id,
+  //     currentStepId: instance.currentStepId,
+  //     steps: stepHistory,
+  //   };
+  //}
 
 }
 

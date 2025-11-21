@@ -18,6 +18,7 @@ export type PrismaWorkflowInstanceWithTasks = Prisma.WorkflowInstanceGetPayload<
       include: {
         tasks: {
           include: {
+            completedBy: true,
             assignments: { include: { assignedTo: true } }
           }
         }
@@ -28,9 +29,10 @@ export type PrismaWorkflowInstanceWithTasks = Prisma.WorkflowInstanceGetPayload<
 
 export type PrismaWorkflowTasks = Prisma.WorkflowTaskGetPayload<{
   include: {
+    completedBy: true,
     assignments: {
       include: {
-        assignedTo: true
+        assignedTo: true,
       }
     }
   }
@@ -43,7 +45,7 @@ class WorkflowInstanceRepository
   constructor(private readonly prisma: PrismaPostgresService) { }
   async findTasksPaged(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTask>> {
     const where: Prisma.WorkflowTaskWhereInput = {
-      ...(filter.props?.assignedTo ? { assignedToId: filter.props.assignedTo } : {}),
+      ...(filter.props?.assignedTo ? { assignments: { some: { assignedToId: filter.props.assignedTo }} } : {}),
       ...(filter.props?.status ? { status: { in: filter.props.status } } : {}),
     };
     const [data, total] = await Promise.all([
@@ -51,6 +53,7 @@ class WorkflowInstanceRepository
         where,
         orderBy: { createdAt: 'desc' },
         include: {
+          completedBy: true,
           assignments: {
             include: {
               assignedTo: true,
@@ -134,6 +137,7 @@ class WorkflowInstanceRepository
             include: {
               tasks: {
                 include: {
+                  completedBy: true,
                   assignments: {
                     include: {
                       assignedTo: true,
@@ -210,11 +214,11 @@ class WorkflowInstanceRepository
         instance.steps.map((step) => {
           return Promise.all(
             step.tasks.map((task) => {
-              const taskData = WorkflowInfraMapper.toPrismaWorkflowTask(task);
+              const taskData = WorkflowInfraMapper.toPrismaWorkflowTaskPersistance(task, step.id);
               return tx.workflowTask.upsert({
                 where: { id: task.id },
                 update: taskData,
-                create: { ...taskData, step: { connect: { id: step.id } } },
+                create: { ...taskData },
               });
             }),
           );

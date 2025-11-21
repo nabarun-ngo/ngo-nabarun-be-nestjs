@@ -5,6 +5,7 @@ import { WorkflowStep } from './workflow-step.model';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { TaskDTO } from '../vo/workflow-def.vo';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 export enum WorkflowTaskType {
   VERIFICATION = 'VERIFICATION',
@@ -40,7 +41,7 @@ export class WorkflowTask extends BaseDomain<string> {
   #jobId?: string;
   #autoCloseRefId?: string;
   #completedAt?: Date;
-  #completedBy?: string;
+  #completedBy?: User;
   #failureReason?: string;
 
   #assignments: TaskAssignment[] = [];
@@ -59,7 +60,7 @@ export class WorkflowTask extends BaseDomain<string> {
     jobId?: string,
     autoCloseRefId?: string,
     completedAt?: Date,
-    completedBy?: string,
+    completedBy?: User,
     failureReason?: string,
     createdAt?: Date,
     updatedAt?: Date,
@@ -108,17 +109,28 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  start(): void {
+  start(starter?: User): void {
     if (this.#status !== WorkflowTaskStatus.PENDING) {
-      throw new Error(`Cannot start task in status: ${this.#status}`);
+      throw new BusinessException(`Cannot start task in status: ${this.#status}`);
     }
+    const assignment = this.assignments.find((a) => a.assignedTo.id == starter?.id);
+    if (this.requiresManualAction() && !assignment) {
+      throw new BusinessException(`No assignment found for user: ${starter?.id}`);
+    }
+    assignment?.accept();
+    this.#assignments.filter(f => f.assignedTo.id != starter?.id).forEach(a => a.remove());
     this.#status = WorkflowTaskStatus.IN_PROGRESS;
+
     this.touch();
   }
 
-  complete(completedBy?: string): void {
-    if (this.#status !== WorkflowTaskStatus.IN_PROGRESS && this.#status !== WorkflowTaskStatus.PENDING) {
-      throw new Error(`Cannot complete task in status: ${this.#status}`);
+  complete(completedBy?: User): void {
+    if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
+      throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
+    }
+    const assignee =this.#assignments.find(a=>a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+    if(this.requiresManualAction() && !assignee){
+      throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
     }
     this.#status = WorkflowTaskStatus.COMPLETED;
     this.#completedBy = completedBy;
@@ -126,7 +138,11 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  fail(reason: string): void {
+  fail(reason: string,completedBy?:User): void {
+    const assignee =this.#assignments.find(a=>a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+    if(this.requiresManualAction() && !assignee){
+      throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
+    }
     this.#status = WorkflowTaskStatus.FAILED;
     this.#failureReason = reason;
     this.touch();
@@ -207,7 +223,7 @@ export class WorkflowTask extends BaseDomain<string> {
     return this.#completedAt;
   }
 
-  get completedBy(): string | undefined {
+  get completedBy(): User | undefined {
     return this.#completedBy;
   }
 
