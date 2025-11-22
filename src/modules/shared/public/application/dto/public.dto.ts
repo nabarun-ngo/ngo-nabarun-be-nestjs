@@ -1,3 +1,4 @@
+
 import { ApiProperty } from "@nestjs/swagger";
 import { IsDefined, IsNotEmpty, IsString } from "class-validator";
 
@@ -63,10 +64,19 @@ export class DonationFormDto {
   amount: number;
 }
 
-export function dtoToRecord<T extends object>(dto: T): Record<string, string> {
-  return Object.entries(dto).reduce((acc, [key, value]) => {
-    acc[key] = String(value); // force everything to string
-    return acc;
-  }, {} as Record<string, string>);
-}
 
+
+
+export interface TeamMember {
+  socialLinks: {
+    facebook?: string;
+    twitter?: string;
+    linkedin?: string;
+    instagram?: string;
+  };
+  id: string;
+  fullName: string;
+  picture: string;
+  roleString: string;
+  email:string;
+}

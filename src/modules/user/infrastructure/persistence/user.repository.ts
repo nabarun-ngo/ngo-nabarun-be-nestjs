@@ -5,47 +5,51 @@ import { Address, Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { Role } from '../../domain/model/role.model';
 import { UserInfraMapper } from '../user-infra.mapper';
-import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
-import { RepositoryHelpers } from 'src/modules/shared/database/repository-helpers';
-import { UserPersistence } from '../types/user-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 class UserRepository
-  extends PrismaBaseRepository<
-    User,
-    PrismaPostgresService['userProfile'],
-    Prisma.UserProfileWhereUniqueInput,
-    Prisma.UserProfileWhereInput,
-    Prisma.UserProfileGetPayload<any>,
-    Prisma.UserProfileCreateInput,
-    Prisma.UserProfileUpdateInput
-  >
   implements IUserRepository {
-  constructor(prisma: PrismaPostgresService) {
-    super(prisma);
-  }
+  constructor(private readonly prisma: PrismaPostgresService) { }
 
-  protected getDelegate(prisma: PrismaPostgresService) {
-    return prisma.userProfile;
-  }
-
-  protected toDomain(prismaModel: any): User | null {
-    return UserInfraMapper.toUserDomain(prismaModel);
-  }
 
   async findPaged(filter?: BaseFilter<UserFilterProps> | undefined): Promise<PagedResult<User>> {
-    const result = await this.findPaginated<Prisma.UserProfileInclude>(this.whereQuery(filter?.props), filter?.pageIndex ?? 0, filter?.pageSize ?? 10, {
-      roles: true
-    });
-    return new PagedResult<User>(result.data, result.total, result.page, result.pageSize);
+
+    const [data, total] = await Promise.all([
+      this.prisma.userProfile.findMany({
+        where: this.whereQuery(filter?.props),
+        orderBy: { firstName: 'asc' },
+        include: {
+          roles: true,
+          socialMediaLinks: filter?.props?.includeLinks ?? false
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.userProfile.count({
+        where: this.whereQuery(filter?.props),
+      })
+    ]);
+
+    return new PagedResult<User>(
+      data.map(m => UserInfraMapper.toUserDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 0
+    );
   }
 
-  findAll(filter?: UserFilterProps | undefined): Promise<User[]> {
-    return this.findMany(this.whereQuery(filter), {
-      roles: true,
-    });
+  async findAll(filter?: UserFilterProps | undefined): Promise<User[]> {
+    const users = await this.prisma.userProfile.findMany({
+      where: this.whereQuery(filter),
+      orderBy: { firstName: 'asc' },
+      include: {
+        roles: true,
+        socialMediaLinks: filter?.includeLinks ?? false
+      },
+    })
+    return users.map(m => UserInfraMapper.toUserDomain(m)!);
   }
 
   private whereQuery(props?: UserFilterProps) {
@@ -56,25 +60,37 @@ class UserRepository
       ...(props?.status ? { status: props.status } : {}),
       ...(props?.roleCodes ? { roles: { some: { roleCode: { in: props.roleCodes } } } } : {}),
       ...(props?.phoneNumber ? { phoneNumbers: { some: { phoneNumber: props.phoneNumber } } } : {}),
+      ...(props?.public ? { isPublic: props.public } : {}),
+      deletedAt: null
     };
     return where;
   }
 
 
   async findById(id: string): Promise<User | null> {
-    return this.findUnique<Prisma.UserProfileInclude>({ id }, {
-      addresses: true,
-      phoneNumbers: true,
-      roles: true,
-      socialMediaLinks: true,
+    const user = await this.prisma.userProfile.findUnique({
+      where: { id },
+      include: {
+        roles: true,
+        socialMediaLinks: true,
+        addresses: true,
+        phoneNumbers: true,
+      }
     });
+    return UserInfraMapper.toUserDomain(user);
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.findFirst({
-      email,
-      deletedAt: null,
+    const user = await this.prisma.userProfile.findUnique({
+      where: { email },
+      include: {
+        roles: true,
+        socialMediaLinks: true,
+        addresses: true,
+        phoneNumbers: true,
+      }
     });
+    return UserInfraMapper.toUserDomain(user);
   }
 
   async create(user: User): Promise<User> {
@@ -98,14 +114,23 @@ class UserRepository
       },
     };
 
-    return this.createRecord(createData);
+    const createdUser = await this.prisma.userProfile.create({
+      data: createData,
+      include: {
+        roles: true,
+        addresses: true,
+        phoneNumbers: true,
+        socialMediaLinks: true,
+      },
+    });
+    return UserInfraMapper.toUserDomain(createdUser)!;
   }
 
   async update(id: string, user: User): Promise<User> {
     const now = new Date();
     const data = UserInfraMapper.toUserCreatePersistence(user);
 
-    return this.executeTransaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       // 1. Update core profile
       await tx.userProfile.update({
         where: { id },
@@ -227,7 +252,7 @@ class UserRepository
 
   async updateRoles(id: string, roles: Role[]): Promise<void> {
     const now = new Date();
-    await this.executeTransaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       // Expire old roles
       await tx.userRole.updateMany({
         where: { userId: id, expireAt: null },
@@ -254,7 +279,21 @@ class UserRepository
   }
 
   async delete(id: string): Promise<void> {
-    await this.softDelete({ id });
+    await this.prisma.userProfile.update({
+      where: { id: id },
+      data: {
+        deletedAt: new Date()
+      }
+    });
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.prisma.userProfile.update({
+      where: { id: id },
+      data: {
+        deletedAt: null
+      }
+    });
   }
 }
 

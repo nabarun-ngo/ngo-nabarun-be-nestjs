@@ -11,6 +11,7 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { config } from './config/config';
 import { DMSModule } from './modules/shared/dms/dms.module';
+import { PublicModule } from './modules/shared/public/public.module';
 
 @Module({
   imports: [
@@ -46,7 +47,8 @@ import { DMSModule } from './modules/shared/dms/dms.module';
     AuthModule,
     WorkflowModule,
     FinanceModule,
-    DMSModule
+    DMSModule,
+    PublicModule
   ],
 })
 export class AppModule { }

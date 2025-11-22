@@ -26,6 +26,8 @@ export class UserFilterProps {
   readonly status?: UserStatus;
   readonly roleCodes?: string[];
   readonly phoneNumber?: string;
+  readonly public?: boolean;
+  readonly includeLinks?: boolean;
 }
 
 export class UserProfileProps {

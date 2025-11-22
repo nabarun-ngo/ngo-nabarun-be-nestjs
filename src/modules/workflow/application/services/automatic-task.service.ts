@@ -3,7 +3,7 @@ import { UserService } from "src/modules/user/application/services/user.service"
 import { BusinessException } from "src/shared/exceptions/business-exception";
 import { WorkflowTask } from "../../domain/model/workflow-task.model";
 import { TaskDef, WorkflowDefinition } from "../../domain/vo/workflow-def.vo";
-import { SignUpDto } from "../dto/public.dto";
+import { SignUpDto } from "src/modules/shared/public/application/dto/public.dto";
 
 @Injectable()
 export class AutomaticTaskService {

@@ -86,8 +86,6 @@ export class UnifiedAuthGuard implements CanActivate {
 
   private async validateCaptcha(request: any): Promise<boolean> {
     const { token, action } = this.extractCaptchaToken(request);
-    console.log(action,token);
-
     if (token && action) {
       return await this.recaptchaService.verifyToken(token, action, 0.7)
 

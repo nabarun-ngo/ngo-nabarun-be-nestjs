@@ -79,8 +79,8 @@ export function toAddressDTO(address: Address): AddressDto | undefined {
 }
 export function toLinkDTO(link: Link): LinkDto {
   return {
-    platform: link.linkType,
-    platformName: link.linkName,
-    url: link.linkValue,
+    linkType: link.linkType,
+    linkName: link.linkName,
+    linkValue: link.linkValue,
   };
 }
