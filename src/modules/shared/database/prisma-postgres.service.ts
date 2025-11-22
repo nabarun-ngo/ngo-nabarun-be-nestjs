@@ -5,7 +5,7 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
-import { PrismaClient } from 'prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class PrismaPostgresService
@@ -14,7 +14,7 @@ export class PrismaPostgresService
   private readonly logger = new Logger(PrismaPostgresService.name);
 
   constructor(@Inject('POSTGRES_URL') dbUrl: string) {
-    super({
+     super({
       datasources: {
         db: {
           url: dbUrl!, 

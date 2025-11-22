@@ -1,211 +1,206 @@
 import { PrismaPostgresService } from '../database/prisma-postgres.service';
-import { Prisma } from 'prisma/client';
+import { Prisma } from '@prisma/client';
 
 /**
- * Type-safe base repository for Prisma models
- * Provides common CRUD operations with full type safety
- * 
- * @template TDomain - Domain model type (e.g., User)
- * @template TPrismaDelegate - Prisma delegate type (e.g., prisma.userProfile)
- * @template TWhereUniqueInput - Prisma unique where input (e.g., Prisma.UserProfileWhereUniqueInput)
- * @template TWhereInput - Prisma where input for filtering
- * @template TInclude - Prisma include type for relations
+ * A strictly typed Prisma base repository with no `any` usage.
+ *
+ * @template TDomain - Domain model type
+ * @template TDelegate - Prisma model delegate type (e.g., Prisma.UserDelegate)
+ * @template TWhereUniqueInput - Prisma unique input type
+ * @template TWhereInput - Prisma filtering input type
+ * @template TGetOutput - Prisma payload type for fetched objects
  * @template TCreateInput - Prisma create input type
  * @template TUpdateInput - Prisma update input type
  */
 export abstract class PrismaBaseRepository<
   TDomain,
-  TPrismaDelegate,
+  TDelegate,
   TWhereUniqueInput,
-  TWhereInput = any,
-  //TInclude = any,
-  TGetOutput = any,
-  TCreateInput = any,
-  TUpdateInput = any,
+  TWhereInput,
+  TGetOutput,
+  TCreateInput,
+  TUpdateInput,
 > {
-  constructor(private readonly prisma: PrismaPostgresService) {}
+  constructor(protected readonly prisma: PrismaPostgresService) {}
 
-  /**
-   * Get the Prisma delegate for this repository
-   * Must be implemented by concrete repositories
-   */
-  protected abstract getDelegate(prisma: PrismaPostgresService): TPrismaDelegate;
+  protected abstract getDelegate(prisma: PrismaPostgresService): TDelegate;
+  protected abstract toDomain(prismaModel: TGetOutput | null): TDomain | null;
 
-  /**
-   * Map Prisma model to domain model
-   * Must be implemented by concrete repositories
-   */
-  protected abstract toDomain(prismaModel: TGetOutput): TDomain | null;
-
-  /**
-   * Find a single record by unique identifier
-   */
-  protected async findUnique<TInclude = any>(
+  /** Find by unique */
+  protected async findUnique<TInclude>(
     where: TWhereUniqueInput,
     include?: TInclude,
   ): Promise<TDomain | null> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      findUnique(args: { where: TWhereUniqueInput; include?: TInclude }): Promise<TGetOutput | null>;
+    };
     const result = await delegate.findUnique({
       where,
-      include: include ,
+      include,
     });
     return this.toDomain(result);
   }
 
-  /**
-   * Find first record matching criteria
-   */
-  protected async findFirst<TInclude = any>(
+  /** Find first */
+  protected async findFirst<TInclude>(
     where: TWhereInput,
     include?: TInclude,
   ): Promise<TDomain | null> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      findFirst(args: { where: TWhereInput; include?: TInclude }): Promise<TGetOutput | null>;
+    };
     const result = await delegate.findFirst({
       where,
-      include: include,
+      include,
     });
     return this.toDomain(result);
   }
 
-  /**
-   * Find many records matching criteria
-   */
-  protected async findMany<TInclude = any>(
+  /** Find many */
+  protected async findMany<TInclude>(
     where?: TWhereInput,
     include?: TInclude,
     options?: {
       take?: number;
       skip?: number;
-      orderBy?: any;
+      orderBy?: Record<string, 'asc' | 'desc'>;
     },
   ): Promise<TDomain[]> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      findMany(args: {
+        where?: TWhereInput;
+        include?: TInclude;
+        take?: number;
+        skip?: number;
+        orderBy?: Record<string, 'asc' | 'desc'>;
+      }): Promise<TGetOutput[]>;
+    };
+
     const results = await delegate.findMany({
       where,
-      include: include,
+      include,
       ...options,
     });
+
     return results
-      .map((r: any) => this.toDomain(r))
-      .filter((d: TDomain | null): d is TDomain => d !== null);
+      .map(r => this.toDomain(r))
+      .filter((d): d is TDomain => d !== null);
   }
 
-  /**
-   * Create a new record
-   */
-  protected async createRecord<TInclude = any>(
+  /** Create */
+  protected async createRecord<TInclude>(
     data: TCreateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      create(args: { data: TCreateInput; include?: TInclude }): Promise<TGetOutput>;
+    };
     const result = await delegate.create({
       data,
-      include: include,
+      include,
     });
+
     const domain = this.toDomain(result);
-    if (!domain) {
-      throw new Error('Failed to map created record to domain model');
-    }
+    if (!domain) throw new Error('Failed to map created record.');
     return domain;
   }
 
-  /**
-   * Update an existing record
-   */
-  protected async updateRecord<TInclude = any>(
+  /** Update */
+  protected async updateRecord<TInclude>(
     where: TWhereUniqueInput,
     data: TUpdateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      update(args: { where: TWhereUniqueInput; data: TUpdateInput; include?: TInclude }): Promise<TGetOutput>;
+    };
+
     const result = await delegate.update({
       where,
       data,
-      include: include,
+      include,
     });
+
     const domain = this.toDomain(result);
-    if (!domain) {
-      throw new Error('Failed to map updated record to domain model');
-    }
+    if (!domain) throw new Error('Failed to map updated record.');
     return domain;
   }
 
-  /**
-   * Upsert a record (update if exists, create otherwise)
-   */
-  protected async upsertRecord<TInclude = any>(
+  /** Upsert */
+  protected async upsertRecord<TInclude>(
     where: TWhereUniqueInput,
     create: TCreateInput,
     update: TUpdateInput,
     include?: TInclude,
   ): Promise<TDomain> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      upsert(args: {
+        where: TWhereUniqueInput;
+        create: TCreateInput;
+        update: TUpdateInput;
+        include?: TInclude;
+      }): Promise<TGetOutput>;
+    };
+
     const result = await delegate.upsert({
       where,
       create,
       update,
-      include: include,
+      include,
     });
+
     const domain = this.toDomain(result);
-    if (!domain) {
-      throw new Error('Failed to map upserted record to domain model');
-    }
+    if (!domain) throw new Error('Failed to map upserted record.');
     return domain;
   }
 
-  /**
-   * Soft delete a record (sets deletedAt timestamp)
-   */
+  /** Soft delete */
   protected async softDelete(where: TWhereUniqueInput): Promise<void> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      update(args: { where: TWhereUniqueInput; data: { deletedAt: Date } }): Promise<unknown>;
+    };
     await delegate.update({
       where,
       data: { deletedAt: new Date() },
     });
   }
 
-  /**
-   * Hard delete a record (permanently removes from database)
-   */
+  /** Hard delete */
   protected async hardDelete(where: TWhereUniqueInput): Promise<void> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      delete(args: { where: TWhereUniqueInput }): Promise<unknown>;
+    };
     await delegate.delete({ where });
   }
 
-  /**
-   * Count records matching criteria
-   */
+  /** Count */
   protected async count(where?: TWhereInput): Promise<number> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      count(args: { where?: TWhereInput }): Promise<number>;
+    };
     return delegate.count({ where });
   }
 
-  /**
-   * Check if record exists
-   */
+  /** Exists */
   protected async exists(where: TWhereInput): Promise<boolean> {
-    const count = await this.count(where);
-    return count > 0;
+    return (await this.count(where)) > 0;
   }
 
-  /**
-   * Execute a transaction
-   * Provides access to the transaction client
-   */
+  /** Transaction */
   protected async executeTransaction<R>(
     callback: (tx: Prisma.TransactionClient) => Promise<R>,
   ): Promise<R> {
     return this.prisma.$transaction(callback);
   }
 
-  /**
-   * Batch create multiple records
-   */
+  /** Create many */
   protected async createMany(
     data: TCreateInput[],
     skipDuplicates?: boolean,
   ): Promise<number> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      createMany(args: { data: TCreateInput[]; skipDuplicates?: boolean }): Promise<{ count: number }>;
+    };
     const result = await delegate.createMany({
       data,
       skipDuplicates,
@@ -213,14 +208,14 @@ export abstract class PrismaBaseRepository<
     return result.count;
   }
 
-  /**
-   * Batch update multiple records
-   */
+  /** Update many */
   protected async updateMany(
     where: TWhereInput,
     data: TUpdateInput,
   ): Promise<number> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      updateMany(args: { where: TWhereInput; data: TUpdateInput }): Promise<{ count: number }>;
+    };
     const result = await delegate.updateMany({
       where,
       data,
@@ -228,25 +223,28 @@ export abstract class PrismaBaseRepository<
     return result.count;
   }
 
-  /**
-   * Batch delete multiple records
-   */
+  /** Delete many */
   protected async deleteMany(where: TWhereInput): Promise<number> {
-    const delegate = this.getDelegate(this.prisma) as any;
+    const delegate = this.getDelegate(this.prisma) as {
+      deleteMany(args: { where: TWhereInput }): Promise<{ count: number }>;
+    };
     const result = await delegate.deleteMany({ where });
     return result.count;
   }
 
-  /**
-   * Find records with pagination
-   */
-  protected async findPaginated<TInclude = any>(
+  /** Paginated find */
+  protected async findPaginated<TInclude>(
     where: TWhereInput,
     page: number,
     pageSize: number,
     include?: TInclude,
-    orderBy?: any,
-  ): Promise<{ data: TDomain[]; total: number; page: number; pageSize: number }> {
+    orderBy?: Record<string, 'asc' | 'desc'>,
+  ): Promise<{
+    data: TDomain[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     const [data, total] = await Promise.all([
       this.findMany(where, include, {
         skip: page * pageSize,
@@ -256,11 +254,6 @@ export abstract class PrismaBaseRepository<
       this.count(where),
     ]);
 
-    return {
-      data,
-      total,
-      page,
-      pageSize,
-    };
+    return { data, total, page, pageSize };
   }
 }

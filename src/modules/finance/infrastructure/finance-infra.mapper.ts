@@ -3,7 +3,7 @@ import { Transaction, TransactionType, TransactionStatus } from '../domain/model
 import { Account, AccountType, AccountStatus } from '../domain/model/account.model';
 import { Expense, ExpenseCategory, ExpenseStatus } from '../domain/model/expense.model';
 import { Earning, EarningCategory, EarningStatus } from '../domain/model/earning.model';
-import { Prisma } from 'prisma/client';
+import { Prisma } from '@prisma/client';
 import {
   DonationPersistence,
   TransactionPersistence,
@@ -91,14 +91,14 @@ export class FinanceInfraMapper {
     );
   }
 
-  static toTransactionCreatePersistence(domain: Transaction): Prisma.TransactionUncheckedCreateInput {
+  static toTransactionCreatePersistence(domain: Transaction): Prisma.TransactionCreateInput {
     return {
       id: domain.id,
       type: domain.type,
       amount: domain.amount,
       currency: domain.currency,
       status: domain.status,
-      accountId: domain.accountId,
+      account: { connect: { id: domain.accountId } },
       referenceId: MapperUtils.undefinedToNull(domain.referenceId),
       referenceType: MapperUtils.undefinedToNull(domain.referenceType),
       description: domain.description,

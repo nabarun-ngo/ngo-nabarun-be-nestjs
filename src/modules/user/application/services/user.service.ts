@@ -9,7 +9,7 @@ import { BaseFilter } from "src/shared/models/base-filter-props";
 import { UserFilterProps } from "../../domain/model/user.model";
 import { UpdateUserUseCase } from "../use-cases/update-user.use-case";
 import { Role } from "../../domain/model/role.model";
-import { PhoneNumber } from "../../domain/model/phone-number.vo";
+import { PhoneNumber } from "../../domain/model/phone-number.model";
 import { Address } from "../../domain/model/address.model";
 import { Link, LinkType } from "../../domain/model/link.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
@@ -17,7 +17,6 @@ import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 
 @Injectable()
 export class UserService {
-
 
     constructor(
         @Inject(USER_REPOSITORY)
@@ -36,13 +35,16 @@ export class UserService {
                 status: filterDto.props?.status,
                 firstName: filterDto.props?.firstName,
                 lastName: filterDto.props?.lastName,
-                roleCode: filterDto.props?.roleCode,
-                phoneNumber: filterDto.props?.phoneNumber
+                roleCodes: filterDto.props?.roleCodes,
+                phoneNumber: filterDto.props?.phoneNumber,
+                public: filterDto.props?.public,
             }
         }
         const users = await this.userRepository.findPaged(filter);
         return new PagedResult(users.items.map(toUserDTO), users.total, users.page, users.size);
     }
+
+
 
 
     async getById(id: string): Promise<UserDto> {
@@ -81,11 +83,11 @@ export class UserService {
                 dateOfBirth: command.dateOfBirth,
                 gender: command.gender,
                 picture: command.picture,
-                primaryNumber: command.primaryNumber ? new PhoneNumber('',command.primaryNumber.code, command.primaryNumber.number) : undefined,
-                secondaryNumber: command.secondaryNumber ? new PhoneNumber('',command.secondaryNumber.code, command.secondaryNumber.number) : undefined,
+                primaryNumber: command.primaryNumber ? new PhoneNumber('', command.primaryNumber.code, command.primaryNumber.number) : undefined,
+                secondaryNumber: command.secondaryNumber ? new PhoneNumber('', command.secondaryNumber.code, command.secondaryNumber.number) : undefined,
                 isAddressSame: command.isAddressSame,
                 isPublicProfile: command.isPublicProfile,
-                permanentAddress : command.permanentAddress ? new Address(
+                permanentAddress: command.permanentAddress ? new Address(
                     '',
                     command.permanentAddress.addressLine1,
                     command.permanentAddress.addressLine2,
@@ -96,7 +98,7 @@ export class UserService {
                     command.permanentAddress.district,
                     command.permanentAddress.country
                 ) : undefined,
-                presentAddress : command.presentAddress ? new Address(
+                presentAddress: command.presentAddress ? new Address(
                     '',
                     command.presentAddress.addressLine1,
                     command.presentAddress.addressLine2,
@@ -107,11 +109,11 @@ export class UserService {
                     command.presentAddress.district,
                     command.presentAddress.country
                 ) : undefined,
-                socialMediaLinks: command.socialMediaLinks ? command.socialMediaLinks.map(l => new Link (
+                socialMediaLinks: command.socialMediaLinks ? command.socialMediaLinks.map(l => new Link(
                     '',
-                    l.platform,
-                    l.platformName as LinkType,
-                    l.url
+                    l.linkName,
+                    l.linkType,
+                    l.linkValue
                 )) : []
             },
         });
@@ -120,7 +122,7 @@ export class UserService {
     }
 
     async assignRole(userId: string, roleCodes: string[]): Promise<void> {
-        const roles = roleCodes.map(code => new Role('', code,'',''));
+        const roles = roleCodes.map(code => new Role('', code, '', ''));
         await this.assignRoleUseCase.execute({
             userId: userId,
             newRoles: roles

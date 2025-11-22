@@ -3,12 +3,15 @@ import { BaseDomain } from 'src/shared/models/base-domain';
 import { User } from './user.model';
 
 export class Role extends BaseDomain<string> {
-  private _roleCode: string;
-  private _roleName: string;
-  private _authRoleCode: string;
-  private _expireAt?: Date;
-  private _createdBy?: User;
-  private _isDefault: boolean;
+
+  // 🔒 TRUE PRIVATE FIELDS
+  #roleCode: string;
+  #roleName: string;
+  #authRoleCode: string;
+  #expireAt?: Date;
+  #createdBy?: User;
+  #isDefault: boolean;
+
   constructor(
     id: string,
     roleCode: string,
@@ -17,50 +20,54 @@ export class Role extends BaseDomain<string> {
     defaultRole?: boolean,
     expireAt?: Date,
     createdBy?: User
-
   ) {
     super(id);
-    this._roleCode = roleCode;
-    this._roleName = roleName;
-    this._authRoleCode = authRoleCode;
-    this._expireAt = expireAt;
-    this._createdBy = createdBy;
-    this._isDefault = defaultRole ?? false;
+
+    this.#roleCode = roleCode;
+    this.#roleName = roleName;
+    this.#authRoleCode = authRoleCode;
+    this.#expireAt = expireAt;
+    this.#createdBy = createdBy;
+    this.#isDefault = defaultRole ?? false;
   }
 
-  static create(roleCode: string, roleName: string, authRoleCode: string, defaultRole?: boolean) {
+  static create(
+    roleCode: string,
+    roleName: string,
+    authRoleCode: string,
+    defaultRole?: boolean
+  ) {
     return new Role(randomUUID(), roleCode, roleName, authRoleCode, defaultRole);
   }
+
   expire() {
-    this._expireAt = new Date();
+    this.#expireAt = new Date();
     this.touch();
   }
 
-  /**
-   * getters
-   */
+  // === GETTERS (required for BaseDomain.toJson()) ===
 
   get roleCode(): string {
-    return this._roleCode;
+    return this.#roleCode;
   }
 
   get roleName(): string {
-    return this._roleName;
+    return this.#roleName;
   }
 
   get authRoleCode(): string {
-    return this._authRoleCode;
+    return this.#authRoleCode;
   }
 
   get expireAt(): Date | undefined {
-    return this._expireAt;
+    return this.#expireAt;
   }
 
   get createdBy(): User | undefined {
-    return this._createdBy;
+    return this.#createdBy;
   }
 
   get isDefault(): boolean {
-    return this._isDefault;
+    return this.#isDefault;
   }
 }

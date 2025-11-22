@@ -3,7 +3,7 @@ import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { User, UserStatus } from '../../domain/model/user.model';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
+import { PhoneNumber } from '../../domain/model/phone-number.model';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';

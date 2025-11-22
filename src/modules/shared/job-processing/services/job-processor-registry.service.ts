@@ -59,15 +59,17 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
 
           // Try to get metadata from the method descriptor
           const methodRef = prototype[methodName];
-          const options = this.reflector.get<ProcessJobOptions>(
-            PROCESS_JOB_KEY,
-            methodRef,
-          );
+          if (methodRef) {
+            const options = this.reflector.get<ProcessJobOptions>(
+              PROCESS_JOB_KEY,
+              methodRef,
+            );
 
-          if (options) {
-            this.logger.log(`✓ Found processor: ${options.name} in ${className}.${methodName}`);
-            this.registerProcessor(options, instance[methodName].bind(instance));
-            processorsFound++;
+            if (options) {
+              this.logger.log(`✓ Found processor: ${options.name} in ${className}.${methodName}`);
+              this.registerProcessor(options, instance[methodName].bind(instance));
+              processorsFound++;
+            }
           }
         }
       }

@@ -1,10 +1,10 @@
 import { LoginMethod, User, UserStatus } from '../domain/model/user.model';
-import { PhoneNumber } from '../domain/model/phone-number.vo';
+import { PhoneNumber } from '../domain/model/phone-number.model';
 import { Role } from '../domain/model/role.model';
 import { Address } from '../domain/model/address.model';
 import { Link, LinkType } from '../domain/model/link.model';
 import { Auth0User } from './external/auth0-user.service';
-import { Prisma } from 'prisma/client';
+import { Prisma } from '@prisma/client';
 import { UserPersistence } from './types/user-persistence.types';
 import { UserMapperHelpers } from './user-mapper-helpers';
 import { MapperUtils } from 'src/modules/shared/database/mapper-utils';

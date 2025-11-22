@@ -30,6 +30,6 @@ import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case'
     UserService,
     AssignRoleUseCase
   ],
-  exports: [USER_REPOSITORY],
+  exports: [USER_REPOSITORY,UserService],
 })
 export class UserModule {}

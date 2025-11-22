@@ -1,19 +1,45 @@
+import { INestApplication, ValidationPipe } from "@nestjs/common";
+import compression from "compression";
+import { configureSwagger } from "./swagger-config";
+import { Configkey } from "src/shared/config-keys";
+
 export const config = {
   app: {
-    name: process.env.APP_NAME,
+    name: process.env[Configkey.APP_NAME] || '',
     port: parseInt(process.env.PORT || '8082'),
-    nodeEnv: process.env.NODE_ENV || 'development'
-  },
+    environment: process.env[Configkey.NODE_ENV] || 'development',
+    isProd: process.env[Configkey.NODE_ENV] === 'prod',
+    logLevel : process.env[Configkey.LOG_LEVEL] || 'log', 
+  }, 
   database: {
-    mongodbUrl: process.env.MONGODB_URL,
-    postgresUrl: process.env.POSTGRES_URL,
-    redisUrl: process.env.REDIS_URL
+    mongodbUrl: process.env[Configkey.MONGODB_URL],
+    postgresUrl: process.env[Configkey.POSTGRES_URL],
+    redisUrl: process.env[Configkey.REDIS_URL],
   },
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(','),
+    origin: process.env[Configkey.CORS_ALLOWED_ORIGIN]?.split(','),
     credentials: true,
   },
-  logging: {
-    level: process.env.LOG_LEVEL || 'log'
-  }
+  validation: new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: false,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+    disableErrorMessages: process.env.NODE_ENV === 'prod',
+  }),
 };
+
+export function applyConfig(app: INestApplication) {
+  app.use(compression()); // Response compression
+
+  // Global validation with transform and whitelist
+  app.useGlobalPipes(config.validation);
+
+  configureSwagger(app);
+  app.enableCors(config.cors);
+  //app.useGlobalFilters(new GlobalExceptionFilter());
+  app.enableShutdownHooks();
+  app.setGlobalPrefix('api');
+}

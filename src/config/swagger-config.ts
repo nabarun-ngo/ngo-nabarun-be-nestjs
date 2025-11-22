@@ -1,10 +1,11 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
+import { Configkey } from 'src/shared/config-keys';
 
 export function configureSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
-    .setTitle('NABARUN')
-    .setDescription('NABARUN Backend API powered by NestJS')
+    .setTitle(process.env[Configkey.APP_NAME] || 'API Documentation')
+    .setDescription(`${process.env[Configkey.APP_NAME]} Backend API powered by NestJS` )
     .setVersion('2.0')
     .addBearerAuth(
       {

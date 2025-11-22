@@ -7,7 +7,7 @@ import {
   RoleDto,
   UserDto,
 } from './user.dto';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
+import { PhoneNumber } from '../../domain/model/phone-number.model';
 import { Address } from '../../domain/model/address.model';
 import { Link } from '../../domain/model/link.model';
 
@@ -79,8 +79,8 @@ export function toAddressDTO(address: Address): AddressDto | undefined {
 }
 export function toLinkDTO(link: Link): LinkDto {
   return {
-    platform: link.linkType,
-    platformName: link.linkName,
-    url: link.linkValue,
+    linkType: link.linkType,
+    linkName: link.linkName,
+    linkValue: link.linkValue,
   };
 }

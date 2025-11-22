@@ -4,24 +4,18 @@ import {
   Get,
   Body,
   Param,
-  HttpCode,
-  HttpStatus,
   Query,
-  UseGuards,
   Put,
 } from '@nestjs/common';
-import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
-import { CreateUserDto, RoleDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
+import { CreateUserDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
-import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
 import { UserService } from '../../application/services/user.service';
 import { PagedResult } from 'src/shared/models/paged-result';
 
 @ApiSecurity('api-key') // Apply the 'api-key' security definition
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
-@UseApiKey()
 export class UserController {
   constructor(private readonly userService: UserService) {}
 

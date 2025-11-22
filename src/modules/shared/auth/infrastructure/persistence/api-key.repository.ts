@@ -1,9 +1,9 @@
 import { PrismaPostgresService } from "src/modules/shared/database/prisma-postgres.service";
-import { IApiKeyRepository } from "../../domain/api-key.repository.interface";
 import { Injectable } from "@nestjs/common";
-import { ApiKey } from "../../domain/api-key.model";
+import { ApiKey } from "../../domain/models/api-key.model";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
+import { IApiKeyRepository } from "../../domain/repository/api-key.repository.interface";
 
 @Injectable()
 export class ApiKeyRepository implements IApiKeyRepository {
