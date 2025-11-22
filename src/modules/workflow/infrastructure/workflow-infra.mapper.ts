@@ -185,8 +185,8 @@ export class WorkflowInfraMapper {
       updatedAt: domain.updatedAt ?? new Date(),
       data: domain.requestData ? JSON.stringify(domain.requestData) : null,
       //version: BigInt(0),
-      initiatedBy: { connect: { id: domain.initiatedBy?.id! } },
-      initiatedFor: { connect: { id: domain.initiatedFor?.id! } },
+      initiatedBy: domain.initiatedBy?.id ? { connect: { id: domain.initiatedBy?.id! } } : undefined,
+      initiatedFor: domain.initiatedFor?.id ? { connect: { id: domain.initiatedFor?.id! } } : undefined,
       // steps: handled separately via nested create/update
     };
   }
@@ -202,8 +202,8 @@ export class WorkflowInfraMapper {
       description: domain.description,
       status: domain.status,
       currentStepId: domain.currentStepId ?? null,
-      initiatedBy: { connect: { id: domain.initiatedBy?.id! } },
-      initiatedFor: { connect: { id: domain.initiatedFor?.id! } },
+      initiatedBy: domain.initiatedBy?.id ? { connect: { id: domain.initiatedBy?.id! } } : undefined,
+      initiatedFor: domain.initiatedFor?.id ? { connect: { id: domain.initiatedFor?.id! } } : undefined,
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
       updatedAt: new Date(),

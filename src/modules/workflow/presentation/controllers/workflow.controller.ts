@@ -16,6 +16,7 @@ import { CurrentUser } from 'src/modules/shared/auth/application/decorators/curr
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
+import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 @ApiTags('Workflows')
 @ApiBearerAuth('jwt')
@@ -25,6 +26,7 @@ export class WorkflowController {
     private readonly workflowService: WorkflowService,
   ) { }
 
+  @RequireAllPermissions('create:request')
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Start a new workflow instance' })
@@ -39,7 +41,7 @@ export class WorkflowController {
   }
 
 
-
+  @RequireAllPermissions('update:work')
   @Post(':id/tasks/:taskId/update')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a workflow task' })
@@ -55,6 +57,8 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
+  
+  @RequireAllPermissions('read:request')
   @Get(':id/instances')
   @ApiOperation({ summary: 'Get workflow instance by ID' })
   @ApiResponse({
@@ -70,6 +74,7 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowInstanceDto>(instance);
   }
 
+  @RequireAllPermissions('read:request')                                                                                                                                  
   @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiResponse({
@@ -95,6 +100,7 @@ export class WorkflowController {
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
+  @RequireAllPermissions('read:request')
   @Get('instances/byMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiResponse({
@@ -120,6 +126,7 @@ export class WorkflowController {
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
+  @RequireAllPermissions('read:work')
   @Get('tasks/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiResponse({

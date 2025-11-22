@@ -12,10 +12,13 @@ import { ApiKeyRepository } from './infrastructure/persistence/api-key.repositor
 import { ApiKeyController } from './presentation/controllers/api-key.controller';
 import { ApiKeyEventsHandler } from './application/handler/api-key-events.handler';
 import { API_KEY_REPOSITORY } from './domain/repository/api-key.repository.interface';
+import { HttpModule } from '@nestjs/axios';
+import { RecaptchaService } from './application/services/google-recaptcha.service';
 
 @Global()
 @Module({
   imports: [
+    HttpModule
   ],
   controllers: [OAuthController,ApiKeyController],
   providers: [
@@ -41,6 +44,7 @@ import { API_KEY_REPOSITORY } from './domain/repository/api-key.repository.inter
     PermissionsGuard,
     UnifiedAuthGuard,
     ApiKeyEventsHandler,
+    RecaptchaService
   ],
   exports: [GoogleOAuthService], 
 })

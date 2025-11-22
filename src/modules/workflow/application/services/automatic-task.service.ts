@@ -3,6 +3,7 @@ import { UserService } from "src/modules/user/application/services/user.service"
 import { BusinessException } from "src/shared/exceptions/business-exception";
 import { WorkflowTask } from "../../domain/model/workflow-task.model";
 import { TaskDef, WorkflowDefinition } from "../../domain/vo/workflow-def.vo";
+import { SignUpDto } from "../dto/public.dto";
 
 @Injectable()
 export class AutomaticTaskService {
@@ -35,13 +36,14 @@ export class AutomaticTaskService {
         }
     }
     private async createUser(requestData: Record<string, any> | undefined) {
+        const data = requestData as SignUpDto;
         await this.userService.create({
-            email: requestData?.email!,
-            firstName: requestData?.firstName!,
-            lastName: requestData?.lastName!,
+            email: data.email!,
+            firstName: data.firstName!,
+            lastName: data.lastName!,
             phoneNumber: {
-                code: requestData?.dialCode!,
-                number: requestData?.mobileNumber!,
+                code: data.dialCode!,
+                number: data.contactNumber!,
                 fullNumber: ''
             },
             isTemporary: false,

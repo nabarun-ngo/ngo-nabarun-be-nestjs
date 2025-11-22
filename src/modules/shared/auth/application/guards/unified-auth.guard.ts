@@ -9,12 +9,15 @@ import { ApiKeyService } from '../services/api-key.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { USE_API_KEY } from '../decorators/use-api-key.decorator';
 import { JwtAuthService } from '../services/jwt-auth.service';
+import { IGNORE_CAPTCHA } from '../decorators/ignore-captcha.decorator';
+import { RecaptchaService } from '../services/google-recaptcha.service';
 
 @Injectable()
 export class UnifiedAuthGuard implements CanActivate {
   constructor(
     private authService: JwtAuthService,
     private apiKeyService: ApiKeyService,
+    private recaptchaService: RecaptchaService,
     private reflector: Reflector,
   ) { }
 
@@ -26,7 +29,12 @@ export class UnifiedAuthGuard implements CanActivate {
     ]);
 
     if (isPublic) {
-      return true;
+      const ignoreCaptcha = this.reflector.getAllAndOverride<boolean>(
+        IGNORE_CAPTCHA,
+        [context.getHandler(), context.getClass()],
+      );
+      return ignoreCaptcha ? true :
+        this.validateCaptcha(context.switchToHttp().getRequest());
     }
 
     // Check if route explicitly requires API key
@@ -45,6 +53,7 @@ export class UnifiedAuthGuard implements CanActivate {
       return this.validateJwt(request);
     }
   }
+
 
   private async validateJwt(request: any): Promise<boolean> {
     const token = this.extractJwtToken(request);
@@ -73,6 +82,23 @@ export class UnifiedAuthGuard implements CanActivate {
     const user = await this.apiKeyService.validateApiKey(apiKey);
     request.user = user;
     return true;
+  }
+
+  private async validateCaptcha(request: any): Promise<boolean> {
+    const { token, action } = this.extractCaptchaToken(request);
+    console.log(action,token);
+
+    if (token && action) {
+      return await this.recaptchaService.verifyToken(token, action, 0.7)
+
+    }
+    throw new UnauthorizedException('Captcha token and action is required');
+
+  }
+  private extractCaptchaToken(request: any): { token: string; action: string } {
+    const captchaToken = request.headers['x-recaptcha-token'];
+    const captchAction = request.headers['x-recaptcha-action'];
+    return { token: captchaToken, action: captchAction };
   }
 
   private extractJwtToken(request: any): string | null {
@@ -105,4 +131,6 @@ export class UnifiedAuthGuard implements CanActivate {
 
     return null;
   }
+
+
 }

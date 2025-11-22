@@ -16,10 +16,11 @@ import { WorkflowEventsHandler } from './application/handlers/workflow-event.han
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 import { AutomaticTaskService } from './application/services/automatic-task.service';
+import { PublicController } from './presentation/controllers/public-workflow.controller';
 
 @Module({
   imports: [JobProcessingModule, UserModule,FirebaseModule,CorrespondenceModule],
-  controllers: [WorkflowController],
+  controllers: [WorkflowController,PublicController],
   providers: [
     StartWorkflowUseCase,
     CompleteTaskUseCase,

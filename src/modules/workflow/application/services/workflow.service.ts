@@ -66,11 +66,11 @@ export class WorkflowService {
     return WorkflowDtoMapper.taskDomainToDto(instance);
   }
 
-  async createWorkflow(input: StartWorkflowDto, requestedBy: AuthUser) {
+  async createWorkflow(input: StartWorkflowDto, requestedBy?: AuthUser) {
     const workflow = await this.workflowStart.execute({
       type: input.type,
       data: input.data,
-      requestedBy: requestedBy.profile_id!,
+      requestedBy: requestedBy?.profile_id!,
       requestedFor: input.requestedFor,
     });
     return WorkflowDtoMapper.toDto(workflow);

@@ -20,6 +20,8 @@ export enum WorkflowInstanceStatus {
 
 export enum WorkflowType {
   JOIN_REQUEST = 'JOIN_REQUEST',
+  CONTACT_REQUEST = "CONTACT_REQUEST",
+  DONATION_REQUEST = "DONATION_REQUEST",
 
 }
 

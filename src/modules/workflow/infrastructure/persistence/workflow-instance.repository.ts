@@ -171,8 +171,8 @@ class WorkflowInstanceRepository
   async create(instance: WorkflowInstance): Promise<WorkflowInstance> {
     const createData: Prisma.WorkflowInstanceCreateInput = {
       ...WorkflowInfraMapper.toWorkflowInstanceCreatePersistence(instance),
-      initiatedBy: instance.initiatedBy ? { connect: { id: instance.initiatedBy?.id! } } : undefined,
-      initiatedFor: instance.initiatedFor ? { connect: { id: instance.initiatedFor.id! } } : undefined,
+      initiatedBy: instance.initiatedBy?.id ? { connect: { id: instance.initiatedBy.id! } } : undefined,
+      initiatedFor: instance.initiatedFor?.id ? { connect: { id: instance.initiatedFor.id! } } : undefined,
       steps: {
         create: instance.steps.map((step) =>
           WorkflowInfraMapper.toWorkflowStepPersistence(step),
