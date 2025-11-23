@@ -17,6 +17,7 @@ import {
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
 import { Public } from '../../application/decorators/public.decorator';
 import { AuthCallbackDto } from '../dto/oauth..dto';
+import { IgnoreCaptchaValidation } from '../../application/decorators/ignore-captcha.decorator';
 
 
 
@@ -29,6 +30,7 @@ export class OAuthController {
   ) { }
 
   @Public()
+  @IgnoreCaptchaValidation()
   @Get('google/auth-url')
   @ApiOperation({
     summary: 'Get Gmail OAuth authorization URL',
@@ -53,11 +55,19 @@ export class OAuthController {
       },
     },
   })
-  getGmailAuthUrl(@Query('state') state?: string) {
-    return this.oAuthService.getAuthUrl(state);
+  getGmailAuthUrl(@Query('scopes') scopes: string, @Query('state') state?: string) {
+    return this.oAuthService.getAuthUrl(scopes.split(' '), state);
   }
 
   @Public()
+  @IgnoreCaptchaValidation()
+  @Get('google/scopes')
+  getGoogleScopes() {
+    return this.oAuthService.getOAuthScopes();
+  }
+
+  @Public()
+  @IgnoreCaptchaValidation()
   @Post('google/submit-callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
