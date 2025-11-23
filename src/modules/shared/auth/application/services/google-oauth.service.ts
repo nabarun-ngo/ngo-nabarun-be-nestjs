@@ -244,7 +244,8 @@ export class GoogleOAuthService {
       return this.oauth2Client;
     } catch (error) {
       this.logger.fatal(
-        `Failed to get authenticated client: ${error.message}`,error
+        `Failed to get authenticated client: ${error.message}`,
+        error.stack,
       );
       return null
     }
