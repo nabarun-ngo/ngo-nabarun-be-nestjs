@@ -20,7 +20,7 @@ import { ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-respons
 
 
 @ApiTags('OAuth')
-@ApiBearerAuth()
+@ApiBearerAuth('jwt')
 @Controller('auth/oauth')
 export class OAuthController {
   constructor(

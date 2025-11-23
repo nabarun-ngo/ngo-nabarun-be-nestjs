@@ -19,7 +19,7 @@ import { Public } from '../../application/decorators/public.decorator';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 
-@ApiBearerAuth()
+@ApiBearerAuth('jwt')
 @ApiTags('ApiKey')
 @Controller('auth/apikey')
 export class ApiKeyController {

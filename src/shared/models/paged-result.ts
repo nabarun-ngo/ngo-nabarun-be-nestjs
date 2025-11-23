@@ -1,7 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PagedResult<T> {
-  @ApiProperty({ description: 'List of items for the current page', isArray: true })
+  @ApiProperty({ 
+    description: 'List of items for the current page', 
+    isArray: true,
+    type: Object
+  })
   items: T[];
 
   @ApiProperty({ description: 'Total number of items across all pages' })

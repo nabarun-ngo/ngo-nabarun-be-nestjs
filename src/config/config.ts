@@ -7,11 +7,11 @@ import { GlobalExceptionFilter } from "src/shared/filters/global-exception.filte
 export const config = {
   app: {
     name: process.env[Configkey.APP_NAME] || '',
-    port: parseInt(process.env.PORT || '8082'),
+    port: parseInt(process.env.PORT || '8080'),
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
-    logLevel : process.env[Configkey.LOG_LEVEL] || 'log', 
-  }, 
+    logLevel: process.env[Configkey.LOG_LEVEL] || 'log',
+  },
   database: {
     mongodbUrl: process.env[Configkey.MONGODB_URL],
     postgresUrl: process.env[Configkey.POSTGRES_URL],
@@ -40,8 +40,11 @@ export function applyConfig(app: INestApplication) {
 
   // Set global prefix BEFORE configuring Swagger so it picks up the prefix
   app.setGlobalPrefix('api');
-  
-  configureSwagger(app);
+
+  if (!config.app.isProd) {
+    configureSwagger(app);
+  }
+
   app.enableCors(config.cors);
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.enableShutdownHooks();

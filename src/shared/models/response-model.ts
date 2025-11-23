@@ -1,11 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptions } from '@nestjs/swagger';
 
 export class SuccessResponse<T> {
   @ApiProperty() info: string;
   @ApiProperty() timestamp: Date;
   @ApiProperty() traceId?: string;
   @ApiProperty() message: string;
-  @ApiProperty() responsePayload?: T;
+  @ApiProperty({ description: 'Response payload data' ,type : T }) responsePayload?: T;
 
   constructor(payload?: T) {
     this.info = 'Success';

@@ -2,6 +2,7 @@ import { applyDecorators, HttpCode, HttpStatus, Type } from '@nestjs/common';
 import { ApiResponse, ApiOkResponse, ApiCreatedResponse, getSchemaPath, ApiExtraModels } from '@nestjs/swagger';
 import { SuccessResponse, ErrorResponse } from '../models/response-model';
 import { PagedResult } from '../models/paged-result';
+import { createSuccessResponseType, createPagedResultType, createPagedSuccessResponseType } from '../models/typed-responses';
 
 /**
  * Options for automatic response decorator
@@ -65,9 +66,12 @@ export function ApiAutoResponse<T>(
   model: Type<T>,
   options: ApiAutoResponseOptions = {},
 ): MethodDecorator {
+  // Create concrete response types for Swagger to properly inspect
+  const ConcreteSuccessResponse = createSuccessResponseType(model);
+  
   return applyDecorators(
-    ApiExtraModels(model, SuccessResponse, PagedResult, ErrorResponse),
-    ...createResponseDecorators(model, options),
+    ApiExtraModels(model, SuccessResponse, PagedResult, ErrorResponse, ConcreteSuccessResponse),
+    ...createResponseDecorators(model, options, ConcreteSuccessResponse),
     ...createCommonErrorResponses(),
   );
 }
@@ -171,9 +175,13 @@ export function ApiAutoPagedResponse<T>(
   model: Type<T>,
   options: ApiAutoResponseOptions = {},
 ): MethodDecorator {
+  // Create concrete response types for Swagger to properly inspect
+  const ConcretePagedResult = createPagedResultType(model);
+  const ConcretePagedSuccessResponse = createPagedSuccessResponseType(model);
+  
   return applyDecorators(
-    ApiExtraModels(model, SuccessResponse, PagedResult, ErrorResponse),
-    ...createPagedResponseDecorators(model, options),
+    ApiExtraModels(model, SuccessResponse, PagedResult, ErrorResponse, ConcretePagedResult, ConcretePagedSuccessResponse),
+    ...createPagedResponseDecorators(model, options, ConcretePagedResult, ConcretePagedSuccessResponse),
     ...createCommonErrorResponses(),
   );
 }
@@ -184,6 +192,7 @@ export function ApiAutoPagedResponse<T>(
 function createResponseDecorators(
   model: Type<any>,
   options: ApiAutoResponseOptions,
+  concreteResponseType?: Type<any>,
 ): MethodDecorator[] {
   const {
     status = HttpStatus.OK,
@@ -204,46 +213,60 @@ function createResponseDecorators(
   const shouldWrap = wrapInSuccessResponse !== false;
 
   if (shouldWrap) {
-    // Wrap in SuccessResponse
-    decorators.push(
-      status === HttpStatus.CREATED
-        ? ApiCreatedResponse({
-            description: description || 'Resource created successfully',
-            schema: {
-              allOf: [
-                { $ref: getSchemaPath(SuccessResponse) },
-                {
-                  properties: {
-                    responsePayload: isArray
-                      ? {
-                          type: 'array',
-                          items: { $ref: getSchemaPath(model) },
-                        }
-                      : { $ref: getSchemaPath(model) },
-                  },
+    // Use concrete response type if available, otherwise fall back to inline schema
+    if (concreteResponseType) {
+      decorators.push(
+        status === HttpStatus.CREATED
+          ? ApiCreatedResponse({
+              description: description || 'Resource created successfully',
+              type: concreteResponseType,
+            })
+          : ApiOkResponse({
+              description: description || 'Operation successful',
+              type: concreteResponseType,
+            }),
+      );
+    } else {
+      // Fallback to inline schema if concrete type not available
+      const responsePayloadSchema = isArray
+        ? {
+            type: 'array' as const,
+            items: { $ref: getSchemaPath(model) },
+          }
+        : { $ref: getSchemaPath(model) };
+
+      decorators.push(
+        status === HttpStatus.CREATED
+          ? ApiCreatedResponse({
+              description: description || 'Resource created successfully',
+              schema: {
+                type: 'object',
+                required: ['info', 'timestamp', 'message'],
+                properties: {
+                  info: { type: 'string', example: 'Success' },
+                  timestamp: { type: 'string', format: 'date-time' },
+                  traceId: { type: 'string' },
+                  message: { type: 'string' },
+                  responsePayload: responsePayloadSchema,
                 },
-              ],
-            },
-          })
-        : ApiOkResponse({
-            description: description || 'Operation successful',
-            schema: {
-              allOf: [
-                { $ref: getSchemaPath(SuccessResponse) },
-                {
-                  properties: {
-                    responsePayload: isArray
-                      ? {
-                          type: 'array',
-                          items: { $ref: getSchemaPath(model) },
-                        }
-                      : { $ref: getSchemaPath(model) },
-                  },
+              },
+            })
+          : ApiOkResponse({
+              description: description || 'Operation successful',
+              schema: {
+                type: 'object',
+                required: ['info', 'timestamp', 'message'],
+                properties: {
+                  info: { type: 'string', example: 'Success' },
+                  timestamp: { type: 'string', format: 'date-time' },
+                  traceId: { type: 'string' },
+                  message: { type: 'string' },
+                  responsePayload: responsePayloadSchema,
                 },
-              ],
-            },
-          }),
-    );
+              },
+            }),
+      );
+    }
   } else {
     // Direct model response (no SuccessResponse wrapper)
     decorators.push(
@@ -268,6 +291,8 @@ function createResponseDecorators(
 function createPagedResponseDecorators(
   model: Type<any>,
   options: ApiAutoResponseOptions,
+  concretePagedResult?: Type<any>,
+  concretePagedSuccessResponse?: Type<any>,
 ): MethodDecorator[] {
   const {
     status = HttpStatus.OK,
@@ -282,54 +307,75 @@ function createPagedResponseDecorators(
   }
 
   if (wrapInSuccessResponse) {
-    // Wrap PagedResult in SuccessResponse
-    decorators.push(
-      ApiOkResponse({
-        description: description || 'Paginated results retrieved successfully',
-        schema: {
-          allOf: [
-            { $ref: getSchemaPath(SuccessResponse) },
-            {
-              properties: {
-                responsePayload: {
-                  allOf: [
-                    { $ref: getSchemaPath(PagedResult) },
-                    {
-                      properties: {
-                        items: {
-                          type: 'array',
-                          items: { $ref: getSchemaPath(model) },
-                        },
-                      },
-                    },
-                  ],
+    // Use concrete response type if available, otherwise fall back to inline schema
+    if (concretePagedSuccessResponse) {
+      decorators.push(
+        ApiOkResponse({
+          description: description || 'Paginated results retrieved successfully',
+          type: concretePagedSuccessResponse,
+        }),
+      );
+    } else {
+      // Fallback to inline schema
+      decorators.push(
+        ApiOkResponse({
+          description: description || 'Paginated results retrieved successfully',
+          schema: {
+            type: 'object',
+            required: ['info', 'timestamp', 'message', 'responsePayload'],
+            properties: {
+              info: { type: 'string', example: 'Success' },
+              timestamp: { type: 'string', format: 'date-time' },
+              traceId: { type: 'string' },
+              message: { type: 'string' },
+              responsePayload: {
+                type: 'object',
+                required: ['items', 'total', 'page', 'size'],
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: { $ref: getSchemaPath(model) },
+                  },
+                  total: { type: 'number' },
+                  page: { type: 'number' },
+                  size: { type: 'number' },
                 },
               },
             },
-          ],
-        },
-      }),
-    );
+          },
+        }),
+      );
+    }
   } else {
-    // Direct PagedResult response
-    decorators.push(
-      ApiOkResponse({
-        description: description || 'Paginated results retrieved successfully',
-        schema: {
-          allOf: [
-            { $ref: getSchemaPath(PagedResult) },
-            {
-              properties: {
-                items: {
-                  type: 'array',
-                  items: { $ref: getSchemaPath(model) },
-                },
+    // Use concrete PagedResult type if available, otherwise fall back to inline schema
+    if (concretePagedResult) {
+      decorators.push(
+        ApiOkResponse({
+          description: description || 'Paginated results retrieved successfully',
+          type: concretePagedResult,
+        }),
+      );
+    } else {
+      // Fallback to inline schema
+      decorators.push(
+        ApiOkResponse({
+          description: description || 'Paginated results retrieved successfully',
+          schema: {
+            type: 'object',
+            required: ['items', 'total', 'page', 'size'],
+            properties: {
+              items: {
+                type: 'array',
+                items: { $ref: getSchemaPath(model) },
               },
+              total: { type: 'number' },
+              page: { type: 'number' },
+              size: { type: 'number' },
             },
-          ],
-        },
-      }),
-    );
+          },
+        }),
+      );
+    }
   }
 
   return decorators;

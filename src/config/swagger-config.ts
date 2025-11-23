@@ -1,16 +1,13 @@
-import { DocumentBuilder, SwaggerModule, ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
 import { Configkey } from 'src/shared/config-keys';
 import { SuccessResponse, ErrorResponse } from 'src/shared/models/response-model';
 import { PagedResult } from 'src/shared/models/paged-result';
 // DTOs used widely as output models
 import { UserDto, PhoneNumberDto, AddressDto, LinkDto, RoleDto } from 'src/modules/user/application/dto/user.dto';
-import { DonationDto } from 'src/modules/finance/application/dto/donation.dto';
-import { DocumentDto } from 'src/modules/shared/dms/presentation/dto/document.dto';
 // Add more DTO imports as needed
 
 export function configureSwagger(app: INestApplication) {
-  const globalPrefix = 'api';
   
   const config = new DocumentBuilder()
     .setTitle(process.env[Configkey.APP_NAME] || 'API Documentation')
@@ -54,7 +51,10 @@ export function configureSwagger(app: INestApplication) {
     ],
     // Enable deep scan for better type inference
     deepScanRoutes: true,
+    autoTagControllers:true
   });
 
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('swagger-ui', app, document,{
+      jsonDocumentUrl: 'api/docs',
+  });
 }

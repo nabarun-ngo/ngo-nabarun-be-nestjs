@@ -17,7 +17,6 @@ import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 
 @Injectable()
 export class UserService {
-
     constructor(
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
@@ -127,6 +126,12 @@ export class UserService {
             userId: userId,
             newRoles: roles
         });
+    }
+
+    async assignRoleToUser(roleCode: string, userIds: string[]) {
+      for (const userId of userIds) {
+        await this.assignRole(userId, [roleCode]);
+      }
     }
 
 
