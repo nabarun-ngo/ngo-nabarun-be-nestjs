@@ -13,7 +13,6 @@ import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UserService } from '../../application/services/user.service';
 import { PagedResult } from 'src/shared/models/paged-result';
 
-@ApiSecurity('api-key') // Apply the 'api-key' security definition
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
 export class UserController {

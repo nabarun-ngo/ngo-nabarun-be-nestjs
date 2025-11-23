@@ -29,8 +29,7 @@ export class OAuthController {
     private readonly oAuthService: GoogleOAuthService,
   ) { }
 
-  @Public()
-  @IgnoreCaptchaValidation()
+
   @Get('google/auth-url')
   @ApiOperation({
     summary: 'Get Gmail OAuth authorization URL',
@@ -59,15 +58,13 @@ export class OAuthController {
     return this.oAuthService.getAuthUrl(scopes.split(' '), state);
   }
 
-  @Public()
-  @IgnoreCaptchaValidation()
+
   @Get('google/scopes')
   getGoogleScopes() {
     return this.oAuthService.getOAuthScopes();
   }
 
-  @Public()
-  @IgnoreCaptchaValidation()
+
   @Post('google/submit-callback')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
