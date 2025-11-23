@@ -19,7 +19,6 @@ import { ApiKey } from '../../domain/models/api-key.model';
 import { Public } from '../../application/decorators/public.decorator';
 
 
-@Public()
 @ApiBearerAuth()
 @ApiTags('ApiKey')
 @Controller('auth/apikey')

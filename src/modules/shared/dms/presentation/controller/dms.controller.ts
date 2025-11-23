@@ -2,16 +2,13 @@
 import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
 import { DmsService } from '../../application/services/dms.service';
 import { DmsUploadDto } from '../dto/dms-upload.dto';
-import { ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
-import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { type DocumentMappingRefType } from '../../domain/mapping.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import type { Response } from 'express';
 
-@ApiSecurity('api-key') // Apply the 'api-key' security definition
 @ApiBearerAuth('jwt')
 @Controller('dms')
-@UseApiKey()
 export class DmsController {
     constructor(private readonly dmsService: DmsService) { }
 

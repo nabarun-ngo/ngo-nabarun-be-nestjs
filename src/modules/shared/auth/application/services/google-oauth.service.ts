@@ -4,6 +4,8 @@ import { OAuth2Client, } from 'google-auth-library';
 import { Configkey } from 'src/shared/config-keys';
 import { TOKEN_REPOSITORY, type ITokenRepository } from '../../domain/repository/token.repository.interface';
 import { AuthToken } from '../../domain/models/auth-token.model';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { GmailService } from 'src/modules/shared/correspondence/services/gmail.service';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -12,7 +14,7 @@ export class GoogleOAuthService {
   private readonly clientSecret: string;
   private readonly redirectUri: string;
   private readonly oauth2Client: OAuth2Client;
-  private readonly scopes : string[] = [
+  private readonly defaultScopes: string[] = [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
   ];
@@ -21,6 +23,7 @@ export class GoogleOAuthService {
   constructor(
     private readonly configService: ConfigService,
     @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: ITokenRepository,
+    private readonly eventEmitter: EventEmitter2
   ) {
     this.clientId = this.configService.get<string>(Configkey.GOOGLE_CLIENT_ID)!;
     this.clientSecret = this.configService.get<string>(
@@ -44,11 +47,11 @@ export class GoogleOAuthService {
   /**
    * Generate OAuth authorization URL
    */
-  getAuthUrl(state?: string): { url: string; state: string | undefined; clientId: string } {
-  
+  getAuthUrl(scopes: string[],state?: string): { url: string; state: string | undefined; clientId: string } {
+
     const url = this.oauth2Client.generateAuthUrl({
       access_type: 'offline', // Required to get refresh token
-      scope: [...this.scopes, 'openid', 'email', 'profile'],
+      scope: [...this.defaultScopes, ...scopes, 'openid', 'email', 'profile'],
       prompt: 'consent', // Force consent to get refresh token
       state: state || undefined,
       response_type: 'code',
@@ -57,6 +60,12 @@ export class GoogleOAuthService {
 
     this.logger.log(`Generated OAuth URL for Google authentication`);
     return { url: url, state: state, clientId: this.clientId };
+  }
+
+  getOAuthScopes(){
+    return {
+      'Gmail': GmailService.scope
+    }
   }
 
   /**
@@ -68,7 +77,7 @@ export class GoogleOAuthService {
     clientId: string,
   ): Promise<{ success: boolean }> {
     if (clientId !== this.clientId) {
-      throw new Error('Invalid client id');
+      throw new Error('Invalid client id'); 
     }
     try {
 
@@ -129,7 +138,7 @@ export class GoogleOAuthService {
   /**
    * Get valid access token for a user (refresh if needed)
    */
-  async getValidAccessToken(clientId: string, scope: string): Promise<string> {
+  private async getValidAccessToken(clientId: string, scope: string): Promise<string> {
 
     const tokenRecord = await this.tokenRepository.findByAttribute({
       clientId: clientId,
@@ -138,8 +147,8 @@ export class GoogleOAuthService {
     });
 
     if (!tokenRecord) {
-      throw new NotFoundException(
-        `No OAuth token found. Please ask admin to authenticate first.`,
+      throw new Error(
+        `No OAuth token found with scope ${scope}. Please ask admin to authenticate first.`,
       );
     }
 
@@ -169,7 +178,7 @@ export class GoogleOAuthService {
     // Decrypt refresh token
     const encryptionKey = this.configService.get<string>(
       Configkey.APP_SECRET
-    )!;    
+    )!;
     // Set refresh token and get new access token
     this.oauth2Client.setCredentials({
       refresh_token: await tokenRecord.getRefreshToken(encryptionKey),
@@ -226,11 +235,20 @@ export class GoogleOAuthService {
   async getAuthenticatedClient(
     scope: string,
     clientId: string = this.clientId,
-  ): Promise<OAuth2Client> {
-    const accessToken = await this.getValidAccessToken(clientId, scope);
-    this.oauth2Client.setCredentials({
-      access_token: accessToken,
-    });
-    return this.oauth2Client;
+  ): Promise<OAuth2Client | null> {
+    try {
+      const accessToken = await this.getValidAccessToken(clientId, scope);
+      this.oauth2Client.setCredentials({
+        access_token: accessToken,
+      });
+      return this.oauth2Client;
+    } catch (error) {
+      this.logger.fatal(
+        `Failed to get authenticated client: ${error.message}`,
+        error.stack,
+      );
+      return null
+    }
+
   }
 }
