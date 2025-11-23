@@ -12,8 +12,10 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { config } from './config/config';
 import { DMSModule } from './modules/shared/dms/dms.module';
 import { PublicModule } from './modules/shared/public/public.module';
+import {  HealthController } from './health.controller';
 
 @Module({
+  controllers:[HealthController],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
