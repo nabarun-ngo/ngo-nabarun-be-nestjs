@@ -2,7 +2,7 @@ import { applyDecorators, HttpCode, HttpStatus, Type } from '@nestjs/common';
 import { ApiResponse, ApiOkResponse, ApiCreatedResponse, getSchemaPath, ApiExtraModels } from '@nestjs/swagger';
 import { SuccessResponse, ErrorResponse } from '../models/response-model';
 import { PagedResult } from '../models/paged-result';
-import { createSuccessResponseType, createPagedResultType, createPagedSuccessResponseType } from '../models/typed-responses';
+import { createSuccessResponseType, createPagedResultType, createPagedSuccessResponseType, createVoidSuccessResponseType } from '../models/typed-responses';
 
 /**
  * Options for automatic response decorator
@@ -98,6 +98,54 @@ export function ApiAutoPrimitiveResponse(
   return applyDecorators(
     ApiExtraModels(SuccessResponse, ErrorResponse),
     ...createPrimitiveResponseDecorators(type, options),
+    ...createCommonErrorResponses(),
+  );
+}
+
+/**
+ * Helper for SuccessResponse<void> - operations that succeed but return no payload
+ * 
+ * Usage:
+ * ```typescript
+ * @Post(':id/delete')
+ * @ApiAutoVoidResponse({ description: 'User deleted successfully' })
+ * async deleteUser(@Param('id') id: string): Promise<SuccessResponse<void>> {
+ *   await this.userService.delete(id);
+ *   return new SuccessResponse();
+ * }
+ * ```
+ */
+export function ApiAutoVoidResponse(
+  options: Omit<ApiAutoResponseOptions, 'wrapInSuccessResponse' | 'isArray'> = {},
+): MethodDecorator {
+  const ConcreteVoidSuccessResponse = createVoidSuccessResponseType();
+  
+  const {
+    status = HttpStatus.OK,
+    description,
+  } = options;
+
+  const decorators: MethodDecorator[] = [];
+
+  if (status !== HttpStatus.OK) {
+    decorators.push(HttpCode(status));
+  }
+
+  decorators.push(
+    status === HttpStatus.CREATED
+      ? ApiCreatedResponse({
+          description: description || 'Operation completed successfully',
+          type: ConcreteVoidSuccessResponse,
+        })
+      : ApiOkResponse({
+          description: description || 'Operation completed successfully',
+          type: ConcreteVoidSuccessResponse,
+        }),
+  );
+
+  return applyDecorators(
+    ApiExtraModels(SuccessResponse, ErrorResponse, ConcreteVoidSuccessResponse),
+    ...decorators,
     ...createCommonErrorResponses(),
   );
 }

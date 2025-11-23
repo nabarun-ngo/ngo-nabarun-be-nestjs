@@ -5,7 +5,7 @@ export class SuccessResponse<T> {
   @ApiProperty() timestamp: Date;
   @ApiProperty() traceId?: string;
   @ApiProperty() message: string;
-  @ApiProperty({ description: 'Response payload data' ,type : T }) responsePayload?: T;
+  @ApiProperty({ description: 'Response payload data'}) responsePayload?: T;
 
   constructor(payload?: T) {
     this.info = 'Success';

@@ -127,3 +127,39 @@ export function createPagedSuccessResponseType<T>(modelClass: Type<T>) {
   }>;
 }
 
+/**
+ * Creates a concrete SuccessResponse class for void (no payload) responses.
+ * This is used when an operation succeeds but doesn't return any data.
+ * 
+ * Usage:
+ * ```typescript
+ * @ApiAutoVoidResponse({ description: 'Operation completed successfully' })
+ * async deleteUser(): Promise<SuccessResponse<void>> {
+ *   await this.userService.delete(id);
+ *   return new SuccessResponse();
+ * }
+ * ```
+ */
+export function createVoidSuccessResponseType() {
+  class ConcreteVoidSuccessResponse {
+    @ApiProperty() info: string;
+    @ApiProperty() timestamp: Date;
+    @ApiProperty() traceId?: string;
+    @ApiProperty() message: string;
+    // No responsePayload property for void responses
+  }
+  
+  // Set a unique name for the class
+  Object.defineProperty(ConcreteVoidSuccessResponse, 'name', {
+    value: 'SuccessResponseVoid',
+    writable: false,
+  });
+  
+  return ConcreteVoidSuccessResponse as Type<{
+    info: string;
+    timestamp: Date;
+    traceId?: string;
+    message: string;
+  }>;
+}
+

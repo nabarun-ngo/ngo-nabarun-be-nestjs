@@ -12,7 +12,7 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swag
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UserService } from '../../application/services/user.service';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { auth } from 'firebase-admin';
@@ -95,7 +95,7 @@ export class UserController {
 
   @Post(':id/assign-role')
   @ApiOperation({ summary: 'Assign Role to user' })
-  @ApiAutoPrimitiveResponse('string', { description: 'User updated successfully' })
+  @ApiAutoVoidResponse({ description: 'Role assigned successfully' })
   async assignRole(
     @Param('id') id: string,
     @Body() roles: string[],
@@ -107,6 +107,7 @@ export class UserController {
 
   @Post('role/:roleCode/assign')
   @ApiOperation({ summary: 'Assign Role to user' })
+  @ApiAutoVoidResponse({ description: 'Role assigned to users successfully' })
   async assignRoleToUser(
     @Param('roleCode') roleCode: string,
     @Body() userIds: string[],
