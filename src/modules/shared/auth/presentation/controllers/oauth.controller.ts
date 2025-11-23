@@ -55,10 +55,9 @@ export class OAuthController {
     },
   })
   getGmailAuthUrl(@Query('scopes') scopes: string, @Query('state') state?: string) {
-    getGmailAuthUrl(@Query('scopes') scopes?: string, @Query('state') state?: string) {
-      const scopeList = scopes ? scopes.split(' ') : [];
-      return this.oAuthService.getAuthUrl(scopeList, state);
-    }
+    const scopeList = scopes ? scopes.split(' ') : [];
+    return this.oAuthService.getAuthUrl(scopeList, state);
+  }
 
   @Get('google/scopes')
   getGoogleScopes() {
