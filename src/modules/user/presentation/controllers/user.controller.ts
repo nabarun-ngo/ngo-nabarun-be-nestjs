@@ -8,10 +8,11 @@ import {
   Put,
 } from '@nestjs/common';
 import { CreateUserDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiSecurity } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UserService } from '../../application/services/user.service';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
@@ -20,12 +21,8 @@ export class UserController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
-  @ApiResponse({
-    status: 201,
-    description: 'User created successfully',
-    type: SuccessResponse<UserDto>,
-  })
-  async create(@Body() dto: CreateUserDto) {
+  @ApiAutoResponse(UserDto, { status: 201, description: 'User created successfully' })
+  async create(@Body() dto: CreateUserDto): Promise<SuccessResponse<UserDto>> {
     return new SuccessResponse<UserDto>(
       await this.userService.create(dto),
     );
@@ -33,11 +30,7 @@ export class UserController {
 
   @Get()
   @ApiOperation({ summary: 'Get list of users with pagination and filters' })
-  @ApiResponse({
-    status: 200,
-    description: 'Users retrieved successfully',
-    type: PagedResult<UserDto>,
-  })
+  @ApiAutoPagedResponse(UserDto, { description: 'Users retrieved successfully', wrapInSuccessResponse: false })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
   async listUsers(
@@ -54,23 +47,14 @@ export class UserController {
   
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'User retrieved successfully',
-    type: UserDto,
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: false, description: 'User retrieved successfully' })
   async getUser(@Param('id') id: string): Promise<UserDto> {
     return await this.userService.getById(id);
   }
   
   @Put(':id/profile')
   @ApiOperation({ summary: 'Update user profile (self-update)' })
-  @ApiResponse({
-    status: 200,
-    description: 'User profile updated successfully',
-    type: UserDto,
-  })
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: false, description: 'User profile updated successfully' })
   async updateMyDetails(
     @Param('id') id: string,
     @Body() command: UserUpdateDto,
@@ -80,11 +64,7 @@ export class UserController {
   
   @Put(':id')
   @ApiOperation({ summary: 'Update user (admin update)' })
-  @ApiResponse({
-    status: 200,
-    description: 'User updated successfully',
-    type: UserDto,
-  })
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: false, description: 'User updated successfully' })
   async updateUser(
     @Param('id') id: string,
     @Body() command: UserUpdateAdminDto,
@@ -95,11 +75,6 @@ export class UserController {
 
   @Post(':id/assign-role')
   @ApiOperation({ summary: 'Assign Role to user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Role Assigned successfully',
-
-  })
   async assignRole(
     @Param('id') id: string,
     @Body() roles: string[],

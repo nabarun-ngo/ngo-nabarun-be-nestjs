@@ -27,12 +27,14 @@ export class ErrorResponse {
   @ApiProperty() timestamp: Date;
   @ApiProperty() traceId?: string;
   @ApiProperty() messages: string[];
-  @ApiProperty() stackTrace?: string;
+  @ApiProperty({ required: false }) stackTrace?: string;
+  @ApiProperty({ required: false }) errorCode?: string;
 
   constructor(err?: Error) {
     this.info = 'Error';
     this.timestamp = new Date();
     this.traceId = ''; // mimic MDC
+    this.messages = [];
     if (err) {
       this.messages = [err.message];
       this.stackTrace = err.stack;
@@ -43,6 +45,11 @@ export class ErrorResponse {
 
   addMessage(message: string) {
     this.messages.unshift(message);
+    return this;
+  }
+
+  setErrorCode(code: string) {
+    this.errorCode = code;
     return this;
   }
 }

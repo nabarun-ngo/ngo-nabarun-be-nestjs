@@ -10,14 +10,12 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
-import { Public } from '../../application/decorators/public.decorator';
 import { AuthCallbackDto } from '../dto/oauth..dto';
-import { IgnoreCaptchaValidation } from '../../application/decorators/ignore-captcha.decorator';
+import { ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 
 
@@ -41,25 +39,13 @@ export class OAuthController {
     required: false,
     description: 'Optional state parameter for OAuth flow',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'OAuth authorization URL generated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authUrl: {
-          type: 'string',
-          example: 'https://accounts.google.com/o/oauth2/v2/auth?...',
-        },
-      },
-    },
-  })
   getGmailAuthUrl(@Query('scopes') scopes: string, @Query('state') state?: string) {
     const scopeList = scopes ? scopes.split(' ') : [];
     return this.oAuthService.getAuthUrl(scopeList, state);
   }
 
   @Get('google/scopes')
+  @ApiOperation({ summary: 'Get available Google OAuth scopes' })
   getGoogleScopes() {
     return this.oAuthService.getOAuthScopes();
   }
@@ -71,21 +57,6 @@ export class OAuthController {
     summary: 'Handle Gmail OAuth callback',
     description:
       'Processes the OAuth callback code and stores the authentication tokens. Email can be provided in body or will be fetched from Google.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Gmail authentication successful, tokens stored',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        email: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid OAuth code or callback data',
   })
   async handleGmailCallback(
     @Body() callbackDto: AuthCallbackDto,

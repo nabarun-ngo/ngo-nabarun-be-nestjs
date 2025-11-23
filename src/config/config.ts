@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import compression from "compression";
 import { configureSwagger } from "./swagger-config";
 import { Configkey } from "src/shared/config-keys";
+import { GlobalExceptionFilter } from "src/shared/filters/global-exception.filter";
 
 export const config = {
   app: {
@@ -37,9 +38,11 @@ export function applyConfig(app: INestApplication) {
   // Global validation with transform and whitelist
   app.useGlobalPipes(config.validation);
 
+  // Set global prefix BEFORE configuring Swagger so it picks up the prefix
+  app.setGlobalPrefix('api');
+  
   configureSwagger(app);
   app.enableCors(config.cors);
-  //app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.enableShutdownHooks();
-  app.setGlobalPrefix('api');
 }

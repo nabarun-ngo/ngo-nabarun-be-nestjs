@@ -8,7 +8,7 @@ import {
   HttpStatus,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { StartWorkflowDto, UpdateTaskDto, WorkflowInstanceDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
@@ -17,6 +17,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
 import { PagedResult } from 'src/shared/models/paged-result';
 import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 @ApiTags('Workflows')
 @ApiBearerAuth('jwt')
@@ -28,13 +29,8 @@ export class WorkflowController {
 
   @RequireAllPermissions('create:request')
   @Post('create')
-  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Start a new workflow instance' })
-  @ApiResponse({
-    status: 201,
-    description: 'Workflow started successfully',
-    type: SuccessResponse<WorkflowInstanceDto>,
-  })
+  @ApiAutoResponse(WorkflowInstanceDto, { status: 201, description: 'Workflow started successfully' })
   async startWorkflow(@Body() dto: StartWorkflowDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowInstanceDto>> {
     const result = await this.workflowService.createWorkflow(dto, user);
     return new SuccessResponse<WorkflowInstanceDto>(result);
@@ -43,13 +39,8 @@ export class WorkflowController {
 
   @RequireAllPermissions('update:work')
   @Post(':id/tasks/:taskId/update')
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a workflow task' })
-  @ApiResponse({
-    status: 200,
-    description: 'Task updated successfully',
-    type: SuccessResponse<WorkflowTaskDto>,
-  })
+  @ApiAutoResponse(WorkflowTaskDto, { description: 'Task updated successfully' })
   async updateTask(@Param('id') id: string,
     @Param('taskId') taskId: string,
     @Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
@@ -61,11 +52,7 @@ export class WorkflowController {
   @RequireAllPermissions('read:request')
   @Get(':id/instances')
   @ApiOperation({ summary: 'Get workflow instance by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Workflow instance retrieved successfully',
-    type: SuccessResponse<WorkflowInstanceDto>,
-  })
+  @ApiAutoResponse(WorkflowInstanceDto, { description: 'Workflow instance retrieved successfully' })
   async getInstance(@Param('id') id: string): Promise<SuccessResponse<WorkflowInstanceDto>> {
     const instance = await this.workflowService.getWorkflow(id, true);
     if (!instance) {
@@ -77,11 +64,7 @@ export class WorkflowController {
   @RequireAllPermissions('read:request')                                                                                                                                  
   @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
-  @ApiResponse({
-    status: 200,
-    description: 'Workflow instances retrieved successfully',
-    type: SuccessResponse<PagedResult<WorkflowInstanceDto>>,
-  })
+  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
   async listInstancesForMe(
@@ -103,11 +86,7 @@ export class WorkflowController {
   @RequireAllPermissions('read:request')
   @Get('instances/byMe')
   @ApiOperation({ summary: 'List workflow instances' })
-  @ApiResponse({
-    status: 200,
-    description: 'Workflow instances retrieved successfully',
-    type: SuccessResponse<PagedResult<WorkflowInstanceDto>>,
-  })
+  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
   async listInstancesByMe(
@@ -128,12 +107,8 @@ export class WorkflowController {
 
   @RequireAllPermissions('read:work')
   @Get('tasks/forMe')
-  @ApiOperation({ summary: 'List workflow instances' })
-  @ApiResponse({
-    status: 200,
-    description: 'Workflow instances retrieved successfully',
-    type: SuccessResponse<PagedResult<WorkflowTaskDto>>,
-  })
+  @ApiOperation({ summary: 'List workflow tasks' })
+  @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
   async listTasks(
