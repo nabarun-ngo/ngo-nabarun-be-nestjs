@@ -64,7 +64,7 @@ export class WorkflowController {
   @RequireAllPermissions('read:request')                                                                                                                                  
   @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
-  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
+  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully',wrapInSuccessResponse:true })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
   async listInstancesForMe(

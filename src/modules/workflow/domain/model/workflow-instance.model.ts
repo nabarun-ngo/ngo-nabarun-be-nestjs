@@ -30,7 +30,7 @@ export interface WorkflowFilter {
   readonly initiatedFor?: string;
   readonly status?: string;
   readonly type?: string;
-}
+} 
 
 
 export class WorkflowInstance extends AggregateRoot<string> {
