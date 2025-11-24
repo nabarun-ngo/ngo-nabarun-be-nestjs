@@ -9,7 +9,7 @@ import { ApiAutoResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators
 import { DocumentDto } from '../dto/document.dto';
 import type { Response } from 'express';
 
-@ApiTags('Document Management System (DMS)')
+@ApiTags('DMS')
 @ApiBearerAuth('jwt')
 @Controller('dms')
 export class DmsController {
