@@ -58,7 +58,7 @@ class UserRepository
       ...(props?.lastName ? { lastName: { contains: props.lastName, mode: 'insensitive' } } : {}),
       ...(props?.email ? { email: { contains: props.email, mode: 'insensitive' } } : {}),
       ...(props?.status ? { status: props.status } : {}),
-      ...(props?.roleCodes ? { roles: { some: { roleCode: { in: props.roleCodes } } } } : {}),
+      ...(props?.roleCodes ? { roles: { some: { roleCode: { in: [...props.roleCodes] } } } } : {}),
       ...(props?.phoneNumber ? { phoneNumbers: { some: { phoneNumber: props.phoneNumber } } } : {}),
       ...(props?.public ? { isPublic: props.public } : {}),
       deletedAt: null

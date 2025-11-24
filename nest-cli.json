@@ -16,6 +16,10 @@
       {
         "include": "**/templates/**/*",
         "outDir": "dist"
+      },
+      {
+        "include": "**/data/**/*",
+        "outDir": "dist"
       }
     ],
     "deleteOutDir": true,

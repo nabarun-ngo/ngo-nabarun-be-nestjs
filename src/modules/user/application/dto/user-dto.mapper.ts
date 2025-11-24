@@ -37,7 +37,7 @@ export function toUserDTO(user: User): UserDto {
     picture: user.picture,
     presentAddress: toAddressDTO(user.presentAddress!),
     secondaryNumber: toPhoneNumberDTO(user.secondaryNumber!),
-    profileCompleted: user.isProfileCompleted,
+    //profileCompleted: user.isProfileCompleted,
     title: user.title,
     socialMediaLinks: user.socialMediaLinks.map((link) => toLinkDTO(link)),
     publicProfile: user.isPublic,

@@ -1,16 +1,19 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Public } from "src/modules/shared/auth/application/decorators/public.decorator";
 import { PublicService } from "../../application/services/public.services";
 import { IgnoreCaptchaValidation } from "src/modules/shared/auth/application/decorators/ignore-captcha.decorator";
 import { ContactFormDto, DonationFormDto, SignUpDto } from "../../application/dto/public.dto";
+import { ContentService } from "../../application/services/content.service";
 
 @ApiTags('Public')
 @Controller('public')
 @Public()
 export class PublicController {
 
-    constructor(private readonly publicService: PublicService) { }
+    constructor(private readonly publicService: PublicService,
+        private readonly contentService: ContentService
+    ) { }
 
     @Get('team')
     @ApiOperation({ summary: 'Get team members' })
@@ -22,7 +25,7 @@ export class PublicController {
     @ApiOperation({ summary: 'Get public content' })
     @IgnoreCaptchaValidation()
     async getCpntent() {
-        return await this.publicService.getPublicContent();
+        return await this.contentService.getPublicContent();
     }
 
 

@@ -16,6 +16,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { LoginMethod, UserStatus } from '../../domain/model/user.model';
 import { LinkType } from '../../domain/model/link.model';
+import { KeyValue } from 'src/shared/dto/KeyValue.dto';
 
 export class PhoneNumberDto {
 
@@ -261,10 +262,9 @@ export class UserUpdateAdminDto {
 
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RoleDto)
-  @ApiPropertyOptional({ type: () => [RoleDto] })
-  roles?: RoleDto[];
+  @ApiPropertyOptional()
+  @IsString({ each: true })
+  roleCodes?: string[];
 
 
   @IsOptional()
@@ -273,10 +273,11 @@ export class UserUpdateAdminDto {
   status?: UserStatus;
 
 
+  @ApiPropertyOptional({ enum: LoginMethod, isArray: true })
   @IsOptional()
-  @IsBoolean()
-  @ApiPropertyOptional()
-  isActiveDonor?: boolean;
+  @IsArray()
+  @IsEnum(LoginMethod, { each: true })
+  loginMethods?: LoginMethod[];
 
 }
 
@@ -287,7 +288,10 @@ export class UserFilterDto {
   @ApiPropertyOptional() @IsOptional() readonly lastName?: string;
   @ApiPropertyOptional() @IsOptional() readonly email?: string;
   @ApiPropertyOptional({ enum: UserStatus }) @IsOptional() readonly status?: UserStatus;
-  @ApiPropertyOptional({ type: [String] }) @IsOptional() readonly roleCodes?: string[];
+  @ApiPropertyOptional({ isArray: true, type: String })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true }) readonly roleCodes?: string[];
   @ApiPropertyOptional() @IsOptional() readonly phoneNumber?: string;
   @ApiPropertyOptional() @IsOptional() readonly public?: boolean;
 
@@ -346,10 +350,43 @@ export class UserDto {
   loginMethod: LoginMethod[];
   @ApiPropertyOptional({ name: 'addressSame' })
   addressSame?: boolean;
-  @ApiProperty()
-  profileCompleted: boolean;
+  //@ApiProperty()
+  //profileCompleted: boolean;
   @ApiProperty()
   blocked: boolean;
 }
+
+export class UserRefDataDto {
+  @ApiProperty()
+  userStatuses?: KeyValue[];
+  @ApiProperty()
+  loginMethods?: KeyValue[];
+  @ApiProperty()
+  userGenders?: KeyValue[];
+  @ApiProperty()
+  availableRoles?: KeyValue[];
+  @ApiProperty()
+  userTitles?: KeyValue[];
+  @ApiProperty()
+  countries?: KeyValue[];
+  @ApiProperty()
+  states?: KeyValue[];
+  @ApiProperty()
+  districts?: KeyValue[];
+  @ApiProperty()
+  phoneCodes?: KeyValue[];
+
+}
+
+export class UserRefDataFilterDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  countryCode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  stateCode?: string;
+}
+
 
 

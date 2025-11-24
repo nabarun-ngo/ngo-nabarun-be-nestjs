@@ -7,15 +7,14 @@ import {
   Query,
   Put,
 } from '@nestjs/common';
-import { CreateUserDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
+import { CreateUserDto, UserDto, UserFilterDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UserService } from '../../application/services/user.service';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
-import { auth } from 'firebase-admin';
 
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
@@ -59,7 +58,7 @@ export class UserController {
     );
   }
 
-  @Get('profile')
+  @Get('/profile/me')
   @ApiOperation({ summary: 'Get logged in user' })
   @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User retrieved successfully' })
   async getLoggedInUser(@CurrentUser() authUser: AuthUser): Promise<SuccessResponse<UserDto>> {
@@ -68,7 +67,16 @@ export class UserController {
     );
   }
 
-  @Put('profile')
+  @Get('static/referenceData')
+  @ApiOperation({ summary: 'Get logged in user' })
+  @ApiAutoResponse(UserRefDataDto, { wrapInSuccessResponse: true, description: 'User retrieved successfully' })
+  async referenceData(@Query() filter?: UserRefDataFilterDto): Promise<SuccessResponse<UserRefDataDto>> {
+    return new SuccessResponse<UserRefDataDto>(
+      await this.userService.getReferenceData(filter)
+    );
+  }
+
+  @Put('profile/me')
   @ApiOperation({ summary: 'Update user profile (self-update)' })
   @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User profile updated successfully' })
   async updateMyDetails(
@@ -115,4 +123,22 @@ export class UserController {
     await this.userService.assignRoleToUser(roleCode, userIds);
     return new SuccessResponse<void>();
   }
+
+
+  
+
+  //   @Get('states')
+  //   @ApiOperation({ summary: 'Get states' })
+  //   @ApiAutoResponse(KeyValue, { description: 'States retrieved successfully', isArray: true, wrapInSuccessResponse: false })
+  //   async getStates(@Query('countryCode') countryCode: string): Promise<KeyValue[]> {
+  //       return await this.publicService.getStates(countryCode);
+  //   }
+
+  //   @Get('districts')
+  //   @ApiOperation({ summary: 'Get districts' })
+  //   @ApiAutoResponse(KeyValue, { description: 'Districts retrieved successfully', isArray: true, wrapInSuccessResponse: false })
+  //   async getDistricts(@Query('countryCode') countryCode: string, @Query('stateCode') stateCode: string): Promise<KeyValue[]> {
+  //       return await this.publicService.getDistricts(countryCode, stateCode);
+  //   }
+
 }

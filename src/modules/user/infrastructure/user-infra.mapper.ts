@@ -220,7 +220,6 @@ export class UserInfraMapper {
       undefined,
       undefined,
       undefined,
-      undefined,
     );
   }
 
