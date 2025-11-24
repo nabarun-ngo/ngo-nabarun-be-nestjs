@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "user_roles" ALTER COLUMN "roleCode" SET DATA TYPE VARCHAR(50),
+ALTER COLUMN "authRoleCode" SET DATA TYPE VARCHAR(50);

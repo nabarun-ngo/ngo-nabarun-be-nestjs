@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
 import { Role } from "../../domain/model/role.model";
 import { parsefromString, parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
@@ -10,6 +10,7 @@ import { KeyValue } from "src/shared/dto/KeyValue.dto";
 
 @Injectable()
 export class UserMetadataService {
+    private readonly logger = new Logger(UserMetadataService.name);
     constructor(private readonly configService: RemoteConfigService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
@@ -52,13 +53,17 @@ export class UserMetadataService {
     private async getCachedData() {
         var cached = await this.cacheManager.get<Record<string, KeyValueConfig[]>>('LOCATION_DATA');
         if (!cached) {
+            this.logger.log('Caching location data...')
             const dataDir = path.join(__dirname, './../../data');
             const locationFile = 'location.json';
             const filePath = path.join(dataDir, locationFile);
+            this.logger.log('location data path ' + filePath)
             const source = fs.readFileSync(filePath, 'utf-8');
             cached = parsefromString<Record<string, KeyValueConfig[]>>(source);
             await this.cacheManager.set('LOCATION_DATA', cached);
+            this.logger.log('Caching location data completed...')
         }
+        this.logger.log('Using cached location data...', cached)
         return cached;
     }
 
@@ -68,7 +73,7 @@ export class UserMetadataService {
             .filter(data => data.ATTRIBUTES['COUNTRYKEY'] === countryCode)
             .map(this.mapData);
     }
-    
+
 
     async getDistricts(countryCode: string, stateCode: string): Promise<KeyValueConfig[]> {
         const cached = await this.getCachedData();
