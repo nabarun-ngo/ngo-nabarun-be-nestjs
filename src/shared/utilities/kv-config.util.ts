@@ -1,3 +1,4 @@
+import { KeyValue } from "../dto/KeyValue.dto";
 import { KeyValueConfig } from "../models/key-value-config.model";
 
 export function parseKeyValueConfigs(
@@ -34,5 +35,13 @@ export function parsefromString<T>(
 ): T {
   const raw = JSON.parse(jsonString);
   return raw as T;
+}
+
+export function toKeyValueDto(keyValue: KeyValueConfig):KeyValue{
+  return{
+    key: keyValue.KEY,
+    displayValue: keyValue.VALUE,
+    description: keyValue.DESCRIPTION,
+  }
 }
 

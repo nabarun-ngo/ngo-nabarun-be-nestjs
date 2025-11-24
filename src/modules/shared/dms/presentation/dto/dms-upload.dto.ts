@@ -1,6 +1,7 @@
 // dms-upload.dto.ts
-import { IsArray, IsBase64, IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsBase64, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import type { DocumentMappingRefType } from '../../domain/mapping.model';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class DmsUploadDto {
     @IsNotEmpty()

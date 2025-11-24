@@ -17,6 +17,7 @@ export class WorkflowDtoMapper {
     return {
       id: domain.id,
       type: domain.type,
+      description: domain.description,
       status: domain.status,
       currentStepId: domain.currentStepId ?? null,
       requestData: domain.requestData ?? {},

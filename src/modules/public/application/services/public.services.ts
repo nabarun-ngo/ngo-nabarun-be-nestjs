@@ -1,8 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
 import { UserService } from "src/modules/user/application/services/user.service";
 import { UserStatus } from "src/modules/user/domain/model/user.model";
-import { parsefromString } from "src/shared/utilities/kv-config.util";
 import { dtoToRecord, toTeamMemberDTO } from "../dto/public-dto.mapper";
 import { WorkflowService } from "src/modules/workflow/application/services/workflow.service";
 import { ContactFormDto, DonationFormDto, SignUpDto, TeamMember } from "../dto/public.dto";
@@ -13,16 +11,10 @@ import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
 export class PublicService {
 
     constructor(
-        private readonly remoteConfig: RemoteConfigService,
         private readonly userService: UserService,
         private readonly workflowService: WorkflowService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
-
-    async getPublicContent(): Promise<any> {
-        const config = (await this.remoteConfig.getAllKeyValues())['PUBLIC_CONTENT'];
-        return parsefromString<any>(config.value);
-    }
 
     async getTeamMembers() {
         const cached = await this.cacheManager.get<TeamMember[]>('team-members');
@@ -67,6 +59,7 @@ export class PublicService {
 
         return workflow.id;
     }
+
 
 
 }

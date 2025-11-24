@@ -37,7 +37,7 @@ model UserProfile {
   status             String    @db.VarChar(20)
   isTemporary        Boolean
   isSameAddress      Boolean?
-  loginMethods       String?   @db.VarChar(20)
+  loginMethods       String?   @db.VarChar(100)
   panNumber          String?   @db.VarChar(20)
   aadharNumber       String?   @db.VarChar(20)
   donationPauseStart DateTime?

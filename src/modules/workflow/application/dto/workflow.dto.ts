@@ -234,6 +234,8 @@ export class WorkflowInstanceDto {
   @IsDefined()
   type: string;
 
+  description: string;
+
   @ApiProperty({ required: true })
   @IsDefined()
   status: WorkflowInstanceStatus;

@@ -51,7 +51,7 @@ export class UserProfileProps {
 export class UserAttributesProps {
   status?: UserStatus;
   userId?: string;
-  roles?: Role[];
+  loginMethods?: LoginMethod[];
 }
 
 export class User extends AggregateRoot<string> {
@@ -217,14 +217,7 @@ export class User extends AggregateRoot<string> {
       });
     }
 
-    this.#isProfileCompleted = !!(
-      this.firstName &&
-      this.lastName &&
-      this.#dateOfBirth &&
-      this.#gender &&
-      this.#email &&
-      this.#authUserId
-    );
+    this.#isProfileCompleted = this.checkComplteness();
     this.#fullName = this.computeFullName();
     this.#initials = this.computeInitials();
     this.#picture = detail.picture ?? this.#picture ?? this.generatePictureUrl();
@@ -235,28 +228,38 @@ export class User extends AggregateRoot<string> {
       this.#isProfileCompleted;
     this.touch();
   }
+  private checkComplteness(): boolean {
+    return !!(
+      this.firstName &&
+      this.lastName &&
+      this.#dateOfBirth &&
+      this.#gender &&
+      this.#email &&
+      this.#authUserId
+    )
+  }
 
   public updateAdmin(detail: UserAttributesProps): void {
-    if (detail.roles && detail.roles.length > 0) {
-      this.updateRoles(detail.roles, []); // no need to pass default role
-    }
     this.#status = detail.status ?? this.#status;
     this.#authUserId = detail.userId ?? this.#authUserId;
-    this.#updateAuth = true;
+    this.#updateAuth = detail.userId !== undefined || this.#status !== undefined;
     this.touch();
   }
 
-  public addLoginMethod(method: LoginMethod): void {
-    if (!this.#loginMethod.includes(method)) {
-      this.#loginMethod.push(method);
+  public addLoginMethod(
+    newMethods?: LoginMethod[],
+  ):  LoginMethod[] {
+    if(!newMethods){
+      return [];
     }
-  }
-
-  public removeLoginMethod(method: LoginMethod): void {
-    if (method === LoginMethod.PASSWORD) {
-      throw new BusinessException('Login Method PASSWORD cannot be removed.');
+    var toAdd: LoginMethod[] = [];
+    for (const newMethod of newMethods) {
+      if (!this.#loginMethod.includes(newMethod)) {
+        this.#loginMethod.push(newMethod);
+        toAdd.push(newMethod);
+      }
     }
-    this.#loginMethod = this.#loginMethod.filter((m) => m !== method);
+    return toAdd;
   }
 
   public updateRoles(
@@ -350,13 +353,12 @@ export class User extends AggregateRoot<string> {
     isPublic: boolean = true,
     authUserId?: string,
     isSameAddress?: boolean,
-    loginMethod: LoginMethod[] = [LoginMethod.EMAIL, LoginMethod.PASSWORD],
+    loginMethod: LoginMethod[] = [/*LoginMethod.EMAIL,*/ LoginMethod.PASSWORD],
     socialMediaLinks: Link[] = [],
     donationPauseStart?: Date,
     donationPauseEnd?: Date,
     panNumber?: string,
     aadharNumber?: string,
-    isProfileCompleted: boolean = false,
   ) {
     super(id);
 
@@ -389,7 +391,7 @@ export class User extends AggregateRoot<string> {
     this.#donationPauseEnd = donationPauseEnd;
     this.#panNumber = panNumber;
     this.#aadharNumber = aadharNumber;
-    this.#isProfileCompleted = isProfileCompleted;
+    this.#isProfileCompleted = this.checkComplteness();
     this.#fullName = this.computeFullName();
   }
 

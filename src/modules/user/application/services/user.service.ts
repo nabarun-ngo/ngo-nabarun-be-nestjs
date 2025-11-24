@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { USER_REPOSITORY } from "../../domain/repositories/user.repository.interface";
 import type { IUserRepository } from "../../domain/repositories/user.repository.interface";
-import { CreateUserDto, UserDto, UserFilterDto, UserUpdateAdminDto, UserUpdateDto } from "../dto/user.dto";
+import { CreateUserDto, UserDto, UserFilterDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from "../dto/user.dto";
 import { CreateUserUseCase } from "../use-cases/create-user.use-case";
 import { toUserDTO } from "../dto/user-dto.mapper";
 import { PagedResult } from "src/shared/models/paged-result";
@@ -11,8 +11,10 @@ import { UpdateUserUseCase } from "../use-cases/update-user.use-case";
 import { Role } from "../../domain/model/role.model";
 import { PhoneNumber } from "../../domain/model/phone-number.model";
 import { Address } from "../../domain/model/address.model";
-import { Link, LinkType } from "../../domain/model/link.model";
+import { Link } from "../../domain/model/link.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
+import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
+import { UserMetadataService } from "../../infrastructure/external/user-metadata.service";
 
 
 @Injectable()
@@ -24,6 +26,7 @@ export class UserService {
         private readonly createUseCase: CreateUserUseCase,
         private readonly updateUseCase: UpdateUserUseCase,
         private readonly assignRoleUseCase: AssignRoleUseCase,
+        private readonly metadataService: UserMetadataService
     ) { }
 
     async list(filterDto: BaseFilter<UserFilterDto>): Promise<PagedResult<UserDto>> {
@@ -61,11 +64,15 @@ export class UserService {
     }
 
     async updateUser(id: string, command: UserUpdateAdminDto): Promise<UserDto> {
+        if(command.roleCodes &&command.roleCodes?.length > 0){
+            await this.assignRole(id, command.roleCodes);
+        }
         const updatedUser = await this.updateUseCase.execute({
             id: id,
             mode: 'admin',
             detail: {
                 status: command.status,
+                loginMethods: command.loginMethods,
             },
         });
         return toUserDTO(updatedUser);
@@ -127,6 +134,27 @@ export class UserService {
             userId: userId,
             newRoles: roles
         });
+    }
+
+    async assignRoleToUser(roleCode: string, userIds: string[]) {
+        for (const userId of userIds) {
+            await this.assignRole(userId, [roleCode]);
+        }
+    }
+
+    async getReferenceData(filter?: UserRefDataFilterDto): Promise<UserRefDataDto> {
+        const data = await this.metadataService.getReferenceData()
+        return {
+            userStatuses: data.status.map(toKeyValueDto),
+            loginMethods: data.loginMethods.map(toKeyValueDto),
+            userGenders: data.userGenders.map(toKeyValueDto),
+            availableRoles: data.availableRoles.map(toKeyValueDto),
+            userTitles: data.userTitles.map(toKeyValueDto),
+            countries: data.countryData.map(toKeyValueDto),
+            states: (filter?.countryCode ? await this.metadataService.getStates(filter.countryCode) : data.stateData).map(toKeyValueDto),
+            districts: (filter?.countryCode && filter.stateCode ? await this.metadataService.getDistricts(filter.countryCode, filter.stateCode) : data.districtData).map(toKeyValueDto),
+            phoneCodes: data.dialCodes.map(toKeyValueDto)
+        }
     }
 
 

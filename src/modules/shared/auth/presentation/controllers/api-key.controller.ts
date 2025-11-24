@@ -9,7 +9,6 @@ import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
-  ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
 import { ApiKeyService } from '../../application/services/api-key.service';
@@ -17,9 +16,10 @@ import { ApiKeyDto, CreateApiKeyDto } from '../dto/api-key.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiKey } from '../../domain/models/api-key.model';
 import { Public } from '../../application/decorators/public.decorator';
+import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 
-@ApiBearerAuth()
+@ApiBearerAuth('jwt')
 @ApiTags('ApiKey')
 @Controller('auth/apikey')
 export class ApiKeyController {
@@ -33,15 +33,11 @@ export class ApiKeyController {
   @ApiOperation({
     summary: 'Generate API Key',
   })
-  @ApiResponse({
-      status: 200,
-      description: '',
-      type: SuccessResponse<ApiKeyDto>,
-    })
+  @ApiAutoResponse(ApiKeyDto, { description: 'API Key generated successfully' })
   @ApiBody({ type: CreateApiKeyDto  })
   async generateApiKey(
     @Body() create: CreateApiKeyDto,
-  ) {
+  ): Promise<SuccessResponse<ApiKeyDto>> {
     const result = await this.apiKeyService.generateApiKey(
       create.name,
       create.permissions,

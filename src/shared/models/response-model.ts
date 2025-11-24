@@ -1,11 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptions } from '@nestjs/swagger';
 
 export class SuccessResponse<T> {
   @ApiProperty() info: string;
   @ApiProperty() timestamp: Date;
   @ApiProperty() traceId?: string;
   @ApiProperty() message: string;
-  @ApiProperty() responsePayload?: T;
+  @ApiProperty({ description: 'Response payload data'}) responsePayload?: T;
 
   constructor(payload?: T) {
     this.info = 'Success';
@@ -27,12 +27,14 @@ export class ErrorResponse {
   @ApiProperty() timestamp: Date;
   @ApiProperty() traceId?: string;
   @ApiProperty() messages: string[];
-  @ApiProperty() stackTrace?: string;
+  @ApiProperty({ required: false }) stackTrace?: string;
+  @ApiProperty({ required: false }) errorCode?: string;
 
   constructor(err?: Error) {
     this.info = 'Error';
     this.timestamp = new Date();
     this.traceId = ''; // mimic MDC
+    this.messages = [];
     if (err) {
       this.messages = [err.message];
       this.stackTrace = err.stack;
@@ -43,6 +45,11 @@ export class ErrorResponse {
 
   addMessage(message: string) {
     this.messages.unshift(message);
+    return this;
+  }
+
+  setErrorCode(code: string) {
+    this.errorCode = code;
     return this;
   }
 }

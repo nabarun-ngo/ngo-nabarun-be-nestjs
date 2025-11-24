@@ -3,10 +3,22 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "plugins": ["@nestjs/swagger"],
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "introspectComments": true
+        }
+      }
+    ],
     "assets": [
       {
         "include": "**/templates/**/*",
+        "outDir": "dist"
+      },
+      {
+        "include": "**/data/**/*",
         "outDir": "dist"
       }
     ],

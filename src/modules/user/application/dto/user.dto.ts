@@ -16,18 +16,21 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { LoginMethod, UserStatus } from '../../domain/model/user.model';
 import { LinkType } from '../../domain/model/link.model';
+import { KeyValue } from 'src/shared/dto/KeyValue.dto';
 
 export class PhoneNumberDto {
 
   @IsString()
+  @ApiProperty()
   code: string;
 
   @IsString()
-
+  @ApiProperty()
   number: string;
 
 
   @IsOptional()
+  @ApiPropertyOptional()
   fullNumber: string;
 }
 
@@ -35,46 +38,55 @@ export class AddressDto {
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   addressLine1: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   addressLine2?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   addressLine3?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   landmark?: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   hometown: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   zipCode: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   state: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   district: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   country: string;
 }
 
@@ -82,16 +94,19 @@ export class LinkDto {
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   linkName: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty({ enum: LinkType })
   linkType: LinkType;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   linkValue: string;
 }
 
@@ -99,16 +114,19 @@ export class RoleDto {
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   roleCode: string;
 
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   roleName: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   description?: string;
 }
 
@@ -116,24 +134,29 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
+  @ApiProperty({ minLength: 2 })
   firstName: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
+  @ApiProperty({ minLength: 2 })
   lastName: string;
 
   @IsEmail()
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   email: string;
 
   @IsObject()
   @ValidateNested()
   @Type(() => PhoneNumberDto)
+  @ApiProperty({ type: () => PhoneNumberDto })
   phoneNumber: PhoneNumberDto;
 
   @IsBoolean()
+  @ApiProperty()
   isTemporary: boolean;
 }
 
@@ -141,65 +164,77 @@ export class UserUpdateDto {
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   title?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   firstName?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   middleName?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   lastName?: string;
 
 
   @IsOptional()
   @IsDate()
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
   dateOfBirth?: Date;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   gender?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   about?: string;
 
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   picture?: string;
 
 
   @IsOptional()
   @ValidateNested()
   @Type(() => PhoneNumberDto)
+  @ApiPropertyOptional({ type: () => PhoneNumberDto })
   primaryNumber?: PhoneNumberDto;
 
 
   @IsOptional()
   @ValidateNested()
   @Type(() => PhoneNumberDto)
+  @ApiPropertyOptional({ type: () => PhoneNumberDto })
   secondaryNumber?: PhoneNumberDto;
 
 
   @IsOptional()
   @ValidateNested()
   @Type(() => AddressDto)
+  @ApiPropertyOptional({ type: () => AddressDto })
   presentAddress?: AddressDto;
 
 
   @IsOptional()
   @ValidateNested()
   @Type(() => AddressDto)
+  @ApiPropertyOptional({ type: () => AddressDto })
   permanentAddress?: AddressDto;
 
 
@@ -207,16 +242,19 @@ export class UserUpdateDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LinkDto)
+  @ApiPropertyOptional({ type: () => [LinkDto] })
   socialMediaLinks?: LinkDto[];
 
 
   @IsOptional()
   @IsBoolean()
+  @ApiPropertyOptional()
   isAddressSame?: boolean;
 
 
   @IsOptional()
   @IsBoolean()
+  @ApiPropertyOptional()
   isPublicProfile?: boolean;
 }
 
@@ -224,19 +262,22 @@ export class UserUpdateAdminDto {
 
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RoleDto)
-  roles?: RoleDto[];
+  @ApiPropertyOptional()
+  @IsString({ each: true })
+  roleCodes?: string[];
 
 
   @IsOptional()
   @IsEnum(UserStatus)
+  @ApiPropertyOptional({ enum: UserStatus })
   status?: UserStatus;
 
 
+  @ApiPropertyOptional({ enum: LoginMethod, isArray: true })
   @IsOptional()
-  @IsBoolean()
-  isActiveDonor?: boolean;
+  @IsArray()
+  @IsEnum(LoginMethod, { each: true })
+  loginMethods?: LoginMethod[];
 
 }
 
@@ -246,8 +287,11 @@ export class UserFilterDto {
   @IsOptional() readonly firstName?: string;
   @ApiPropertyOptional() @IsOptional() readonly lastName?: string;
   @ApiPropertyOptional() @IsOptional() readonly email?: string;
-  @ApiPropertyOptional() @IsOptional() readonly status?: UserStatus;
-  @ApiPropertyOptional() @IsOptional() readonly roleCodes?: string[];
+  @ApiPropertyOptional({ enum: UserStatus }) @IsOptional() readonly status?: UserStatus;
+  @ApiPropertyOptional({ isArray: true, type: String })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true }) readonly roleCodes?: string[];
   @ApiPropertyOptional() @IsOptional() readonly phoneNumber?: string;
   @ApiPropertyOptional() @IsOptional() readonly public?: boolean;
 
@@ -255,35 +299,94 @@ export class UserFilterDto {
 
 export class UserDto {
 
+  @ApiProperty()
   id: string;
 
+  @ApiPropertyOptional()
   title?: string;
 
+  @ApiProperty()
   fullName: string;
 
+  @ApiProperty()
   firstName: string;
+  @ApiPropertyOptional()
   middleName?: string;
+  @ApiProperty()
   lastName: string;
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
   dateOfBirth?: Date;
+  @ApiPropertyOptional()
   gender?: string;
+  @ApiPropertyOptional()
   about?: string;
+  @ApiPropertyOptional()
   picture?: string;
+  @ApiProperty({ type: () => [RoleDto] })
   roles: RoleDto[];
+  @ApiProperty()
   email: string;
+  @ApiPropertyOptional({ type: () => PhoneNumberDto })
   primaryNumber?: PhoneNumberDto;
+  @ApiPropertyOptional({ type: () => PhoneNumberDto })
   secondaryNumber?: PhoneNumberDto;
+  @ApiPropertyOptional({ type: () => AddressDto })
   presentAddress?: AddressDto;
+  @ApiPropertyOptional({ type: () => AddressDto })
   permanentAddress?: AddressDto;
+  @ApiProperty({ type: () => [LinkDto] })
   socialMediaLinks: LinkDto[];
+  @ApiProperty({ type: String, format: 'date-time' })
   createdOn: Date;
+  @ApiProperty({ name: 'activeDonor' })
   activeDonor: boolean;
+  @ApiProperty({ name: 'publicProfile' })
   publicProfile: boolean;
+  @ApiPropertyOptional()
   userId?: string;
+  @ApiProperty({ enum: UserStatus })
   status: UserStatus;
+  @ApiProperty({ type: () => [String] })
   loginMethod: LoginMethod[];
+  @ApiPropertyOptional({ name: 'addressSame' })
   addressSame?: boolean;
-  profileCompleted: boolean;
+  //@ApiProperty()
+  //profileCompleted: boolean;
+  @ApiProperty()
   blocked: boolean;
 }
+
+export class UserRefDataDto {
+  @ApiProperty()
+  userStatuses?: KeyValue[];
+  @ApiProperty()
+  loginMethods?: KeyValue[];
+  @ApiProperty()
+  userGenders?: KeyValue[];
+  @ApiProperty()
+  availableRoles?: KeyValue[];
+  @ApiProperty()
+  userTitles?: KeyValue[];
+  @ApiProperty()
+  countries?: KeyValue[];
+  @ApiProperty()
+  states?: KeyValue[];
+  @ApiProperty()
+  districts?: KeyValue[];
+  @ApiProperty()
+  phoneCodes?: KeyValue[];
+
+}
+
+export class UserRefDataFilterDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  countryCode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  stateCode?: string;
+}
+
 
 

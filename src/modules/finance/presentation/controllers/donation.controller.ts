@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Query,
 } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateRegularDonationUseCase } from '../../application/use-cases/create-regular-donation.use-case';
 import { CreateOneTimeDonationUseCase } from '../../application/use-cases/create-one-time-donation.use-case';
 import { ProcessDonationPaymentUseCase } from '../../application/use-cases/process-donation-payment.use-case';
@@ -15,12 +16,16 @@ import {
   CreateRegularDonationDto,
   CreateOneTimeDonationDto,
   ProcessDonationPaymentDto,
+  DonationDto,
 } from '../../application/dto/donation.dto';
+import { ApiAutoResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse } from 'src/shared/models/response-model';
 
 /**
  * Donation Controller
  * Handles HTTP requests for donation operations
  */
+@ApiTags('Donations')
 @Controller('finance/donations')
 export class DonationController {
   constructor(
@@ -30,28 +35,31 @@ export class DonationController {
   ) {}
 
   @Post('regular')
-  @HttpCode(HttpStatus.CREATED)
-  async createRegular(@Body() dto: CreateRegularDonationDto) {
+  @ApiOperation({ summary: 'Create a regular donation' })
+  @ApiAutoResponse(DonationDto, { status: 201, description: 'Regular donation created successfully', wrapInSuccessResponse: false })
+  async createRegular(@Body() dto: CreateRegularDonationDto): Promise<DonationDto> {
     return await this.createRegularDonationUseCase.execute(dto);
   }
 
   @Post('one-time')
-  @HttpCode(HttpStatus.CREATED)
-  async createOneTime(@Body() dto: CreateOneTimeDonationDto) {
+  @ApiOperation({ summary: 'Create a one-time donation' })
+  @ApiAutoResponse(DonationDto, { status: 201, description: 'One-time donation created successfully', wrapInSuccessResponse: false })
+  async createOneTime(@Body() dto: CreateOneTimeDonationDto): Promise<DonationDto> {
     return await this.createOneTimeDonationUseCase.execute(dto);
   }
 
   @Post(':id/process-payment')
-  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Process payment for a donation' })
+  @ApiAutoPrimitiveResponse('string', { description: 'Payment processed successfully' })
   async processPayment(
     @Param('id') id: string,
     @Body() dto: Omit<ProcessDonationPaymentDto, 'donationId'>,
-  ) {
+  ): Promise<SuccessResponse<string>> {
     await this.processDonationPaymentUseCase.execute({
       ...dto,
       donationId: id,
     });
-    return { message: 'Payment processed successfully' };
+    return new SuccessResponse<string>('Payment processed successfully');
   }
 
   // TODO: Add more endpoints:
