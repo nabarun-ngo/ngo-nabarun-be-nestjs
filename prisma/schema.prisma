@@ -62,9 +62,9 @@ model UserProfile {
 
 model UserRole {
   id           String  @id
-  roleCode     String  @db.VarChar(20)
+  roleCode     String  @db.VarChar(50)
   roleName     String  @db.VarChar(50)
-  authRoleCode String  @db.VarChar(20)
+  authRoleCode String  @db.VarChar(50)
   isDefault    Boolean @default(false)
 
   // Relation to UserProfile (UserEntity in JPA)
