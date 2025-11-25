@@ -6,7 +6,6 @@ import { KeyValueConfig } from "src/shared/models/key-value-config.model";
 import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
 import * as path from 'path';
 import fs from "fs";
-import { KeyValue } from "src/shared/dto/KeyValue.dto";
 
 @Injectable()
 export class UserMetadataService {
@@ -28,7 +27,9 @@ export class UserMetadataService {
         const genders = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_GENDERS'].value)
         const roles = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_ROLES'].value)
         const titles = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_TITLES'].value)
-        const cached = await this.getCachedData();
+        const countries = parsefromString<KeyValueConfig[]>(keyValueConfigs['COUNTRY_LIST'].value)
+        const states = parsefromString<KeyValueConfig[]>(keyValueConfigs['STATE_LIST'].value)
+        const districts = parsefromString<KeyValueConfig[]>(keyValueConfigs['DISTRICT_LIST'].value)
 
         return {
             status: status,
@@ -36,48 +37,27 @@ export class UserMetadataService {
             userGenders: genders,
             availableRoles: roles,
             userTitles: titles,
-            dialCodes: cached['COUNTRY_LIST'].map(data => {
-                return {
-                    KEY: data.ATTRIBUTES['KEY'],
-                    VALUE: data.ATTRIBUTES['DIALCODE'],
-                    DESCRIPTION: `${data.VALUE} (${data.ATTRIBUTES['DIALCODE']})`
-                } as KeyValueConfig;
-            }),
-            countryData: cached['COUNTRY_LIST'].map(this.mapData),
-            stateData: cached['STATE_LIST'],
-            districtData: cached['DISTRICT_LIST']
+            dialCodes: countries.map(this.mapDialCodeData),
+            countryData: countries.map(this.mapData),
+            stateData: states.map(this.mapData),
+            districtData: districts.map(this.mapData)
         }
-    }
-
-
-    private async getCachedData() {
-        var cached = await this.cacheManager.get<Record<string, KeyValueConfig[]>>('LOCATION_DATA');
-        if (!cached) {
-            this.logger.log('Caching location data...')
-            const dataDir = path.join(__dirname, './../../data');
-            const locationFile = 'location.json';
-            const filePath = path.join(dataDir, locationFile);
-            this.logger.log('location data path ' + filePath)
-            const source = fs.readFileSync(filePath, 'utf-8');
-            cached = parsefromString<Record<string, KeyValueConfig[]>>(source);
-            await this.cacheManager.set('LOCATION_DATA', cached);
-            this.logger.log('Caching location data completed...')
-        }
-        this.logger.log('Using cached location data...', cached)
-        return cached;
     }
 
     async getStates(countryCode: string): Promise<KeyValueConfig[]> {
-        const cached = await this.getCachedData();
-        return cached['STATE_LIST']
+        const keyValueConfigs = await this.configService.getAllKeyValues()
+        const states = parsefromString<KeyValueConfig[]>(keyValueConfigs['STATE_LIST'].value)
+        return states
             .filter(data => data.ATTRIBUTES['COUNTRYKEY'] === countryCode)
             .map(this.mapData);
     }
 
 
     async getDistricts(countryCode: string, stateCode: string): Promise<KeyValueConfig[]> {
-        const cached = await this.getCachedData();
-        return cached['DISTRICT_LIST']
+        const keyValueConfigs = await this.configService.getAllKeyValues()
+        const districts = parsefromString<KeyValueConfig[]>(keyValueConfigs['DISTRICT_LIST'].value)
+
+        return districts
             .filter(data => data.ATTRIBUTES['COUNTRYKEY'] === countryCode && data.ATTRIBUTES['STATEKEY'] === stateCode)
             .map(this.mapData);
     }
@@ -88,6 +68,14 @@ export class UserMetadataService {
             VALUE: data.VALUE,
             DESCRIPTION: `${data.VALUE} (${data.KEY})`
         } as KeyValueConfig
+    }
+
+    private mapDialCodeData(data: KeyValueConfig): KeyValueConfig {
+        return {
+            KEY: data.ATTRIBUTES['KEY'],
+            VALUE: data.ATTRIBUTES['DIALCODE'],
+            DESCRIPTION: `${data.VALUE} (${data.ATTRIBUTES['DIALCODE']})`
+        } as KeyValueConfig;
     }
 
 }
