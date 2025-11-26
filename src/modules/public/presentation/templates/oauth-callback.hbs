@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if isSuccess}}OAuth Authorization Successful{{else}}OAuth Authorization Failed{{/if}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            {{#if isSuccess}}
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            {{else}}
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            {{/if}}
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin: 0 auto 32px;
+            display: block;
+            animation: fadeIn 0.6s ease-out 0.1s both;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            {{#if isSuccess}}
+            background: #10b981;
+            {{else}}
+            background: #ef4444;
+            {{/if}}
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            animation: scaleIn 0.5s ease-out 0.2s both;
+        }
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+        .icon::after {
+            content: '{{#if isSuccess}}✓{{else}}✕{{/if}}';
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #1f2937;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        p {
+            color: #6b7280;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        {{#if isSuccess}}
+        {{#if message}}
+        .message {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: #065f46;
+            font-size: 14px;
+        }
+        {{/if}}
+        {{#if email}}
+        .email-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #374151;
+        }
+        .email-info strong {
+            color: #1f2937;
+        }
+        {{/if}}
+        {{else}}
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: #991b1b;
+            font-size: 14px;
+            text-align: left;
+        }
+        .error-message strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #dc2626;
+        }
+        {{#if reason}}
+        .reason {
+            background: #fffbeb;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+            color: #92400e;
+            font-size: 13px;
+        }
+        {{/if}}
+        {{/if}}
+        .button {
+            display: inline-block;
+            padding: 12px 32px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 12px;
+        }
+        .button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .button-secondary {
+            background: #6b7280;
+        }
+        .button-secondary:hover {
+            background: #4b5563;
+        }
+        .info {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .actions {
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="http://cdn.mcauto-images-production.sendgrid.net/0444293aaaecaf6d/3f6954f6-dfdf-4df7-8d59-b1a4bc2ea3a9/1305x877.png" alt="Logo" class="logo" />
+        <h1>{{title}}</h1>
+        
+        {{#if isSuccess}}
+            {{#if message}}
+            <div class="message">{{message}}</div>
+            {{/if}}
+            <p>{{description}}</p>
+            {{#if email}}
+            <div class="email-info">
+                <strong>Connected Account:</strong> {{email}}
+            </div>
+            {{/if}}
+            <div class="info">
+                <strong>Note:</strong> You can safely close this window and return to the application.
+            </div>
+        {{else}}
+            <div class="error-message">
+                <strong>Error Details:</strong>
+                {{message}}
+            </div>
+            {{#if reason}}
+            <div class="reason">
+                <strong>Reason:</strong> {{reason}}
+            </div>
+            {{/if}}
+            <p>{{description}}</p>
+            <div class="actions">
+                {{#if retryUrl}}
+                <a href="{{retryUrl}}" class="button">Try Again</a>
+                {{/if}}
+            </div>
+            <div class="info">
+                <strong>Need Help?</strong> If this problem persists, please contact support.
+            </div>
+        {{/if}}
+    </div>
+    <script>
+        // Auto-close after delay if opened in popup
+        if (window.opener) {
+            setTimeout(() => {
+                window.close();
+            }, {{#if isSuccess}}3000{{else}}5000{{/if}});
+        }
+    </script>
+</body>
+</html>
+

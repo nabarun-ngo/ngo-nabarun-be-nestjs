@@ -2,10 +2,8 @@ import {
   Controller,
   Get,
   Query,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
+  BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,8 +12,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
-import { AuthCallbackDto } from '../dto/oauth..dto';
-import { ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 
 
@@ -23,8 +20,11 @@ import { ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-respons
 @ApiBearerAuth('jwt')
 @Controller('auth/oauth')
 export class OAuthController {
+
+
   constructor(
     private readonly oAuthService: GoogleOAuthService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) { }
 
 
@@ -32,16 +32,43 @@ export class OAuthController {
   @ApiOperation({
     summary: 'Get Gmail OAuth authorization URL',
     description:
-      'Returns the OAuth URL to redirect users to for Gmail authentication',
+      'Returns the OAuth URL to redirect users to for Gmail authentication. State parameter is automatically generated server-side for security.',
+  })
+  @ApiQuery({
+    name: 'scopes',
+    required: false,
+    description: 'Space-separated list of OAuth scopes (must be whitelisted)',
+    type: String,
   })
   @ApiQuery({
     name: 'state',
     required: false,
-    description: 'Optional state parameter for OAuth flow',
+    description: 'Optional custom state parameter (if not provided, secure state will be generated server-side)',
+    type: String,
   })
-  getGmailAuthUrl(@Query('scopes') scopes: string, @Query('state') state?: string) {
-    const scopeList = scopes ? scopes.split(' ') : [];
-    return this.oAuthService.getAuthUrl(scopeList, state);
+  async getGmailAuthUrl(
+    @Query('scopes') scopes?: string,
+    @Query('state') state?: string,
+  ) {
+    // Input validation
+    if (scopes && scopes.length > 1000) {
+      throw new BadRequestException('Scopes parameter is too long. Maximum 1000 characters allowed.');
+    }
+
+    // Parse and validate scopes
+    const scopeList = scopes 
+      ? scopes.split(' ').filter(s => s.trim().length > 0)
+      : [];
+
+    // Validate scope format (basic check)
+    for (const scope of scopeList) {
+      if (scope.length > 200) {
+        throw new BadRequestException(`Scope "${scope.substring(0, 50)}..." is too long. Maximum 200 characters per scope.`);
+      }
+    }
+
+    // Generate auth URL (state will be generated server-side if not provided)
+    return await this.oAuthService.getAuthUrl(scopeList, state);
   }
 
   @Get('google/scopes')
@@ -49,26 +76,6 @@ export class OAuthController {
   getGoogleScopes() {
     return this.oAuthService.getOAuthScopes();
   }
-
-
-  @Post('google/submit-callback')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Handle Gmail OAuth callback',
-    description:
-      'Processes the OAuth callback code and stores the authentication tokens. Email can be provided in body or will be fetched from Google.',
-  })
-  async handleGmailCallback(
-    @Body() callbackDto: AuthCallbackDto,
-  ) {
-    // Email is optional - will be fetched from Google if not provided
-    const result = await this.oAuthService.handleCallback(
-      callbackDto.code,
-      callbackDto.clientId,
-    );
-    return result;
-  }
-
 
 
 }

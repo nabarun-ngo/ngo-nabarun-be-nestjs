@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { INestApplication, RequestMethod, ValidationPipe } from "@nestjs/common";
 import compression from "compression";
 import { configureSwagger } from "./swagger-config";
 import { Configkey } from "src/shared/config-keys";
@@ -39,7 +39,14 @@ export function applyConfig(app: INestApplication) {
   app.useGlobalPipes(config.validation);
 
   // Set global prefix BEFORE configuring Swagger so it picks up the prefix
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api',{
+    exclude:[
+      {
+        path:'/callback/oauth/google',
+        method: RequestMethod.GET
+      }
+    ]
+  });
 
   if (!config.app.isProd) {
     configureSwagger(app);

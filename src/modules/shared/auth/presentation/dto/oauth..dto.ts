@@ -1,14 +1,24 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsOptional, IsString } from "class-validator";
+import { IsString, MaxLength, MinLength } from "class-validator";
 
 export class AuthCallbackDto {
     @IsString()
-    @ApiProperty()
+    @MinLength(10)
+    @MaxLength(500)
+    @ApiProperty({
+        description: 'OAuth authorization code from Google',
+        minLength: 10,
+        maxLength: 500,
+    })
     code: string;
-    @ApiProperty()
-    @IsOptional()
-    state?: string;
+
     @IsString()
-    @ApiProperty()
-    clientId: string;
+    @MinLength(10)
+    @MaxLength(200)
+    @ApiProperty({
+        description: 'State parameter for CSRF protection (returned from auth-url endpoint)',
+        minLength: 10,
+        maxLength: 200,
+    })
+    state: string;
 }
