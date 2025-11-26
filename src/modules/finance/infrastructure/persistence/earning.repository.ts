@@ -3,73 +3,142 @@ import { IEarningRepository } from '../../domain/repositories/earning.repository
 import { Earning, EarningCategory } from '../../domain/model/earning.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
-import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
-import { EarningPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { EarningDetailFilterDto } from '../../application/dto/earning.dto';
 
 @Injectable()
-class EarningRepository
-  extends PrismaBaseRepository<
-    Earning,
-    PrismaPostgresService['earning'],
-    Prisma.EarningWhereUniqueInput,
-    Prisma.EarningWhereInput,
-    EarningPersistence.Base,
-    Prisma.EarningCreateInput,
-    Prisma.EarningUpdateInput
-  >
-  implements IEarningRepository
-{
-  protected getDelegate(prisma: PrismaPostgresService){
-    return prisma.earning;
-  }
-  constructor(prisma: PrismaPostgresService) {
-    super(prisma);
-  }
-  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Earning>> {
-    throw new Error('Method not implemented.');
+class EarningRepository implements IEarningRepository {
+  constructor(private readonly prisma: PrismaPostgresService) {}
+
+  async findPaged(filter?: BaseFilter<EarningDetailFilterDto>): Promise<PagedResult<Earning>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.earning.findMany({
+        where,
+        orderBy: { earningDate: 'desc' },
+        include: {
+          account: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.earning.count({ where }),
+    ]);
+
+    return new PagedResult<Earning>(
+      data.map(m => FinanceInfraMapper.toEarningDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 10,
+    );
   }
 
+  async findAll(filter?: EarningDetailFilterDto): Promise<Earning[]> {
+    const earnings = await this.prisma.earning.findMany({
+      where: this.whereQuery(filter),
+      orderBy: { earningDate: 'desc' },
+      include: {
+        account: true,
+      },
+    });
 
-  protected toDomain(prismaModel: any): Earning | null {
-    return FinanceInfraMapper.toEarningDomain(prismaModel);
+    return earnings.map(m => FinanceInfraMapper.toEarningDomain(m)!);
   }
 
-  async findAll(filter?: any): Promise<Earning[]> {
+  private whereQuery(props?: EarningDetailFilterDto): Prisma.EarningWhereInput {
     const where: Prisma.EarningWhereInput = {
-      category: filter?.category,
-      source: filter?.source,
+      ...(props?.category ? { category: props.category } : {}),
+      ...(props?.source ? { source: props.source } : {}),
+      ...(props?.status ? { status: props.status } : {}),
+      ...(props?.startDate || props?.endDate
+        ? {
+            earningDate: {
+              ...(props.startDate ? { gte: props.startDate } : {}),
+              ...(props.endDate ? { lte: props.endDate } : {}),
+            },
+          }
+        : {}),
       deletedAt: null,
     };
-    return this.findMany(where);
+    return where;
   }
 
   async findById(id: string): Promise<Earning | null> {
-    return this.findUnique({ id });
+    const earning = await this.prisma.earning.findUnique({
+      where: { id },
+      include: {
+        account: true,
+      },
+    });
+
+    return FinanceInfraMapper.toEarningDomain(earning);
   }
 
   async findByCategory(category: EarningCategory): Promise<Earning[]> {
-    return this.findMany({ category, deletedAt: null });
+    const earnings = await this.prisma.earning.findMany({
+      where: { category, deletedAt: null },
+      orderBy: { earningDate: 'desc' },
+      include: {
+        account: true,
+      },
+    });
+
+    return earnings.map(m => FinanceInfraMapper.toEarningDomain(m)!);
   }
 
   async findBySource(source: string): Promise<Earning[]> {
-    return this.findMany({ source, deletedAt: null });
+    const earnings = await this.prisma.earning.findMany({
+      where: { source, deletedAt: null },
+      orderBy: { earningDate: 'desc' },
+      include: {
+        account: true,
+      },
+    });
+
+    return earnings.map(m => FinanceInfraMapper.toEarningDomain(m)!);
   }
 
   async create(earning: Earning): Promise<Earning> {
-    const createData = FinanceInfraMapper.toEarningCreatePersistence(earning);
-    return this.createRecord(createData);
+    const createData: Prisma.EarningUncheckedCreateInput = {
+      ...FinanceInfraMapper.toEarningCreatePersistence(earning),
+    };
+
+    const created = await this.prisma.earning.create({
+      data: createData,
+      include: {
+        account: true,
+      },
+    });
+
+    return FinanceInfraMapper.toEarningDomain(created)!;
   }
 
   async update(id: string, earning: Earning): Promise<Earning> {
-    const updateData = FinanceInfraMapper.toEarningUpdatePersistence(earning);
-    return this.updateRecord({ id }, updateData);
+    const updateData: Prisma.EarningUncheckedUpdateInput = {
+      ...FinanceInfraMapper.toEarningUpdatePersistence(earning),
+    };
+
+    const updated = await this.prisma.earning.update({
+      where: { id },
+      data: updateData,
+      include: {
+        account: true,
+      },
+    });
+
+    return FinanceInfraMapper.toEarningDomain(updated)!;
   }
 
   async delete(id: string): Promise<void> {
-    await this.softDelete({ id });
+    await this.prisma.earning.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
   }
 }
 

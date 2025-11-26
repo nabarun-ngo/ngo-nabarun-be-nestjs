@@ -1,77 +1,94 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { IUseCase } from 'src/shared/interfaces/use-case.interface';
-import { Transaction } from '../../domain/model/transaction.model';
+import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
+import { Donation, PaymentMethod } from '../../domain/model/donation.model';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
-import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
-import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { ProcessDonationPaymentDto } from '../dto/donation.dto';
+import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { ProcessDonationPaymentDto } from '../dto/donation.dto';
+import { Transaction, TransactionType } from '../../domain/model/transaction.model';
+import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
+import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 
 @Injectable()
-export class ProcessDonationPaymentUseCase implements IUseCase<ProcessDonationPaymentDto, void> {
+export class ProcessDonationPaymentUseCase implements IUseCase<ProcessDonationPaymentDto, Donation> {
   constructor(
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
-    @Inject(TRANSACTION_REPOSITORY)
-    private readonly transactionRepository: ITransactionRepository,
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
+    @Inject(TRANSACTION_REPOSITORY)
+    private readonly transactionRepository: ITransactionRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(request: ProcessDonationPaymentDto): Promise<void> {
-    // Get donation
+  async execute(request: ProcessDonationPaymentDto): Promise<Donation> {
     const donation = await this.donationRepository.findById(request.donationId);
     if (!donation) {
-      throw new BusinessException('Donation not found');
+      throw new BusinessException(`Donation not found with id: ${request.donationId}`);
     }
 
-    if (!donation.isPending()) {
-      throw new BusinessException('Donation is not pending payment');
+    if (!donation.canBePaid()) {
+      throw new BusinessException(`Donation cannot be paid in current status: ${donation.status}`);
     }
 
-    // Get account
-    const account = await this.accountRepository.findById(request.accountId);
-    if (!account) {
-      throw new BusinessException('Account not found');
+    // Get account if provided
+    let account = null;
+    if (request.accountId) {
+      account = await this.accountRepository.findById(request.accountId);
+      if (!account) {
+        throw new BusinessException(`Account not found with id: ${request.accountId}`);
+      }
+      if (!account.isActive()) {
+        throw new BusinessException('Cannot process payment to inactive account');
+      }
     }
 
     // Create transaction
-    const transaction = Transaction.createFromDonation({
+    const transaction = Transaction.createIn({
       amount: donation.amount,
       currency: donation.currency,
-      accountId: account.id,
-      donationId: donation.id,
-      description: `Donation payment from ${donation.donorName || donation.donorId || 'guest'}`,
-      metadata: {
-        donationType: donation.type,
-        donorId: donation.donorId,
-        donorEmail: donation.donorEmail,
-      },
+      accountId: request.accountId || account?.id || '',
+      description: `Donation payment: ${donation.description || 'N/A'}`,
+      referenceId: donation.id,
+      referenceType: 'DONATION' as any,
+      txnNumber: request.transactionRef,
+      comment: request.remarks,
+      transactionDate: request.paidOn,
     });
 
-    // Credit account
-    account.credit(donation.amount);
+    // Credit account if provided
+    if (account) {
+      account.credit(donation.amount);
+      await this.accountRepository.update(account.id, account);
+    }
+
+    // Save transaction
+    const savedTransaction = await this.transactionRepository.create(transaction);
 
     // Mark donation as paid
-    donation.markAsPaid(transaction.id);
+    donation.markAsPaid({
+      transactionId: savedTransaction.id,
+      accountId: request.accountId,
+      paymentMethod: request.paymentMethod as PaymentMethod,
+      paidUsingUPI: request.paidUsingUPI as any,
+      confirmedBy: request.confirmedBy,
+    });
 
-    // Save all changes
-    await this.transactionRepository.create(transaction);
-    await this.accountRepository.update(account.id, account);
-    await this.donationRepository.update(donation.id, donation);
+    if (request.isPaymentNotified) {
+      donation.markPaymentNotified();
+    }
+
+    const updatedDonation = await this.donationRepository.update(donation.id, donation);
 
     // Emit domain events
-    for (const event of [...donation.domainEvents, ...transaction.domainEvents, ...account.domainEvents]) {
+    for (const event of updatedDonation.domainEvents) {
       this.eventEmitter.emit(event.constructor.name, event);
     }
-    
-    donation.clearEvents();
-    transaction.clearEvents();
-    account.clearEvents();
+    updatedDonation.clearEvents();
+
+    return updatedDonation;
   }
 }

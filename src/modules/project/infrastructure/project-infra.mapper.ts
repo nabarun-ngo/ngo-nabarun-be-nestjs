@@ -1,0 +1,520 @@
+import { Project, ProjectCategory, ProjectStatus, ProjectPhase } from '../domain/model/project.model';
+import { Goal, GoalPriority, GoalStatus } from '../domain/model/goal.model';
+import { Activity, ActivityScale, ActivityType, ActivityStatus, ActivityPriority } from '../domain/model/activity.model';
+import { Milestone, MilestoneStatus, MilestoneImportance } from '../domain/model/milestone.model';
+import { ProjectTeamMember, ProjectTeamMemberRole } from '../domain/model/project-team-member.model';
+import { Beneficiary, BeneficiaryType, BeneficiaryGender, BeneficiaryStatus } from '../domain/model/beneficiary.model';
+import { ProjectRisk, RiskCategory, RiskSeverity, RiskProbability, RiskStatus } from '../domain/model/project-risk.model';
+import { Prisma } from '@prisma/client';
+import {
+  ProjectPersistence,
+  GoalPersistence,
+  ActivityPersistence,
+  MilestonePersistence,
+  ProjectTeamMemberPersistence,
+  BeneficiaryPersistence,
+  ProjectRiskPersistence,
+} from './types/project-persistence.types';
+import { MapperUtils } from 'src/modules/shared/database/mapper-utils';
+
+/**
+ * Project Infrastructure Mapper
+ * Handles conversion between Prisma persistence models and Domain models
+ */
+export class ProjectInfraMapper {
+  // ===== PROJECT MAPPERS =====
+
+  static toProjectDomain(p: ProjectPersistence.Base | any): Project | null {
+    if (!p) return null;
+
+    const project = Project.create({
+      name: p.name,
+      description: p.description,
+      code: p.code,
+      category: p.category as ProjectCategory,
+      status: p.status as ProjectStatus,
+      phase: p.phase as ProjectPhase,
+      startDate: p.startDate,
+      endDate: MapperUtils.nullToUndefined(p.endDate),
+      budget: Number(p.budget),
+      currency: p.currency,
+      location: MapperUtils.nullToUndefined(p.location),
+      targetBeneficiaryCount: MapperUtils.nullToUndefined(p.targetBeneficiaryCount),
+      managerId: p.managerId,
+      sponsorId: MapperUtils.nullToUndefined(p.sponsorId),
+      tags: p.tags || [],
+      metadata: p.metadata as Record<string, any> | undefined,
+    });
+
+    // Set private fields using reflection or direct assignment
+    (project as any)['#id'] = p.id;
+    (project as any)['#spentAmount'] = Number(p.spentAmount);
+    (project as any)['#actualBeneficiaryCount'] = MapperUtils.nullToUndefined(p.actualBeneficiaryCount);
+    (project as any)['#actualEndDate'] = MapperUtils.nullToUndefined(p.actualEndDate);
+    (project as any)['createdAt'] = p.createdAt;
+    (project as any)['updatedAt'] = p.updatedAt;
+    (project as any)['version'] = p.version;
+
+    return project;
+  }
+
+  static toProjectCreatePersistence(domain: Project): Prisma.ProjectUncheckedCreateInput {
+    return {
+      id: domain.id,
+      name: domain.name,
+      description: domain.description,
+      code: domain.code,
+      category: domain.category,
+      status: domain.status,
+      phase: domain.phase,
+      startDate: domain.startDate,
+      endDate: MapperUtils.undefinedToNull(domain.endDate),
+      actualEndDate: MapperUtils.undefinedToNull(domain.actualEndDate),
+      budget: domain.budget,
+      spentAmount: domain.spentAmount,
+      currency: domain.currency,
+      location: MapperUtils.undefinedToNull(domain.location),
+      targetBeneficiaryCount: MapperUtils.undefinedToNull(domain.targetBeneficiaryCount),
+      actualBeneficiaryCount: MapperUtils.undefinedToNull(domain.actualBeneficiaryCount),
+      managerId: domain.managerId,
+      sponsorId: MapperUtils.undefinedToNull(domain.sponsorId),
+      tags: domain.tags,
+      metadata: domain.metadata as Prisma.InputJsonValue,
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+      version: domain.version || BigInt(0),
+    };
+  }
+
+  static toProjectUpdatePersistence(domain: Project): Prisma.ProjectUncheckedUpdateInput {
+    return {
+      name: domain.name,
+      description: domain.description,
+      category: domain.category,
+      status: domain.status,
+      phase: domain.phase,
+      endDate: MapperUtils.undefinedToNull(domain.endDate),
+      actualEndDate: MapperUtils.undefinedToNull(domain.actualEndDate),
+      budget: domain.budget,
+      spentAmount: domain.spentAmount,
+      location: MapperUtils.undefinedToNull(domain.location),
+      targetBeneficiaryCount: MapperUtils.undefinedToNull(domain.targetBeneficiaryCount),
+      actualBeneficiaryCount: MapperUtils.undefinedToNull(domain.actualBeneficiaryCount),
+      sponsorId: MapperUtils.undefinedToNull(domain.sponsorId),
+      tags: domain.tags,
+      metadata: domain.metadata as Prisma.InputJsonValue,
+      updatedAt: new Date(),
+    };
+  }
+
+  // ===== GOAL MAPPERS =====
+
+  static toGoalDomain(p: GoalPersistence.Base | any): Goal | null {
+    if (!p) return null;
+
+    const goal = Goal.create({
+      projectId: p.projectId,
+      title: p.title,
+      description: MapperUtils.nullToUndefined(p.description),
+      targetValue: MapperUtils.nullToUndefined(Number(p.targetValue)),
+      targetUnit: MapperUtils.nullToUndefined(p.targetUnit),
+      deadline: MapperUtils.nullToUndefined(p.deadline),
+      priority: p.priority as GoalPriority,
+      weight: MapperUtils.nullToUndefined(Number(p.weight)),
+      dependencies: p.dependencies || [],
+    });
+
+    (goal as any)['#id'] = p.id;
+    (goal as any)['#currentValue'] = Number(p.currentValue);
+    (goal as any)['#status'] = p.status as GoalStatus;
+    (goal as any)['createdAt'] = p.createdAt;
+    (goal as any)['updatedAt'] = p.updatedAt;
+    (goal as any)['version'] = p.version;
+
+    return goal;
+  }
+
+  static toGoalCreatePersistence(domain: Goal): Prisma.GoalUncheckedCreateInput {
+    return {
+      id: domain.id,
+      projectId: domain.projectId,
+      title: domain.title,
+      description: MapperUtils.undefinedToNull(domain.description),
+      targetValue: MapperUtils.undefinedToNull(domain.targetValue),
+      targetUnit: MapperUtils.undefinedToNull(domain.targetUnit),
+      currentValue: domain.currentValue,
+      deadline: MapperUtils.undefinedToNull(domain.deadline),
+      priority: domain.priority,
+      status: domain.status,
+      weight: MapperUtils.undefinedToNull(domain.weight),
+      dependencies: domain.dependencies,
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+      version: domain.version || BigInt(0),
+    };
+  }
+
+  static toGoalUpdatePersistence(domain: Goal): Prisma.GoalUncheckedUpdateInput {
+    return {
+      title: domain.title,
+      description: MapperUtils.undefinedToNull(domain.description),
+      targetValue: MapperUtils.undefinedToNull(domain.targetValue),
+      targetUnit: MapperUtils.undefinedToNull(domain.targetUnit),
+      currentValue: domain.currentValue,
+      deadline: MapperUtils.undefinedToNull(domain.deadline),
+      priority: domain.priority,
+      status: domain.status,
+      weight: MapperUtils.undefinedToNull(domain.weight),
+      dependencies: domain.dependencies,
+      updatedAt: new Date(),
+    };
+  }
+
+  // ===== ACTIVITY MAPPERS =====
+
+  static toActivityDomain(p: ActivityPersistence.Base | any): Activity | null {
+    if (!p) return null;
+
+    const activity = Activity.create({
+      projectId: p.projectId,
+      name: p.name,
+      description: MapperUtils.nullToUndefined(p.description),
+      scale: p.scale as ActivityScale,
+      type: p.type as ActivityType,
+      priority: p.priority as ActivityPriority,
+      startDate: MapperUtils.nullToUndefined(p.startDate),
+      endDate: MapperUtils.nullToUndefined(p.endDate),
+      location: MapperUtils.nullToUndefined(p.location),
+      venue: MapperUtils.nullToUndefined(p.venue),
+      assignedTo: MapperUtils.nullToUndefined(p.assignedTo),
+      organizerId: MapperUtils.nullToUndefined(p.organizerId),
+      parentActivityId: MapperUtils.nullToUndefined(p.parentActivityId),
+      expectedParticipants: MapperUtils.nullToUndefined(p.expectedParticipants),
+      estimatedCost: MapperUtils.nullToUndefined(Number(p.estimatedCost)),
+      currency: MapperUtils.nullToUndefined(p.currency),
+      tags: p.tags || [],
+      metadata: p.metadata as Record<string, any> | undefined,
+    });
+
+    (activity as any)['#id'] = p.id;
+    (activity as any)['#status'] = p.status as ActivityStatus;
+    (activity as any)['#actualStartDate'] = MapperUtils.nullToUndefined(p.actualStartDate);
+    (activity as any)['#actualEndDate'] = MapperUtils.nullToUndefined(p.actualEndDate);
+    (activity as any)['#actualParticipants'] = MapperUtils.nullToUndefined(p.actualParticipants);
+    (activity as any)['#actualCost'] = MapperUtils.nullToUndefined(Number(p.actualCost));
+    (activity as any)['createdAt'] = p.createdAt;
+    (activity as any)['updatedAt'] = p.updatedAt;
+    (activity as any)['version'] = p.version;
+
+    return activity;
+  }
+
+  static toActivityCreatePersistence(domain: Activity): Prisma.ActivityUncheckedCreateInput {
+    return {
+      id: domain.id,
+      projectId: domain.projectId,
+      name: domain.name,
+      description: MapperUtils.undefinedToNull(domain.description),
+      scale: domain.scale,
+      type: domain.type,
+      status: domain.status,
+      priority: domain.priority,
+      startDate: MapperUtils.undefinedToNull(domain.startDate),
+      endDate: MapperUtils.undefinedToNull(domain.endDate),
+      actualStartDate: MapperUtils.undefinedToNull(domain.actualStartDate),
+      actualEndDate: MapperUtils.undefinedToNull(domain.actualEndDate),
+      location: MapperUtils.undefinedToNull(domain.location),
+      venue: MapperUtils.undefinedToNull(domain.venue),
+      assignedTo: MapperUtils.undefinedToNull(domain.assignedTo),
+      organizerId: MapperUtils.undefinedToNull(domain.organizerId),
+      parentActivityId: MapperUtils.undefinedToNull(domain.parentActivityId),
+      expectedParticipants: MapperUtils.undefinedToNull(domain.expectedParticipants),
+      actualParticipants: MapperUtils.undefinedToNull(domain.actualParticipants),
+      estimatedCost: MapperUtils.undefinedToNull(domain.estimatedCost),
+      actualCost: MapperUtils.undefinedToNull(domain.actualCost),
+      currency: MapperUtils.undefinedToNull(domain.currency),
+      tags: domain.tags,
+      metadata: domain.metadata as Prisma.InputJsonValue,
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+      version: domain.version || BigInt(0),
+    };
+  }
+
+  static toActivityUpdatePersistence(domain: Activity): Prisma.ActivityUncheckedUpdateInput {
+    return {
+      name: domain.name,
+      description: MapperUtils.undefinedToNull(domain.description),
+      type: domain.type,
+      status: domain.status,
+      priority: domain.priority,
+      startDate: MapperUtils.undefinedToNull(domain.startDate),
+      endDate: MapperUtils.undefinedToNull(domain.endDate),
+      actualStartDate: MapperUtils.undefinedToNull(domain.actualStartDate),
+      actualEndDate: MapperUtils.undefinedToNull(domain.actualEndDate),
+      location: MapperUtils.undefinedToNull(domain.location),
+      venue: MapperUtils.undefinedToNull(domain.venue),
+      assignedTo: MapperUtils.undefinedToNull(domain.assignedTo),
+      organizerId: MapperUtils.undefinedToNull(domain.organizerId),
+      parentActivityId: MapperUtils.undefinedToNull(domain.parentActivityId),
+      expectedParticipants: MapperUtils.undefinedToNull(domain.expectedParticipants),
+      actualParticipants: MapperUtils.undefinedToNull(domain.actualParticipants),
+      estimatedCost: MapperUtils.undefinedToNull(domain.estimatedCost),
+      actualCost: MapperUtils.undefinedToNull(domain.actualCost),
+      currency: MapperUtils.undefinedToNull(domain.currency),
+      tags: domain.tags,
+      metadata: domain.metadata as Prisma.InputJsonValue,
+      updatedAt: new Date(),
+    };
+  }
+
+  // ===== MILESTONE MAPPERS =====
+
+  static toMilestoneDomain(p: MilestonePersistence.Base | any): Milestone | null {
+    if (!p) return null;
+
+    const milestone = Milestone.create({
+      projectId: p.projectId,
+      name: p.name,
+      description: MapperUtils.nullToUndefined(p.description),
+      targetDate: p.targetDate,
+      importance: p.importance as MilestoneImportance,
+      dependencies: p.dependencies || [],
+      notes: MapperUtils.nullToUndefined(p.notes),
+    });
+
+    (milestone as any)['#id'] = p.id;
+    (milestone as any)['#actualDate'] = MapperUtils.nullToUndefined(p.actualDate);
+    (milestone as any)['#status'] = p.status as MilestoneStatus;
+    (milestone as any)['createdAt'] = p.createdAt;
+    (milestone as any)['updatedAt'] = p.updatedAt;
+
+    return milestone;
+  }
+
+  static toMilestoneCreatePersistence(domain: Milestone): Prisma.MilestoneUncheckedCreateInput {
+    return {
+      id: domain.id,
+      projectId: domain.projectId,
+      name: domain.name,
+      description: MapperUtils.undefinedToNull(domain.description),
+      targetDate: domain.targetDate,
+      actualDate: MapperUtils.undefinedToNull(domain.actualDate),
+      status: domain.status,
+      importance: domain.importance,
+      dependencies: domain.dependencies,
+      notes: MapperUtils.undefinedToNull(domain.notes),
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+    };
+  }
+
+  static toMilestoneUpdatePersistence(domain: Milestone): Prisma.MilestoneUncheckedUpdateInput {
+    return {
+      name: domain.name,
+      description: MapperUtils.undefinedToNull(domain.description),
+      targetDate: domain.targetDate,
+      actualDate: MapperUtils.undefinedToNull(domain.actualDate),
+      status: domain.status,
+      importance: domain.importance,
+      dependencies: domain.dependencies,
+      notes: MapperUtils.undefinedToNull(domain.notes),
+      updatedAt: new Date(),
+    };
+  }
+
+  // ===== PROJECT TEAM MEMBER MAPPERS =====
+
+  static toProjectTeamMemberDomain(p: ProjectTeamMemberPersistence.Base | any): ProjectTeamMember | null {
+    if (!p) return null;
+
+    const member = ProjectTeamMember.create({
+      projectId: p.projectId,
+      userId: p.userId,
+      role: p.role as ProjectTeamMemberRole,
+      responsibilities: MapperUtils.nullToUndefined(p.responsibilities),
+      startDate: p.startDate,
+      endDate: MapperUtils.nullToUndefined(p.endDate),
+      hoursAllocated: MapperUtils.nullToUndefined(Number(p.hoursAllocated)),
+    });
+
+    (member as any)['#id'] = p.id;
+    (member as any)['#isActive'] = p.isActive;
+    (member as any)['createdAt'] = p.createdAt;
+    (member as any)['updatedAt'] = p.updatedAt;
+
+    return member;
+  }
+
+  static toProjectTeamMemberCreatePersistence(domain: ProjectTeamMember): Prisma.ProjectTeamMemberUncheckedCreateInput {
+    return {
+      id: domain.id,
+      projectId: domain.projectId,
+      userId: domain.userId,
+      role: domain.role,
+      responsibilities: MapperUtils.undefinedToNull(domain.responsibilities),
+      startDate: domain.startDate,
+      endDate: MapperUtils.undefinedToNull(domain.endDate),
+      hoursAllocated: MapperUtils.undefinedToNull(domain.hoursAllocated),
+      isActive: domain.isActive,
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+    };
+  }
+
+  static toProjectTeamMemberUpdatePersistence(domain: ProjectTeamMember): Prisma.ProjectTeamMemberUncheckedUpdateInput {
+    return {
+      role: domain.role,
+      responsibilities: MapperUtils.undefinedToNull(domain.responsibilities),
+      endDate: MapperUtils.undefinedToNull(domain.endDate),
+      hoursAllocated: MapperUtils.undefinedToNull(domain.hoursAllocated),
+      isActive: domain.isActive,
+      updatedAt: new Date(),
+    };
+  }
+
+  // ===== BENEFICIARY MAPPERS =====
+
+  static toBeneficiaryDomain(p: BeneficiaryPersistence.Base | any): Beneficiary | null {
+    if (!p) return null;
+
+    const beneficiary = Beneficiary.create({
+      projectId: p.projectId,
+      name: p.name,
+      type: p.type as BeneficiaryType,
+      gender: MapperUtils.nullToUndefined(p.gender) as BeneficiaryGender | undefined,
+      age: MapperUtils.nullToUndefined(p.age),
+      dateOfBirth: MapperUtils.nullToUndefined(p.dateOfBirth),
+      contactNumber: MapperUtils.nullToUndefined(p.contactNumber),
+      email: MapperUtils.nullToUndefined(p.email),
+      address: MapperUtils.nullToUndefined(p.address),
+      location: MapperUtils.nullToUndefined(p.location),
+      category: MapperUtils.nullToUndefined(p.category),
+      enrollmentDate: p.enrollmentDate,
+      benefitsReceived: p.benefitsReceived || [],
+      notes: MapperUtils.nullToUndefined(p.notes),
+      metadata: p.metadata as Record<string, any> | undefined,
+    });
+
+    (beneficiary as any)['#id'] = p.id;
+    (beneficiary as any)['#exitDate'] = MapperUtils.nullToUndefined(p.exitDate);
+    (beneficiary as any)['#status'] = p.status as BeneficiaryStatus;
+    (beneficiary as any)['createdAt'] = p.createdAt;
+    (beneficiary as any)['updatedAt'] = p.updatedAt;
+
+    return beneficiary;
+  }
+
+  static toBeneficiaryCreatePersistence(domain: Beneficiary): Prisma.BeneficiaryUncheckedCreateInput {
+    return {
+      id: domain.id,
+      projectId: domain.projectId,
+      name: domain.name,
+      type: domain.type,
+      gender: MapperUtils.undefinedToNull(domain.gender),
+      age: MapperUtils.undefinedToNull(domain.age),
+      dateOfBirth: MapperUtils.undefinedToNull(domain.dateOfBirth),
+      contactNumber: MapperUtils.undefinedToNull(domain.contactNumber),
+      email: MapperUtils.undefinedToNull(domain.email),
+      address: MapperUtils.undefinedToNull(domain.address),
+      location: MapperUtils.undefinedToNull(domain.location),
+      category: MapperUtils.undefinedToNull(domain.category),
+      enrollmentDate: domain.enrollmentDate,
+      exitDate: MapperUtils.undefinedToNull(domain.exitDate),
+      status: domain.status,
+      benefitsReceived: domain.benefitsReceived,
+      notes: MapperUtils.undefinedToNull(domain.notes),
+      metadata: domain.metadata as Prisma.InputJsonValue,
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+    };
+  }
+
+  static toBeneficiaryUpdatePersistence(domain: Beneficiary): Prisma.BeneficiaryUncheckedUpdateInput {
+    return {
+      name: domain.name,
+      type: domain.type,
+      gender: MapperUtils.undefinedToNull(domain.gender),
+      age: MapperUtils.undefinedToNull(domain.age),
+      dateOfBirth: MapperUtils.undefinedToNull(domain.dateOfBirth),
+      contactNumber: MapperUtils.undefinedToNull(domain.contactNumber),
+      email: MapperUtils.undefinedToNull(domain.email),
+      address: MapperUtils.undefinedToNull(domain.address),
+      location: MapperUtils.undefinedToNull(domain.location),
+      category: MapperUtils.undefinedToNull(domain.category),
+      exitDate: MapperUtils.undefinedToNull(domain.exitDate),
+      status: domain.status,
+      benefitsReceived: domain.benefitsReceived,
+      notes: MapperUtils.undefinedToNull(domain.notes),
+      metadata: domain.metadata as Prisma.InputJsonValue,
+      updatedAt: new Date(),
+    };
+  }
+
+  // ===== PROJECT RISK MAPPERS =====
+
+  static toProjectRiskDomain(p: ProjectRiskPersistence.Base | any): ProjectRisk | null {
+    if (!p) return null;
+
+    const risk = ProjectRisk.create({
+      projectId: p.projectId,
+      title: p.title,
+      description: MapperUtils.nullToUndefined(p.description),
+      category: p.category as RiskCategory,
+      severity: p.severity as RiskSeverity,
+      probability: p.probability as RiskProbability,
+      impact: MapperUtils.nullToUndefined(p.impact),
+      mitigationPlan: MapperUtils.nullToUndefined(p.mitigationPlan),
+      ownerId: MapperUtils.nullToUndefined(p.ownerId),
+      identifiedDate: p.identifiedDate,
+      notes: MapperUtils.nullToUndefined(p.notes),
+    });
+
+    (risk as any)['#id'] = p.id;
+    (risk as any)['#status'] = p.status as RiskStatus;
+    (risk as any)['#resolvedDate'] = MapperUtils.nullToUndefined(p.resolvedDate);
+    (risk as any)['createdAt'] = p.createdAt;
+    (risk as any)['updatedAt'] = p.updatedAt;
+
+    return risk;
+  }
+
+  static toProjectRiskCreatePersistence(domain: ProjectRisk): Prisma.ProjectRiskUncheckedCreateInput {
+    return {
+      id: domain.id,
+      projectId: domain.projectId,
+      title: domain.title,
+      description: MapperUtils.undefinedToNull(domain.description),
+      category: domain.category,
+      severity: domain.severity,
+      probability: domain.probability,
+      status: domain.status,
+      impact: MapperUtils.undefinedToNull(domain.impact),
+      mitigationPlan: MapperUtils.undefinedToNull(domain.mitigationPlan),
+      ownerId: MapperUtils.undefinedToNull(domain.ownerId),
+      identifiedDate: domain.identifiedDate,
+      resolvedDate: MapperUtils.undefinedToNull(domain.resolvedDate),
+      notes: MapperUtils.undefinedToNull(domain.notes),
+      createdAt: domain.createdAt || new Date(),
+      updatedAt: domain.updatedAt || new Date(),
+    };
+  }
+
+  static toProjectRiskUpdatePersistence(domain: ProjectRisk): Prisma.ProjectRiskUncheckedUpdateInput {
+    return {
+      title: domain.title,
+      description: MapperUtils.undefinedToNull(domain.description),
+      category: domain.category,
+      severity: domain.severity,
+      probability: domain.probability,
+      status: domain.status,
+      impact: MapperUtils.undefinedToNull(domain.impact),
+      mitigationPlan: MapperUtils.undefinedToNull(domain.mitigationPlan),
+      ownerId: MapperUtils.undefinedToNull(domain.ownerId),
+      resolvedDate: MapperUtils.undefinedToNull(domain.resolvedDate),
+      notes: MapperUtils.undefinedToNull(domain.notes),
+      updatedAt: new Date(),
+    };
+  }
+}
+

@@ -1,0 +1,171 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsNumber, IsEnum, IsDate, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { AccountDetailDto } from './account.dto';
+
+/**
+ * Transaction Type Enum - matches legacy system
+ */
+export enum TransactionType {
+  IN = 'IN',
+  OUT = 'OUT',
+  TRANSFER = 'TRANSFER',
+}
+
+/**
+ * Transaction Status Enum - matches legacy system
+ */
+export enum TransactionStatus {
+  SUCCESS = 'SUCCESS',
+  FAILURE = 'FAILURE',
+  REVERT = 'REVERT',
+}
+
+/**
+ * Transaction Reference Type Enum
+ */
+export enum TransactionRefType {
+  DONATION = 'DONATION',
+  NONE = 'NONE',
+  EXPENSE = 'EXPENSE',
+}
+
+/**
+ * Transaction Detail DTO - matches legacy TransactionDetail
+ */
+export class TransactionDetailDto {
+  @ApiProperty()
+  txnId: string;
+
+  @ApiPropertyOptional()
+  txnNumber?: string;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  txnDate: Date;
+
+  @ApiProperty()
+  txnAmount: number;
+
+  @ApiProperty({ enum: TransactionType })
+  txnType: TransactionType;
+
+  @ApiProperty({ enum: TransactionStatus })
+  txnStatus: TransactionStatus;
+
+  @ApiProperty()
+  txnDescription: string;
+
+  @ApiPropertyOptional()
+  txnParticulars?: string;
+
+  @ApiPropertyOptional()
+  txnRefId?: string;
+
+  @ApiPropertyOptional({ enum: TransactionRefType })
+  txnRefType?: TransactionRefType;
+
+  @ApiPropertyOptional()
+  accBalance?: number;
+
+  @ApiPropertyOptional({ type: AccountDetailDto })
+  transferFrom?: AccountDetailDto;
+
+  @ApiPropertyOptional({ type: AccountDetailDto })
+  transferTo?: AccountDetailDto;
+
+  @ApiPropertyOptional()
+  comment?: string;
+
+  @ApiPropertyOptional({ type: AccountDetailDto })
+  account?: AccountDetailDto;
+}
+
+/**
+ * Transaction Detail Filter DTO
+ */
+export class TransactionDetailFilterDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  txnId?: string;
+
+  @ApiPropertyOptional({ enum: TransactionType, isArray: true })
+  @IsOptional()
+  @IsEnum(TransactionType, { each: true })
+  txnType?: TransactionType[];
+
+  @ApiPropertyOptional({ enum: TransactionStatus, isArray: true })
+  @IsOptional()
+  @IsEnum(TransactionStatus, { each: true })
+  txnStatus?: TransactionStatus[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  txnRefId?: string;
+
+  @ApiPropertyOptional({ enum: TransactionRefType })
+  @IsOptional()
+  @IsEnum(TransactionRefType)
+  txnRefType?: TransactionRefType;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  startDate?: Date;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  endDate?: Date;
+}
+
+/**
+ * Create Transaction DTO
+ */
+export class CreateTransactionDto {
+  @ApiProperty({ enum: TransactionType })
+  @IsEnum(TransactionType)
+  txnType: TransactionType;
+
+  @ApiProperty({ minimum: 0.01 })
+  @IsNumber()
+  @Min(0.01)
+  txnAmount: number;
+
+  @ApiProperty()
+  @IsString()
+  currency: string;
+
+  @ApiProperty()
+  @IsString()
+  accountId: string;
+
+  @ApiProperty()
+  @IsString()
+  txnDescription: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  txnParticulars?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  txnRefId?: string;
+
+  @ApiPropertyOptional({ enum: TransactionRefType })
+  @IsOptional()
+  @IsEnum(TransactionRefType)
+  txnRefType?: TransactionRefType;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  txnDate?: Date;
+}
+

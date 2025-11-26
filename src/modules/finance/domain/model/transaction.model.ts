@@ -1,149 +1,282 @@
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { TransactionCreatedEvent } from '../events/transaction-created.event';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 export enum TransactionType {
-  DONATION = 'DONATION',      // Money coming in from donations
-  EXPENSE = 'EXPENSE',        // Money going out for expenses
-  EARNING = 'EARNING',        // Money coming in from other sources
+  IN = 'IN',                  // Legacy: Money coming in
+  OUT = 'OUT',                // Legacy: Money going out
   TRANSFER = 'TRANSFER',      // Transfer between accounts
 }
 
 export enum TransactionStatus {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  REVERSED = 'REVERSED',
+  SUCCESS = 'SUCCESS',        // Legacy: SUCCESS instead of COMPLETED
+  FAILURE = 'FAILURE',        // Legacy: FAILURE instead of FAILED
+  REVERT = 'REVERT',         // Legacy: REVERT instead of REVERSED
+}
+
+export enum TransactionRefType {
+  DONATION = 'DONATION',
+  NONE = 'NONE',
+  EXPENSE = 'EXPENSE',
 }
 
 /**
  * Transaction Domain Model (Aggregate Root)
  * Represents a financial transaction in the system
+ * All business logic and validations are in this domain model
  */
 export class Transaction extends AggregateRoot<string> {
+  // Private fields for encapsulation
+  #type: TransactionType;
+  #amount: number;
+  #currency: string;
+  #status: TransactionStatus;
+  #accountId: string;
+  #referenceId: string | undefined;
+  #referenceType: TransactionRefType | undefined;
+  #description: string;
+  #metadata: Record<string, any> | undefined;
+  #transactionDate: Date;
+  
+  // Legacy fields
+  #txnId: string; // Legacy alias for id
+  #txnNumber: string | undefined;
+  #txnDate: Date; // Legacy alias for transactionDate
+  #txnAmount: number; // Legacy alias for amount
+  #txnType: TransactionType; // Legacy alias
+  #txnStatus: TransactionStatus; // Legacy alias
+  #txnDescription: string; // Legacy alias
+  #txnParticulars: string | undefined;
+  #txnRefId: string | undefined; // Legacy alias
+  #txnRefType: TransactionRefType | undefined; // Legacy alias
+  #transferFromAccountId: string | undefined;
+  #transferToAccountId: string | undefined;
+  #comment: string | undefined;
+  #accBalance: number | undefined; // Account balance after transaction
+
   constructor(
     id: string,
-    public readonly type: TransactionType,
-    public amount: number,
-    public currency: string,
-    public status: TransactionStatus,
-    public accountId: string,                    // Account this transaction belongs to
-    public referenceId: string | undefined,      // Reference to donation, expense, or earning
-    public referenceType: string | undefined,    // Type of reference (Donation, Expense, Earning)
-    public description: string,
-    public metadata: Record<string, any> | undefined,
-    public readonly transactionDate: Date,
+    type: TransactionType,
+    amount: number,
+    currency: string,
+    status: TransactionStatus,
+    accountId: string,
+    referenceId: string | undefined,
+    referenceType: TransactionRefType | undefined,
+    description: string,
+    metadata: Record<string, any> | undefined,
+    transactionDate: Date,
+    txnNumber?: string,
+    txnParticulars?: string,
+    transferFromAccountId?: string,
+    transferToAccountId?: string,
+    comment?: string,
     createdAt?: Date,
-     updatedAt?: Date,
+    updatedAt?: Date,
   ) {
     super(id, createdAt, updatedAt);
+    this.#type = type;
+    this.#amount = amount;
+    this.#currency = currency;
+    this.#status = status;
+    this.#accountId = accountId;
+    this.#referenceId = referenceId;
+    this.#referenceType = referenceType;
+    this.#description = description;
+    this.#metadata = metadata;
+    this.#transactionDate = transactionDate;
+    this.#txnId = id; // Legacy alias
+    this.#txnNumber = txnNumber;
+    this.#txnDate = transactionDate; // Legacy alias
+    this.#txnAmount = amount; // Legacy alias
+    this.#txnType = type; // Legacy alias
+    this.#txnStatus = status; // Legacy alias
+    this.#txnDescription = description; // Legacy alias
+    this.#txnParticulars = txnParticulars;
+    this.#txnRefId = referenceId; // Legacy alias
+    this.#txnRefType = referenceType; // Legacy alias
+    this.#transferFromAccountId = transferFromAccountId;
+    this.#transferToAccountId = transferToAccountId;
+    this.#comment = comment;
   }
 
   /**
-   * Factory method to create a transaction from a donation
+   * Factory method to create a transaction (IN - money coming in)
+   * Business validation: amount must be positive, accountId required
    */
-  static createFromDonation(props: {
+  static createIn(props: {
     amount: number;
     currency: string;
     accountId: string;
-    donationId: string;
     description: string;
+    referenceId?: string;
+    referenceType?: TransactionRefType;
+    txnNumber?: string;
+    txnParticulars?: string;
+    comment?: string;
+    transactionDate?: Date;
     metadata?: Record<string, any>;
   }): Transaction {
+    if (!props.amount || props.amount <= 0) {
+      throw new BusinessException('Transaction amount must be greater than zero');
+    }
+    if (!props.currency) {
+      throw new BusinessException('Currency is required');
+    }
+    if (!props.accountId) {
+      throw new BusinessException('Account ID is required');
+    }
+    if (!props.description) {
+      throw new BusinessException('Transaction description is required');
+    }
+
     const transaction = new Transaction(
       crypto.randomUUID(),
-      TransactionType.DONATION,
+      TransactionType.IN,
       props.amount,
       props.currency,
-      TransactionStatus.COMPLETED,
+      TransactionStatus.SUCCESS,
       props.accountId,
-      props.donationId,
-      'Donation',
+      props.referenceId,
+      props.referenceType,
       props.description,
       props.metadata,
-      new Date(),
+      props.transactionDate || new Date(),
+      props.txnNumber,
+      props.txnParticulars,
+      undefined, // transferFromAccountId
+      undefined, // transferToAccountId
+      props.comment,
       new Date(),
       new Date(),
     );
 
     transaction.addDomainEvent(new TransactionCreatedEvent(
       transaction.id,
-      transaction.type,
-      transaction.amount,
-      transaction.accountId,
+      transaction.#type,
+      transaction.#amount,
+      transaction.#accountId,
     ));
 
     return transaction;
   }
 
   /**
-   * Factory method to create a transaction from an expense
+   * Factory method to create a transaction (OUT - money going out)
+   * Business validation: amount must be positive, accountId required
    */
-  static createFromExpense(props: {
+  static createOut(props: {
     amount: number;
     currency: string;
     accountId: string;
-    expenseId: string;
     description: string;
+    referenceId?: string;
+    referenceType?: TransactionRefType;
+    txnNumber?: string;
+    txnParticulars?: string;
+    comment?: string;
+    transactionDate?: Date;
     metadata?: Record<string, any>;
   }): Transaction {
+    if (!props.amount || props.amount <= 0) {
+      throw new BusinessException('Transaction amount must be greater than zero');
+    }
+    if (!props.currency) {
+      throw new BusinessException('Currency is required');
+    }
+    if (!props.accountId) {
+      throw new BusinessException('Account ID is required');
+    }
+    if (!props.description) {
+      throw new BusinessException('Transaction description is required');
+    }
+
     const transaction = new Transaction(
       crypto.randomUUID(),
-      TransactionType.EXPENSE,
+      TransactionType.OUT,
       props.amount,
       props.currency,
-      TransactionStatus.COMPLETED,
+      TransactionStatus.SUCCESS,
       props.accountId,
-      props.expenseId,
-      'Expense',
+      props.referenceId,
+      props.referenceType,
       props.description,
       props.metadata,
-      new Date(),
+      props.transactionDate || new Date(),
+      props.txnNumber,
+      props.txnParticulars,
+      undefined, // transferFromAccountId
+      undefined, // transferToAccountId
+      props.comment,
       new Date(),
       new Date(),
     );
 
     transaction.addDomainEvent(new TransactionCreatedEvent(
       transaction.id,
-      transaction.type,
-      transaction.amount,
-      transaction.accountId,
+      transaction.#type,
+      transaction.#amount,
+      transaction.#accountId,
     ));
 
     return transaction;
   }
 
   /**
-   * Factory method to create a transaction from an earning
+   * Factory method to create a transfer transaction
+   * Business validation: amount must be positive, both accounts required
    */
-  static createFromEarning(props: {
+  static createTransfer(props: {
     amount: number;
     currency: string;
-    accountId: string;
-    earningId: string;
+    fromAccountId: string;
+    toAccountId: string;
     description: string;
+    txnNumber?: string;
+    txnParticulars?: string;
+    comment?: string;
+    transactionDate?: Date;
     metadata?: Record<string, any>;
   }): Transaction {
+    if (!props.amount || props.amount <= 0) {
+      throw new BusinessException('Transaction amount must be greater than zero');
+    }
+    if (!props.currency) {
+      throw new BusinessException('Currency is required');
+    }
+    if (!props.fromAccountId || !props.toAccountId) {
+      throw new BusinessException('Both from and to account IDs are required for transfer');
+    }
+    if (props.fromAccountId === props.toAccountId) {
+      throw new BusinessException('Cannot transfer to the same account');
+    }
+
     const transaction = new Transaction(
       crypto.randomUUID(),
-      TransactionType.EARNING,
+      TransactionType.TRANSFER,
       props.amount,
       props.currency,
-      TransactionStatus.COMPLETED,
-      props.accountId,
-      props.earningId,
-      'Earning',
+      TransactionStatus.SUCCESS,
+      props.fromAccountId, // Primary account (from)
+      undefined, // referenceId
+      TransactionRefType.NONE,
       props.description,
       props.metadata,
-      new Date(),
+      props.transactionDate || new Date(),
+      props.txnNumber,
+      props.txnParticulars,
+      props.fromAccountId,
+      props.toAccountId,
+      props.comment,
       new Date(),
       new Date(),
     );
 
     transaction.addDomainEvent(new TransactionCreatedEvent(
       transaction.id,
-      transaction.type,
-      transaction.amount,
-      transaction.accountId,
+      transaction.#type,
+      transaction.#amount,
+      transaction.#accountId,
     ));
 
     return transaction;
@@ -151,21 +284,58 @@ export class Transaction extends AggregateRoot<string> {
 
   /**
    * Mark transaction as failed
+   * Business validation: Cannot mark successful transaction as failed
    */
   markAsFailed(): void {
-    if (this.status === TransactionStatus.COMPLETED) {
-      throw new Error('Cannot mark completed transaction as failed');
+    if (this.#status === TransactionStatus.SUCCESS) {
+      throw new BusinessException('Cannot mark successful transaction as failed');
     }
-    this.status = TransactionStatus.FAILED;
+    this.#status = TransactionStatus.FAILURE;
+    this.touch();
   }
 
   /**
-   * Reverse a transaction
+   * Revert a transaction
+   * Business validation: Can only revert successful transactions
    */
-  reverse(): void {
-    if (this.status !== TransactionStatus.COMPLETED) {
-      throw new Error('Can only reverse completed transactions');
+  revert(): void {
+    if (this.#status !== TransactionStatus.SUCCESS) {
+      throw new BusinessException('Can only revert successful transactions');
     }
-    this.status = TransactionStatus.REVERSED;
+    this.#status = TransactionStatus.REVERT;
+    this.touch();
   }
+
+  /**
+   * Set account balance after transaction
+   */
+  setAccountBalance(balance: number): void {
+    this.#accBalance = balance;
+  }
+
+  // Getters
+  get type(): TransactionType { return this.#type; }
+  get amount(): number { return this.#amount; }
+  get currency(): string { return this.#currency; }
+  get status(): TransactionStatus { return this.#status; }
+  get accountId(): string { return this.#accountId; }
+  get referenceId(): string | undefined { return this.#referenceId; }
+  get referenceType(): TransactionRefType | undefined { return this.#referenceType; }
+  get description(): string { return this.#description; }
+  get metadata(): Record<string, any> | undefined { return this.#metadata; }
+  get transactionDate(): Date { return this.#transactionDate; }
+  get txnId(): string { return this.#txnId; }
+  get txnNumber(): string | undefined { return this.#txnNumber; }
+  get txnDate(): Date { return this.#txnDate; }
+  get txnAmount(): number { return this.#txnAmount; }
+  get txnType(): TransactionType { return this.#txnType; }
+  get txnStatus(): TransactionStatus { return this.#txnStatus; }
+  get txnDescription(): string { return this.#txnDescription; }
+  get txnParticulars(): string | undefined { return this.#txnParticulars; }
+  get txnRefId(): string | undefined { return this.#txnRefId; }
+  get txnRefType(): TransactionRefType | undefined { return this.#txnRefType; }
+  get transferFromAccountId(): string | undefined { return this.#transferFromAccountId; }
+  get transferToAccountId(): string | undefined { return this.#transferToAccountId; }
+  get comment(): string | undefined { return this.#comment; }
+  get accBalance(): number | undefined { return this.#accBalance; }
 }

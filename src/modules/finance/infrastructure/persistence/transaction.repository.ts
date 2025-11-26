@@ -3,76 +3,136 @@ import { ITransactionRepository } from '../../domain/repositories/transaction.re
 import { Transaction, TransactionType } from '../../domain/model/transaction.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
-import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { FinanceInfraMapper } from '../finance-infra.mapper';
-import { TransactionPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
 
 @Injectable()
-class TransactionRepository
-  extends PrismaBaseRepository<
-    Transaction,
-    PrismaPostgresService['transaction'],
-    Prisma.TransactionWhereUniqueInput,
-    Prisma.TransactionWhereInput,
-    Prisma.TransactionGetPayload<any>,
-    Prisma.TransactionCreateInput,
-    Prisma.TransactionUpdateInput
-  >
-  implements ITransactionRepository
-{
-  protected getDelegate(prisma: PrismaPostgresService) {
-    return prisma.transaction;
-  }
-  constructor(prisma: PrismaPostgresService) {
-    super(prisma);
-  }
-  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Transaction>> {
-    throw new Error('Method not implemented.');
+class TransactionRepository implements ITransactionRepository {
+  constructor(private readonly prisma: PrismaPostgresService) {}
+
+  async findPaged(filter?: BaseFilter<TransactionDetailFilterDto>): Promise<PagedResult<Transaction>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where,
+        orderBy: { transactionDate: 'desc' },
+        include: {
+          account: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.transaction.count({ where }),
+    ]);
+
+    return new PagedResult<Transaction>(
+      data.map(m => FinanceInfraMapper.toTransactionDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 10,
+    );
   }
 
- 
+  async findAll(filter?: TransactionDetailFilterDto): Promise<Transaction[]> {
+    const transactions = await this.prisma.transaction.findMany({
+      where: this.whereQuery(filter),
+      orderBy: { transactionDate: 'desc' },
+      include: {
+        account: true,
+      },
+    });
 
-  protected toDomain(prismaModel: any): Transaction | null {
-    return FinanceInfraMapper.toTransactionDomain(prismaModel);
+    return transactions.map(m => FinanceInfraMapper.toTransactionDomain(m)!);
   }
 
-  async findAll(filter?: any): Promise<Transaction[]> {
+  private whereQuery(props?: TransactionDetailFilterDto): Prisma.TransactionWhereInput {
     const where: Prisma.TransactionWhereInput = {
-      type: filter?.type,
-      accountId: filter?.accountId,
+      ...(props?.type ? { type: props.type } : {}),
+      ...(props?.status ? { status: props.status } : {}),
+      ...(props?.accountId ? { accountId: props.accountId } : {}),
+      ...(props?.startDate || props?.endDate
+        ? {
+            transactionDate: {
+              ...(props.startDate ? { gte: props.startDate } : {}),
+              ...(props.endDate ? { lte: props.endDate } : {}),
+            },
+          }
+        : {}),
       deletedAt: null,
     };
-    return this.findMany(where);
+    return where;
   }
 
   async findById(id: string): Promise<Transaction | null> {
-    return this.findUnique({ id });
+    const transaction = await this.prisma.transaction.findUnique({
+      where: { id },
+      include: {
+        account: true,
+      },
+    });
+
+    return FinanceInfraMapper.toTransactionDomain(transaction);
   }
 
   async findByAccountId(accountId: string): Promise<Transaction[]> {
-    return this.findMany({ accountId, deletedAt: null });
+    const transactions = await this.prisma.transaction.findMany({
+      where: { accountId, deletedAt: null },
+      orderBy: { transactionDate: 'desc' },
+      include: {
+        account: true,
+      },
+    });
+
+    return transactions.map(m => FinanceInfraMapper.toTransactionDomain(m)!);
   }
 
   async findByType(type: TransactionType): Promise<Transaction[]> {
-    return this.findMany({ type, deletedAt: null });
+    const transactions = await this.prisma.transaction.findMany({
+      where: { type, deletedAt: null },
+      orderBy: { transactionDate: 'desc' },
+      include: {
+        account: true,
+      },
+    });
+
+    return transactions.map(m => FinanceInfraMapper.toTransactionDomain(m)!);
   }
 
   async findByDateRange(accountId: string, startDate: Date, endDate: Date): Promise<Transaction[]> {
-    return this.findMany({
-      accountId,
-      transactionDate: {
-        gte: startDate,
-        lte: endDate,
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        accountId,
+        transactionDate: {
+          gte: startDate,
+          lte: endDate,
+        },
+        deletedAt: null,
       },
-      deletedAt: null,
+      orderBy: { transactionDate: 'desc' },
+      include: {
+        account: true,
+      },
     });
+
+    return transactions.map(m => FinanceInfraMapper.toTransactionDomain(m)!);
   }
 
   async create(transaction: Transaction): Promise<Transaction> {
-    const createData = FinanceInfraMapper.toTransactionCreatePersistence(transaction);
-    return this.createRecord(createData);
+    const createData: Prisma.TransactionCreateInput = {
+      ...FinanceInfraMapper.toTransactionCreatePersistence(transaction),
+    };
+
+    const created = await this.prisma.transaction.create({
+      data: createData,
+      include: {
+        account: true,
+      },
+    });
+
+    return FinanceInfraMapper.toTransactionDomain(created)!;
   }
 
   async update(id: string, transaction: Transaction): Promise<Transaction> {
@@ -81,7 +141,12 @@ class TransactionRepository
   }
 
   async delete(id: string): Promise<void> {
-    await this.softDelete({ id });
+    await this.prisma.transaction.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
   }
 }
 
