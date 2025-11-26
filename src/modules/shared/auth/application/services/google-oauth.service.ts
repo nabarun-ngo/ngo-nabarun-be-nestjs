@@ -1,11 +1,12 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client, } from 'google-auth-library';
 import { Configkey } from 'src/shared/config-keys';
 import { TOKEN_REPOSITORY, type ITokenRepository } from '../../domain/repository/token.repository.interface';
 import { AuthToken } from '../../domain/models/auth-token.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { GmailService } from 'src/modules/shared/correspondence/services/gmail.service';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -14,16 +15,35 @@ export class GoogleOAuthService {
   private readonly clientSecret: string;
   private readonly redirectUri: string;
   private readonly oauth2Client: OAuth2Client;
-  private readonly defaultScopes: string[] = [
+
+  private readonly RATE_LIMIT_PREFIX = 'oauth:ratelimit:';
+  private readonly RATE_LIMIT_TTL = 60 * 1000; // 1 minute
+  private readonly RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per user
+
+  // Whitelist of allowed OAuth scopes to prevent privilege escalation
+  private readonly allowedScopes: string[] = [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/gmail.send',
+    'openid',
+    'email',
+    'profile',
   ];
+
+  // Cache keys
+  private readonly STATE_CACHE_PREFIX = 'oauth:state:';
+  private readonly CODE_CACHE_PREFIX = 'oauth:code:';
+
+  // TTL values (in milliseconds)
+  private readonly STATE_TTL = 10 * 60 * 1000; // 10 minutes
+  private readonly CODE_TTL = 10 * 60 * 1000; // 10 minutes (authorization codes expire quickly)
 
 
   constructor(
     private readonly configService: ConfigService,
     @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: ITokenRepository,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {
     this.clientId = this.configService.get<string>(Configkey.GOOGLE_CLIENT_ID)!;
     this.clientSecret = this.configService.get<string>(
@@ -45,44 +65,163 @@ export class GoogleOAuthService {
   }
 
   /**
-   * Generate OAuth authorization URL
+   * Validate scopes against whitelist to prevent privilege escalation
    */
-  getAuthUrl(scopes: string[],state?: string): { url: string; state: string | undefined; clientId: string } {
-
-    const url = this.oauth2Client.generateAuthUrl({
-      access_type: 'offline', // Required to get refresh token
-      scope: [...this.defaultScopes, ...scopes, 'openid', 'email', 'profile'],
-      prompt: 'consent', // Force consent to get refresh token
-      state: state || undefined,
-      response_type: 'code',
-      include_granted_scopes: true,
-    });
-
-    this.logger.log(`Generated OAuth URL for Google authentication`);
-    return { url: url, state: state, clientId: this.clientId };
-  }
-
-  getOAuthScopes(){
-    return {
-      'Gmail': GmailService.scope
+  private validateScopes(scopes: string[]): void {
+    const invalidScopes = scopes.filter(scope => !this.allowedScopes.includes(scope));
+    if (invalidScopes.length > 0) {
+      throw new BadRequestException(
+        `Invalid scopes requested: ${invalidScopes.join(', ')}. Only whitelisted scopes are allowed.`
+      );
     }
   }
 
   /**
+   * Generate cryptographically secure state parameter
+   */
+  private generateState(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  /**
+   * Store state in cache for validation
+   */
+  private async storeState(
+    state: string,
+    userId?: string,
+  ): Promise<void> {
+    const cacheKey = `${this.STATE_CACHE_PREFIX}${state}`;
+    await this.cacheManager.set(
+      cacheKey,
+      {
+        userId,
+        timestamp: Date.now(),
+      },
+      this.STATE_TTL
+    );
+  }
+
+  /**
+     * Simple rate limiting using cache
+     */
+  public async checkRateLimit(identifier: string): Promise<void> {
+    const cacheKey = `${this.RATE_LIMIT_PREFIX}${identifier}`;
+    const currentCount = await this.cacheManager.get<number>(cacheKey) || 0;
+
+    if (currentCount >= this.RATE_LIMIT_MAX_REQUESTS) {
+      throw new BadRequestException('Rate limit exceeded. Please try again later.');
+    }
+
+    await this.cacheManager.set(cacheKey, currentCount + 1, this.RATE_LIMIT_TTL);
+  }
+
+  /**
+   * Validate and consume state from cache
+   */
+  private async validateAndConsumeState(state: string): Promise<void> {
+    if (!state) {
+      throw new BadRequestException('State parameter is required for security');
+    }
+
+    const cacheKey = `${this.STATE_CACHE_PREFIX}${state}`;
+    const storedState = await this.cacheManager.get<{
+      userId?: string;
+      timestamp: number;
+    }>(cacheKey);
+
+    if (!storedState) {
+      throw new UnauthorizedException('Invalid or expired state parameter. Please restart the OAuth flow.');
+    }
+
+    // Consume state (delete from cache) to prevent reuse
+    await this.cacheManager.del(cacheKey);
+  }
+
+  /**
+   * Check if authorization code has been used
+   */
+  private async isCodeUsed(code: string): Promise<boolean> {
+    const cacheKey = `${this.CODE_CACHE_PREFIX}${code}`;
+    const used = await this.cacheManager.get<boolean>(cacheKey);
+    return used === true;
+  }
+
+  /**
+   * Mark authorization code as used
+   */
+  private async markCodeAsUsed(code: string): Promise<void> {
+    const cacheKey = `${this.CODE_CACHE_PREFIX}${code}`;
+    await this.cacheManager.set(cacheKey, true, this.CODE_TTL);
+  }
+
+  /**
+   * Generate OAuth authorization URL with secure state generation
+   * @param scopes - Array of OAuth scopes to request
+   * @param state - Optional custom state (if not provided, secure state will be generated)
+   */
+  async getAuthUrl(
+    scopes: string[],
+    state?: string,
+  ): Promise<{ url: string; state: string; }> {
+    // Validate requested scopes against whitelist
+    // Always include userinfo scopes and openid scopes
+    const defaultScopes = [
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+    ];
+    const requestedScopes = [...new Set([...defaultScopes, ...scopes, 'openid', 'email', 'profile'])];
+    this.validateScopes(requestedScopes);
+
+    // Generate secure state server-side if not provided
+    const secureState = state || this.generateState();
+
+    // Store state in cache for validation on callback
+    await this.storeState(secureState);
+
+    const url = this.oauth2Client.generateAuthUrl({
+      access_type: 'offline', // Required to get refresh token
+      scope: requestedScopes,
+      prompt: 'consent', // Force consent to get refresh token
+      state: secureState,
+      response_type: 'code',
+      include_granted_scopes: true,
+    });
+
+    this.logger.log(`Generated OAuth URL for Google authentication with state: ${secureState.substring(0, 8)}...`);
+    return { url: url, state: secureState };
+  }
+
+  getOAuthScopes() {
+    return this.allowedScopes;
+  }
+
+  /**
    * Exchange authorization code for tokens and store them
-   * If email is not provided, it will be fetched from Google userinfo
+   * Validates state parameter and prevents code reuse
+   * Returns success status and frontend redirect URL if stored in state
    */
   async handleCallback(
     code: string,
-    clientId: string,
-  ): Promise<{ success: boolean }> {
-    if (clientId !== this.clientId) {
-      throw new Error('Invalid client id'); 
-    }
+    state: string,
+  ): Promise<{
+    success: boolean;
+    email?: string;
+    error?: string;
+  }> {
     try {
+      // Validate state parameter (CSRF protection)
+      await this.validateAndConsumeState(state);
+
+      // Check if authorization code has already been used (prevent reuse)
+      if (await this.isCodeUsed(code)) {
+        throw new BadRequestException('Authorization code has already been used. Please restart the OAuth flow.');
+      }
 
       // Exchange code for tokens
       const { tokens } = await this.oauth2Client.getToken(code);
+
+      // Mark code as used immediately after successful exchange
+      await this.markCodeAsUsed(code);
 
       if (!tokens.access_token) {
         throw new Error('No access token received');
@@ -125,13 +264,32 @@ export class GoogleOAuthService {
         `Successfully stored OAuth tokens`,
       );
 
-      return { success: true };
+      return {
+        success: true,
+        email: email,
+      };
     } catch (error) {
       this.logger.error(
         `Failed to handle OAuth callback: ${error.message}`,
         error.stack,
       );
-      throw error;
+
+      // Return error info
+      const errorResponse: {
+        success: boolean;
+        error: string;
+      } = {
+        success: false,
+        error: error instanceof BadRequestException || error instanceof UnauthorizedException
+          ? error.message
+          : 'Failed to process OAuth callback. Please try again.',
+      };
+
+      // Re-throw as appropriate exception types (for API responses)
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new BadRequestException(errorResponse.error);
     }
   }
 

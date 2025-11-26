@@ -11,11 +11,10 @@ import { WorkflowModule } from './modules/workflow/workflow.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { config } from './config/config';
 import { DMSModule } from './modules/shared/dms/dms.module';
-import {  HealthController } from './health.controller';
 import { PublicModule } from './modules/public/public.module';
 
 @Module({
-  controllers:[HealthController],
+  controllers:[],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
