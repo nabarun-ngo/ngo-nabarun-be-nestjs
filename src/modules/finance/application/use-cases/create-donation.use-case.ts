@@ -1,0 +1,78 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
+import { Donation, DonationType } from '../../domain/model/donation.model';
+import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
+import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UserService } from 'src/modules/user/application/services/user.service';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { formatDate } from 'src/shared/utilities/common.util';
+
+export class CreateDonation {
+  donorId?: string;
+  donorName?: string;
+  donorNumber?: string;
+  donorEmail?: string;
+  isGuest: boolean;
+  type: DonationType;
+  amount: number;
+  startDate?: Date;
+  endDate?: Date;
+  forEventId?: string;
+}
+
+@Injectable()
+export class CreateDonationUseCase implements IUseCase<CreateDonation, Donation> {
+  constructor(
+    @Inject(DONATION_REPOSITORY)
+    private readonly donationRepository: IDonationRepository,
+    private readonly userService: UserService,
+    private readonly eventEmitter: EventEmitter2,
+  ) { }
+
+  async execute(request: CreateDonation): Promise<Donation> {
+
+    const donation = Donation.create({
+      type: request.type,
+      amount: request.amount,
+      donorId: request.donorId!,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      donorName: request.donorName!,
+      donorNumber: request.donorNumber,
+      donorEmail: request.donorEmail,
+      isGuest: request.isGuest,
+    });
+
+    // Apply additional fields from DTO
+    if (request.forEventId) {
+      donation.update({ forEventId: request.forEventId });
+    }
+
+    if (request.type == DonationType.REGULAR) {
+      const donations = await this.donationRepository.findAll({
+        type: [DonationType.REGULAR],
+        donorId: request.donorId,
+        // Check for overlapping date ranges: existing.startDate <= request.endDate && existing.endDate >= request.startDate
+        startDate_lte: request.endDate,
+        endDate_gte: request.startDate,
+      });
+      if (donations.length > 0) {
+        throw new BusinessException(`Donation already exists for this donor between ${formatDate(request.startDate!)} and ${formatDate(request.endDate!)} `);
+      }
+    }
+
+    // Save to repository
+    const savedDonation = await this.donationRepository.create(donation);
+
+    // Emit domain events
+    for (const event of savedDonation.domainEvents) {
+      this.eventEmitter.emit(event.constructor.name, event);
+    }
+    savedDonation.clearEvents();
+
+    return savedDonation;
+  }
+}
+
+

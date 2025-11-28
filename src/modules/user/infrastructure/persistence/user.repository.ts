@@ -176,7 +176,7 @@ class UserRepository
           district: user.presentAddress.district ?? null,
           country: user.presentAddress.country ?? null,
           addressType: 'present',
-          version: BigInt(1),
+          version: Number(1),
         });
       }
 
@@ -193,7 +193,7 @@ class UserRepository
           district: user.permanentAddress.district ?? null,
           country: user.permanentAddress.country ?? null,
           addressType: 'permanent',
-          version: BigInt(1),
+          version: Number(1),
         });
       }
 

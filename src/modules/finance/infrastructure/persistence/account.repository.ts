@@ -1,76 +1,125 @@
 import { Injectable } from '@nestjs/common';
 import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { Account, AccountType } from '../../domain/model/account.model';
+import { Account } from '../../domain/model/account.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
-import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
-import { FinanceInfraMapper } from '../finance-infra.mapper';
-import { AccountPersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { AccountDetailFilterDto } from '../../application/dto/account.dto';
+import { AccountInfraMapper } from '../mapper/account-infra.mapper';
+
+export type OnlyAccount = Prisma.AccountGetPayload<{
+  include: {
+    accountHolder: true;
+  }
+}>;
+
+export type AccountWithTransactions = Prisma.AccountGetPayload<{
+  include: {
+    accountHolder: true;
+    transactions: true;
+  }
+}>;
 
 @Injectable()
-class AccountRepository
-  extends PrismaBaseRepository<
-    Account,
-    PrismaPostgresService['account'],
-    Prisma.AccountWhereUniqueInput,
-    Prisma.AccountWhereInput,
-    AccountPersistence.Base,
-    Prisma.AccountCreateInput,
-    Prisma.AccountUpdateInput
-  >
-  implements IAccountRepository
-{
-  protected getDelegate(prisma: PrismaPostgresService) {
-    return prisma.account;
-  }
-  constructor(prisma: PrismaPostgresService) {
-    super(prisma);
-  }
-  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Account>> {
-    throw new Error('Method not implemented.');
+class AccountRepository implements IAccountRepository {
+  constructor(private readonly prisma: PrismaPostgresService) { }
+
+  async findPaged(filter?: BaseFilter<AccountDetailFilterDto>): Promise<PagedResult<Account>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.account.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          accountHolder: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.account.count({ where }),
+    ]);
+
+    return new PagedResult<Account>(
+      data.map(m => AccountInfraMapper.toAccountDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 10,
+    );
   }
 
-  
+  async findAll(filter?: AccountDetailFilterDto): Promise<Account[]> {
+    const accounts = await this.prisma.account.findMany({
+      where: this.whereQuery(filter),
+      orderBy: { createdAt: 'desc' },
+      include: {
+        accountHolder: true,
+      },
+    });
 
-  protected toDomain(prismaModel: any): Account | null {
-    return FinanceInfraMapper.toAccountDomain(prismaModel);
+    return accounts.map(m => AccountInfraMapper.toAccountDomain(m)!);
   }
 
-  async findAll(filter?: any): Promise<Account[]> {
+  private whereQuery(props?: AccountDetailFilterDto): Prisma.AccountWhereInput {
     const where: Prisma.AccountWhereInput = {
-      type: filter?.type,
-      status: filter?.status,
+      ...(props?.type ? { type: { in: props.type } } : {}),
+      ...(props?.status ? { status: { in: props.status } } : {}),
+      ...(props?.accountHolderId ? { accountHolderId: props.accountHolderId } : {}),
       deletedAt: null,
     };
-    return this.findMany(where);
+    return where;
   }
 
   async findById(id: string): Promise<Account | null> {
-    return this.findUnique({ id });
-  }
+    const account = await this.prisma.account.findUnique({
+      where: { id },
+      include: {
+        accountHolder: true,
+      },
+    });
 
-  async findByType(type: AccountType): Promise<Account[]> {
-    return this.findMany({ type, deletedAt: null });
-  }
-
-  async findMainAccount(): Promise<Account | null> {
-    return this.findFirst({ type: AccountType.MAIN, deletedAt: null });
+    return AccountInfraMapper.toAccountDomain(account!);
   }
 
   async create(account: Account): Promise<Account> {
-    const createData = FinanceInfraMapper.toAccountCreatePersistence(account);
-    return this.createRecord(createData);
+    const createData: Prisma.AccountUncheckedCreateInput = {
+      ...AccountInfraMapper.toAccountCreatePersistence(account),
+    };
+
+    const created = await this.prisma.account.create({
+      data: createData,
+      include: {
+        accountHolder: true,
+      },
+    });
+
+    return AccountInfraMapper.toAccountDomain(created)!;
   }
 
   async update(id: string, account: Account): Promise<Account> {
-    const updateData = FinanceInfraMapper.toAccountUpdatePersistence(account);
-    return this.updateRecord({ id }, updateData);
+    const updateData: Prisma.AccountUncheckedUpdateInput = {
+      ...AccountInfraMapper.toAccountUpdatePersistence(account),
+    };
+
+    const updated = await this.prisma.account.update({
+      where: { id },
+      data: updateData,
+      include: {
+        accountHolder: true,
+      },
+    });
+
+    return AccountInfraMapper.toAccountDomain(updated)!;
   }
 
   async delete(id: string): Promise<void> {
-    await this.softDelete({ id });
+    await this.prisma.account.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
   }
 }
 

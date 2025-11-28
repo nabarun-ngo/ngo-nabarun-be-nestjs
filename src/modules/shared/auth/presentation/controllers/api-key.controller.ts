@@ -2,8 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  HttpCode,
-  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -12,10 +10,9 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { ApiKeyService } from '../../application/services/api-key.service';
-import { ApiKeyDto, CreateApiKeyDto } from '../dto/api-key.dto';
+import { ApiKeyDto, CreateApiKeyDto } from '../../application/dto/api-key.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiKey } from '../../domain/models/api-key.model';
-import { Public } from '../../application/decorators/public.decorator';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 
@@ -34,7 +31,7 @@ export class ApiKeyController {
     summary: 'Generate API Key',
   })
   @ApiAutoResponse(ApiKeyDto, { description: 'API Key generated successfully' })
-  @ApiBody({ type: CreateApiKeyDto  })
+  @ApiBody({ type: CreateApiKeyDto })
   async generateApiKey(
     @Body() create: CreateApiKeyDto,
   ): Promise<SuccessResponse<ApiKeyDto>> {
@@ -43,10 +40,10 @@ export class ApiKeyController {
       create.permissions,
       create.expireAt,
     );
-    return new SuccessResponse<ApiKeyDto>(this.toApiKeyDto(result.keyInfo,result.token));
+    return new SuccessResponse<ApiKeyDto>(this.toApiKeyDto(result.keyInfo, result.token));
   }
 
-  private toApiKeyDto(apiKey: ApiKey,token?: string): ApiKeyDto {
+  private toApiKeyDto(apiKey: ApiKey, token?: string): ApiKeyDto {
     return {
       id: apiKey.id,
       name: apiKey.name,

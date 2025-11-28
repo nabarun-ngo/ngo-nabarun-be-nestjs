@@ -10,26 +10,26 @@ export class RepositoryHelpers {
   static buildCreateAuditFields(): {
     createdAt: Date;
     updatedAt: Date;
-    version: bigint;
+    version: number;
   } {
     const now = new Date();
     return {
       createdAt: now,
       updatedAt: now,
-      version: BigInt(1),
+      version: Number(1),
     };
   }
 
   /**
    * Build audit fields for update operations
    */
-  static buildUpdateAuditFields(currentVersion: bigint): {
+  static buildUpdateAuditFields(currentVersion: number): {
     updatedAt: Date;
-    version: bigint;
+    version: number;
   } {
     return {
       updatedAt: new Date(),
-      version: currentVersion + BigInt(1),
+      version: currentVersion + Number(1),
     };
   }
 
@@ -67,7 +67,7 @@ export class RepositoryHelpers {
     pageSize?: number,
   ): { skip?: number; take?: number } {
     if (!pageSize) return {};
-    
+
     return {
       take: pageSize,
       skip: pageIndex !== undefined ? pageIndex * pageSize : undefined,
@@ -83,22 +83,22 @@ export class RepositoryHelpers {
     operation: (batch: T[]) => Promise<R>,
   ): Promise<R[]> {
     const results: R[] = [];
-    
+
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
       const result = await operation(batch);
       results.push(result);
     }
-    
+
     return results;
   }
 
   /**
    * Build optimistic locking where clause
    */
-  static buildOptimisticLockingWhere<T extends { id: string; version: bigint }>(
+  static buildOptimisticLockingWhere<T extends { id: string; version: number }>(
     entity: T,
-  ): { id: string; version: bigint } {
+  ): { id: string; version: number } {
     return {
       id: entity.id,
       version: entity.version,
@@ -123,7 +123,7 @@ export class RepositoryHelpers {
     additionalIncludes?: Partial<T>,
   ): T {
     if (!additionalIncludes) return baseInclude;
-    
+
     return {
       ...baseInclude,
       ...additionalIncludes,
@@ -150,25 +150,25 @@ export class RepositoryHelpers {
     initialDelay: number = 100,
   ): Promise<T> {
     let lastError: any;
-    
+
     for (let i = 0; i < maxRetries; i++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         // Don't retry on known non-retriable errors
         if (error instanceof Prisma.PrismaClientValidationError) {
           throw error;
         }
-        
+
         if (i < maxRetries - 1) {
           const delay = initialDelay * Math.pow(2, i);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
-    
+
     throw lastError;
   }
 }

@@ -48,9 +48,9 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
-  
+
   @RequireAllPermissions('read:request')
-  @Get(':id/instances')
+  @Get(':id/instance')
   @ApiOperation({ summary: 'Get workflow instance by ID' })
   @ApiAutoResponse(WorkflowInstanceDto, { description: 'Workflow instance retrieved successfully' })
   async getInstance(@Param('id') id: string): Promise<SuccessResponse<WorkflowInstanceDto>> {
@@ -61,10 +61,10 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowInstanceDto>(instance);
   }
 
-  @RequireAllPermissions('read:request')                                                                                                                                  
+  @RequireAllPermissions('read:request')
   @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
-  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully',wrapInSuccessResponse:true })
+  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully', wrapInSuccessResponse: true })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
   async listInstancesForMe(
