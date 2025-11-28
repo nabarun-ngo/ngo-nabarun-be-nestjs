@@ -2,24 +2,28 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Body,
   Param,
   Query,
   HttpCode,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiAutoResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { PagedResult } from 'src/shared/models/paged-result';
 import {
   DonationDto,
   ProcessDonationPaymentDto,
   DonationDetailFilterDto,
+  CreateDonationDto,
+  UpdateDonationDto,
 } from '../../application/dto/donation.dto';
 import { DonationService } from '../../application/services/donation.service';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 /**
  * Donation Controller - matches legacy endpoints
@@ -27,37 +31,41 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
  */
 @ApiTags('donation-controller')
 @Controller('donation')
+@ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class DonationController {
   constructor(
     private readonly donationService: DonationService,
-  ) {}
+  ) { }
 
   @Post('create')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create new donation', description: "Authorities : hasAuthority('SCOPE_create:donation')" })
-  @ApiAutoResponse(DonationDto, { status: 200, description: 'OK' })
-  async create(@Body() dto: DonationDto): Promise<SuccessResponse<DonationDto>> {
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('create:donation')
+  @ApiOperation({ summary: 'Create new donation', description: "Authorities : 'create:donation'" })
+  @ApiAutoResponse(DonationDto, { status: 201, description: 'Created' })
+  async create(@Body() dto: CreateDonationDto): Promise<SuccessResponse<DonationDto>> {
     const donation = await this.donationService.create(dto);
     return new SuccessResponse(donation);
   }
 
-  @Put(':id/update')
+  @Patch(':id/update')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update donation details', description: "Authorities : hasAuthority('SCOPE_update:donation')" })
+  @RequirePermissions('update:donation')
+  @ApiOperation({ summary: 'Update donation details', description: "Authorities : 'update:donation'" })
   @ApiAutoResponse(DonationDto, { status: 200, description: 'OK' })
   async update(
     @Param('id') id: string,
-    @Body() dto: Partial<DonationDto>,
+    @Body() command: UpdateDonationDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<SuccessResponse<DonationDto>> {
-    const donation = await this.donationService.update(id, dto);
+    const donation = await this.donationService.update(id, command, user.profile_id!);
     return new SuccessResponse(donation);
   }
 
-  @Post(':id/payment')
+  @Post(':id/notify')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Process payment for donation', description: "Authorities : hasAuthority('SCOPE_update:donation')" })
+  @ApiOperation({ summary: 'Notify donation status' })
   @ApiAutoResponse(DonationDto, { status: 200, description: 'OK' })
-  async processPayment(
+  async notify(
     @Param('id') id: string,
     @Body() dto: ProcessDonationPaymentDto,
   ): Promise<SuccessResponse<DonationDto>> {
@@ -65,89 +73,77 @@ export class DonationController {
     return new SuccessResponse(donation);
   }
 
-  @Get(':id/documents')
-  @ApiOperation({ summary: 'Get documents for donation', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse('array', { description: 'OK' })
-  async getDocuments(@Param('id') id: string): Promise<SuccessResponse<any[]>> {
-    // TODO: Implement document retrieval
-    return new SuccessResponse([]);
-  }
-
-  @Get(':id/changes')
-  @ApiOperation({ summary: 'Get donation changes/history', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse('array', { description: 'OK' })
-  async getChanges(@Param('id') id: string): Promise<SuccessResponse<any[]>> {
-    // TODO: Implement change history
-    return new SuccessResponse([]);
-  }
-
-  @Get(':donorId/summary')
-  @ApiOperation({ summary: 'Get donation summary for donor', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse('object', { description: 'OK' })
-  async getDonorSummary(@Param('donorId') donorId: string): Promise<SuccessResponse<any>> {
-    // TODO: Implement donor summary
-    return new SuccessResponse({});
-  }
 
   @Get(':donorId/list')
-  @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('read:user_donations')
+  @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : 'read:user_donations'" })
+  @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
   async getDonorDonations(
     @Param('donorId') donorId: string,
-    @Query() query: any,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: DonationDetailFilterDto,
   ): Promise<SuccessResponse<PagedResult<DonationDto>>> {
-    const filter: BaseFilter<DonationDetailFilterDto> = {
-      pageIndex: query.pageIndex ? parseInt(query.pageIndex) : 0,
-      pageSize: query.pageSize ? parseInt(query.pageSize) : 10,
-      props: {
-        donorId,
-        ...query,
-      },
-    };
-    const result = await this.donationService.list(filter);
+    const result = await this.donationService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter, donorId },
+    });
     return new SuccessResponse(result);
   }
 
-  @Get('self/list')
-  @ApiOperation({ summary: 'Get own donations', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async getSelfDonations(@Query() query: any): Promise<SuccessResponse<PagedResult<DonationDto>>> {
-    // TODO: Get donorId from auth context
-    const filter: BaseFilter<DonationDetailFilterDto> = {
-      pageIndex: query.pageIndex ? parseInt(query.pageIndex) : 0,
-      pageSize: query.pageSize ? parseInt(query.pageSize) : 10,
-      props: query,
-    };
-    const result = await this.donationService.list(filter);
+  @Get('list/me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get own donations' })
+  @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
+  async getSelfDonations(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: DonationDetailFilterDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<DonationDto>>> {
+    const result = await this.donationService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter, donorId: user?.profile_id },
+    });
     return new SuccessResponse(result);
   }
 
   @Get('list')
-  @ApiOperation({ summary: 'List all donations', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async list(@Query() query: any): Promise<SuccessResponse<PagedResult<DonationDto>>> {
-    const filter: BaseFilter<DonationDetailFilterDto> = {
-      pageIndex: query.pageIndex ? parseInt(query.pageIndex) : 0,
-      pageSize: query.pageSize ? parseInt(query.pageSize) : 10,
-      props: query,
-    };
-    const result = await this.donationService.list(filter);
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('read:donations')
+  @ApiOperation({ summary: 'List all donations', description: "Authorities : 'read:donation'" })
+  @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
+  async list(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: DonationDetailFilterDto,
+  ): Promise<SuccessResponse<PagedResult<DonationDto>>> {
+    const result = await this.donationService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter },
+    });
     return new SuccessResponse(result);
   }
 
-  @Get('guest/list')
-  @ApiOperation({ summary: 'List guest donations', description: "Authorities : hasAuthority('SCOPE_read:donation')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async listGuestDonations(@Query() query: any): Promise<SuccessResponse<PagedResult<DonationDto>>> {
-    const filter: BaseFilter<DonationDetailFilterDto> = {
-      pageIndex: query.pageIndex ? parseInt(query.pageIndex) : 0,
-      pageSize: query.pageSize ? parseInt(query.pageSize) : 10,
-      props: {
-        ...query,
-        isGuest: true,
-      },
-    };
-    const result = await this.donationService.list(filter);
+  @Get('list/guest')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('read:donation_guest')
+  @ApiOperation({ summary: 'List guest donations', description: "Authorities : 'read:donation_guest'" })
+  @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
+  async listGuestDonations(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: DonationDetailFilterDto,
+  ): Promise<SuccessResponse<PagedResult<DonationDto>>> {
+    const result = await this.donationService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter, isGuest: true },
+    });
     return new SuccessResponse(result);
   }
 }

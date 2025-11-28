@@ -2,36 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ValidateNested, IsDate, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AccountDetailDto } from './account.dto';
+import { ExpenseCategory, ExpenseRefType, ExpenseStatus } from '../../domain/model/expense.model';
 
-/**
- * Expense Status Enum - matches legacy system
- */
-export enum ExpenseStatus {
-  DRAFT = 'DRAFT',
-  SUBMITTED = 'SUBMITTED',
-  FINALIZED = 'FINALIZED',
-  SETTLED = 'SETTLED',
-  REJECTED = 'REJECTED',
-}
-
-/**
- * Expense Category Enum - matches legacy
- */
-export enum ExpenseCategory {
-  PROJECT = 'PROJECT',
-  EVENT = 'EVENT',
-  ADHOC = 'ADHOC',
-  OPERATIONAL = 'OPERATIONAL',
-  ADMINISTRATIVE = 'ADMINISTRATIVE',
-}
-
-/**
- * Expense Reference Type Enum
- */
-export enum ExpenseRefType {
-  EVENT = 'EVENT',
-  OTHER = 'OTHER',
-}
 
 /**
  * Expense Item Detail DTO

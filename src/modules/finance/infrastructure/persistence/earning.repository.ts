@@ -1,18 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { IEarningRepository } from '../../domain/repositories/earning.repository.interface';
-import { Earning, EarningCategory } from '../../domain/model/earning.model';
+import { Earning, EarningCategory, EarningFilter } from '../../domain/model/earning.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
-import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { EarningDetailFilterDto } from '../../application/dto/earning.dto';
+import { EarningInfraMapper } from '../mapper/earning-infra.mapper';
+
+export type EarningPersistence = Prisma.EarningGetPayload<{
+  include: {
+    account: true;
+  }
+}>;
 
 @Injectable()
 class EarningRepository implements IEarningRepository {
-  constructor(private readonly prisma: PrismaPostgresService) {}
+  constructor(private readonly prisma: PrismaPostgresService) { }
 
-  async findPaged(filter?: BaseFilter<EarningDetailFilterDto>): Promise<PagedResult<Earning>> {
+  async findPaged(filter?: BaseFilter<EarningFilter>): Promise<PagedResult<Earning>> {
     const where = this.whereQuery(filter?.props);
 
     const [data, total] = await Promise.all([
@@ -29,14 +34,14 @@ class EarningRepository implements IEarningRepository {
     ]);
 
     return new PagedResult<Earning>(
-      data.map(m => FinanceInfraMapper.toEarningDomain(m)!),
+      data.map(m => EarningInfraMapper.toEarningDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
       filter?.pageSize ?? 10,
     );
   }
 
-  async findAll(filter?: EarningDetailFilterDto): Promise<Earning[]> {
+  async findAll(filter?: EarningFilter): Promise<Earning[]> {
     const earnings = await this.prisma.earning.findMany({
       where: this.whereQuery(filter),
       orderBy: { earningDate: 'desc' },
@@ -45,21 +50,21 @@ class EarningRepository implements IEarningRepository {
       },
     });
 
-    return earnings.map(m => FinanceInfraMapper.toEarningDomain(m)!);
+    return earnings.map(m => EarningInfraMapper.toEarningDomain(m)!);
   }
 
-  private whereQuery(props?: EarningDetailFilterDto): Prisma.EarningWhereInput {
+  private whereQuery(props?: EarningFilter): Prisma.EarningWhereInput {
     const where: Prisma.EarningWhereInput = {
-      ...(props?.category ? { category: props.category } : {}),
+      ...(props?.category ? { category: { in: props.category } } : {}),
       ...(props?.source ? { source: props.source } : {}),
-      ...(props?.status ? { status: props.status } : {}),
+      ...(props?.status ? { status: { in: props.status } } : {}),
       ...(props?.startDate || props?.endDate
         ? {
-            earningDate: {
-              ...(props.startDate ? { gte: props.startDate } : {}),
-              ...(props.endDate ? { lte: props.endDate } : {}),
-            },
-          }
+          earningDate: {
+            ...(props.startDate ? { gte: props.startDate } : {}),
+            ...(props.endDate ? { lte: props.endDate } : {}),
+          },
+        }
         : {}),
       deletedAt: null,
     };
@@ -74,7 +79,7 @@ class EarningRepository implements IEarningRepository {
       },
     });
 
-    return FinanceInfraMapper.toEarningDomain(earning);
+    return EarningInfraMapper.toEarningDomain(earning!);
   }
 
   async findByCategory(category: EarningCategory): Promise<Earning[]> {
@@ -86,7 +91,7 @@ class EarningRepository implements IEarningRepository {
       },
     });
 
-    return earnings.map(m => FinanceInfraMapper.toEarningDomain(m)!);
+    return earnings.map(m => EarningInfraMapper.toEarningDomain(m)!);
   }
 
   async findBySource(source: string): Promise<Earning[]> {
@@ -98,12 +103,12 @@ class EarningRepository implements IEarningRepository {
       },
     });
 
-    return earnings.map(m => FinanceInfraMapper.toEarningDomain(m)!);
+    return earnings.map(m => EarningInfraMapper.toEarningDomain(m)!);
   }
 
   async create(earning: Earning): Promise<Earning> {
     const createData: Prisma.EarningUncheckedCreateInput = {
-      ...FinanceInfraMapper.toEarningCreatePersistence(earning),
+      ...EarningInfraMapper.toEarningCreatePersistence(earning),
     };
 
     const created = await this.prisma.earning.create({
@@ -113,12 +118,12 @@ class EarningRepository implements IEarningRepository {
       },
     });
 
-    return FinanceInfraMapper.toEarningDomain(created)!;
+    return EarningInfraMapper.toEarningDomain(created)!;
   }
 
   async update(id: string, earning: Earning): Promise<Earning> {
     const updateData: Prisma.EarningUncheckedUpdateInput = {
-      ...FinanceInfraMapper.toEarningUpdatePersistence(earning),
+      ...EarningInfraMapper.toEarningUpdatePersistence(earning),
     };
 
     const updated = await this.prisma.earning.update({
@@ -129,7 +134,7 @@ class EarningRepository implements IEarningRepository {
       },
     });
 
-    return FinanceInfraMapper.toEarningDomain(updated)!;
+    return EarningInfraMapper.toEarningDomain(updated)!;
   }
 
   async delete(id: string): Promise<void> {

@@ -30,8 +30,8 @@ export class PhoneNumberDto {
 
 
   @IsOptional()
-  @ApiPropertyOptional()
-  fullNumber: string;
+  @ApiPropertyOptional({ readOnly: true })
+  fullNumber?: string;
 }
 
 export class AddressDto {

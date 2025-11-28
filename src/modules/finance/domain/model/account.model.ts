@@ -1,5 +1,6 @@
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { AccountCreatedEvent } from '../events/account-created.event';
 
 export enum AccountType {
   PRINCIPAL = 'PRINCIPAL',    // Legacy: Principal account
@@ -25,7 +26,7 @@ export class BankDetail {
     public bankAccountNumber?: string,
     public bankAccountType?: string,
     public IFSCNumber?: string,
-  ) {}
+  ) { }
 }
 
 /**
@@ -37,7 +38,15 @@ export class UPIDetail {
     public upiId?: string,
     public mobileNumber?: string,
     public qrData?: string,
-  ) {}
+  ) { }
+}
+
+export interface AccountFilter {
+  id?: string;
+  type?: AccountType[];
+  status?: AccountStatus[];
+  accountHolderName?: string;
+  accountHolderId?: string;
 }
 
 /**
@@ -58,7 +67,6 @@ export class Account extends AggregateRoot<string> {
   #activatedOn: Date | undefined;
   #bankDetail: BankDetail | undefined;
   #upiDetail: UPIDetail | undefined;
-  #version: bigint;
 
   constructor(
     id: string,
@@ -75,7 +83,6 @@ export class Account extends AggregateRoot<string> {
     upiDetail?: UPIDetail,
     createdAt?: Date,
     updatedAt?: Date,
-    version: bigint = BigInt(0),
   ) {
     super(id, createdAt, updatedAt);
     this.#name = name;
@@ -89,7 +96,6 @@ export class Account extends AggregateRoot<string> {
     this.#activatedOn = activatedOn;
     this.#bankDetail = bankDetail;
     this.#upiDetail = upiDetail;
-    this.#version = version;
   }
 
   /**
@@ -118,7 +124,7 @@ export class Account extends AggregateRoot<string> {
     }
 
     const now = new Date();
-    return new Account(
+    const account = new Account(
       crypto.randomUUID(),
       props.name,
       props.type,
@@ -134,6 +140,8 @@ export class Account extends AggregateRoot<string> {
       now,
       now,
     );
+    account.addDomainEvent(new AccountCreatedEvent(account));
+    return account;
   }
 
   /**
@@ -144,7 +152,7 @@ export class Account extends AggregateRoot<string> {
     if (amount <= 0) {
       throw new BusinessException('Credit amount must be positive');
     }
-    
+
     if (this.#status !== AccountStatus.ACTIVE) {
       throw new BusinessException('Cannot credit to inactive or blocked account');
     }
@@ -161,7 +169,7 @@ export class Account extends AggregateRoot<string> {
     if (amount <= 0) {
       throw new BusinessException('Debit amount must be positive');
     }
-    
+
     if (this.#status !== AccountStatus.ACTIVE) {
       throw new BusinessException('Cannot debit from inactive or blocked account');
     }
@@ -254,7 +262,6 @@ export class Account extends AggregateRoot<string> {
   get activatedOn(): Date | undefined { return this.#activatedOn; }
   get bankDetail(): BankDetail | undefined { return this.#bankDetail; }
   get upiDetail(): UPIDetail | undefined { return this.#upiDetail; }
-  get version(): bigint { return this.#version; }
 
   /**
    * Check if account has sufficient funds

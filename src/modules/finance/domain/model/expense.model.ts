@@ -19,6 +19,14 @@ export enum ExpenseStatus {
 }
 
 /**
+ * Expense Reference Type Enum
+ */
+export enum ExpenseRefType {
+  EVENT = 'EVENT',
+  OTHER = 'OTHER',
+}
+
+/**
  * Expense Item Value Object
  */
 export class ExpenseItem {
@@ -35,6 +43,15 @@ export class ExpenseItem {
       throw new BusinessException('Expense item amount must be positive');
     }
   }
+}
+
+export class ExpenseFilter {
+  startDate?: Date;
+  endDate?: Date;
+  expenseRefId?: string;
+  expenseId?: string;
+  expenseStatus?: ExpenseStatus[];
+  payerId?: string;
 }
 
 /**

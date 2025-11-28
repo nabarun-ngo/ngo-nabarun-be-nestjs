@@ -1,26 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsDate, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-
-/**
- * Earning Category Enum
- */
-export enum EarningCategory {
-  SERVICE = 'SERVICE',
-  PRODUCT = 'PRODUCT',
-  GRANT = 'GRANT',
-  SPONSORSHIP = 'SPONSORSHIP',
-  OTHER = 'OTHER',
-}
-
-/**
- * Earning Status Enum
- */
-export enum EarningStatus {
-  PENDING = 'PENDING',
-  RECEIVED = 'RECEIVED',
-  CANCELLED = 'CANCELLED',
-}
+import { EarningCategory, EarningStatus } from '../../domain/model/earning.model';
 
 /**
  * Earning Detail DTO

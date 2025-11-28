@@ -30,8 +30,8 @@ export class MeetingService {
     return new PagedResult(
       result.items.map(m => MeetingDtoMapper.toDto(m)),
       result.total,
-      result.page,
-      result.size,
+      result.pageIndex,
+      result.pageSize,
     );
   }
 

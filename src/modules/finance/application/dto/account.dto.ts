@@ -179,7 +179,16 @@ export class CreateAccountDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  accountHolderId?: string;
+  accountHolderId: string;
+}
+
+
+
+
+/**
+ * Update Account DTO
+ */
+export class UpdateAccountSelfDto {
 
   @ApiPropertyOptional({ type: BankDetailDto })
   @IsOptional()
@@ -213,6 +222,11 @@ export class UpdateAccountDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ enum: AccountType })
+  @IsOptional()
+  @IsEnum(AccountType)
+  type?: AccountType;
+
   @ApiPropertyOptional({ type: BankDetailDto })
   @IsOptional()
   @ValidateNested()
@@ -225,5 +239,6 @@ export class UpdateAccountDto {
   @Type(() => UPIDetailDto)
   upiDetail?: UPIDetailDto;
 }
+
 
 

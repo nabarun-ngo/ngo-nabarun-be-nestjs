@@ -1,6 +1,5 @@
-import { AggregateRoot } from 'src/shared/models/aggregate-root';
-import { TransactionCreatedEvent } from '../events/transaction-created.event';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { BaseDomain } from 'src/shared/models/base-domain';
 
 export enum TransactionType {
   IN = 'IN',                  // Legacy: Money coming in
@@ -18,6 +17,16 @@ export enum TransactionRefType {
   DONATION = 'DONATION',
   NONE = 'NONE',
   EXPENSE = 'EXPENSE',
+  EARNING = 'EARNING',
+}
+
+export class TransactionFilter {
+  type?: TransactionType[];
+  status?: TransactionStatus[];
+  referenceType?: TransactionRefType[];
+  accountId?: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 /**
@@ -25,19 +34,15 @@ export enum TransactionRefType {
  * Represents a financial transaction in the system
  * All business logic and validations are in this domain model
  */
-export class Transaction extends AggregateRoot<string> {
+export class Transaction extends BaseDomain<string> {
   // Private fields for encapsulation
-  #type: TransactionType;
-  #amount: number;
   #currency: string;
-  #status: TransactionStatus;
-  #accountId: string;
   #referenceId: string | undefined;
   #referenceType: TransactionRefType | undefined;
   #description: string;
   #metadata: Record<string, any> | undefined;
   #transactionDate: Date;
-  
+
   // Legacy fields
   #txnId: string; // Legacy alias for id
   #txnNumber: string | undefined;
@@ -60,7 +65,6 @@ export class Transaction extends AggregateRoot<string> {
     amount: number,
     currency: string,
     status: TransactionStatus,
-    accountId: string,
     referenceId: string | undefined,
     referenceType: TransactionRefType | undefined,
     description: string,
@@ -75,11 +79,7 @@ export class Transaction extends AggregateRoot<string> {
     updatedAt?: Date,
   ) {
     super(id, createdAt, updatedAt);
-    this.#type = type;
-    this.#amount = amount;
     this.#currency = currency;
-    this.#status = status;
-    this.#accountId = accountId;
     this.#referenceId = referenceId;
     this.#referenceType = referenceType;
     this.#description = description;
@@ -136,7 +136,6 @@ export class Transaction extends AggregateRoot<string> {
       props.amount,
       props.currency,
       TransactionStatus.SUCCESS,
-      props.accountId,
       props.referenceId,
       props.referenceType,
       props.description,
@@ -145,19 +144,11 @@ export class Transaction extends AggregateRoot<string> {
       props.txnNumber,
       props.txnParticulars,
       undefined, // transferFromAccountId
-      undefined, // transferToAccountId
+      props.accountId, // transferToAccountId
       props.comment,
       new Date(),
       new Date(),
     );
-
-    transaction.addDomainEvent(new TransactionCreatedEvent(
-      transaction.id,
-      transaction.#type,
-      transaction.#amount,
-      transaction.#accountId,
-    ));
-
     return transaction;
   }
 
@@ -197,7 +188,6 @@ export class Transaction extends AggregateRoot<string> {
       props.amount,
       props.currency,
       TransactionStatus.SUCCESS,
-      props.accountId,
       props.referenceId,
       props.referenceType,
       props.description,
@@ -205,19 +195,10 @@ export class Transaction extends AggregateRoot<string> {
       props.transactionDate || new Date(),
       props.txnNumber,
       props.txnParticulars,
-      undefined, // transferFromAccountId
+      props.accountId, // transferFromAccountId
       undefined, // transferToAccountId
-      props.comment,
-      new Date(),
-      new Date(),
+      props.comment
     );
-
-    transaction.addDomainEvent(new TransactionCreatedEvent(
-      transaction.id,
-      transaction.#type,
-      transaction.#amount,
-      transaction.#accountId,
-    ));
 
     return transaction;
   }
@@ -258,7 +239,6 @@ export class Transaction extends AggregateRoot<string> {
       props.currency,
       TransactionStatus.SUCCESS,
       props.fromAccountId, // Primary account (from)
-      undefined, // referenceId
       TransactionRefType.NONE,
       props.description,
       props.metadata,
@@ -268,16 +248,7 @@ export class Transaction extends AggregateRoot<string> {
       props.fromAccountId,
       props.toAccountId,
       props.comment,
-      new Date(),
-      new Date(),
     );
-
-    transaction.addDomainEvent(new TransactionCreatedEvent(
-      transaction.id,
-      transaction.#type,
-      transaction.#amount,
-      transaction.#accountId,
-    ));
 
     return transaction;
   }
@@ -287,10 +258,10 @@ export class Transaction extends AggregateRoot<string> {
    * Business validation: Cannot mark successful transaction as failed
    */
   markAsFailed(): void {
-    if (this.#status === TransactionStatus.SUCCESS) {
+    if (this.#txnStatus === TransactionStatus.SUCCESS) {
       throw new BusinessException('Cannot mark successful transaction as failed');
     }
-    this.#status = TransactionStatus.FAILURE;
+    this.#txnStatus = TransactionStatus.FAILURE;
     this.touch();
   }
 
@@ -299,10 +270,10 @@ export class Transaction extends AggregateRoot<string> {
    * Business validation: Can only revert successful transactions
    */
   revert(): void {
-    if (this.#status !== TransactionStatus.SUCCESS) {
+    if (this.#txnStatus !== TransactionStatus.SUCCESS) {
       throw new BusinessException('Can only revert successful transactions');
     }
-    this.#status = TransactionStatus.REVERT;
+    this.#txnStatus = TransactionStatus.REVERT;
     this.touch();
   }
 
@@ -314,11 +285,7 @@ export class Transaction extends AggregateRoot<string> {
   }
 
   // Getters
-  get type(): TransactionType { return this.#type; }
-  get amount(): number { return this.#amount; }
   get currency(): string { return this.#currency; }
-  get status(): TransactionStatus { return this.#status; }
-  get accountId(): string { return this.#accountId; }
   get referenceId(): string | undefined { return this.#referenceId; }
   get referenceType(): TransactionRefType | undefined { return this.#referenceType; }
   get description(): string { return this.#description; }

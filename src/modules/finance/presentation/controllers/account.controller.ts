@@ -9,20 +9,22 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { SuccessResponse, PagedResult } from 'src/shared/models/response-model';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse } from 'src/shared/models/response-model';
 import {
   AccountDetailDto,
   CreateAccountDto,
   UpdateAccountDto,
+  UpdateAccountSelfDto,
   AccountDetailFilterDto,
 } from '../../application/dto/account.dto';
 import { TransactionDetailDto, TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
-import { ExpenseDetailDto, ExpenseDetailFilterDto, CreateExpenseDto, UpdateExpenseDto } from '../../application/dto/expense.dto';
 import { AccountService } from '../../application/services/account.service';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
-import { CreateTransactionDto } from '../../application/dto/transaction.dto';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 /**
  * Account Controller - matches legacy endpoints
@@ -30,15 +32,17 @@ import { CreateTransactionDto } from '../../application/dto/transaction.dto';
  */
 @ApiTags('account-controller')
 @Controller('account')
+@ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class AccountController {
   constructor(
     private readonly accountService: AccountService,
-  ) {}
+  ) { }
 
   @Post('create')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create new account', description: "Authorities : hasAuthority('SCOPE_create:account')" })
-  @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK' })
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('create:account')
+  @ApiOperation({ summary: 'Create new account', description: "Authorities : 'create:account'" })
+  @ApiAutoResponse(AccountDetailDto, { status: 201, description: 'Created' })
   async create(@Body() dto: CreateAccountDto): Promise<SuccessResponse<AccountDetailDto>> {
     const account = await this.accountService.create(dto);
     return new SuccessResponse(account);
@@ -46,7 +50,8 @@ export class AccountController {
 
   @Put(':id/update')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update account details', description: "Authorities : hasAuthority('SCOPE_update:account')" })
+  @RequirePermissions('update:account')
+  @ApiOperation({ summary: 'Update account details', description: "Authorities : 'update:account'" })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK' })
   async update(
     @Param('id') id: string,
@@ -56,160 +61,88 @@ export class AccountController {
     return new SuccessResponse(account);
   }
 
-  @Put(':id/update/self')
+  @Put(':id/update/me')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update own account details', description: "Authorities : hasAuthority('SCOPE_update:account')" })
+  @ApiOperation({ summary: 'Update own account details', description: "" })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK' })
   async updateSelf(
     @Param('id') id: string,
-    @Body() dto: UpdateAccountDto,
+    @Body() dto: UpdateAccountSelfDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<SuccessResponse<AccountDetailDto>> {
-    const account = await this.accountService.update(id, dto);
+    const account = await this.accountService.update(id, dto, user.profile_id);
     return new SuccessResponse(account);
   }
 
   @Get('list')
-  @ApiOperation({ summary: 'List all accounts', description: "Authorities : hasAuthority('SCOPE_read:account')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async list(@Query() filter: AccountDetailFilterDto): Promise<SuccessResponse<PagedResult<AccountDetailDto>>> {
-    const baseFilter: BaseFilter<AccountDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
+  @ApiOperation({ summary: 'List all accounts' })
+  @RequirePermissions('read:accounts')
+  @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async list(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: AccountDetailFilterDto): Promise<SuccessResponse<PagedResult<AccountDetailDto>>> {
+    const result = await this.accountService.list({
+      pageIndex,
+      pageSize,
       props: filter,
-    };
-    const result = await this.accountService.list(baseFilter);
+    });
     return new SuccessResponse(result);
   }
 
-  @Get('self/list')
-  @ApiOperation({ summary: 'List own accounts', description: "Authorities : hasAuthority('SCOPE_read:account')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async listSelf(@Query() filter: AccountDetailFilterDto): Promise<SuccessResponse<PagedResult<AccountDetailDto>>> {
-    // TODO: Filter by current user's accountHolderId
-    const baseFilter: BaseFilter<AccountDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
+  @Get('list/me')
+  @ApiOperation({ summary: 'List own accounts', })
+  @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async listSelf(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: AccountDetailFilterDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<AccountDetailDto>>> {
+    const result = await this.accountService.list({
+      pageIndex,
+      pageSize,
       props: filter,
-    };
-    const result = await this.accountService.list(baseFilter);
+    }, user?.profile_id);
     return new SuccessResponse(result);
   }
 
-  @Post(':id/transaction/create')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create transaction for account', description: "Authorities : hasAuthority('SCOPE_create:transaction')" })
-  @ApiAutoResponse(TransactionDetailDto, { status: 200, description: 'OK' })
-  async createTransaction(
-    @Param('id') accountId: string,
-    @Body() dto: CreateTransactionDto,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
-    const transaction = await this.accountService.createTransaction(accountId, dto);
-    return new SuccessResponse(transaction);
-  }
 
-  @Get(':id/transaction/list')
-  @ApiOperation({ summary: 'List transactions for account', description: "Authorities : hasAuthority('SCOPE_read:transaction')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
+  @Get(':id/transactions')
+  @ApiOperation({ summary: 'List transactions for account', description: "Authorities : 'read:transactions'" })
+  @RequirePermissions('read:transactions')
+  @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listTransactions(
     @Param('id') accountId: string,
-    @Query() filter: TransactionDetailFilterDto,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: TransactionDetailFilterDto,
   ): Promise<SuccessResponse<PagedResult<TransactionDetailDto>>> {
-    const baseFilter: BaseFilter<TransactionDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
+    const result = await this.accountService.listTransactions(accountId, {
+      pageIndex,
+      pageSize,
       props: filter,
-    };
-    const result = await this.accountService.listTransactions(accountId, baseFilter);
+    });
     return new SuccessResponse(result);
   }
 
-  @Get(':id/transaction/self/list')
-  @ApiOperation({ summary: 'List own transactions for account', description: "Authorities : hasAuthority('SCOPE_read:transaction')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
+  @Get(':id/transactions/me')
+  @ApiOperation({ summary: 'List own transactions for account', })
+  @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listSelfTransactions(
     @Param('id') accountId: string,
-    @Query() filter: TransactionDetailFilterDto,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: TransactionDetailFilterDto,
+    @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<TransactionDetailDto>>> {
-    // TODO: Filter by current user
-    const baseFilter: BaseFilter<TransactionDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
+    const result = await this.accountService.listTransactions(accountId, {
+      pageIndex,
+      pageSize,
       props: filter,
-    };
-    const result = await this.accountService.listTransactions(accountId, baseFilter);
+    }, user?.profile_id);
     return new SuccessResponse(result);
   }
 
-  @Post('expense/create')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create expense', description: "Authorities : hasAuthority('SCOPE_create:expense')" })
-  @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async createExpense(@Body() dto: CreateExpenseDto): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.accountService.createExpense(dto);
-    return new SuccessResponse(expense);
-  }
-
-  @Put('expense/:id/update')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update expense', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
-  @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async updateExpense(
-    @Param('id') id: string,
-    @Body() dto: UpdateExpenseDto,
-  ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.accountService.updateExpense(id, dto);
-    return new SuccessResponse(expense);
-  }
-
-  @Post('expense/:id/settle')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Settle expense', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
-  @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async settleExpense(
-    @Param('id') id: string,
-    @Body() body: { accountId: string; settledBy: string },
-  ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.accountService.settleExpense(id, body.accountId, body.settledBy);
-    return new SuccessResponse(expense);
-  }
-
-  @Post('expense/:id/finalize')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Finalize expense', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
-  @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async finalizeExpense(
-    @Param('id') id: string,
-    @Body() body: { finalizedBy: string },
-  ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.accountService.finalizeExpense(id, body.finalizedBy);
-    return new SuccessResponse(expense);
-  }
-
-  @Get('expense/list')
-  @ApiOperation({ summary: 'List all expenses', description: "Authorities : hasAuthority('SCOPE_read:expense')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async listExpenses(@Query() filter: ExpenseDetailFilterDto): Promise<SuccessResponse<PagedResult<ExpenseDetailDto>>> {
-    const baseFilter: BaseFilter<ExpenseDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.accountService.listExpenses(baseFilter);
-    return new SuccessResponse(result);
-  }
-
-  @Get('expense/list/self')
-  @ApiOperation({ summary: 'List own expenses', description: "Authorities : hasAuthority('SCOPE_read:expense')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async listSelfExpenses(@Query() filter: ExpenseDetailFilterDto): Promise<SuccessResponse<PagedResult<ExpenseDetailDto>>> {
-    // TODO: Filter by current user
-    const baseFilter: BaseFilter<ExpenseDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.accountService.listExpenses(baseFilter);
-    return new SuccessResponse(result);
-  }
 }
 

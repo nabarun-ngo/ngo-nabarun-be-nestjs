@@ -47,7 +47,6 @@ export class NoticeInfraMapper {
       meetingId: MapperUtils.undefinedToNull(domain.meetingId),
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
-      version: domain.version || BigInt(0),
     };
   }
 
@@ -117,7 +116,6 @@ export class NoticeInfraMapper {
       extConferenceStatus: MapperUtils.undefinedToNull(domain.extConferenceStatus),
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
-      version: domain.version || BigInt(0),
       attendees: {
         create: attendeeIds.map(userId => ({
           userId,

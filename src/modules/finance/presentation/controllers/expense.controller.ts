@@ -9,9 +9,9 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { SuccessResponse, PagedResult } from 'src/shared/models/response-model';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse } from 'src/shared/models/response-model';
 import {
   ExpenseDetailDto,
   ExpenseDetailFilterDto,
@@ -19,7 +19,10 @@ import {
   UpdateExpenseDto,
 } from '../../application/dto/expense.dto';
 import { ExpenseService } from '../../application/services/expense.service';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 /**
  * Expense Controller - matches legacy endpoints
@@ -27,14 +30,16 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
  */
 @ApiTags('expense-controller')
 @Controller('expense')
+@ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class ExpenseController {
   constructor(
     private readonly expenseService: ExpenseService,
-  ) {}
+  ) { }
 
   @Post('create')
+  @RequirePermissions('create:expense')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create new expense', description: "Authorities : hasAuthority('SCOPE_create:expense')" })
+  @ApiOperation({ summary: 'Create new expense', description: "Authorities : 'create:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async create(@Body() dto: CreateExpenseDto): Promise<SuccessResponse<ExpenseDetailDto>> {
     const expense = await this.expenseService.create(dto);
@@ -42,8 +47,9 @@ export class ExpenseController {
   }
 
   @Put(':id/update')
+  @RequirePermissions('update:expense')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update expense details', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
+  @ApiOperation({ summary: 'Update expense details', description: "Authorities : 'update:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async update(
     @Param('id') id: string,
@@ -53,19 +59,12 @@ export class ExpenseController {
     return new SuccessResponse(expense);
   }
 
-  @Post(':id/submit')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Submit expense for approval', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
-  @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async submit(@Param('id') id: string): Promise<SuccessResponse<ExpenseDetailDto>> {
-    // TODO: Implement submit use case
-    const expense = await this.expenseService.getById(id);
-    return new SuccessResponse(expense);
-  }
+
 
   @Post(':id/finalize')
+  @RequirePermissions('create:expense_final')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Finalize expense', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
+  @ApiOperation({ summary: 'Finalize expense', description: "Authorities : 'create:expense_final'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async finalize(
     @Param('id') id: string,
@@ -76,8 +75,9 @@ export class ExpenseController {
   }
 
   @Post(':id/settle')
+  @RequirePermissions('create:expense_settle')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Settle expense', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
+  @ApiOperation({ summary: 'Settle expense', description: "Authorities : 'create:expense_settle'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async settle(
     @Param('id') id: string,
@@ -87,52 +87,52 @@ export class ExpenseController {
     return new SuccessResponse(expense);
   }
 
-  @Post(':id/reject')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reject expense', description: "Authorities : hasAuthority('SCOPE_update:expense')" })
-  @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async reject(
-    @Param('id') id: string,
-    @Body() body: { rejectedBy: string; remarks?: string },
-  ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    // TODO: Implement reject use case
-    const expense = await this.expenseService.getById(id);
-    return new SuccessResponse(expense);
-  }
-
   @Get('list')
-  @ApiOperation({ summary: 'List all expenses', description: "Authorities : hasAuthority('SCOPE_read:expense')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async list(@Query() filter: ExpenseDetailFilterDto): Promise<SuccessResponse<PagedResult<ExpenseDetailDto>>> {
-    const baseFilter: BaseFilter<ExpenseDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.expenseService.list(baseFilter);
+  @RequirePermissions('read:expense')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List all expenses', description: "Authorities : 'read:expense'" })
+  @ApiAutoPagedResponse(ExpenseDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async list(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: ExpenseDetailFilterDto,
+  ): Promise<SuccessResponse<PagedResult<ExpenseDetailDto>>> {
+    const result = await this.expenseService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter },
+    });
     return new SuccessResponse(result);
   }
 
-  @Get('self/list')
-  @ApiOperation({ summary: 'List own expenses', description: "Authorities : hasAuthority('SCOPE_read:expense')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async listSelf(@Query() filter: ExpenseDetailFilterDto): Promise<SuccessResponse<PagedResult<ExpenseDetailDto>>> {
-    // TODO: Filter by current user
-    const baseFilter: BaseFilter<ExpenseDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.expenseService.list(baseFilter);
+  @Get('list/me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List own expenses', description: "Authorities : 'read:expense'" })
+  @ApiAutoPagedResponse(ExpenseDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async listSelf(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: ExpenseDetailFilterDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<ExpenseDetailDto>>> {
+    const result = await this.expenseService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter, },
+    });
     return new SuccessResponse(result);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get expense by ID', description: "Authorities : hasAuthority('SCOPE_read:expense')" })
+  @RequirePermissions('read:expense')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get expense by ID', description: "Authorities : 'read:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { description: 'OK' })
   async getById(@Param('id') id: string): Promise<SuccessResponse<ExpenseDetailDto>> {
     const expense = await this.expenseService.getById(id);
     return new SuccessResponse(expense);
   }
+
+
 }
 

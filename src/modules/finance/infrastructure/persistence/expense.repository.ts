@@ -1,16 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { IExpenseRepository } from '../../domain/repositories/expense.repository.interface';
-import { Expense, ExpenseCategory, ExpenseStatus } from '../../domain/model/expense.model';
+import { Expense, ExpenseCategory, ExpenseFilter, ExpenseStatus } from '../../domain/model/expense.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
-import { FinanceInfraMapper } from '../finance-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { ExpenseDetailFilterDto } from '../../application/dto/expense.dto';
+import { ExpenseInfraMapper } from '../mapper/expense-infra.mapper';
+
+
+export type ExpensePersistence = Prisma.ExpenseGetPayload<{
+  include: {
+    account: true;
+  }
+}>;
 
 @Injectable()
 class ExpenseRepository implements IExpenseRepository {
-  constructor(private readonly prisma: PrismaPostgresService) {}
+  constructor(private readonly prisma: PrismaPostgresService) { }
 
   async findPaged(filter?: BaseFilter<ExpenseDetailFilterDto>): Promise<PagedResult<Expense>> {
     const where = this.whereQuery(filter?.props);
@@ -29,7 +36,7 @@ class ExpenseRepository implements IExpenseRepository {
     ]);
 
     return new PagedResult<Expense>(
-      data.map(m => FinanceInfraMapper.toExpenseDomain(m)!),
+      data.map(m => ExpenseInfraMapper.toExpenseDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
       filter?.pageSize ?? 10,
@@ -45,21 +52,22 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return expenses.map(m => FinanceInfraMapper.toExpenseDomain(m)!);
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
-  private whereQuery(props?: ExpenseDetailFilterDto): Prisma.ExpenseWhereInput {
+  private whereQuery(props?: ExpenseFilter): Prisma.ExpenseWhereInput {
     const where: Prisma.ExpenseWhereInput = {
-      ...(props?.category ? { category: props.category } : {}),
-      ...(props?.status ? { status: props.status } : {}),
-      ...(props?.requestedBy ? { requestedBy: props.requestedBy } : {}),
+      ...(props?.expenseStatus ? { status: { in: props.expenseStatus } } : {}),
+      ...(props?.expenseId ? { id: props.expenseId } : {}),
+
+
       ...(props?.startDate || props?.endDate
         ? {
-            expenseDate: {
-              ...(props.startDate ? { gte: props.startDate } : {}),
-              ...(props.endDate ? { lte: props.endDate } : {}),
-            },
-          }
+          expenseDate: {
+            ...(props.startDate ? { gte: props.startDate } : {}),
+            ...(props.endDate ? { lte: props.endDate } : {}),
+          },
+        }
         : {}),
       deletedAt: null,
     };
@@ -74,7 +82,7 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return FinanceInfraMapper.toExpenseDomain(expense);
+    return ExpenseInfraMapper.toExpenseDomain(expense!);
   }
 
   async findByCategory(category: ExpenseCategory): Promise<Expense[]> {
@@ -86,7 +94,7 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return expenses.map(m => FinanceInfraMapper.toExpenseDomain(m)!);
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
   async findByStatus(status: ExpenseStatus): Promise<Expense[]> {
@@ -98,7 +106,7 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return expenses.map(m => FinanceInfraMapper.toExpenseDomain(m)!);
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
   async findByRequestedBy(userId: string): Promise<Expense[]> {
@@ -110,24 +118,14 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return expenses.map(m => FinanceInfraMapper.toExpenseDomain(m)!);
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
-  async findPendingExpenses(): Promise<Expense[]> {
-    const expenses = await this.prisma.expense.findMany({
-      where: { status: ExpenseStatus.PENDING, deletedAt: null },
-      orderBy: { expenseDate: 'desc' },
-      include: {
-        account: true,
-      },
-    });
 
-    return expenses.map(m => FinanceInfraMapper.toExpenseDomain(m)!);
-  }
 
   async create(expense: Expense): Promise<Expense> {
     const createData: Prisma.ExpenseUncheckedCreateInput = {
-      ...FinanceInfraMapper.toExpenseCreatePersistence(expense),
+      ...ExpenseInfraMapper.toExpenseCreatePersistence(expense),
     };
 
     const created = await this.prisma.expense.create({
@@ -137,12 +135,12 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return FinanceInfraMapper.toExpenseDomain(created)!;
+    return ExpenseInfraMapper.toExpenseDomain(created)!;
   }
 
   async update(id: string, expense: Expense): Promise<Expense> {
     const updateData: Prisma.ExpenseUncheckedUpdateInput = {
-      ...FinanceInfraMapper.toExpenseUpdatePersistence(expense),
+      ...ExpenseInfraMapper.toExpenseUpdatePersistence(expense),
     };
 
     const updated = await this.prisma.expense.update({
@@ -153,7 +151,7 @@ class ExpenseRepository implements IExpenseRepository {
       },
     });
 
-    return FinanceInfraMapper.toExpenseDomain(updated)!;
+    return ExpenseInfraMapper.toExpenseDomain(updated)!;
   }
 
   async delete(id: string): Promise<void> {

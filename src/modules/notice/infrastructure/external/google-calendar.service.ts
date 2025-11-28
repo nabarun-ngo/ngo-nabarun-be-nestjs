@@ -71,7 +71,7 @@ export class GoogleCalendarService {
       const clientId = this.configService.get<string>(Configkey.GOOGLE_CLIENT_ID);
       const clientSecret = this.configService.get<string>(Configkey.GOOGLE_CLIENT_SECRET);
       const redirectUri = this.configService.get<string>(Configkey.GOOGLE_REDIRECT_URI);
-      const refreshToken = this.configService.get<string>(Configkey.GOOGLE_REFRESH_TOKEN);
+      const refreshToken = this.configService.get<string>(Configkey.GOOGLE_CLIENT_SECRET);
 
       if (!clientId || !clientSecret || !refreshToken) {
         this.logger.warn('Google Calendar API credentials not configured. Meeting creation in Google Calendar will be disabled.');
@@ -103,7 +103,7 @@ export class GoogleCalendarService {
   async createCalendarEvent(params: CreateCalendarEventParams): Promise<GoogleCalendarEvent> {
     if (!this.calendar) {
       throw new ThirdPartyException(
-        'google-calendar',
+        'google',
         new Error('Google Calendar API is not configured'),
       );
     }
@@ -139,7 +139,7 @@ export class GoogleCalendarService {
       };
     } catch (error: any) {
       this.logger.error(`Failed to create Google Calendar event: ${error.message}`, error);
-      throw new ThirdPartyException('google-calendar', error as Error);
+      throw new ThirdPartyException('google', error as Error);
     }
   }
 
@@ -152,7 +152,7 @@ export class GoogleCalendarService {
   ): Promise<GoogleCalendarEvent> {
     if (!this.calendar) {
       throw new ThirdPartyException(
-        'google-calendar',
+        'google',
         new Error('Google Calendar API is not configured'),
       );
     }
@@ -199,7 +199,7 @@ export class GoogleCalendarService {
       };
     } catch (error: any) {
       this.logger.error(`Failed to update Google Calendar event: ${error.message}`, error);
-      throw new ThirdPartyException('google-calendar', error as Error);
+      throw new ThirdPartyException('google', error as Error);
     }
   }
 
@@ -209,7 +209,7 @@ export class GoogleCalendarService {
   async deleteCalendarEvent(eventId: string): Promise<void> {
     if (!this.calendar) {
       throw new ThirdPartyException(
-        'google-calendar',
+        'google',
         new Error('Google Calendar API is not configured'),
       );
     }
@@ -221,7 +221,7 @@ export class GoogleCalendarService {
       });
     } catch (error: any) {
       this.logger.error(`Failed to delete Google Calendar event: ${error.message}`, error);
-      throw new ThirdPartyException('google-calendar', error as Error);
+      throw new ThirdPartyException('google', error as Error);
     }
   }
 

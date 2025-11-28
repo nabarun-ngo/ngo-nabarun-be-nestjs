@@ -14,6 +14,15 @@ export enum EarningStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export class EarningFilter {
+  status?: EarningStatus[];
+  category?: EarningCategory[];
+  source?: string;
+  referenceId?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
 /**
  * Earning Domain Model (Aggregate Root)
  * Represents earnings/income other than donations

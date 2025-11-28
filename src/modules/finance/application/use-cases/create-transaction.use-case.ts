@@ -1,25 +1,34 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Transaction } from '../../domain/model/transaction.model';
+import { Transaction, TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CreateTransactionDto } from '../dto/transaction.dto';
+
+interface CreateTeansaction {
+  txnType: TransactionType;
+  txnAmount: number;
+  currency: string;
+  accountId: string;
+  txnDescription: string;
+  txnParticulars?: string;
+  txnRefId?: string;
+  txnRefType?: TransactionRefType;
+  txnDate?: Date;
+}
 
 @Injectable()
-export class CreateTransactionUseCase implements IUseCase<CreateTransactionDto, Transaction> {
+export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, Transaction> {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
-    private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
-  async execute(request: CreateTransactionDto): Promise<Transaction> {
+  async execute(request: CreateTeansaction): Promise<Transaction> {
     const account = await this.accountRepository.findById(request.accountId);
     if (!account) {
       throw new BusinessException(`Account not found with id: ${request.accountId}`);
@@ -77,10 +86,10 @@ export class CreateTransactionUseCase implements IUseCase<CreateTransactionDto, 
     const savedTransaction = await this.transactionRepository.create(transaction);
 
     // Emit domain events
-    for (const event of savedTransaction.domainEvents) {
-      this.eventEmitter.emit(event.constructor.name, event);
-    }
-    savedTransaction.clearEvents();
+    // for (const event of savedTransaction.domainEvents) {
+    //   this.eventEmitter.emit(event.constructor.name, event);
+    // }
+    // savedTransaction.clearEvents();
 
     return savedTransaction;
   }

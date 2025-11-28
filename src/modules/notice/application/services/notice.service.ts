@@ -40,7 +40,7 @@ export class NoticeService {
         return NoticeDtoMapper.toDto(notice, meeting || undefined);
       })
     );
-    return new PagedResult(dtos, result.total, result.page, result.size);
+    return new PagedResult(dtos, result.total, result.pageIndex, result.pageSize);
   }
 
   async getById(id: string): Promise<NoticeDetailDto> {

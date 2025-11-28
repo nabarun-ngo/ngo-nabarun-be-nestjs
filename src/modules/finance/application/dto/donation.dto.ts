@@ -1,58 +1,70 @@
-import { IsNumber, IsString, IsOptional, Min, IsEmail, IsBoolean, IsDate, IsArray, ValidateNested } from 'class-validator';
+import { IsNumber, IsString, IsOptional, Min, IsEmail, IsBoolean, IsDate, IsArray, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DonationType, DonationStatus } from '../../domain/model/donation.model';
-import { PaymentMethod, UPIPaymentType, AdditionalFieldDto } from './payment.dto';
+import { DonationType, DonationStatus, PaymentMethod, UPIPaymentType } from '../../domain/model/donation.model';
+import { AccountDetailDto } from './account.dto';
+import { UserDto } from 'src/modules/user/application/dto/user.dto';
 
-export class CreateRegularDonationDto {
+export class CreateDonationDto {
+
+  @IsEnum(DonationType)
+  @ApiProperty({ enum: DonationType })
+  type: DonationType;
+
+
   @IsNumber()
-  @Min(0.01)
-  @ApiProperty({ minimum: 0.01 })
+  @Min(1)
+  @ApiProperty({ minimum: 1 })
   amount: number;
 
-  @IsString()
-  @ApiProperty()
-  currency: string;
 
-  @IsString()
-  @ApiProperty({ description: 'User ID of the donor' })
-  donorId: string; // User ID
+  @IsDate()
+  @Type(() => Date)
+  @ApiPropertyOptional({ type: String, format: 'date-time', description: 'Start date for regular donations' })
+  startDate?: Date;
+
+  @IsDate()
+  @Type(() => Date)
+  @ApiPropertyOptional({ type: String, format: 'date-time', description: 'End date for regular donations' })
+  endDate?: Date;
 
   @IsOptional()
   @IsString()
-  @ApiPropertyOptional()
-  description?: string;
+  @ApiPropertyOptional({ description: 'Required in case of ONETIME donations' })
+  forEventId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Required in case of ONETIME donations' })
+  donorId?: string;
+
 }
 
-export class CreateOneTimeDonationDto {
+export class CreateGuestDonationDto {
   @IsNumber()
-  @Min(0.01)
-  @ApiProperty({ minimum: 0.01 })
+  @Min(1)
+  @ApiProperty({ minimum: 1 })
   amount: number;
-
-  @IsString()
-  @ApiProperty()
-  currency: string;
 
   @IsOptional()
   @IsString()
-  @ApiPropertyOptional({ description: 'Optional for internal members' })
-  donorId?: string; // Optional for internal members
+  @ApiPropertyOptional({ description: 'Optional for guests' })
+  donorNumber?: string; // Optional for internal members
 
   @IsOptional()
   @IsString()
   @ApiPropertyOptional({ description: 'Required for guests' })
-  donorName?: string; // Required for guests
+  donorName: string; // Required for guests
 
   @IsOptional()
   @IsEmail()
-  @ApiPropertyOptional({ description: 'Required for guests' })
+  @ApiPropertyOptional({ description: 'Optional for guests' })
   donorEmail?: string; // Required for guests
 
   @IsOptional()
   @IsString()
-  @ApiPropertyOptional()
-  description?: string;
+  @ApiPropertyOptional({ description: 'Required in case of ONETIME donations' })
+  forEventId?: Date;
 }
 
 export class ProcessDonationPaymentDto {
@@ -62,7 +74,7 @@ export class ProcessDonationPaymentDto {
 
   @IsString()
   @ApiProperty()
-  accountId: string;
+  accountId: AccountDetailDto;
 
   @IsOptional()
   @IsString()
@@ -80,7 +92,7 @@ export class ProcessDonationPaymentDto {
   @IsOptional()
   @IsString()
   @ApiPropertyOptional()
-  confirmedBy?: string;
+  confirmedBy?: UserDto;
 
   @IsOptional()
   @IsBoolean()
@@ -131,6 +143,7 @@ export class DonationDetailFilterDto {
   @IsDate()
   @Type(() => Date)
   endDate?: Date;
+
 }
 
 export class DonationDto {
@@ -138,7 +151,7 @@ export class DonationDto {
   id: string;
 
   @ApiPropertyOptional({ description: 'Whether this is a guest donation' })
-  isGuest?: boolean;
+  isGuest: boolean;
 
   @ApiProperty()
   amount: number;
@@ -147,13 +160,10 @@ export class DonationDto {
   currency: string;
 
   @ApiPropertyOptional()
-  description?: string;
-
-  @ApiPropertyOptional()
   donorId?: string;
 
   @ApiPropertyOptional()
-  donorName?: string;
+  donorName: string;
 
   @ApiPropertyOptional()
   donorEmail?: string;
@@ -177,7 +187,7 @@ export class DonationDto {
   paidOn?: Date;
 
   @ApiPropertyOptional({ description: 'User ID who confirmed the donation' })
-  confirmedBy?: string;
+  confirmedBy?: UserDto;
 
   @ApiPropertyOptional({ type: String, format: 'date-time', description: 'Date when donation was confirmed' })
   confirmedOn?: Date;
@@ -186,10 +196,7 @@ export class DonationDto {
   paymentMethod?: PaymentMethod;
 
   @ApiPropertyOptional({ description: 'Account ID where payment was made' })
-  paidToAccount?: string;
-
-  @ApiPropertyOptional({ description: 'Donor user details (for internal members)' })
-  donorDetails?: string; // UserDetail reference - can be expanded to full UserDto if needed
+  paidToAccount?: AccountDetailDto;
 
   @ApiPropertyOptional({ description: 'Event ID this donation is for' })
   forEvent?: string; // EventDetail reference
@@ -215,13 +222,59 @@ export class DonationDto {
   @ApiPropertyOptional({ description: 'Payment failure details' })
   paymentFailureDetail?: string;
 
-  @ApiPropertyOptional({ 
-    type: () => [AdditionalFieldDto],
-    description: 'Additional custom fields'
-  })
+}
+
+export class UpdateDonationDto {
   @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => AdditionalFieldDto)
-  additionalFields?: AdditionalFieldDto[];
+  @IsEnum(DonationStatus)
+  @ApiPropertyOptional({ enum: DonationStatus })
+  status?: DonationStatus;
+
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  @ApiPropertyOptional({ enum: PaymentMethod })
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsEnum(UPIPaymentType)
+  @ApiPropertyOptional({ enum: UPIPaymentType })
+  paidUsingUPI?: UPIPaymentType;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Additional remarks' })
+  remarks?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @ApiPropertyOptional({ description: 'Amount', minimum: 1 })
+  amount?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Event ID this donation is for' })
+  forEvent?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Account ID where payment was made' })
+  paidToAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  transactionRef?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional()
+  isPaymentNotified?: boolean;
+
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  paidOn?: Date;
+
 }

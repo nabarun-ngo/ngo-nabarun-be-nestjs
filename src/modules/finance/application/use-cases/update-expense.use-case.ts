@@ -11,7 +11,7 @@ export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateE
   constructor(
     @Inject(EXPENSE_REPOSITORY)
     private readonly expenseRepository: IExpenseRepository,
-  ) {}
+  ) { }
 
   async execute(request: { id: string; dto: UpdateExpenseDto }): Promise<Expense> {
     const expense = await this.expenseRepository.findById(request.id);
@@ -21,7 +21,7 @@ export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateE
 
     let expenseItems: ExpenseItem[] | undefined;
     if (request.dto.expenseItems) {
-      expenseItems = request.dto.expenseItems.map(item => 
+      expenseItems = request.dto.expenseItems.map(item =>
         new ExpenseItem(
           item.id || crypto.randomUUID(),
           item.itemName,
@@ -38,7 +38,6 @@ export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateE
       expenseDate: request.dto.expenseDate,
       receiptUrl: request.dto.receiptUrl,
       expenseItems,
-      remarks: request.dto.remarks,
     });
 
     const updatedExpense = await this.expenseRepository.update(request.id, expense);

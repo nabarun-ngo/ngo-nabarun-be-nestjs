@@ -9,9 +9,9 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { SuccessResponse, PagedResult } from 'src/shared/models/response-model';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse, } from 'src/shared/models/response-model';
 import {
   EarningDetailDto,
   EarningDetailFilterDto,
@@ -19,7 +19,10 @@ import {
   UpdateEarningDto,
 } from '../../application/dto/earning.dto';
 import { EarningService } from '../../application/services/earning.service';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 /**
  * Earning Controller - matches legacy endpoints
@@ -27,14 +30,16 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
  */
 @ApiTags('earning-controller')
 @Controller('earning')
+@ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class EarningController {
   constructor(
     private readonly earningService: EarningService,
-  ) {}
+  ) { }
 
   @Post('create')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Create new earning', description: "Authorities : hasAuthority('SCOPE_create:earning')" })
+  @RequirePermissions('create:earning')
+  @ApiOperation({ summary: 'Create new earning', description: "Authorities : 'create:earning'" })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
   async create(@Body() dto: CreateEarningDto): Promise<SuccessResponse<EarningDetailDto>> {
     const earning = await this.earningService.create(dto);
@@ -43,7 +48,8 @@ export class EarningController {
 
   @Put(':id/update')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update earning details', description: "Authorities : hasAuthority('SCOPE_update:earning')" })
+  @RequirePermissions('update:earning')
+  @ApiOperation({ summary: 'Update earning details', description: "Authorities : 'update:earning'" })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
   async update(
     @Param('id') id: string,
@@ -54,34 +60,45 @@ export class EarningController {
   }
 
   @Get('list')
-  @ApiOperation({ summary: 'List all earnings', description: "Authorities : hasAuthority('SCOPE_read:earning')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async list(@Query() filter: EarningDetailFilterDto): Promise<SuccessResponse<PagedResult<EarningDetailDto>>> {
-    const baseFilter: BaseFilter<EarningDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.earningService.list(baseFilter);
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('read:earning')
+  @ApiOperation({ summary: 'List all earnings', description: "Authorities : 'read:earning'" })
+  @ApiAutoPagedResponse(EarningDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async list(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: EarningDetailFilterDto,
+  ): Promise<SuccessResponse<PagedResult<EarningDetailDto>>> {
+    const result = await this.earningService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter },
+    });
     return new SuccessResponse(result);
   }
 
-  @Get('self/list')
-  @ApiOperation({ summary: 'List own earnings', description: "Authorities : hasAuthority('SCOPE_read:earning')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async listSelf(@Query() filter: EarningDetailFilterDto): Promise<SuccessResponse<PagedResult<EarningDetailDto>>> {
-    // TODO: Filter by current user
-    const baseFilter: BaseFilter<EarningDetailFilterDto> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.earningService.list(baseFilter);
+  @Get('list/me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List own earnings' })
+  @ApiAutoPagedResponse(EarningDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async listSelf(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: EarningDetailFilterDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<EarningDetailDto>>> {
+    const result = await this.earningService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter, },
+    });
     return new SuccessResponse(result);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get earning by ID', description: "Authorities : hasAuthority('SCOPE_read:earning')" })
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('read:earning')
+  @ApiOperation({ summary: 'Get earning by ID', description: "Authorities : 'read:earning'" })
   @ApiAutoResponse(EarningDetailDto, { description: 'OK' })
   async getById(@Param('id') id: string): Promise<SuccessResponse<EarningDetailDto>> {
     const earning = await this.earningService.getById(id);

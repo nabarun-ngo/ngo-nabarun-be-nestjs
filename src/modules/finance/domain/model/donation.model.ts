@@ -2,6 +2,9 @@ import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { DonationRaisedEvent } from '../events/donation-raised.event';
 import { DonationPaidEvent } from '../events/donation-paid.event';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { User } from 'src/modules/user/domain/model/user.model';
+import { Account } from './account.model';
+import { ValidationUtil } from 'src/shared/utilities/validation.util';
 
 export enum DonationType {
   REGULAR = 'REGULAR',        // Monthly subscription for internal users
@@ -32,6 +35,17 @@ export enum UPIPaymentType {
   UPI_OTH = 'UPI_OTH',
 }
 
+export class DonationFilter {
+  donorId?: string;
+  status?: DonationStatus[];
+  type?: DonationType[];
+  isGuest?: boolean;
+  startDate?: Date;
+  endDate?: Date;
+  startDate_lte?: Date;
+  endDate_gte?: Date;
+}
+
 /**
  * Donation Domain Model (Aggregate Root)
  * Represents a financial donation - either regular (monthly) or one-time
@@ -44,23 +58,19 @@ export class Donation extends AggregateRoot<string> {
   #currency: string;
   #status: DonationStatus;
   #donorId: string | undefined;
-  #donorName: string | undefined;
+  #donorName: string;
   #donorEmail: string | undefined;
-  #description: string | undefined;
-  #raisedDate: Date;
-  #paidDate: Date | undefined;
-  #transactionId: string | undefined;
-  
+
   // Legacy fields
   #isGuest: boolean;
   #startDate: Date | undefined;
   #endDate: Date | undefined;
   #raisedOn: Date; // Legacy alias
   #paidOn: Date | undefined; // Legacy alias
-  #confirmedBy: string | undefined;
+  #confirmedBy: Partial<User> | undefined;
   #confirmedOn: Date | undefined;
   #paymentMethod: PaymentMethod | undefined;
-  #paidToAccountId: string | undefined;
+  #paidToAccount: Partial<Account> | undefined;
   #forEventId: string | undefined;
   #paidUsingUPI: UPIPaymentType | undefined;
   #isPaymentNotified: boolean;
@@ -69,7 +79,8 @@ export class Donation extends AggregateRoot<string> {
   #cancelletionReason: string | undefined; // Legacy typo preserved
   #laterPaymentReason: string | undefined;
   #paymentFailureDetail: string | undefined;
-  #additionalFields: Record<string, any> | undefined;
+  #donorNumber: string | undefined;
+
 
   constructor(
     id: string,
@@ -78,19 +89,19 @@ export class Donation extends AggregateRoot<string> {
     currency: string,
     status: DonationStatus,
     donorId: string | undefined,
-    donorName: string | undefined,
+    donorName: string,
     donorEmail: string | undefined,
-    description: string | undefined,
-    raisedDate: Date,
+    donorNumber: string | undefined,
+    raisedOn: Date,
     paidDate: Date | undefined,
     transactionId: string | undefined,
     isGuest: boolean = false,
     startDate?: Date,
     endDate?: Date,
-    confirmedBy?: string,
+    confirmedBy?: User,
     confirmedOn?: Date,
     paymentMethod?: PaymentMethod,
-    paidToAccountId?: string,
+    paidToAccountId?: Account,
     forEventId?: string,
     paidUsingUPI?: UPIPaymentType,
     isPaymentNotified: boolean = false,
@@ -98,12 +109,11 @@ export class Donation extends AggregateRoot<string> {
     cancelletionReason?: string,
     laterPaymentReason?: string,
     paymentFailureDetail?: string,
-    additionalFields?: Record<string, any>,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
     super(id, createdAt, updatedAt);
-    
+
     this.#type = type;
     this.#amount = amount;
     this.#currency = currency;
@@ -111,19 +121,16 @@ export class Donation extends AggregateRoot<string> {
     this.#donorId = donorId;
     this.#donorName = donorName;
     this.#donorEmail = donorEmail;
-    this.#description = description;
-    this.#raisedDate = raisedDate;
-    this.#paidDate = paidDate;
-    this.#transactionId = transactionId;
+    this.#donorNumber = donorNumber;
     this.#isGuest = isGuest;
     this.#startDate = startDate;
     this.#endDate = endDate;
-    this.#raisedOn = raisedDate; // Legacy alias
+    this.#raisedOn = raisedOn; // Legacy alias
     this.#paidOn = paidDate; // Legacy alias
     this.#confirmedBy = confirmedBy;
     this.#confirmedOn = confirmedOn;
     this.#paymentMethod = paymentMethod;
-    this.#paidToAccountId = paidToAccountId;
+    this.#paidToAccount = paidToAccountId;
     this.#forEventId = forEventId;
     this.#paidUsingUPI = paidUsingUPI;
     this.#isPaymentNotified = isPaymentNotified;
@@ -132,47 +139,52 @@ export class Donation extends AggregateRoot<string> {
     this.#cancelletionReason = cancelletionReason;
     this.#laterPaymentReason = laterPaymentReason;
     this.#paymentFailureDetail = paymentFailureDetail;
-    this.#additionalFields = additionalFields;
   }
 
   /**
    * Factory method to create a new Regular Donation (for internal users)
    * Business validation: amount must be positive, donorId required
    */
-  static createRegular(props: {
+  static create(props: {
+    type: DonationType;
     amount: number;
-    currency: string;
-    donorId: string;
-    description?: string;
-    raisedDate?: Date;
+    donorName: string;
+    donorId?: string;
+    donorEmail?: string;
+    donorNumber?: string;
     startDate?: Date;
     endDate?: Date;
+    currency?: string;
+    isGuest?: boolean
   }): Donation {
     if (!props.amount || props.amount <= 0) {
       throw new BusinessException('Donation amount must be greater than zero');
     }
-    if (!props.currency) {
-      throw new BusinessException('Currency is required');
-    }
-    if (!props.donorId) {
-      throw new BusinessException('Donor ID is required for regular donations');
-    }
 
-    const raisedDate = props.raisedDate || new Date();
+    const isRegular = props.type === DonationType.REGULAR;
+    ValidationUtil.validateRequiredIf(props.donorId, isRegular, 'Donor ID');
+    ValidationUtil.validateRequiredIf(props.startDate, isRegular, 'Start Date');
+    ValidationUtil.validateRequiredIf(props.endDate, isRegular, 'End Date');
+
+    const isGuestOneTime = props.type === DonationType.ONETIME && props.isGuest == true;
+    ValidationUtil.validateRequiredIf(props.donorName, isGuestOneTime, 'Donor Name');
+
+    props.currency = props.currency;
+    const raisedDate = new Date();
     const donation = new Donation(
       crypto.randomUUID(),
-      DonationType.REGULAR,
+      props.type,
       props.amount,
-      props.currency,
+      props.currency || 'INR',
       DonationStatus.RAISED,
       props.donorId,
-      undefined,
-      undefined,
-      props.description,
+      props.donorName,
+      props.donorEmail,
+      props.donorNumber,
       raisedDate,
       undefined,
       undefined,
-      false, // isGuest
+      props.isGuest, // isGuest
       props.startDate,
       props.endDate,
       undefined, // confirmedBy
@@ -186,85 +198,15 @@ export class Donation extends AggregateRoot<string> {
       undefined, // cancelletionReason
       undefined, // laterPaymentReason
       undefined, // paymentFailureDetail
-      undefined, // additionalFields
-      new Date(),
-      new Date(),
     );
-    
-    donation.addDomainEvent(new DonationRaisedEvent(
-      donation.id,
-      donation.#type,
-      donation.#amount,
-      donation.#donorId!,
-    ));
-    
-    return donation;
-  }
 
-  /**
-   * Factory method to create a new One-Time Donation (for guests or members)
-   * Business validation: amount must be positive, guest donations require name and email
-   */
-  static createOneTime(props: {
-    amount: number;
-    currency: string;
-    donorId?: string;      // Optional for internal members
-    donorName?: string;    // Required for guests
-    donorEmail?: string;   // Required for guests
-    description?: string;
-  }): Donation {
-    if (!props.amount || props.amount <= 0) {
-      throw new BusinessException('Donation amount must be greater than zero');
-    }
-    if (!props.currency) {
-      throw new BusinessException('Currency is required');
-    }
-    
-    const isGuest = !props.donorId;
-    if (isGuest && (!props.donorName || !props.donorEmail)) {
-      throw new BusinessException('Guest donations require donor name and email');
-    }
-
-    const raisedDate = new Date();
-    const donation = new Donation(
-      crypto.randomUUID(),
-      DonationType.ONETIME,
-      props.amount,
-      props.currency,
-      DonationStatus.RAISED,
-      props.donorId,
-      props.donorName,
-      props.donorEmail,
-      props.description,
-      raisedDate,
-      undefined,
-      undefined,
-      isGuest,
-      undefined, // startDate (not applicable for one-time)
-      undefined, // endDate (not applicable for one-time)
-      undefined, // confirmedBy
-      undefined, // confirmedOn
-      undefined, // paymentMethod
-      undefined, // paidToAccountId
-      undefined, // forEventId
-      undefined, // paidUsingUPI
-      false, // isPaymentNotified
-      undefined, // remarks
-      undefined, // cancelletionReason
-      undefined, // laterPaymentReason
-      undefined, // paymentFailureDetail
-      undefined, // additionalFields
-      new Date(),
-      new Date(),
-    );
-    
     donation.addDomainEvent(new DonationRaisedEvent(
       donation.id,
       donation.#type,
       donation.#amount,
       props.donorId || props.donorEmail!,
     ));
-    
+
     return donation;
   }
 
@@ -273,16 +215,22 @@ export class Donation extends AggregateRoot<string> {
    * Business validation: Cannot pay if already paid or cancelled
    */
   markAsPaid(props: {
-    transactionId: string;
-    accountId?: string;
-    paymentMethod?: PaymentMethod;
+    paidToAccountId: string;
+    paymentMethod: PaymentMethod;
     paidUsingUPI?: UPIPaymentType;
-    confirmedBy?: string;
+    confirmedById?: string;
+    paidDate?: Date;
   }): void {
+    ValidationUtil.validateRequired(props.confirmedById, 'confirmedById');
+    ValidationUtil.validateRequired(props.paidToAccountId, 'paidToAccountId');
+    ValidationUtil.validateRequired(props.paymentMethod, 'paymentMethod');
+    ValidationUtil.validateRequired(props.paidDate, 'paidOn');
+
+
     if (this.#status === DonationStatus.PAID) {
       throw new BusinessException('Donation is already paid');
     }
-    
+
     if (this.#status === DonationStatus.CANCELLED) {
       throw new BusinessException('Cannot pay a cancelled donation');
     }
@@ -292,13 +240,13 @@ export class Donation extends AggregateRoot<string> {
     }
 
     this.#status = DonationStatus.PAID;
-    this.#paidDate = new Date();
-    this.#paidOn = new Date(); // Legacy alias
-    this.#transactionId = props.transactionId;
-    this.#transactionRef = props.transactionId; // Legacy alias
-    
-    if (props.accountId) {
-      this.#paidToAccountId = props.accountId;
+    this.#paidOn = props.paidDate;
+    this.#confirmedOn = new Date();
+
+    if (props.paidToAccountId) {
+      this.#paidToAccount = {
+        id: props.paidToAccountId,
+      };
     }
     if (props.paymentMethod) {
       this.#paymentMethod = props.paymentMethod;
@@ -306,8 +254,10 @@ export class Donation extends AggregateRoot<string> {
     if (props.paidUsingUPI) {
       this.#paidUsingUPI = props.paidUsingUPI;
     }
-    if (props.confirmedBy) {
-      this.#confirmedBy = props.confirmedBy;
+    if (props.confirmedById) {
+      this.#confirmedBy = {
+        id: props.confirmedById,
+      };
       this.#confirmedOn = new Date();
     }
 
@@ -316,7 +266,6 @@ export class Donation extends AggregateRoot<string> {
     this.addDomainEvent(new DonationPaidEvent(
       this.id,
       this.#amount,
-      props.transactionId,
       this.#donorId,
     ));
   }
@@ -329,7 +278,7 @@ export class Donation extends AggregateRoot<string> {
     if (this.#status === DonationStatus.PAID) {
       throw new BusinessException('Cannot cancel a paid donation');
     }
-    
+
     if (this.#status === DonationStatus.CANCELLED) {
       throw new BusinessException('Donation is already cancelled');
     }
@@ -384,8 +333,8 @@ export class Donation extends AggregateRoot<string> {
    * Mark for update mistake
    */
   markForUpdateMistake(): void {
-    if (this.#status === DonationStatus.PAID) {
-      throw new BusinessException('Cannot mark paid donation for update');
+    if (this.#status !== DonationStatus.PAID) {
+      throw new BusinessException('The donation must be paid to mark for update mistake');
     }
     this.#status = DonationStatus.UPDATE_MISTAKE;
     this.touch();
@@ -397,12 +346,8 @@ export class Donation extends AggregateRoot<string> {
    */
   update(props: {
     amount?: number;
-    description?: string;
     remarks?: string;
-    startDate?: Date;
-    endDate?: Date;
     forEventId?: string;
-    additionalFields?: Record<string, any>;
   }): void {
     if (this.#status === DonationStatus.PAID && props.amount) {
       throw new BusinessException('Cannot change amount of paid donation');
@@ -412,34 +357,21 @@ export class Donation extends AggregateRoot<string> {
       throw new BusinessException('Donation amount must be greater than zero');
     }
 
-    if (props.amount) {
-      this.#amount = props.amount;
-    }
-    if (props.description !== undefined) {
-      this.#description = props.description;
-    }
-    if (props.remarks !== undefined) {
-      this.#remarks = props.remarks;
-    }
-    if (props.startDate !== undefined) {
-      this.#startDate = props.startDate;
-    }
-    if (props.endDate !== undefined) {
-      this.#endDate = props.endDate;
-    }
-    if (props.forEventId !== undefined) {
-      this.#forEventId = props.forEventId;
-    }
-    if (props.additionalFields !== undefined) {
-      this.#additionalFields = props.additionalFields;
-    }
+    this.#amount = props.amount ?? this.#amount;
+    this.#remarks = props.remarks ?? this.#remarks;
+    this.#forEventId = props.forEventId ?? this.#forEventId;
+    this.touch();
+  }
+
+  linkTransaction(transactionId: string | undefined): void {
+    this.#transactionRef = transactionId ?? this.#transactionRef;
     this.touch();
   }
 
   /**
    * Confirm donation
    */
-  confirm(confirmedBy: string): void {
+  confirm(confirmedBy: User): void {
     this.#confirmedBy = confirmedBy;
     this.#confirmedOn = new Date();
     this.touch();
@@ -453,27 +385,26 @@ export class Donation extends AggregateRoot<string> {
     this.touch();
   }
 
+
+
   // Getters
   get type(): DonationType { return this.#type; }
   get amount(): number { return this.#amount; }
   get currency(): string { return this.#currency; }
   get status(): DonationStatus { return this.#status; }
   get donorId(): string | undefined { return this.#donorId; }
-  get donorName(): string | undefined { return this.#donorName; }
+  get donorName(): string { return this.#donorName; }
   get donorEmail(): string | undefined { return this.#donorEmail; }
-  get description(): string | undefined { return this.#description; }
-  get raisedDate(): Date { return this.#raisedDate; }
-  get paidDate(): Date | undefined { return this.#paidDate; }
-  get transactionId(): string | undefined { return this.#transactionId; }
+  get donorNumber(): string | undefined { return this.#donorNumber; }
   get isGuest(): boolean { return this.#isGuest; }
   get startDate(): Date | undefined { return this.#startDate; }
   get endDate(): Date | undefined { return this.#endDate; }
   get raisedOn(): Date { return this.#raisedOn; }
   get paidOn(): Date | undefined { return this.#paidOn; }
-  get confirmedBy(): string | undefined { return this.#confirmedBy; }
+  get confirmedBy(): Partial<User> | undefined { return this.#confirmedBy; }
   get confirmedOn(): Date | undefined { return this.#confirmedOn; }
   get paymentMethod(): PaymentMethod | undefined { return this.#paymentMethod; }
-  get paidToAccountId(): string | undefined { return this.#paidToAccountId; }
+  get paidToAccount(): Partial<Account> | undefined { return this.#paidToAccount; }
   get forEventId(): string | undefined { return this.#forEventId; }
   get paidUsingUPI(): UPIPaymentType | undefined { return this.#paidUsingUPI; }
   get isPaymentNotified(): boolean { return this.#isPaymentNotified; }
@@ -482,7 +413,7 @@ export class Donation extends AggregateRoot<string> {
   get cancelletionReason(): string | undefined { return this.#cancelletionReason; }
   get laterPaymentReason(): string | undefined { return this.#laterPaymentReason; }
   get paymentFailureDetail(): string | undefined { return this.#paymentFailureDetail; }
-  get additionalFields(): Record<string, any> | undefined { return this.#additionalFields; }
+
 
   /**
    * Check if donation is from a guest (not an internal user)
@@ -502,8 +433,50 @@ export class Donation extends AggregateRoot<string> {
    * Check if donation can be paid
    */
   canBePaid(): boolean {
-    return this.#status === DonationStatus.RAISED || 
-           this.#status === DonationStatus.PENDING ||
-           this.#status === DonationStatus.PAY_LATER;
+    return this.#status === DonationStatus.RAISED ||
+      this.#status === DonationStatus.PENDING ||
+      this.#status === DonationStatus.PAY_LATER;
   }
+
+  nextStatus(): DonationStatus[] {
+    switch (this.#status) {
+      case DonationStatus.RAISED:
+        return [
+          DonationStatus.PENDING,
+          DonationStatus.PAID,
+          DonationStatus.PAYMENT_FAILED,
+          DonationStatus.PAY_LATER,
+          DonationStatus.CANCELLED,
+        ];
+      case DonationStatus.PENDING:
+        return [
+          DonationStatus.PAID,
+          DonationStatus.PAYMENT_FAILED,
+          DonationStatus.PAY_LATER,
+          DonationStatus.CANCELLED,
+        ];
+      case DonationStatus.PAID:
+        return [
+          DonationStatus.UPDATE_MISTAKE,
+        ];
+      case DonationStatus.PAYMENT_FAILED:
+        return [
+          DonationStatus.PAID
+        ];
+      case DonationStatus.PAY_LATER:
+        return [
+          DonationStatus.PAID,
+          DonationStatus.CANCELLED,
+          DonationStatus.PAYMENT_FAILED,
+        ];
+      case DonationStatus.CANCELLED:
+        return [];
+      case DonationStatus.UPDATE_MISTAKE:
+        return [DonationStatus.RAISED];
+      default:
+        throw new BusinessException('Invalid donation status');
+    }
+  }
+
+
 }

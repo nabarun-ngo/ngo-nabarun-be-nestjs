@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PagedResult<T> {
-  @ApiProperty({ 
-    description: 'List of items for the current page', 
+  @ApiProperty({
+    description: 'List of items for the current page',
     isArray: true,
     type: Object
   })
@@ -12,15 +12,15 @@ export class PagedResult<T> {
   total: number;
 
   @ApiProperty({ description: 'Current page index (1-based or 0-based depending on API)' })
-  page: number;
+  pageIndex: number;
 
   @ApiProperty({ description: 'Page size (number of items per page)' })
-  size: number;
+  pageSize: number;
 
-  constructor(items: T[], total: number, page: number, size: number) {
+  constructor(items: T[], total: number, pageIndex: number, pageSize: number) {
     this.items = items;
     this.total = total;
-    this.page = page;
-    this.size = size;
+    this.pageIndex = pageIndex;
+    this.pageSize = pageSize;
   }
 }

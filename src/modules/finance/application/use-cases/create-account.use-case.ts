@@ -4,7 +4,18 @@ import { Account, BankDetail, UPIDetail } from '../../domain/model/account.model
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CreateAccountDto } from '../dto/account.dto';
+import { AccountType, CreateAccountDto } from '../dto/account.dto';
+import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
+
+export class CreateAccountRequest {
+  name: string;
+  type: AccountType;
+  currency: string;
+  initialBalance?: number;
+  description?: string;
+  accountHolderId: string;
+}
 
 @Injectable()
 export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account> {
@@ -12,41 +23,23 @@ export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account>
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
+  ) { }
 
   async execute(request: CreateAccountDto): Promise<Account> {
-    let bankDetail: BankDetail | undefined;
-    if (request.bankDetail) {
-      bankDetail = new BankDetail(
-        request.bankDetail.bankAccountHolderName,
-        request.bankDetail.bankName,
-        request.bankDetail.bankBranch,
-        request.bankDetail.bankAccountNumber,
-        request.bankDetail.bankAccountType,
-        request.bankDetail.IFSCNumber,
-      );
-    }
-
-    let upiDetail: UPIDetail | undefined;
-    if (request.upiDetail) {
-      upiDetail = new UPIDetail(
-        request.upiDetail.payeeName,
-        request.upiDetail.upiId,
-        request.upiDetail.mobileNumber,
-        request.upiDetail.qrData,
-      );
+    const user = await this.userRepository.findById(request.accountHolderId);
+    if (!user) {
+      throw new BusinessException('User not found with id ' + request.accountHolderId);
     }
 
     const account = Account.create({
       name: request.name,
-      type: request.type as any,
+      type: request.type,
       currency: request.currency,
       initialBalance: request.initialBalance,
       description: request.description,
       accountHolderId: request.accountHolderId,
-      accountHolderName: request.name, // Use name as default
-      bankDetail,
-      upiDetail,
+      accountHolderName: user.fullName,
     });
 
     const savedAccount = await this.accountRepository.create(account);

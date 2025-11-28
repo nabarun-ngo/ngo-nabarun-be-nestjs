@@ -10,16 +10,15 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { SuccessResponse, PagedResult } from 'src/shared/models/response-model';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse } from 'src/shared/models/response-model';
 import {
   MeetingDetailDto,
   CreateMeetingDto,
   UpdateMeetingDto,
 } from '../../application/dto/meeting.dto';
 import { MeetingService } from '../../application/services/meeting.service';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
-import { PagedResult as PagedResultModel } from 'src/shared/models/paged-result';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 /**
  * Meeting Controller
@@ -30,13 +29,13 @@ import { PagedResult as PagedResultModel } from 'src/shared/models/paged-result'
 export class MeetingController {
   constructor(
     private readonly meetingService: MeetingService,
-  ) {}
+  ) { }
 
   @Post('create')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'Create new meeting', 
-    description: "Authorities : hasAuthority('SCOPE_create:meeting'). For ONLINE_VIDEO or ONLINE_AUDIO meetings, automatically creates Google Calendar event with Google Meet link." 
+  @ApiOperation({
+    summary: 'Create new meeting',
+    description: "Authorities : hasAuthority('SCOPE_create:meeting'). For ONLINE_VIDEO or ONLINE_AUDIO meetings, automatically creates Google Calendar event with Google Meet link."
   })
   @ApiAutoResponse(MeetingDetailDto, { status: 200, description: 'OK' })
   async create(@Body() dto: CreateMeetingDto): Promise<SuccessResponse<MeetingDetailDto>> {
@@ -58,14 +57,17 @@ export class MeetingController {
 
   @Get('list')
   @ApiOperation({ summary: 'List all meetings', description: "Authorities : hasAuthority('SCOPE_read:meeting')" })
-  @ApiAutoResponse(PagedResult, { description: 'OK' })
-  async list(@Query() filter: any): Promise<SuccessResponse<PagedResultModel<MeetingDetailDto>>> {
-    const baseFilter: BaseFilter<any> = {
-      pageIndex: filter.pageIndex || 0,
-      pageSize: filter.pageSize || 10,
-      props: filter,
-    };
-    const result = await this.meetingService.list(baseFilter);
+  @ApiAutoPagedResponse(MeetingDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async list(
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
+    @Query() filter?: MeetingDetailDto,
+  ): Promise<SuccessResponse<PagedResult<MeetingDetailDto>>> {
+    const result = await this.meetingService.list({
+      pageIndex,
+      pageSize,
+      props: { ...filter },
+    });
     return new SuccessResponse(result);
   }
 

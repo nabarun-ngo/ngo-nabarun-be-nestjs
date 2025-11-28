@@ -44,7 +44,6 @@ export class AutomaticTaskService {
             phoneNumber: {
                 code: data.dialCode!,
                 number: data.contactNumber!,
-                fullNumber: ''
             },
             isTemporary: false,
         })

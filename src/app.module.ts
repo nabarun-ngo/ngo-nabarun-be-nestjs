@@ -14,7 +14,7 @@ import { DMSModule } from './modules/shared/dms/dms.module';
 import { PublicModule } from './modules/public/public.module';
 
 @Module({
-  controllers:[],
+  controllers: [],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,

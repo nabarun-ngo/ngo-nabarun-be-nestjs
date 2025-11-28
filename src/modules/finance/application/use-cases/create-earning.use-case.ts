@@ -1,20 +1,38 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Earning } from '../../domain/model/earning.model';
+import { Earning, EarningCategory } from '../../domain/model/earning.model';
 import { EARNING_REPOSITORY } from '../../domain/repositories/earning.repository.interface';
 import type { IEarningRepository } from '../../domain/repositories/earning.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CreateEarningDto } from '../dto/earning.dto';
+export class CreateEarning {
+
+  category: EarningCategory;
+
+  amount: number;
+
+  currency: string;
+
+  description: string;
+
+  source: string;
+
+  referenceId?: string;
+
+  referenceType?: string;
+
+  earningDate?: Date;
+}
+
 
 @Injectable()
-export class CreateEarningUseCase implements IUseCase<CreateEarningDto, Earning> {
+export class CreateEarningUseCase implements IUseCase<CreateEarning, Earning> {
   constructor(
     @Inject(EARNING_REPOSITORY)
     private readonly earningRepository: IEarningRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(request: CreateEarningDto): Promise<Earning> {
+  async execute(request: CreateEarning): Promise<Earning> {
     const earning = Earning.create({
       category: request.category as any,
       amount: request.amount,

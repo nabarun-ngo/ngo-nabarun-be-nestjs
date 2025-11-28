@@ -2,33 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsDate, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AccountDetailDto } from './account.dto';
-
-/**
- * Transaction Type Enum - matches legacy system
- */
-export enum TransactionType {
-  IN = 'IN',
-  OUT = 'OUT',
-  TRANSFER = 'TRANSFER',
-}
-
-/**
- * Transaction Status Enum - matches legacy system
- */
-export enum TransactionStatus {
-  SUCCESS = 'SUCCESS',
-  FAILURE = 'FAILURE',
-  REVERT = 'REVERT',
-}
-
-/**
- * Transaction Reference Type Enum
- */
-export enum TransactionRefType {
-  DONATION = 'DONATION',
-  NONE = 'NONE',
-  EXPENSE = 'EXPENSE',
-}
+import { TransactionRefType, TransactionStatus, TransactionType } from '../../domain/model/transaction.model';
 
 /**
  * Transaction Detail DTO - matches legacy TransactionDetail
