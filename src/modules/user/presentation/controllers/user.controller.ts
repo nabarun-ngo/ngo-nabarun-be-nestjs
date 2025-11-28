@@ -15,6 +15,7 @@ import { PagedResult } from 'src/shared/models/paged-result';
 import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
@@ -24,6 +25,7 @@ export class UserController {
   @Post()
   @ApiOperation({ summary: 'Create a new user' })
   @ApiAutoResponse(UserDto, { status: 201, description: 'User created successfully', wrapInSuccessResponse: true })
+  @RequirePermissions('create:user')
   async create(@Body() dto: CreateUserDto): Promise<SuccessResponse<UserDto>> {
     return new SuccessResponse<UserDto>(
       await this.userService.create(dto),
@@ -33,16 +35,17 @@ export class UserController {
   @Get()
   @ApiOperation({ summary: 'Get list of users with pagination and filters' })
   @ApiAutoPagedResponse(UserDto, { description: 'Users retrieved successfully', wrapInSuccessResponse: true })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
-  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Count of content to load per page' })
+  @RequirePermissions('read:users')
   async listUsers(
-    @Query('page') page?: number,
-    @Query('size') size?: number,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
     @Query() filter?: UserFilterDto
   ): Promise<SuccessResponse<PagedResult<UserDto>>> {
     const users = await this.userService.list({
-      pageIndex: page,
-      pageSize: size,
+      pageIndex,
+      pageSize,
       props: filter
     })
     return new SuccessResponse<PagedResult<UserDto>>(users);
@@ -50,8 +53,8 @@ export class UserController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({ status: 200, description: 'User retrieved successfully', type: SuccessResponse<UserDto> })
-  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User retrieved successfully' })
+  @RequirePermissions('read:user')
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User retrieved successfully, Authorities : read:user' })
   async getUser(@Param('id') id: string): Promise<SuccessResponse<UserDto>> {
     return new SuccessResponse<UserDto>(
       await this.userService.getById(id)
@@ -90,7 +93,8 @@ export class UserController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update user (admin update)' })
-  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User updated successfully' })
+  @RequirePermissions('update:user')
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User updated successfully, Authorities : update:user' })
   async updateUser(
     @Param('id') id: string,
     @Body() command: UserUpdateAdminDto,
@@ -103,7 +107,8 @@ export class UserController {
 
   @Post(':id/assign-role')
   @ApiOperation({ summary: 'Assign Role to user' })
-  @ApiAutoVoidResponse({ description: 'Role assigned successfully' })
+  @RequirePermissions('update:user_role')
+  @ApiAutoVoidResponse({ description: 'Role assigned successfully, Authorities : update:user_role' })
   async assignRole(
     @Param('id') id: string,
     @Body() roles: string[],
@@ -115,7 +120,8 @@ export class UserController {
 
   @Post('role/:roleCode/assign')
   @ApiOperation({ summary: 'Assign Role to user' })
-  @ApiAutoVoidResponse({ description: 'Role assigned to users successfully' })
+  @RequirePermissions('update:user_role')
+  @ApiAutoVoidResponse({ description: 'Role assigned to users successfully, Authorities : update:user_role' })
   async assignRoleToUser(
     @Param('roleCode') roleCode: string,
     @Body() userIds: string[],
@@ -125,7 +131,7 @@ export class UserController {
   }
 
 
-  
+
 
   //   @Get('states')
   //   @ApiOperation({ summary: 'Get states' })

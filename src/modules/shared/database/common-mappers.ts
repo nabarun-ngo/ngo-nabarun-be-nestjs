@@ -13,19 +13,19 @@ export class CommonMappers {
     T extends {
       createdAt: Date;
       updatedAt: Date;
-      version?: bigint | null;
+      version?: number | null;
       deletedAt?: Date | null;
     },
   >(source: T): {
     createdAt: Date;
     updatedAt: Date;
-    version: bigint;
+    version: number;
     deletedAt?: Date;
   } {
     return {
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
-      version: source.version ?? BigInt(0),
+      version: source.version ?? Number(0),
       deletedAt: source.deletedAt ?? undefined,
     };
   }
@@ -34,10 +34,10 @@ export class CommonMappers {
    * Map audit fields from domain model to Prisma persistence
    * Type-safe with AggregateRoot constraint
    */
-  static mapAuditFieldsToPrisma<T extends { createdAt: Date; updatedAt: Date; version: bigint; deletedAt?: Date }>(source: T): {
+  static mapAuditFieldsToPrisma<T extends { createdAt: Date; updatedAt: Date; version: number; deletedAt?: Date }>(source: T): {
     createdAt: Date;
     updatedAt: Date;
-    version: bigint;
+    version: number;
     deletedAt: Date | null;
   } {
     return {

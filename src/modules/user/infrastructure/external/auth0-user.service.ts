@@ -94,7 +94,8 @@ export class Auth0UserService {
       user_metadata: {
         profile_id: newUser.id,
         active_user: newUser.status == UserStatus.ACTIVE,
-        reset_password: lm == LoginMethod.PASSWORD ? true : false,
+        //reset_password:  ? true : false,
+        ...(lm == LoginMethod.PASSWORD ? { reset_password: true } : {}),
         profile_updated: newUser.isProfileCompleted,
       },
       password:

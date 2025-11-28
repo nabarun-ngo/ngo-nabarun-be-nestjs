@@ -13,6 +13,8 @@ import {
 } from '@nestjs/swagger';
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse } from 'src/shared/models/response-model';
 
 
 
@@ -46,17 +48,18 @@ export class OAuthController {
     description: 'Optional custom state parameter (if not provided, secure state will be generated server-side)',
     type: String,
   })
+  @ApiAutoResponse(String, { description: 'OAuth URL', wrapInSuccessResponse: true })
   async getGmailAuthUrl(
     @Query('scopes') scopes?: string,
     @Query('state') state?: string,
-  ) {
+  ): Promise<SuccessResponse<string>> {
     // Input validation
     if (scopes && scopes.length > 1000) {
       throw new BadRequestException('Scopes parameter is too long. Maximum 1000 characters allowed.');
     }
 
     // Parse and validate scopes
-    const scopeList = scopes 
+    const scopeList = scopes
       ? scopes.split(' ').filter(s => s.trim().length > 0)
       : [];
 
@@ -66,15 +69,15 @@ export class OAuthController {
         throw new BadRequestException(`Scope "${scope.substring(0, 50)}..." is too long. Maximum 200 characters per scope.`);
       }
     }
-
-    // Generate auth URL (state will be generated server-side if not provided)
-    return await this.oAuthService.getAuthUrl(scopeList, state);
+    const response = await this.oAuthService.getAuthUrl(scopeList, state);
+    return new SuccessResponse<string>(response.url);
   }
 
   @Get('google/scopes')
   @ApiOperation({ summary: 'Get available Google OAuth scopes' })
-  getGoogleScopes() {
-    return this.oAuthService.getOAuthScopes();
+  @ApiAutoResponse(Array<String>, { description: 'OAuth scopes', wrapInSuccessResponse: true, isArray: true })
+  async getGoogleScopes(): Promise<SuccessResponse<string[]>> {
+    return new SuccessResponse<string[]>(this.oAuthService.getOAuthScopes());
   }
 
 

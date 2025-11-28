@@ -35,8 +35,8 @@ export class WorkflowService {
     return new PagedResult<WorkflowInstanceDto>(
       result.items.map(m => WorkflowDtoMapper.toDto(m)),
       result.total,
-      result.page,
-      result.size,
+      result.pageIndex,
+      result.pageSize,
     );
   }
 
@@ -50,8 +50,8 @@ export class WorkflowService {
     return new PagedResult<WorkflowTaskDto>(
       instance.items.map(m => WorkflowDtoMapper.taskDomainToDto(m)),
       instance.total,
-      instance.page,
-      instance.size,
+      instance.pageIndex,
+      instance.pageSize,
     );
   }
 

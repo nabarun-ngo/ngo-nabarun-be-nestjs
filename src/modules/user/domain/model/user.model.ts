@@ -248,8 +248,8 @@ export class User extends AggregateRoot<string> {
 
   public addLoginMethod(
     newMethods?: LoginMethod[],
-  ):  LoginMethod[] {
-    if(!newMethods){
+  ): LoginMethod[] {
+    if (!newMethods) {
       return [];
     }
     var toAdd: LoginMethod[] = [];
@@ -361,11 +361,6 @@ export class User extends AggregateRoot<string> {
     aadharNumber?: string,
   ) {
     super(id);
-
-    // preserve original ordering/initialization behavior
-    this.#initials = this.computeInitials();
-    this.#picture = this.generatePictureUrl();
-
     this.#firstName = firstName;
     this.#lastName = lastName;
     this.#email = email;
@@ -377,7 +372,6 @@ export class User extends AggregateRoot<string> {
     this.#dateOfBirth = dateOfBirth;
     this.#gender = gender;
     this.#about = about;
-    this.#picture = picture;
     this.#roles = roles;
     this.#secondaryNumber = secondaryNumber;
     this.#presentAddress = presentAddress;
@@ -393,6 +387,8 @@ export class User extends AggregateRoot<string> {
     this.#aadharNumber = aadharNumber;
     this.#isProfileCompleted = this.checkComplteness();
     this.#fullName = this.computeFullName();
+    this.#initials = this.computeInitials();
+    this.#picture = picture ?? this.generatePictureUrl();
   }
 
   get fullName(): string {

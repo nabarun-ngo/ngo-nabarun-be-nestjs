@@ -1,4 +1,3 @@
-import { toUserDTO } from "src/modules/user/application/dto/user-dto.mapper";
 import { TaskAssignmentDto, WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto } from "./workflow.dto";
 import { TaskAssignment } from "../../domain/model/task-assignment.model";
 import { WorkflowInstance } from "../../domain/model/workflow-instance.model";

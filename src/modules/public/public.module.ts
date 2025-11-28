@@ -10,7 +10,7 @@ import { HealthController } from "./presentation/controller/health.controller";
 
 @Module({
   imports: [FirebaseModule, UserModule, WorkflowModule],
-  controllers: [PublicController,CallbackController,HealthController],
+  controllers: [PublicController, CallbackController, HealthController],
   providers: [PublicService, ContentService],
   exports: [],
 })

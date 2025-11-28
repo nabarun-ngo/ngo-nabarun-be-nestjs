@@ -78,7 +78,7 @@ export class ApiKeyRepository implements IApiKeyRepository {
     }
 
     private toApiKey(key: {
-        apiKeyId: string; apiKey: string; id: string; name: string; permissions: string; rateLimit: bigint | null; expiresAt: Date | null; lastUsedAt: Date | null; createdAt: Date; updatedAt: Date;
+        apiKeyId: string; apiKey: string; id: string; name: string; permissions: string; rateLimit: number | null; expiresAt: Date | null; lastUsedAt: Date | null; createdAt: Date; updatedAt: Date;
     }): ApiKey {
         return new ApiKey({
             id: key.id,

@@ -3,7 +3,6 @@ import { USER_REPOSITORY } from "../../domain/repositories/user.repository.inter
 import type { IUserRepository } from "../../domain/repositories/user.repository.interface";
 import { CreateUserDto, UserDto, UserFilterDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from "../dto/user.dto";
 import { CreateUserUseCase } from "../use-cases/create-user.use-case";
-import { toUserDTO } from "../dto/user-dto.mapper";
 import { PagedResult } from "src/shared/models/paged-result";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { UserFilterProps } from "../../domain/model/user.model";
@@ -15,6 +14,7 @@ import { Link } from "../../domain/model/link.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
 import { UserMetadataService } from "../../infrastructure/external/user-metadata.service";
+import { UserDtoMapper } from "../dto/user-dto.mapper";
 
 
 @Injectable()
@@ -44,7 +44,7 @@ export class UserService {
             }
         }
         const users = await this.userRepository.findPaged(filter);
-        return new PagedResult(users.items.map(toUserDTO), users.total, users.page, users.size);
+        return new PagedResult(users.items.map(UserDtoMapper.toUserDTO), users.total, users.pageIndex, users.pageSize);
     }
 
 
@@ -55,16 +55,16 @@ export class UserService {
         if (!user) {
             throw new Error('User not found with id ' + id);
         }
-        return toUserDTO(user);
+        return UserDtoMapper.toUserDTO(user);
     }
 
     async create(request: CreateUserDto): Promise<UserDto> {
         const newUser = await this.createUseCase.execute(request);
-        return toUserDTO(newUser);
+        return UserDtoMapper.toUserDTO(newUser);
     }
 
     async updateUser(id: string, command: UserUpdateAdminDto): Promise<UserDto> {
-        if(command.roleCodes &&command.roleCodes?.length > 0){
+        if (command.roleCodes && command.roleCodes?.length > 0) {
             await this.assignRole(id, command.roleCodes);
         }
         const updatedUser = await this.updateUseCase.execute({
@@ -75,7 +75,7 @@ export class UserService {
                 loginMethods: command.loginMethods,
             },
         });
-        return toUserDTO(updatedUser);
+        return UserDtoMapper.toUserDTO(updatedUser);
     }
     async updateProfile(id: string, command: UserUpdateDto): Promise<UserDto> {
         const updatedUser = await this.updateUseCase.execute({
@@ -124,7 +124,7 @@ export class UserService {
                 )) : []
             },
         });
-        return toUserDTO(updatedUser);
+        return UserDtoMapper.toUserDTO(updatedUser);
 
     }
 
