@@ -22,8 +22,8 @@ env_variables:
   DOPPLER_TOKEN: ${DOPPLER_SERVICE_TOKEN}
   DOPPLER_PROJECT: ${DOPPLER_PROJECT_NAME}
   DOPPLER_CONFIG: ${DOPPLER_CONFIG}
+  VERSION: ${VERSION}
 
-# Entrypoint - runs the start script with Doppler
 # Entrypoint - runs the start script with Doppler
 # Note: Migration is handled separately in the CI/CD pipeline before deployment
 entrypoint: >
