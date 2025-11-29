@@ -43,10 +43,10 @@ class WorkflowInstanceRepository
   implements IWorkflowInstanceRepository {
 
   constructor(private readonly prisma: PrismaPostgresService) { }
- 
+
   async findTasksPaged(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTask>> {
     const where: Prisma.WorkflowTaskWhereInput = {
-      ...(filter.props?.assignedTo ? { assignments: { some: { assignedToId: filter.props.assignedTo }} } : {}),
+      ...(filter.props?.assignedTo ? { assignments: { some: { assignedToId: filter.props.assignedTo } } } : {}),
       ...(filter.props?.status ? { status: { in: filter.props.status } } : {}),
     };
     const [data, total] = await Promise.all([
@@ -125,6 +125,7 @@ class WorkflowInstanceRepository
       ...(props?.status ? { status: props.status } : {}),
       ...(props?.initiatedBy ? { initiatedById: props.initiatedBy } : {}),
       ...(props?.initiatedFor ? { initiatedForId: props.initiatedFor } : {}),
+      ...(props?.delegated ? { delegated: props.delegated } : {}),
     }
     return where;
   }
@@ -169,7 +170,7 @@ class WorkflowInstanceRepository
   }
 
 
-  async create(instance: WorkflowInstance): Promise<WorkflowInstance> { 
+  async create(instance: WorkflowInstance): Promise<WorkflowInstance> {
     const createData: Prisma.WorkflowInstanceCreateInput = {
       ...WorkflowInfraMapper.toWorkflowInstanceCreatePersistence(instance),
       initiatedBy: instance.initiatedBy?.id ? { connect: { id: instance.initiatedBy.id! } } : undefined,

@@ -181,6 +181,7 @@ export class WorkflowInfraMapper {
       currentStepId: domain.currentStepId ?? null,
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
+      delegated: domain.isDelegated ?? false,
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),
       data: domain.requestData ? JSON.stringify(domain.requestData) : null,
@@ -235,7 +236,7 @@ export class WorkflowInfraMapper {
     };
   }
 
-  static toPrismaWorkflowTaskPersistance(domain: WorkflowTask,stepId: string): Prisma.WorkflowTaskCreateInput {
+  static toPrismaWorkflowTaskPersistance(domain: WorkflowTask, stepId: string): Prisma.WorkflowTaskCreateInput {
     return {
       id: domain.id,
       taskId: domain.taskId,
@@ -253,7 +254,7 @@ export class WorkflowInfraMapper {
       jobId: domain.jobId ?? null,
       resultData: null, // if you later persist resultData
       completedAt: domain.completedAt ?? null,
-      completedBy: domain.completedBy?.id ? { connect: { id: domain.completedBy?.id! }} :{},
+      completedBy: domain.completedBy?.id ? { connect: { id: domain.completedBy?.id! } } : {},
       failureReason: domain.failureReason ?? null,
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),
