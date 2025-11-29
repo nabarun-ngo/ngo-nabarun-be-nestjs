@@ -68,6 +68,12 @@ runs:
           cp -r prisma deployment-artifact/
         fi
         
+        # Copy start.sh if it exists (entrypoint)
+        if [ -f "start.sh" ]; then
+          echo "🚀 Copying start.sh..."
+          cp start.sh deployment-artifact/
+        fi
+        
         # Install production dependencies only
         if [ "${{ inputs.include_node_modules }}" == "true" ]; then
           echo "📦 Installing production dependencies only..."

@@ -374,6 +374,7 @@ jobs:
           
           # Add bin to PATH if Doppler CLI was installed
           if [ -d "bin" ]; then
+            chmod +x bin/doppler  # Fix permission denied error
             export PATH="$PWD/bin:$PATH"
             echo "✅ Doppler CLI available at: $(which doppler)"
             doppler --version
@@ -450,7 +451,27 @@ jobs:
         if: inputs.app_type == 'node'
         run: |
           echo "Deploying Node application from: ./artifacts/"
-          ls -la ./artifacts/
+          
+          # Move app.yaml to artifacts directory
+          if [ -f "${{ inputs.gae_app_yaml_path }}" ]; then
+            echo "Moving ${{ inputs.gae_app_yaml_path }} to ./artifacts/"
+            mv "${{ inputs.gae_app_yaml_path }}" ./artifacts/
+          fi
+          
+          # Fix permissions
+          cd ./artifacts
+          
+          if [ -f "start.sh" ]; then
+            echo "Fixing permissions for start.sh"
+            chmod +x start.sh
+          fi
+          
+          if [ -f "bin/doppler" ]; then
+            echo "Fixing permissions for bin/doppler"
+            chmod +x bin/doppler
+          fi
+          
+          ls -la
          
       - name: Deploy to Google App Engine (Java)
         if: inputs.app_type == 'java'

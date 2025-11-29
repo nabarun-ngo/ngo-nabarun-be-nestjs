@@ -23,8 +23,13 @@ env_variables:
   DOPPLER_CONFIG: ${ENVIRONMENT}_nest
 
 # Entrypoint - runs the start script with Doppler
-entrypoint: ./start.sh
-
+entrypoint: >
+  ./bin/doppler run
+  --token="$DOPPLER_TOKEN"
+  --project="$DOPPLER_PROJECT"
+  --config="$DOPPLER_CONFIG"
+  -- sh -c 'echo "🚀 Starting application..."; exec node dist/main'
+  
 # Handlers for static files (if needed)
 handlers:
   - url: /.*
