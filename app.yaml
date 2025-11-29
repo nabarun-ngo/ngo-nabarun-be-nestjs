@@ -18,9 +18,10 @@ automatic_scaling:
 # Environment variables for Doppler
 env_variables:
   PORT: "8080"
+  NODE_ENV: ${ENVIRONMENT}
   DOPPLER_TOKEN: ${DOPPLER_SERVICE_TOKEN}
   DOPPLER_PROJECT: ${DOPPLER_PROJECT_NAME}
-  DOPPLER_CONFIG: ${ENVIRONMENT}_nest
+  DOPPLER_CONFIG: ${DOPPLER_CONFIG}
 
 # Entrypoint - runs the start script with Doppler
 # Entrypoint - runs the start script with Doppler
