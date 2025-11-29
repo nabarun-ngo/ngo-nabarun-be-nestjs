@@ -30,7 +30,8 @@ export interface WorkflowFilter {
   readonly initiatedFor?: string;
   readonly status?: string;
   readonly type?: string;
-} 
+  readonly delegated?: boolean;
+}
 
 
 export class WorkflowInstance extends AggregateRoot<string> {
@@ -140,7 +141,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.touch();
   }
 
-  updateTask(taskId: string, status: WorkflowTaskStatus, user?:User, remarks?: string) {
+  updateTask(taskId: string, status: WorkflowTaskStatus, user?: User, remarks?: string) {
     const step = this.steps.find(s => s.stepId === this.#currentStepId);
     const task = step?.tasks?.find(t => t.id === taskId);
 
@@ -166,7 +167,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
         break;
     }
 
-    if(step?.isAllTasksCompleted()){
+    if (step?.isAllTasksCompleted()) {
       step.complete();
       this.moveToNextStep();
     }
@@ -226,5 +227,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
   get completedAt(): Date | undefined { return this.#completedAt; }
 
   get remarks(): string | undefined { return this.#remarks; }
+
+  get isDelegated(): boolean { return this.#initiatedBy?.id !== this.#initiatedFor?.id; }
 }
 

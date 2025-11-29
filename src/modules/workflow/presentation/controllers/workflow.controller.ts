@@ -92,6 +92,7 @@ export class WorkflowController {
   async listInstancesByMe(
     @Query('page') page?: number,
     @Query('size') size?: number,
+    @Query('delegated') delegated?: boolean,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
     const instances =
@@ -100,6 +101,7 @@ export class WorkflowController {
         pageSize: size,
         props: {
           initiatedBy: user?.profile_id,
+          delegated: delegated,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);

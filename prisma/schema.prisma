@@ -196,6 +196,7 @@ model WorkflowInstance {
 
   completedAt DateTime?
   remarks     String?   @db.VarChar(255)
+  delegated   Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
