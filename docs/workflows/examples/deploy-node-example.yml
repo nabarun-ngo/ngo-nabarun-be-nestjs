@@ -1,0 +1,57 @@
+name: Deploy Node.js App to GCP (Example)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-gcp-app-engine-v2.yml
+    with:
+      # Application Configuration
+      app_type: 'node'
+      tag_name: ${{ github.ref_name }}
+      repo_name: ${{ github.event.repository.name }}
+      repo_owner_name: ${{ github.repository_owner }}
+      environment_name: 'production'
+      environment_url: 'https://your-node-app.appspot.com'
+      
+      # Node-specific Configuration
+      node_version: '20'
+      package_manager: 'npm'  # or 'yarn' or 'pnpm'
+      install_command: 'npm ci'
+      build_command: 'npm run build'
+      build_directory: '.'
+      artifact_pattern: 'dist'  # or 'build' depending on your setup
+      prod_only_dependencies: true  # Install only production deps for deployment
+      include_node_modules: true    # Include node_modules in deployment
+      install_doppler_cli: true     # Install Doppler CLI for runtime secrets/migrations
+      
+      # Database Migration
+      enable_db_migration: true
+      migration_command: 'npx prisma migrate deploy'
+      
+      # GCP Configuration
+      gae_app_yaml_path: 'app.yaml'
+      gae_service_name: 'default'
+      
+      # Environment Configuration
+      app_env: 'production'
+      app_doppler_project_name: 'my-node-app'
+      app_log_level: 'INFO'
+      
+      # Deployment Configuration
+      deployment_timeout: 25
+      enable_health_check: true
+      enable_cache: true
+      
+      # Cleanup Configuration
+      keep_gae_versions: 2
+      gcs_keep_days: 7
+      
+    secrets:
+      gcp_project_id: ${{ secrets.GCP_PROJECT_ID }}
+      gcp_service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      app_doppler_service_token: ${{ secrets.DOPPLER_SERVICE_TOKEN }}
+      repo_token: ${{ secrets.GITHUB_TOKEN }}

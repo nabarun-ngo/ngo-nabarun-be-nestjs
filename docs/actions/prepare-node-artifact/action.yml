@@ -1,0 +1,128 @@
+name: 'Prepare Node.js Artifact'
+description: 'Prepares a production-ready Node.js artifact with optimized dependencies and tools'
+
+inputs:
+  artifact_pattern:
+    description: 'Pattern to match build artifacts (e.g., dist, build)'
+    required: false
+    default: ''
+  package_manager:
+    description: 'Package manager to use (npm, yarn, pnpm)'
+    required: false
+    default: 'npm'
+  include_node_modules:
+    description: 'Include node_modules in artifact'
+    required: false
+    default: 'true'
+  install_doppler_cli:
+    description: 'Install Doppler CLI'
+    required: false
+    default: 'true'
+  doppler_cli_version:
+    description: 'Doppler CLI version'
+    required: false
+    default: 'latest'
+
+outputs:
+  artifact_path:
+    description: 'Path to the prepared artifact'
+    value: ${{ steps.set-path.outputs.path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare production deployment artifact
+      shell: bash
+      run: |
+        echo "📦 Preparing production-only deployment artifact..."
+        
+        # Create deployment directory
+        mkdir -p deployment-artifact
+        
+        # Copy build output
+        PATTERN="${{ inputs.artifact_pattern }}"
+        if [ -z "$PATTERN" ]; then
+          if [ -d "dist" ]; then
+            PATTERN="dist"
+          elif [ -d "build" ]; then
+            PATTERN="build"
+          else
+            echo "❌ No build output found"
+            exit 1
+          fi
+        fi
+        
+        echo "📁 Copying build output from: $PATTERN"
+        cp -r $PATTERN deployment-artifact/
+        
+        # Copy package files
+        echo "📄 Copying package files..."
+        cp package.json deployment-artifact/
+        [ -f package-lock.json ] && cp package-lock.json deployment-artifact/ || true
+        [ -f yarn.lock ] && cp yarn.lock deployment-artifact/ || true
+        [ -f pnpm-lock.yaml ] && cp pnpm-lock.yaml deployment-artifact/ || true
+        
+        # Copy Prisma schema if it exists (needed for migrations)
+        if [ -d "prisma" ]; then
+          echo "📋 Copying Prisma schema..."
+          cp -r prisma deployment-artifact/
+        fi
+        
+        # Install production dependencies only
+        if [ "${{ inputs.include_node_modules }}" == "true" ]; then
+          echo "📦 Installing production dependencies only..."
+          cd deployment-artifact
+          
+          case "${{ inputs.package_manager }}" in
+            npm)
+              npm ci --omit=dev --ignore-scripts
+              ;;
+            yarn)
+              yarn install --production --frozen-lockfile --ignore-scripts
+              ;;
+            pnpm)
+              pnpm install --prod --frozen-lockfile --ignore-scripts
+              ;;
+          esac
+          
+          cd ..
+          
+          # Show size comparison
+          echo "📊 Size comparison:"
+          echo "Full node_modules: $(du -sh node_modules 2>/dev/null | cut -f1 || echo 'N/A')"
+          echo "Production node_modules: $(du -sh deployment-artifact/node_modules 2>/dev/null | cut -f1 || echo 'N/A')"
+        fi
+
+    - name: Install Doppler CLI in artifact
+      if: inputs.install_doppler_cli == 'true'
+      shell: bash
+      run: |
+        echo "🔐 Installing Doppler CLI..."
+        cd deployment-artifact
+        
+        # Create bin directory
+        mkdir -p bin
+        
+        # Download and install Doppler CLI
+        if [ "${{ inputs.doppler_cli_version }}" == "latest" ]; then
+          echo "Downloading latest Doppler CLI..."
+          curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh -s -- --no-install --no-package-manager
+        else
+          echo "Downloading Doppler CLI version ${{ inputs.doppler_cli_version }}..."
+          curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh -s -- --no-install --no-package-manager --version ${{ inputs.doppler_cli_version }}
+        fi
+        
+        # Move doppler binary to bin directory
+        mv doppler bin/
+        chmod +x bin/doppler
+        
+        # Verify installation
+        ./bin/doppler --version
+        
+        echo "✅ Doppler CLI installed successfully"
+        cd ..
+
+    - name: Set output path
+      id: set-path
+      shell: bash
+      run: echo "path=deployment-artifact" >> $GITHUB_OUTPUT
