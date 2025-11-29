@@ -23,13 +23,22 @@ env_variables:
   DOPPLER_CONFIG: ${ENVIRONMENT}_nest
 
 # Entrypoint - runs the start script with Doppler
+# Entrypoint - runs the start script with Doppler
+# Note: Migration is handled separately in the CI/CD pipeline before deployment
 entrypoint: >
-  ./bin/doppler run
-  --token="$DOPPLER_TOKEN"
-  --project="$DOPPLER_PROJECT"
-  --config="$DOPPLER_CONFIG"
-  -- sh -c 'echo "🚀 Starting application..."; exec node dist/main'
-  
+  sh -c '
+  export PATH="$PWD/bin:$PATH";
+  if [ -f "./bin/doppler" ]; then
+    echo "🔐 Setting Doppler CLI permissions...";
+    chmod +x ./bin/doppler;
+    echo "🔐 Starting with Doppler CLI...";
+    ./bin/doppler run --token="$DOPPLER_TOKEN" --project="$DOPPLER_PROJECT" --config="$DOPPLER_CONFIG" -- node dist/main;
+  else
+    echo "⚠️ Doppler CLI not found, starting directly...";
+    node dist/main;
+  fi
+  '
+
 # Handlers for static files (if needed)
 handlers:
   - url: /.*
