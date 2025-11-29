@@ -23,8 +23,9 @@ node_modules/
 .devcontainer/
 
 # TypeScript config (needed for build)
-# tsconfig*.json - KEEP THESE
-# nest-cli.json - KEEP THIS
+# TypeScript config (not needed for runtime)
+tsconfig*.json
+nest-cli.json
 
 # Linting and formatting
 eslint.config.mjs
@@ -48,7 +49,9 @@ DEPLOYMENT.md
 .github/
 
 # Build artifacts (will be rebuilt)
-dist/
+# Build artifacts (we want to upload these)
+!dist/
+src/
 coverage/
 *.log
 npm-debug.log*
