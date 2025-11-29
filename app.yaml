@@ -18,11 +18,11 @@ automatic_scaling:
 # Environment variables for Doppler
 env_variables:
   PORT: "8080"
-  NODE_ENV: ${ENVIRONMENT}
-  DOPPLER_TOKEN: ${DOPPLER_SERVICE_TOKEN}
-  DOPPLER_PROJECT: ${DOPPLER_PROJECT_NAME}
-  DOPPLER_CONFIG: ${DOPPLER_CONFIG}
-  VERSION: ${VERSION}
+  NODE_ENV: $ENVIRONMENT
+  DOPPLER_TOKEN: $DOPPLER_SERVICE_TOKEN
+  DOPPLER_PROJECT: $DOPPLER_PROJECT_NAME
+  DOPPLER_CONFIG: $DOPPLER_CONFIG
+  VERSION: $VERSION
 
 # Entrypoint - runs the start script with Doppler
 # Note: Migration is handled separately in the CI/CD pipeline before deployment
