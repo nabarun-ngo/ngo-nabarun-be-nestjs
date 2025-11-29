@@ -1,0 +1,555 @@
+name: Build and Deploy to GCP App Engine v2 (Generic)
+on:
+  workflow_call:
+    inputs:
+      # Application Configuration
+      app_type:
+        description: "Application type: 'java' or 'node'"
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+      repo_name:
+        required: true
+        type: string
+      repo_owner_name:
+        required: true
+        type: string
+      environment_name:
+        required: true
+        type: string
+      environment_url:
+        required: false
+        type: string
+      
+      # Build Configuration
+      build_directory:
+        description: "Directory where build artifacts are located"
+        required: false
+        type: string
+        default: '.'
+      artifact_pattern:
+        description: "Pattern to match build artifacts (e.g., '*.jar' for Java, 'dist/**' for Node)"
+        required: false
+        type: string
+        default: ''
+      
+      # Java-specific inputs
+      java_version:
+        description: "Java version to use (only for Java apps)"
+        required: false
+        type: string
+        default: '17'
+      maven_command:
+        description: "Maven command to run (only for Java apps)"
+        required: false
+        type: string
+        default: 'clean package'
+      maven_options:
+        description: "Additional Maven options (only for Java apps)"
+        required: false
+        type: string
+        default: '-Dmaven.test.skip=true -Dmaven.javadoc.skip=true'
+      target_folder:
+        description: "Target folder for Java builds (only for Java apps)"
+        required: false
+        type: string
+        default: 'target'
+      
+      # Node-specific inputs
+      node_version:
+        description: "Node.js version to use (only for Node apps)"
+        required: false
+        type: string
+        default: '20'
+      package_manager:
+        description: "Package manager: 'npm', 'yarn', or 'pnpm' (only for Node apps)"
+        required: false
+        type: string
+        default: 'npm'
+      build_command:
+        description: "Build command for Node apps (only for Node apps)"
+        required: false
+        type: string
+        default: 'npm run build'
+      install_command:
+        description: "Install command for Node apps (only for Node apps)"
+        required: false
+        type: string
+        default: 'npm ci'
+      prod_only_dependencies:
+        description: "Install only production dependencies for deployment (Node only, default: true)"
+        required: false
+        type: boolean
+        default: true
+      include_node_modules:
+        description: "Include node_modules in deployment (Node only, default: true)"
+        required: false
+        type: boolean
+        default: true
+      install_doppler_cli:
+        description: "Install Doppler CLI in deployment artifact (Node only, default: true)"
+        required: false
+        type: boolean
+        default: true
+      doppler_cli_version:
+        description: "Doppler CLI version to install (Node only, default: latest)"
+        required: false
+        type: string
+        default: 'latest'
+      
+      # Database Migration Configuration
+      enable_db_migration:
+        description: "Enable database migration before deployment (default: false)"
+        required: false
+        type: boolean
+        default: false
+      migration_command:
+        description: "Command to run database migrations (e.g., 'npx prisma migrate deploy')"
+        required: false
+        type: string
+        default: 'npx prisma migrate deploy'
+      migration_timeout:
+        description: "Migration timeout in minutes (default: 10)"
+        required: false
+        type: number
+        default: 10
+      
+      # GCP Configuration
+      gae_app_yaml_path:
+        required: false
+        type: string
+        default: 'app.yaml'
+      gae_service_name:
+        required: false
+        type: string
+        default: 'default'
+      
+      # Environment Configuration
+      app_env:
+        required: true
+        type: string
+      app_doppler_project_name:
+        required: true
+        type: string
+      app_log_level:
+        required: false
+        type: string
+        default: 'INFO'
+      
+      # Cleanup Configuration
+      keep_gae_versions:
+        description: "Number of GAE versions to keep (optional, default 1)"
+        required: false
+        type: number
+        default: 1
+      gcs_keep_days:
+        description: "Number of days to keep files in GCS bucket (optional, default 5)"
+        required: false
+        type: number
+        default: 5
+      
+      # Deployment Configuration
+      deployment_timeout:
+        description: "Deployment timeout in minutes (default: 25)"
+        required: false
+        type: number
+        default: 25
+      enable_health_check:
+        description: "Enable post-deployment health check (default: true)"
+        required: false
+        type: boolean
+        default: true
+      enable_cache:
+        description: "Enable build cache (default: true)"
+        required: false
+        type: boolean
+        default: true
+      
+    outputs:
+      # Build outputs
+      build_status:
+        description: 'Status of the build process'
+        value: ${{ jobs.build_application.result }}
+      artifact_name:
+        description: 'Name of the built artifact'
+        value: ${{ jobs.build_application.outputs.artifact_name }}
+      # Deployment outputs
+      deployment_status:
+        description: 'Status of the deployment process'
+        value: ${{ jobs.deploy_to_gcp.result }}
+      deployment_version:
+        description: 'Deployed GAE version ID'
+        value: ${{ jobs.deploy_to_gcp.outputs.deployment_version }}
+      deployment_id:
+        description: 'GitHub deployment ID'
+        value: ${{ jobs.deploy_to_gcp.outputs.deployment_id }}
+      # Cleanup outputs
+      cleanup_status:
+        description: 'Status of the cleanup process'
+        value: ${{ jobs.clean_gcp_resources.result }}
+      # Summary outputs
+      overall_status:
+        description: 'Overall workflow execution status'
+        value: ${{ (jobs.build_application.result == 'success' && jobs.deploy_to_gcp.result == 'success') && 'success' || 'failure' }}
+      deployment_summary:
+        description: 'Deployment summary information'
+        value: 'Tag: ${{ inputs.tag_name }} | Service: ${{ inputs.gae_service_name }} | Environment: ${{ inputs.environment_name }} | Version: ${{ jobs.deploy_to_gcp.outputs.deployment_version }}'
+    
+    secrets:
+      gcp_project_id:
+        required: true
+      gcp_service_account:
+        required: true
+      app_doppler_service_token:
+        required: true
+      repo_token:
+        required: true
+
+
+jobs:
+
+  build_application:
+    name: 'Build Application (${{ inputs.app_type }})'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      artifact_name: ${{ steps.get-artifact-info.outputs.artifact_name }}
+      artifact_path: ${{ steps.get-artifact-info.outputs.artifact_path }}
+    steps:
+      - name: Checkout repository | Tag ${{ inputs.tag_name }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
+          repository: '${{ inputs.repo_owner_name }}/${{ inputs.repo_name }}'
+          fetch-depth: 0
+          token: ${{ secrets.repo_token }}
+    
+      # ========== JAVA BUILD ==========
+      - name: Build Java Application with Maven
+        if: inputs.app_type == 'java'
+        id: maven_build
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/build-java@main
+        with:
+          java_version: ${{ inputs.java_version }}
+          maven_command: ${{ inputs.maven_command }}
+          maven_options: ${{ inputs.maven_options }}
+          upload_test_results: 'false'
+          enable_cache: ${{ inputs.enable_cache }}
+          cache_key_prefix: 'maven'
+          
+      - name: Validate and Get JAR file path
+        if: inputs.app_type == 'java'
+        id: get-jar-path
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/validate-and-find-file@main
+        with:
+          search_directory: ${{ inputs.target_folder }}
+          file_pattern: ${{ inputs.artifact_pattern != '' && inputs.artifact_pattern || '*.jar' }}
+          exclude_patterns: 'sources,javadoc,test'
+          file_type: 'JAR'
+          selection_strategy: 'first'
+          validate_file: 'true'
+      
+      # ========== NODE BUILD ==========
+      - name: Setup Node.js
+        if: inputs.app_type == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.enable_cache && inputs.package_manager || '' }}
+      
+      - name: Install pnpm
+        if: inputs.app_type == 'node' && inputs.package_manager == 'pnpm'
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      
+      - name: Install dependencies (Node - with dev dependencies)
+        if: inputs.app_type == 'node'
+        run: ${{ inputs.install_command }}
+      
+      - name: Build Node Application
+        if: inputs.app_type == 'node'
+        run: ${{ inputs.build_command }}
+      
+      - name: Prepare production deployment artifact
+        if: inputs.app_type == 'node' && inputs.prod_only_dependencies
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/prepare-node-artifact@main
+        with:
+          artifact_pattern: ${{ inputs.artifact_pattern }}
+          package_manager: ${{ inputs.package_manager }}
+          include_node_modules: ${{ inputs.include_node_modules }}
+          install_doppler_cli: ${{ inputs.install_doppler_cli }}
+          doppler_cli_version: ${{ inputs.doppler_cli_version }}
+
+      
+      - name: Find Node build artifacts
+        if: inputs.app_type == 'node'
+        id: find-node-artifacts
+        run: |
+          if [ "${{ inputs.prod_only_dependencies }}" == "true" ]; then
+            echo "artifact_pattern=deployment-artifact" >> $GITHUB_OUTPUT
+          else
+            # Original behavior - use full directory
+            PATTERN="${{ inputs.artifact_pattern }}"
+            if [ -z "$PATTERN" ]; then
+              if [ -d "dist" ]; then
+                PATTERN="dist"
+              elif [ -d "build" ]; then
+                PATTERN="build"
+              else
+                PATTERN="."
+              fi
+            fi
+            echo "artifact_pattern=$PATTERN" >> $GITHUB_OUTPUT
+          fi
+      
+      # ========== COMMON: Set Artifact Info ==========
+      - name: Set artifact information
+        id: get-artifact-info
+        run: |
+          if [ "${{ inputs.app_type }}" == "java" ]; then
+            echo "artifact_name=${{ steps.get-jar-path.outputs.file_name }}" >> $GITHUB_OUTPUT
+            echo "artifact_path=${{ steps.get-jar-path.outputs.file_path }}" >> $GITHUB_OUTPUT
+          else
+            # For Node, we'll upload the entire build directory
+            ARTIFACT_NAME="node-build-${{ inputs.tag_name }}"
+            ARTIFACT_PATH="${{ steps.find-node-artifacts.outputs.artifact_pattern }}"
+            echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+            echo "artifact_path=$ARTIFACT_PATH" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.get-artifact-info.outputs.artifact_name }}
+          path: ${{ steps.get-artifact-info.outputs.artifact_path }}
+          retention-days: 1
+          
+      - name: Upload app.yaml artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-yaml-${{ inputs.tag_name }}
+          path: ${{ inputs.gae_app_yaml_path }}
+          retention-days: 1
+
+  run_db_migration:
+    name: 'Run Database Migration'
+    runs-on: ubuntu-latest
+    needs: [build_application]
+    if: |
+      always() &&
+      needs.build_application.result == 'success' &&
+      inputs.enable_db_migration
+    environment: ${{ inputs.environment_name }}
+    timeout-minutes: ${{ inputs.migration_timeout }}
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_application.outputs.artifact_name }}
+          path: ./artifacts/
+      
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          credentials_json: ${{ secrets.gcp_service_account }}
+      
+      - name: Setup Node.js (for Node apps)
+        if: inputs.app_type == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+      
+      - name: Run database migration
+        working-directory: ./artifacts
+        env:
+          DOPPLER_TOKEN: ${{ secrets.app_doppler_service_token }}
+          DOPPLER_PROJECT: ${{ inputs.app_doppler_project_name }}
+          DOPPLER_CONFIG: ${{ inputs.app_env }}
+        run: |
+          echo "🗄️ Running database migration..."
+          
+          # Add bin to PATH if Doppler CLI was installed
+          if [ -d "bin" ]; then
+            export PATH="$PWD/bin:$PATH"
+            echo "✅ Doppler CLI available at: $(which doppler)"
+            doppler --version
+          fi
+          
+          # Run migration command
+          echo "Running: ${{ inputs.migration_command }}"
+          ${{ inputs.migration_command }}
+          
+          echo "✅ Database migration completed successfully"
+
+  deploy_to_gcp:
+    name: 'Deploy to GCP App Engine'
+    runs-on: ubuntu-latest
+    needs: [build_application, run_db_migration]
+    if: |
+      always() &&
+      needs.build_application.result == 'success' &&
+      (needs.run_db_migration.result == 'success' || needs.run_db_migration.result == 'skipped')
+    environment: ${{ inputs.environment_name }}
+    timeout-minutes: ${{ inputs.deployment_timeout }}
+    outputs:
+      deployment_version: ${{ steps.get_version.outputs.version }}
+      deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_application.outputs.artifact_name }}
+          path: ./artifacts/
+          
+      - name: Download app.yaml artifact to workspace root
+        uses: actions/download-artifact@v4
+        with:
+          name: app-yaml-${{ inputs.tag_name }}
+          path: .
+
+      - name: Create GitHub Deployment
+        uses: chrnorm/deployment-action@v2
+        id: deployment
+        with:
+          token: ${{ secrets.repo_token }}
+          environment-url: ${{ inputs.environment_url }}
+          environment: ${{ inputs.environment_name }}
+          repo: ${{ inputs.repo_name }}
+          owner: ${{ inputs.repo_owner_name }}
+          ref: ${{ inputs.tag_name }}
+                  
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          credentials_json: ${{ secrets.gcp_service_account }}
+        
+      - name: Setup Application Variables
+        uses: ikuanyshbekov/app-yaml-env-compiler@v1.0
+        with:
+          path: '${{ inputs.gae_app_yaml_path }}'
+        env:
+          ENVIRONMENT: ${{ inputs.app_env }}
+          DOPPLER_PROJECT_NAME: ${{ inputs.app_doppler_project_name }}
+          DOPPLER_SERVICE_TOKEN: ${{ secrets.app_doppler_service_token }}
+          LOG_LEVEL: ${{ inputs.app_log_level }}
+          VERSION: ${{ inputs.tag_name }}
+          APP_TYPE: ${{ inputs.app_type }}
+         
+      - name: Prepare deployment artifacts (Java)
+        if: inputs.app_type == 'java'
+        run: |
+          echo "Deploying JAR: ./artifacts/${{ needs.build_application.outputs.artifact_name }}"
+          ls -la ./artifacts/
+      
+      - name: Prepare deployment artifacts (Node)
+        if: inputs.app_type == 'node'
+        run: |
+          echo "Deploying Node application from: ./artifacts/"
+          ls -la ./artifacts/
+         
+      - name: Deploy to Google App Engine (Java)
+        if: inputs.app_type == 'java'
+        uses: google-github-actions/deploy-appengine@v2
+        timeout-minutes: 20
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          deliverables: './artifacts/${{ needs.build_application.outputs.artifact_name }}'
+          flags: '--appyaml=${{ inputs.gae_app_yaml_path }} --quiet --no-promote'
+      
+      - name: Deploy to Google App Engine (Node)
+        if: inputs.app_type == 'node'
+        uses: google-github-actions/deploy-appengine@v2
+        timeout-minutes: 20
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          deliverables: '${{ inputs.gae_app_yaml_path }}'
+          working_directory: './artifacts'
+          flags: '--quiet --no-promote'
+          
+      - name: Get deployed version
+        id: get_version
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/gcp-get-deployed-version@main
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          service_name: ${{ inputs.gae_service_name }}
+          
+      - name: Promote to production
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/gcp-promote-gae-traffic@main
+        timeout-minutes: 10
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          service_name: ${{ inputs.gae_service_name }}
+          version: ${{ steps.get_version.outputs.version }}
+
+      - name: Health check deployment
+        if: inputs.enable_health_check
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/gcp-health-check-deployment@main
+        timeout-minutes: 5
+        with:
+          environment_url: ${{ inputs.environment_url }}
+
+      - name: Update deployment status (success)
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          state: 'success'
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          token: ${{ secrets.repo_token }}
+          environment-url: ${{ inputs.environment_url }}
+          repo: ${{ inputs.repo_name }}
+          owner: ${{ inputs.repo_owner_name }}
+
+      - name: Update deployment status (failure)
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          state: 'failure'
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          token: ${{ secrets.repo_token }}
+          environment-url: ${{ inputs.environment_url }}
+          repo: ${{ inputs.repo_name }}
+          owner: ${{ inputs.repo_owner_name }}
+
+  clean_gcp_resources:
+    name: 'Clean Up Old GCP Resources'
+    runs-on: ubuntu-latest
+    needs: [deploy_to_gcp]
+    environment: ${{ inputs.environment_name }}
+    # Only run cleanup when deployment succeeds
+    if: |
+      always() &&
+      needs.deploy_to_gcp.result == 'success'
+    timeout-minutes: 20
+    steps:
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          credentials_json: ${{ secrets.gcp_service_account }}
+
+      - name: Clean Artifact Registry repositories
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/gcp-clean-artifact-registry@main
+        continue-on-error: true
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+
+      - name: Clean old GAE versions
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/gcp-clean-gae-versions@main
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          service_name: ${{ inputs.gae_service_name }}
+          keep_versions: ${{ inputs.keep_gae_versions }}
+
+      - name: Clean old GCS files
+        uses: nabarun-ngo/ngo-nabarun-templates/.github/actions/gcp-clean-gcs-files@main
+        continue-on-error: true
+        with:
+          project_id: ${{ secrets.gcp_project_id }}
+          keep_days: ${{ inputs.gcs_keep_days }}
+          bucket_patterns: 'auto'
+          timeout_minutes: '10'
