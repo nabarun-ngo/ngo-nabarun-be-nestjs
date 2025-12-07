@@ -24,40 +24,52 @@ export interface JobPerformanceMetrics {
 export class JobMonitoringService {
   private readonly logger = new Logger(JobMonitoringService.name);
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
+  // Cache for metrics to reduce Redis calls
+  private metricsCache: { data: JobMetrics; timestamp: number } | null = null;
+  private readonly METRICS_CACHE_TTL = 60000; // 1 minute cache
+
+  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) { }
 
   /**
-   * Get comprehensive job metrics
+   * Get comprehensive job metrics (optimized with caching and count methods)
    */
   async getJobMetrics(): Promise<JobMetrics> {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (this.metricsCache && (now - this.metricsCache.timestamp) < this.METRICS_CACHE_TTL) {
+        this.logger.debug('Returning cached metrics');
+        return this.metricsCache.data;
+      }
+
+      // Use count methods instead of fetching full arrays - MUCH more efficient!
       const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(),
-        this.defaultQueue.getActive(),
-        this.defaultQueue.getCompleted(),
-        this.defaultQueue.getFailed(),
-        this.defaultQueue.getDelayed(),
+        this.defaultQueue.getWaitingCount(),
+        this.defaultQueue.getActiveCount(),
+        this.defaultQueue.getCompletedCount(),
+        this.defaultQueue.getFailedCount(),
+        this.defaultQueue.getDelayedCount(),
       ]);
 
-      const total =
-        waiting.length +
-        active.length +
-        completed.length +
-        failed.length +
-        delayed.length;
-      const successRate = total > 0 ? (completed.length / total) * 100 : 0;
-      const failureRate = total > 0 ? (failed.length / total) * 100 : 0;
+      const total = waiting + active + completed + failed + delayed;
+      const successRate = total > 0 ? (completed / total) * 100 : 0;
+      const failureRate = total > 0 ? (failed / total) * 100 : 0;
 
-      return {
+      const metrics = {
         total,
-        completed: completed.length,
-        failed: failed.length,
-        active: active.length,
-        waiting: waiting.length,
-        delayed: delayed.length,
+        completed,
+        failed,
+        active,
+        waiting,
+        delayed,
         successRate: Math.round(successRate * 100) / 100,
         failureRate: Math.round(failureRate * 100) / 100,
       };
+
+      // Update cache
+      this.metricsCache = { data: metrics, timestamp: now };
+
+      return metrics;
     } catch (error) {
       this.logger.error('Failed to get job metrics', error);
       throw error;
@@ -65,11 +77,12 @@ export class JobMonitoringService {
   }
 
   /**
-   * Get job performance metrics
+   * Get job performance metrics (optimized to limit data fetching)
    */
   async getJobPerformanceMetrics(): Promise<JobPerformanceMetrics> {
     try {
-      const completedJobs = await this.defaultQueue.getCompleted();
+      // Only fetch last 100 completed jobs instead of ALL jobs - huge optimization!
+      const completedJobs = await this.defaultQueue.getCompleted(0, 99);
 
       if (completedJobs.length === 0) {
         return {
@@ -120,15 +133,21 @@ export class JobMonitoringService {
 
   /**
    * Get job metrics by name
+   * WARNING: This method is expensive as it needs to fetch jobs to filter by name.
+   * Consider using separate queues per job type for better performance.
    */
   async getJobMetricsByName(jobName: string): Promise<JobMetrics> {
     try {
+      this.logger.warn(`getJobMetricsByName is expensive - consider using separate queues for job type: ${jobName}`);
+
+      // We need to fetch jobs to filter by name - this is expensive
+      // Using smaller ranges to limit data transfer
       const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(),
-        this.defaultQueue.getActive(),
-        this.defaultQueue.getCompleted(),
-        this.defaultQueue.getFailed(),
-        this.defaultQueue.getDelayed(),
+        this.defaultQueue.getWaiting(0, 999),    // Limit to 1000 jobs
+        this.defaultQueue.getActive(0, 999),     // Limit to 1000 jobs
+        this.defaultQueue.getCompleted(0, 999),  // Limit to 1000 jobs
+        this.defaultQueue.getFailed(0, 999),     // Limit to 1000 jobs
+        this.defaultQueue.getDelayed(0, 999),    // Limit to 1000 jobs
       ]);
 
       const filterByName = (jobs: any[]) =>

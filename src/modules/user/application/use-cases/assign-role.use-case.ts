@@ -29,7 +29,7 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
             throw new Error(`User with id ${request.userId} not found`);
         }
         const allRoleList = await this.metadataService.getAllRoles();
-        const defaultRole = allRoleList.filter(f=>f.isDefault);
+        const defaultRole = allRoleList.filter(f => f.isDefault);
         const allRoleMap = allRoleList.reduce((acc, role) => {
             acc[role.roleCode] = role;
             return acc;
@@ -39,12 +39,13 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
             acc[role.authRoleCode] = role.id;
             return acc;
         }, {} as Record<string, string>);;
-        
+
         const newRoles = request.newRoles.map(role => allRoleMap[role.roleCode]);
         const { toAdd, toRemove } = user?.updateRoles(newRoles, defaultRole);
         const roleIdsToAdd = toAdd?.map(role => allAuth0Roles[role.authRoleCode])!;
         const roleIdsToRemove = toRemove?.map(role => allAuth0Roles[role.authRoleCode])!;
-    
+
+
         if (roleIdsToAdd?.length > 0) {
             await this.auth0UserService.assignRolesToUser(user.authUserId!, roleIdsToAdd);
         }
@@ -58,12 +59,12 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
 
         }
 
-       // Emit domain events
+        // Emit domain events
         for (const event of user.domainEvents) {
             this.eventEmitter.emit(event.constructor.name, event);
         }
         user.clearEvents();
 
-        
+
     }
 }

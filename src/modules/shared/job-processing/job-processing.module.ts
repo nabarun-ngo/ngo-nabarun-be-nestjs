@@ -46,7 +46,7 @@ export class JobProcessingModule {
         JobMonitoringService,
       ],
       exports: [
-        JobProcessingService
+        JobProcessingService,
       ],
       controllers: [JobMonitoringController],
     };
