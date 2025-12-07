@@ -10,7 +10,7 @@ export class JobProcessingService {
 
   constructor(
     @InjectQueue('default') private readonly defaultQueue: Queue,
-  ) {}
+  ) { }
 
   /**
    * Add a job to the default queue
@@ -22,7 +22,7 @@ export class JobProcessingService {
   ): Promise<Job<T>> {
     try {
       this.logger.log(`Adding job: ${name} with data: ${JSON.stringify(data)}`);
-      
+
       // Set TTL based on job type and configuration
       const jobOptions = this.setJobTTL(options);
       const job = await this.defaultQueue.add(name, data, jobOptions);
@@ -168,11 +168,11 @@ export class JobProcessingService {
       const failedJobsDays = parseInt(process.env.JOB_RETENTION_FAILED_DAYS || '7');
       const completedJobsCount = parseInt(process.env.JOB_RETENTION_COMPLETED_COUNT || '100');
       const failedJobsCount = parseInt(process.env.JOB_RETENTION_FAILED_COUNT || '50');
-      
-      const age = status === 'completed' 
-        ? completedJobsDays * 24 * 60 * 60 
+
+      const age = status === 'completed'
+        ? completedJobsDays * 24 * 60 * 60
         : failedJobsDays * 24 * 60 * 60;
-      
+
       const count = status === 'completed' ? completedJobsCount : failedJobsCount;
       await this.defaultQueue.clean(grace, count, status);
       this.logger.log(`Cleaned ${status} jobs`);
@@ -221,7 +221,7 @@ export class JobProcessingService {
   }
 
   /**
-   * Get queue statistics
+   * Get queue statistics (optimized with count methods)
    */
   async getQueueStats(): Promise<{
     waiting: number;
@@ -231,20 +231,21 @@ export class JobProcessingService {
     delayed: number;
   }> {
     try {
+      // Use count methods instead of fetching arrays - much more efficient!
       const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(),
-        this.defaultQueue.getActive(),
-        this.defaultQueue.getCompleted(),
-        this.defaultQueue.getFailed(),
-        this.defaultQueue.getDelayed(),
+        this.defaultQueue.getWaitingCount(),
+        this.defaultQueue.getActiveCount(),
+        this.defaultQueue.getCompletedCount(),
+        this.defaultQueue.getFailedCount(),
+        this.defaultQueue.getDelayedCount(),
       ]);
 
       return {
-        waiting: waiting.length,
-        active: active.length,
-        completed: completed.length,
-        failed: failed.length,
-        delayed: delayed.length,
+        waiting,
+        active,
+        completed,
+        failed,
+        delayed,
       };
     } catch (error) {
       this.logger.error('Failed to get queue stats', error);

@@ -1,15 +1,16 @@
 import { Controller, Get, Post, Param, Query, Body, Delete } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JobProcessingService } from '../services/job-processing.service';
 import { JobMonitoringService } from '../services/job-monitoring.service';
 
 @ApiTags('Job Monitoring')
 @Controller('jobs')
+@ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class JobMonitoringController {
   constructor(
     private readonly jobProcessingService: JobProcessingService,
     private readonly jobMonitoringService: JobMonitoringService,
-  ) {}
+  ) { }
 
   @Get('metrics')
   @ApiOperation({ summary: 'Get job metrics' })
@@ -105,7 +106,7 @@ export class JobMonitoringController {
     const failedJobsDays = parseInt(process.env.JOB_RETENTION_FAILED_DAYS || '7');
     const completedJobsCount = parseInt(process.env.JOB_RETENTION_COMPLETED_COUNT || '100');
     const failedJobsCount = parseInt(process.env.JOB_RETENTION_FAILED_COUNT || '50');
-    
+
     return {
       message: 'Jobs are automatically cleaned using TTL (Time To Live)',
       retention: {
