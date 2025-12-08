@@ -11,7 +11,6 @@ import { DonationInfraMapper } from '../mapper/donation-infra.mapper';
 export type FullDonation = Prisma.DonationGetPayload<{
   include: {
     donor: true;
-    transaction: true;
     paidToAccount: true;
     confirmedBy: true;
   };
@@ -20,7 +19,6 @@ export type FullDonation = Prisma.DonationGetPayload<{
 export type OnlyDonation = Prisma.DonationGetPayload<{
   include: {
     donor: true;
-    transaction: false;
     paidToAccount: false;
   };
 }>;
@@ -39,7 +37,6 @@ class DonationRepository implements IDonationRepository {
         orderBy: { raisedOn: 'desc' },
         include: {
           donor: true,
-          transaction: true,
           paidToAccount: true,
           confirmedBy: true,
         },
@@ -63,7 +60,6 @@ class DonationRepository implements IDonationRepository {
       orderBy: { raisedOn: 'desc' },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -97,7 +93,6 @@ class DonationRepository implements IDonationRepository {
       where: { id },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -112,7 +107,6 @@ class DonationRepository implements IDonationRepository {
       orderBy: { raisedOn: 'desc' },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -127,7 +121,6 @@ class DonationRepository implements IDonationRepository {
       orderBy: { raisedOn: 'desc' },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -142,7 +135,6 @@ class DonationRepository implements IDonationRepository {
       orderBy: { raisedOn: 'desc' },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -161,7 +153,6 @@ class DonationRepository implements IDonationRepository {
       orderBy: { raisedOn: 'desc' },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -182,7 +173,6 @@ class DonationRepository implements IDonationRepository {
       orderBy: { raisedOn: 'desc' },
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -200,7 +190,6 @@ class DonationRepository implements IDonationRepository {
       data: createData,
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },
@@ -219,7 +208,6 @@ class DonationRepository implements IDonationRepository {
       data: updateData,
       include: {
         donor: true,
-        transaction: true,
         paidToAccount: true,
         confirmedBy: true,
       },

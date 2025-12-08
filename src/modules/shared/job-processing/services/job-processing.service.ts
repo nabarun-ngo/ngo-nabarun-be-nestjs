@@ -104,6 +104,65 @@ export class JobProcessingService {
   }
 
   /**
+   * Retry a failed job
+   */
+  async retryJob(jobId: string): Promise<void> {
+    try {
+      const job = await this.defaultQueue.getJob(jobId);
+
+      if (!job) {
+        this.logger.warn(`Job not found: ${jobId}`);
+        throw new Error(`Job ${jobId} not found`);
+      }
+
+      const state = await job.getState();
+
+      if (state !== 'failed') {
+        this.logger.warn(`Job ${jobId} is not in failed state (current state: ${state})`);
+        throw new Error(`Job ${jobId} is not in failed state. Current state: ${state}`);
+      }
+
+      // Retry the job
+      await job.retry();
+      this.logger.log(`Job ${jobId} has been queued for retry`);
+    } catch (error) {
+      this.logger.error(`Failed to retry job: ${jobId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retry all failed jobs
+   */
+  async retryAllFailedJobs(): Promise<{ retriedCount: number; failedCount: number }> {
+    try {
+      const failedJobs = await this.defaultQueue.getFailed();
+      let retriedCount = 0;
+      let failedCount = 0;
+
+      this.logger.log(`Found ${failedJobs.length} failed jobs to retry`);
+
+      for (const job of failedJobs) {
+        try {
+          await job.retry();
+          retriedCount++;
+          this.logger.log(`Retried job: ${job.id}`);
+        } catch (error) {
+          failedCount++;
+          this.logger.error(`Failed to retry job ${job.id}: ${error.message}`);
+        }
+      }
+
+      this.logger.log(`Retry complete: ${retriedCount} succeeded, ${failedCount} failed`);
+
+      return { retriedCount, failedCount };
+    } catch (error) {
+      this.logger.error('Failed to retry all failed jobs', error);
+      throw error;
+    }
+  }
+
+  /**
    * Remove a job from a specific queue
    */
   async removeJobFromQueue(queueName: string, jobId: string): Promise<void> {

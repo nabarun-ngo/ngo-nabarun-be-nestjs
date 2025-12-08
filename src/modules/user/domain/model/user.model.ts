@@ -353,7 +353,7 @@ export class User extends AggregateRoot<string> {
     isPublic: boolean = true,
     authUserId?: string,
     isSameAddress?: boolean,
-    loginMethod: LoginMethod[] = [/*LoginMethod.EMAIL,*/ LoginMethod.PASSWORD],
+    loginMethod: LoginMethod[] = [LoginMethod.EMAIL, LoginMethod.PASSWORD],
     socialMediaLinks: Link[] = [],
     donationPauseStart?: Date,
     donationPauseEnd?: Date,

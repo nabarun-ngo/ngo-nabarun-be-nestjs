@@ -17,17 +17,17 @@ export class ExpenseInfraMapper {
             Number(p.amount),
             p.currency,
             p.status as ExpenseStatus,
-            p.description,
+            MapperUtils.nullToUndefined(p.description)!,
             MapperUtils.nullToUndefined(p.referenceId),
             MapperUtils.nullToUndefined(p.referenceType),
-            p.requestedBy,
+            MapperUtils.nullToUndefined(p.requestedBy),
             MapperUtils.nullToUndefined(p.approvedBy),
             undefined, // finalizedBy
             undefined, // settledBy
             undefined, // rejectedBy
             MapperUtils.nullToUndefined(p.accountId),
-            MapperUtils.nullToUndefined(p.transactionId),
-            MapperUtils.nullToUndefined(p.receiptUrl),
+            MapperUtils.nullToUndefined(p.transactionRef),
+            undefined,
             p.expenseDate,
             MapperUtils.nullToUndefined(p.approvedDate),
             undefined, // finalizedDate
