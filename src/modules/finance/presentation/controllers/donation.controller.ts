@@ -29,7 +29,7 @@ import { RequirePermissions } from 'src/modules/shared/auth/application/decorato
  * Donation Controller - matches legacy endpoints
  * Base path: /api/donation
  */
-@ApiTags('donation-controller')
+@ApiTags('Donation')
 @Controller('donation')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class DonationController {

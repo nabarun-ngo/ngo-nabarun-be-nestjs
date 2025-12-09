@@ -30,7 +30,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
  * Account Controller - matches legacy endpoints
  * Base path: /api/account
  */
-@ApiTags('account-controller')
+@ApiTags('Account')
 @Controller('account')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class AccountController {

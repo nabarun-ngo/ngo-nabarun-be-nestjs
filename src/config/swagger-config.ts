@@ -8,10 +8,10 @@ import { UserDto, PhoneNumberDto, AddressDto, LinkDto, RoleDto } from 'src/modul
 // Add more DTO imports as needed
 
 export function configureSwagger(app: INestApplication) {
-  
+
   const config = new DocumentBuilder()
     .setTitle(process.env[Configkey.APP_NAME] || 'API Documentation')
-    .setDescription(`${process.env[Configkey.APP_NAME]} Backend API powered by NestJS` )
+    .setDescription(`${process.env[Configkey.APP_NAME]} Backend API powered by NestJS`)
     .setVersion('2.0')
     .addBearerAuth(
       {
@@ -51,10 +51,18 @@ export function configureSwagger(app: INestApplication) {
     ],
     // Enable deep scan for better type inference
     deepScanRoutes: true,
-    autoTagControllers:true
+    autoTagControllers: true,
+    // Custom operation ID factory to remove 'Controller' suffix from generated method names
+    operationIdFactory: (controllerKey: string, methodKey: string) => {
+      // Remove 'Controller' suffix from controller name for cleaner operation IDs
+      const cleanControllerName = controllerKey.replace(/Controller$/, '');
+      // Convert to camelCase: DonationUpdate -> donationUpdate
+      const operationId = cleanControllerName.charAt(0).toLowerCase() + cleanControllerName.slice(1) + methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      return operationId;
+    }
   });
 
-  SwaggerModule.setup('swagger-ui', app, document,{
-      jsonDocumentUrl: 'api/docs',
+  SwaggerModule.setup('swagger-ui', app, document, {
+    jsonDocumentUrl: 'api/docs',
   });
 }

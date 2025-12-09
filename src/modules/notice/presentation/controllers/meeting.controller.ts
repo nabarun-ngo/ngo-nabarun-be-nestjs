@@ -24,7 +24,7 @@ import { PagedResult } from 'src/shared/models/paged-result';
  * Meeting Controller
  * Base path: /api/meeting
  */
-@ApiTags('meeting-controller')
+@ApiTags('Meeting')
 @Controller('meeting')
 export class MeetingController {
   constructor(

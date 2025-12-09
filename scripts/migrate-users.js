@@ -3,11 +3,11 @@ const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
 
 const prisma = new PrismaClient({
-  datasourceUrl: process.env.POSTGRES_URL,
+  datasourceUrl: process.env.MIG_POSTGRES_URL,
 });
 
 // Configuration
-const MONGO_URI = process.env.MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
+const MONGO_URI = process.env.MIG_MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
 const MONGO_COLLECTION = 'user_profiles';
 const BATCH_SIZE = 100;
 
@@ -218,77 +218,138 @@ async function migrateUsers() {
         batch.push(await cursor.next());
       }
 
-      // Process each document in the batch
-      for (const doc of batch) {
-        try {
+      try {
+        // Prepare all data for bulk insert
+        const usersData = [];
+        const allRoles = [];
+        const allPhones = [];
+        const allAddresses = [];
+        const allLinks = [];
+
+        batch.forEach(doc => {
           const userId = parseId(doc._id);
 
-          // Check if user already exists
-          const existing = await prisma.userProfile.findUnique({
-            where: { id: userId }
+          // Collect user profile data
+          usersData.push(mapToUserProfile(doc));
+
+          // Collect related data
+          const roles = mapToRoles(doc, userId);
+          if (roles.length > 0) allRoles.push(...roles);
+
+          const phones = mapToPhoneNumbers(doc, userId);
+          if (phones.length > 0) allPhones.push(...phones);
+
+          const addresses = mapToAddresses(doc, userId);
+          if (addresses.length > 0) allAddresses.push(...addresses);
+
+          const links = mapToLinks(doc, userId);
+          if (links.length > 0) allLinks.push(...links);
+        });
+
+        // Bulk insert all data in a single transaction
+        await prisma.$transaction(async (tx) => {
+          // Bulk insert user profiles
+          await tx.userProfile.createMany({
+            data: usersData,
+            skipDuplicates: true,
           });
 
-          if (existing) {
-            console.log(`Skipping existing user: ${userId}`);
-            processed++;
-            continue;
+          // Bulk insert roles
+          if (allRoles.length > 0) {
+            await tx.userRole.createMany({
+              data: allRoles,
+              skipDuplicates: true,
+            });
           }
 
-          // Create user with all relations in a transaction
-          await prisma.$transaction(async (tx) => {
-            // Create user profile
-            await tx.userProfile.create({
-              data: mapToUserProfile(doc),
+          // Bulk insert phone numbers
+          if (allPhones.length > 0) {
+            await tx.phoneNumber.createMany({
+              data: allPhones,
+              skipDuplicates: true,
+            });
+          }
+
+          // Bulk insert addresses
+          if (allAddresses.length > 0) {
+            await tx.address.createMany({
+              data: allAddresses,
+              skipDuplicates: true,
+            });
+          }
+
+          // Bulk insert social links
+          if (allLinks.length > 0) {
+            await tx.link.createMany({
+              data: allLinks,
+              skipDuplicates: true,
+            });
+          }
+        });
+
+        success += batch.length;
+        processed += batch.length;
+
+        console.log(`Progress: ${processed}/${totalDocs} (${success} inserted, ${processed - success} skipped/failed)`);
+      } catch (error) {
+        // If bulk insert fails, fall back to individual inserts for this batch
+        console.warn(`Bulk insert failed for batch, trying individual inserts: ${error.message}`);
+
+        for (const doc of batch) {
+          try {
+            const userId = parseId(doc._id);
+
+            // Create user with all relations in a transaction
+            await prisma.$transaction(async (tx) => {
+              // Create user profile
+              await tx.userProfile.create({
+                data: mapToUserProfile(doc),
+              });
+
+              // Create roles
+              const roles = mapToRoles(doc, userId);
+              if (roles.length > 0) {
+                await tx.userRole.createMany({
+                  data: roles,
+                });
+              }
+
+              // Create phone numbers
+              const phones = mapToPhoneNumbers(doc, userId);
+              if (phones.length > 0) {
+                await tx.phoneNumber.createMany({
+                  data: phones,
+                });
+              }
+
+              // Create addresses
+              const addresses = mapToAddresses(doc, userId);
+              if (addresses.length > 0) {
+                await tx.address.createMany({
+                  data: addresses,
+                });
+              }
+
+              // Create social links
+              const links = mapToLinks(doc, userId);
+              if (links.length > 0) {
+                await tx.link.createMany({
+                  data: links,
+                });
+              }
             });
 
-            // Create roles
-            const roles = mapToRoles(doc, userId);
-            if (roles.length > 0) {
-              await tx.userRole.createMany({
-                data: roles,
-              });
-            }
-
-            // Create phone numbers
-            const phones = mapToPhoneNumbers(doc, userId);
-            if (phones.length > 0) {
-              await tx.phoneNumber.createMany({
-                data: phones,
-              });
-            }
-
-            // Create addresses
-            const addresses = mapToAddresses(doc, userId);
-            if (addresses.length > 0) {
-              await tx.address.createMany({
-                data: addresses,
-              });
-            }
-
-            // Create social links
-            const links = mapToLinks(doc, userId);
-            if (links.length > 0) {
-              await tx.link.createMany({
-                data: links,
-              });
-            }
-          });
-
-          success++;
-          processed++;
-
-          if (processed % 10 === 0) {
-            console.log(`Progress: ${processed}/${totalDocs} (${success} success, ${failed} failed)`);
+            success++;
+          } catch (individualError) {
+            failed++;
+            errors.push({
+              id: parseId(doc._id),
+              email: doc.email,
+              error: individualError.message,
+            });
+            console.error(`Error migrating user ${doc.email}:`, individualError.message);
           }
-        } catch (error) {
-          failed++;
           processed++;
-          errors.push({
-            id: parseId(doc._id),
-            email: doc.email,
-            error: error.message,
-          });
-          console.error(`Error migrating user ${doc.email}:`, error.message);
         }
       }
     }
