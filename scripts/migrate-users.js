@@ -3,14 +3,19 @@ const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
 
 const prisma = new PrismaClient({
-    datasourceUrl: process.env.POSTGRES_URL,
+  datasourceUrl: process.env.POSTGRES_URL,
 });
 
 // Configuration
-const MONGO_URI = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const MONGO_DB = process.env.MONGO_DB || 'nabarun_stage';
+const MONGO_URI = process.env.MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
 const MONGO_COLLECTION = 'user_profiles';
 const BATCH_SIZE = 100;
+
+// Helper to get database from MongoDB client
+const getDatabase = (client) => {
+  // If MONGO_DB is explicitly set, use it; otherwise use the database from the connection URI
+  return process.env.MONGO_DB ? client.db(process.env.MONGO_DB) : client.db();
+};
 
 // Utility function to parse MongoDB ID
 const parseId = (id) => {
@@ -52,12 +57,12 @@ const mapToUserProfile = (doc) => {
 // Map roles from MongoDB to PostgreSQL
 const mapToRoles = (doc, userId) => {
   const roles = [];
-  
+
   // Handle roleCodes and roleNames (could be string or array)
-  const roleCodes = typeof doc.roleCodes === 'string' 
+  const roleCodes = typeof doc.roleCodes === 'string'
     ? doc.roleCodes.split(',').map(r => r.trim())
     : Array.isArray(doc.roleCodes) ? doc.roleCodes : [];
-    
+
   const roleNames = typeof doc.roleNames === 'string'
     ? doc.roleNames.split(',').map(r => r.trim())
     : Array.isArray(doc.roleNames) ? doc.roleNames : [];
@@ -84,7 +89,7 @@ const mapToRoles = (doc, userId) => {
 // Map phone numbers
 const mapToPhoneNumbers = (doc, userId) => {
   const phones = [];
-  
+
   if (doc.phoneNumber || doc.contactNumber) {
     phones.push({
       id: uuidv4(),
@@ -135,8 +140,8 @@ const mapToAddresses = (doc, userId) => {
   }
 
   // Permanent address (only if different from present)
-  if (!doc.presentPermanentSame && 
-      (doc.permanentAddressLine1 || doc.permanentHometown || doc.permanentDistrict)) {
+  if (!doc.presentPermanentSame &&
+    (doc.permanentAddressLine1 || doc.permanentHometown || doc.permanentDistrict)) {
     addresses.push({
       id: uuidv4(),
       addressLine1: doc.permanentAddressLine1 || null,
@@ -188,11 +193,11 @@ const mapToLinks = (doc, userId) => {
 // Main migration function
 async function migrateUsers() {
   const mongoClient = new MongoClient(MONGO_URI);
-  
+
   try {
     console.log('Connecting to MongoDB...');
     await mongoClient.connect();
-    const db = mongoClient.db(MONGO_DB);
+    const db = getDatabase(mongoClient);
     const collection = db.collection(MONGO_COLLECTION);
 
     const totalDocs = await collection.countDocuments();
@@ -205,10 +210,10 @@ async function migrateUsers() {
 
     // Process in batches
     const cursor = collection.find({});
-    
+
     while (await cursor.hasNext()) {
       const batch = [];
-      
+
       for (let i = 0; i < BATCH_SIZE && await cursor.hasNext(); i++) {
         batch.push(await cursor.next());
       }
@@ -217,7 +222,7 @@ async function migrateUsers() {
       for (const doc of batch) {
         try {
           const userId = parseId(doc._id);
-          
+
           // Check if user already exists
           const existing = await prisma.userProfile.findUnique({
             where: { id: userId }
@@ -271,7 +276,7 @@ async function migrateUsers() {
 
           success++;
           processed++;
-          
+
           if (processed % 10 === 0) {
             console.log(`Progress: ${processed}/${totalDocs} (${success} success, ${failed} failed)`);
           }
@@ -313,10 +318,10 @@ async function migrateUsers() {
 // Verification function
 async function verifyMigration() {
   const mongoClient = new MongoClient(MONGO_URI);
-  
+
   try {
     await mongoClient.connect();
-    const db = mongoClient.db(MONGO_DB);
+    const db = getDatabase(mongoClient);
     const collection = db.collection(MONGO_COLLECTION);
 
     const mongoCount = await collection.countDocuments();
@@ -340,7 +345,7 @@ async function verifyMigration() {
           socialMediaLinks: true,
         }
       });
-      
+
       console.log(`\nSample check: ${sample.email}`);
       console.log(`  - User exists: ${pgUser ? '✓' : '✗'}`);
       if (pgUser) {

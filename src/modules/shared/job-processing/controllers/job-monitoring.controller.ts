@@ -50,13 +50,6 @@ export class JobMonitoringController {
     return await this.jobMonitoringService.getJobDetails(jobId);
   }
 
-  @Get('health')
-  @ApiOperation({ summary: 'Get queue health status' })
-  @ApiResponse({ status: 200, description: 'Queue health status retrieved successfully' })
-  async getQueueHealth() {
-    return await this.jobMonitoringService.getQueueHealth();
-  }
-
   @Get('statistics')
   @ApiOperation({ summary: 'Get comprehensive queue statistics' })
   @ApiResponse({ status: 200, description: 'Queue statistics retrieved successfully' })
@@ -72,20 +65,21 @@ export class JobMonitoringController {
     return await this.jobMonitoringService.cleanOldJobs(options);
   }
 
-  @Post('pause')
+  @Post('queue/:operation')
   @ApiOperation({ summary: 'Pause the queue' })
   @ApiResponse({ status: 200, description: 'Queue paused successfully' })
-  async pauseQueue() {
-    await this.jobProcessingService.pauseQueue();
+  async pauseQueue(@Param('operation') operation: string) {
+    switch (operation) {
+      case 'pause':
+        await this.jobProcessingService.pauseQueue();
+        break;
+      case 'resume':
+        await this.jobProcessingService.resumeQueue();
+        break;
+      default:
+        throw new Error('Invalid operation');
+    }
     return { message: 'Queue paused successfully' };
-  }
-
-  @Post('resume')
-  @ApiOperation({ summary: 'Resume the queue' })
-  @ApiResponse({ status: 200, description: 'Queue resumed successfully' })
-  async resumeQueue() {
-    await this.jobProcessingService.resumeQueue();
-    return { message: 'Queue resumed successfully' };
   }
 
 
@@ -98,28 +92,32 @@ export class JobMonitoringController {
     return { message: `Job '${jobId}' removed successfully` };
   }
 
-  @Get('ttl/config')
-  @ApiOperation({ summary: 'Get TTL configuration for job cleanup' })
-  @ApiResponse({ status: 200, description: 'TTL configuration retrieved successfully' })
-  async getTTLConfig() {
-    const completedJobsDays = parseInt(process.env.JOB_RETENTION_COMPLETED_DAYS || '2');
-    const failedJobsDays = parseInt(process.env.JOB_RETENTION_FAILED_DAYS || '7');
-    const completedJobsCount = parseInt(process.env.JOB_RETENTION_COMPLETED_COUNT || '100');
-    const failedJobsCount = parseInt(process.env.JOB_RETENTION_FAILED_COUNT || '50');
-
+  @Post('retry/:jobId')
+  @ApiOperation({ summary: 'Retry a failed job' })
+  @ApiParam({ name: 'jobId', description: 'ID of the failed job to retry' })
+  @ApiResponse({ status: 200, description: 'Job queued for retry successfully' })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  @ApiResponse({ status: 400, description: 'Job is not in failed state' })
+  async retryJob(@Param('jobId') jobId: string) {
+    await this.jobProcessingService.retryJob(jobId);
     return {
-      message: 'Jobs are automatically cleaned using TTL (Time To Live)',
-      retention: {
-        completedJobsDays,
-        failedJobsDays,
-        completedJobsCount,
-        failedJobsCount,
-      },
-      ttl: {
-        completedTTL: `${completedJobsDays} days`,
-        failedTTL: `${failedJobsDays} days`,
-        maxTTL: `${Math.max(completedJobsDays, failedJobsDays)} days`,
-      },
+      message: `Job '${jobId}' has been queued for retry`,
+      jobId,
     };
   }
+
+  @Post('retry-all-failed')
+  @ApiOperation({ summary: 'Retry all failed jobs' })
+  @ApiResponse({ status: 200, description: 'All failed jobs queued for retry' })
+  async retryAllFailedJobs() {
+    const result = await this.jobProcessingService.retryAllFailedJobs();
+    return {
+      message: `Retry operation complete`,
+      retriedCount: result.retriedCount,
+      failedCount: result.failedCount,
+      total: result.retriedCount + result.failedCount,
+    };
+  }
+
+
 }

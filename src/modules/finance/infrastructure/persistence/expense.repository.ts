@@ -111,7 +111,7 @@ class ExpenseRepository implements IExpenseRepository {
 
   async findByRequestedBy(userId: string): Promise<Expense[]> {
     const expenses = await this.prisma.expense.findMany({
-      where: { requestedBy: userId, deletedAt: null },
+      where: { createdById: userId, deletedAt: null },
       orderBy: { expenseDate: 'desc' },
       include: {
         account: true,

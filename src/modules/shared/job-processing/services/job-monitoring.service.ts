@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
-export interface JobMetrics {
+export class JobMetrics {
   total: number;
   completed: number;
   failed: number;
