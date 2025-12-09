@@ -28,7 +28,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
  * Expense Controller - matches legacy endpoints
  * Base path: /api/expense
  */
-@ApiTags('Expense')
+@ApiTags(ExpenseController.name)
 @Controller('expense')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class ExpenseController {

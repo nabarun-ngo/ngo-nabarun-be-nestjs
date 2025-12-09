@@ -28,7 +28,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
  * Earning Controller - matches legacy endpoints
  * Base path: /api/earning
  */
-@ApiTags('Earning')
+@ApiTags(EarningController.name)
 @Controller('earning')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class EarningController {

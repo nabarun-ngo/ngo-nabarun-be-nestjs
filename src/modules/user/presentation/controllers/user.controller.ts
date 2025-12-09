@@ -17,7 +17,7 @@ import { CurrentUser } from 'src/modules/shared/auth/application/decorators/curr
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
-@ApiTags('User')
+@ApiTags(UserController.name)
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
 export class UserController {

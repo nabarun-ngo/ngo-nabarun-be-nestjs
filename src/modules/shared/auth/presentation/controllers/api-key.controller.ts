@@ -17,7 +17,7 @@ import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorat
 
 
 @ApiBearerAuth('jwt')
-@ApiTags('ApiKey')
+@ApiTags(ApiKeyController.name)
 @Controller('auth/apikey')
 export class ApiKeyController {
   constructor(

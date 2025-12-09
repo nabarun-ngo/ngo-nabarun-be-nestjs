@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth }
 import { JobProcessingService } from '../services/job-processing.service';
 import { JobMonitoringService } from '../services/job-monitoring.service';
 
-@ApiTags('Job Monitoring')
+@ApiTags(JobMonitoringController.name)
 @Controller('jobs')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class JobMonitoringController {

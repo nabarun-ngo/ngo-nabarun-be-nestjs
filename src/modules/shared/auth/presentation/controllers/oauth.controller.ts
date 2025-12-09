@@ -18,7 +18,7 @@ import { SuccessResponse } from 'src/shared/models/response-model';
 
 
 
-@ApiTags('OAuth')
+@ApiTags(OAuthController.name)
 @ApiBearerAuth('jwt')
 @Controller('auth/oauth')
 export class OAuthController {

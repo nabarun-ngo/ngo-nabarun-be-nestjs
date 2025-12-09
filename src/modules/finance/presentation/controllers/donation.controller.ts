@@ -29,7 +29,7 @@ import { RequirePermissions } from 'src/modules/shared/auth/application/decorato
  * Donation Controller - matches legacy endpoints
  * Base path: /api/donation
  */
-@ApiTags('Donation')
+@ApiTags(DonationController.name)
 @Controller('donation')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class DonationController {
@@ -95,7 +95,7 @@ export class DonationController {
 
   @Get('list/me')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get own donations' })
+  @ApiOperation({ summary: 'Get own donations', operationId: 'GetSelfDonations' })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
   async getSelfDonations(
     @Query('pageIndex') pageIndex?: number,

@@ -25,7 +25,7 @@ import { PagedResult, PagedResult as PagedResultModel } from 'src/shared/models/
  * Notice Controller - matches legacy endpoints
  * Base path: /api/notice
  */
-@ApiTags('Notice')
+@ApiTags(NoticeController.name)
 @Controller('notice')
 export class NoticeController {
   constructor(

@@ -8,7 +8,7 @@ import { IgnoreCaptchaValidation } from "src/modules/shared/auth/application/dec
 import { ApiTags } from "@nestjs/swagger";
 
 
-@ApiTags('Callback')
+@ApiTags(CallbackController.name)
 @Controller('callback')
 @Public()
 export class CallbackController {
