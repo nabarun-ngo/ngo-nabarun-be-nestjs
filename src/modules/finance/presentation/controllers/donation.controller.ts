@@ -95,7 +95,7 @@ export class DonationController {
 
   @Get('list/me')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get own donations', operationId: 'GetSelfDonations' })
+  @ApiOperation({ summary: 'Get own donations' })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
   async getSelfDonations(
     @Query('pageIndex') pageIndex?: number,

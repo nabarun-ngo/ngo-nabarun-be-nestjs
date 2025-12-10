@@ -52,12 +52,22 @@ export function configureSwagger(app: INestApplication) {
     // Enable deep scan for better type inference
     deepScanRoutes: true,
     autoTagControllers: true,
-    // Custom operation ID factory to remove 'Controller' suffix from generated method names
+    // Custom operation ID factory
     operationIdFactory: (controllerKey: string, methodKey: string) => {
-      // Remove 'Controller' suffix from controller name for cleaner operation IDs
-      const cleanControllerName = controllerKey.replace(/Controller$/, '');
-      // Convert to camelCase: DonationUpdate -> donationUpdate
-      const operationId = cleanControllerName.charAt(0).toLowerCase() + cleanControllerName.slice(1) + methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      // List of common method names that might cause collisions if used alone
+      const commonMethods = ['create', 'update', 'delete', 'remove', 'get', 'list', 'listSelf', 'getById', 'updateSelf', 'detail'];
+
+      let operationId;
+      if (commonMethods.includes(methodKey)) {
+        // Prepend controller name for common methods to ensure uniqueness
+        // e.g. DonationController.create -> donationCreate
+        const cleanControllerName = controllerKey.replace(/Controller$/, '');
+        operationId = cleanControllerName.charAt(0).toLowerCase() + cleanControllerName.slice(1) + methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      } else {
+        // For specific/unique methods, use the method name as is (capitalized)
+        // e.g. DonationController.getSelfDonations -> GetSelfDonations
+        operationId = methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      }
       return operationId;
     }
   });
