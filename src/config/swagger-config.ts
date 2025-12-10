@@ -55,20 +55,20 @@ export function configureSwagger(app: INestApplication) {
     // Custom operation ID factory
     operationIdFactory: (controllerKey: string, methodKey: string) => {
       // List of common method names that might cause collisions if used alone
-      const commonMethods = ['create', 'update', 'delete', 'remove', 'get', 'list', 'listSelf', 'getById', 'updateSelf', 'detail'];
-
-      let operationId;
-      if (commonMethods.includes(methodKey)) {
-        // Prepend controller name for common methods to ensure uniqueness
-        // e.g. DonationController.create -> donationCreate
-        const cleanControllerName = controllerKey.replace(/Controller$/, '');
-        operationId = cleanControllerName.charAt(0).toLowerCase() + cleanControllerName.slice(1) + methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
-      } else {
-        // For specific/unique methods, use the method name as is (capitalized)
-        // e.g. DonationController.getSelfDonations -> GetSelfDonations
-        operationId = methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
-      }
-      return operationId;
+      // const commonMethods = ['create', 'update', 'delete', 'remove', 'get', 'list', 'listSelf', 'getById', 'updateSelf', 'detail'];
+      // console.log(controllerKey, methodKey);
+      // let operationId;
+      // if (commonMethods.includes(methodKey)) {
+      //   // Prepend controller name for common methods to ensure uniqueness
+      //   // e.g. DonationController.create -> donationCreate
+      //   const cleanControllerName = controllerKey.replace(/Controller$/, '');
+      //   operationId = cleanControllerName.charAt(0).toLowerCase() + cleanControllerName.slice(1) + methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      // } else {
+      //   // For specific/unique methods, use the method name as is (capitalized)
+      //   // e.g. DonationController.getSelfDonations -> GetSelfDonations
+      //   operationId = methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      // }
+      return methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
     }
   });
 
