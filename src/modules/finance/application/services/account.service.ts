@@ -38,8 +38,8 @@ export class AccountService {
       }
     });
     return new PagedResult(
-      result.items.map(a => AccountDtoMapper.toDto(a)),
-      result.total,
+      result.content.map(a => AccountDtoMapper.toDto(a)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );
@@ -75,8 +75,8 @@ export class AccountService {
     // Add accountId to filter
     const result = await this.transactionRepository.findPaged(filter);
     return new PagedResult(
-      result.items.map(t => TransactionDtoMapper.toDto(t)),
-      result.total,
+      result.content.map(t => TransactionDtoMapper.toDto(t)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );

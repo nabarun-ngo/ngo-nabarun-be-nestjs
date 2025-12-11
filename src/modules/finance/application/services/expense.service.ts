@@ -29,8 +29,8 @@ export class ExpenseService {
       props: filter.props,
     });
     return new PagedResult(
-      result.items.map(e => ExpenseDtoMapper.toDto(e)),
-      result.total,
+      result.content.map(e => ExpenseDtoMapper.toDto(e)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );

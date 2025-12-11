@@ -31,7 +31,7 @@ export class AutomaticTaskService {
                 email: requestData?.email!
             }
         })
-        if (users.items.length > 0) {
+        if (users.content.length > 0) {
             throw new BusinessException(`User already registered: ${requestData?.email!}`);
         }
     }

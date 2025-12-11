@@ -33,14 +33,14 @@ export class NoticeService {
     const result = await this.listNoticesUseCase.execute(filter);
     // TODO: Fetch meetings for notices that have meetings
     const dtos = await Promise.all(
-      result.items.map(async (notice) => {
+      result.content.map(async (notice) => {
         const meeting = notice.hasMeeting && notice.meetingId
           ? await this.meetingRepository.findById(notice.meetingId)
           : undefined;
         return NoticeDtoMapper.toDto(notice, meeting || undefined);
       })
     );
-    return new PagedResult(dtos, result.total, result.pageIndex, result.pageSize);
+    return new PagedResult(dtos, result.totalSize, result.pageIndex, result.pageSize);
   }
 
   async getById(id: string): Promise<NoticeDetailDto> {

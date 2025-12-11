@@ -16,7 +16,7 @@ export class DonationDtoMapper {
       amount: donation.amount,
       currency: donation.currency,
       status: donation.status,
-      donorId: donation.donorId,
+      donorId: donation.donorId!,
       donorName: donation.donorName,
       donorEmail: donation.donorEmail,
       // Legacy fields

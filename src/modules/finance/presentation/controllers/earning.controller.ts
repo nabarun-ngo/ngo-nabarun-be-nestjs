@@ -41,7 +41,7 @@ export class EarningController {
   @RequirePermissions('create:earning')
   @ApiOperation({ summary: 'Create new earning', description: "Authorities : 'create:earning'" })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
-  async create(@Body() dto: CreateEarningDto): Promise<SuccessResponse<EarningDetailDto>> {
+  async createEarning(@Body() dto: CreateEarningDto): Promise<SuccessResponse<EarningDetailDto>> {
     const earning = await this.earningService.create(dto);
     return new SuccessResponse(earning);
   }
@@ -51,7 +51,7 @@ export class EarningController {
   @RequirePermissions('update:earning')
   @ApiOperation({ summary: 'Update earning details', description: "Authorities : 'update:earning'" })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
-  async update(
+  async updateEarning(
     @Param('id') id: string,
     @Body() dto: UpdateEarningDto,
   ): Promise<SuccessResponse<EarningDetailDto>> {
@@ -64,7 +64,7 @@ export class EarningController {
   @RequirePermissions('read:earning')
   @ApiOperation({ summary: 'List all earnings', description: "Authorities : 'read:earning'" })
   @ApiAutoPagedResponse(EarningDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async list(
+  async listEarnings(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: EarningDetailFilterDto,
@@ -81,7 +81,7 @@ export class EarningController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List own earnings' })
   @ApiAutoPagedResponse(EarningDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listSelf(
+  async listSelfEarnings(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: EarningDetailFilterDto,
@@ -100,7 +100,7 @@ export class EarningController {
   @RequirePermissions('read:earning')
   @ApiOperation({ summary: 'Get earning by ID', description: "Authorities : 'read:earning'" })
   @ApiAutoResponse(EarningDetailDto, { description: 'OK' })
-  async getById(@Param('id') id: string): Promise<SuccessResponse<EarningDetailDto>> {
+  async getEarningById(@Param('id') id: string): Promise<SuccessResponse<EarningDetailDto>> {
     const earning = await this.earningService.getById(id);
     return new SuccessResponse(earning);
   }

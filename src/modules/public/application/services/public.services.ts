@@ -24,7 +24,7 @@ export class PublicService {
                     public: true,
                     status: UserStatus.ACTIVE
                 },
-            })).items.map(toTeamMemberDTO);
+            })).content.map(toTeamMemberDTO);
             await this.cacheManager.set('team-members', users);
             return users;
         } else {

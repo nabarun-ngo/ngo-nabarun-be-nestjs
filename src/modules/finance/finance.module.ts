@@ -44,6 +44,8 @@ import EarningRepository from './infrastructure/persistence/earning.repository';
 import { MonthlyDonationsJobHandler } from './application/handlers/monthly-donations-job.handler';
 import { UserModule } from '../user/user.module';
 import { ReverseTransactionUseCase } from './application/use-cases/reverse-transaction.use-case';
+import { MetadataService } from './infrastructure/external/metadata.service';
+import { FirebaseModule } from '../shared/firebase/firebase.module';
 
 /**
  * Finance Module
@@ -66,8 +68,8 @@ import { ReverseTransactionUseCase } from './application/use-cases/reverse-trans
     EarningController,
   ],
   imports: [
-    UserModule
-    //ScheduleModule.forRoot(), // Required for cron jobs
+    UserModule,
+    FirebaseModule,
   ],
   providers: [
     // ===== DONATION =====
@@ -122,6 +124,7 @@ import { ReverseTransactionUseCase } from './application/use-cases/reverse-trans
 
     // ===== HANDLERS =====
     MonthlyDonationsJobHandler,
+    MetadataService,
   ],
   exports: [
     DONATION_REPOSITORY,

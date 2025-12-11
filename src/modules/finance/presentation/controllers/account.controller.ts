@@ -43,7 +43,7 @@ export class AccountController {
   @RequirePermissions('create:account')
   @ApiOperation({ summary: 'Create new account', description: "Authorities : 'create:account'" })
   @ApiAutoResponse(AccountDetailDto, { status: 201, description: 'Created' })
-  async create(@Body() dto: CreateAccountDto): Promise<SuccessResponse<AccountDetailDto>> {
+  async createAccount(@Body() dto: CreateAccountDto): Promise<SuccessResponse<AccountDetailDto>> {
     const account = await this.accountService.create(dto);
     return new SuccessResponse(account);
   }
@@ -53,7 +53,7 @@ export class AccountController {
   @RequirePermissions('update:account')
   @ApiOperation({ summary: 'Update account details', description: "Authorities : 'update:account'" })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK' })
-  async update(
+  async updateAccount(
     @Param('id') id: string,
     @Body() dto: UpdateAccountDto,
   ): Promise<SuccessResponse<AccountDetailDto>> {
@@ -78,7 +78,7 @@ export class AccountController {
   @ApiOperation({ summary: 'List all accounts' })
   @RequirePermissions('read:accounts')
   @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async list(
+  async listAccounts(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: AccountDetailFilterDto): Promise<SuccessResponse<PagedResult<AccountDetailDto>>> {
@@ -93,7 +93,7 @@ export class AccountController {
   @Get('list/me')
   @ApiOperation({ summary: 'List own accounts', })
   @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listSelf(
+  async listSelfAccounts(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: AccountDetailFilterDto,
@@ -112,7 +112,7 @@ export class AccountController {
   @ApiOperation({ summary: 'List transactions for account', description: "Authorities : 'read:transactions'" })
   @RequirePermissions('read:transactions')
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listTransactions(
+  async listAccountTransactions(
     @Param('id') accountId: string,
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
@@ -129,7 +129,7 @@ export class AccountController {
   @Get(':id/transactions/me')
   @ApiOperation({ summary: 'List own transactions for account', })
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listSelfTransactions(
+  async listSelfAccountTransactions(
     @Param('id') accountId: string,
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,

@@ -28,8 +28,8 @@ export class MeetingService {
   async list(filter: BaseFilter<any>): Promise<PagedResult<MeetingDetailDto>> {
     const result = await this.listMeetingsUseCase.execute(filter);
     return new PagedResult(
-      result.items.map(m => MeetingDtoMapper.toDto(m)),
-      result.total,
+      result.content.map(m => MeetingDtoMapper.toDto(m)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );

@@ -12,6 +12,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { config } from './config/config';
 import { DMSModule } from './modules/shared/dms/dms.module';
 import { PublicModule } from './modules/public/public.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   controllers: [],
@@ -40,6 +41,9 @@ import { PublicModule } from './modules/public/public.module';
           ],
         };
       },
+    }),
+    ScheduleModule.forRoot({
+
     }),
     DatabaseModule.forRoot({
       postgresUrl: config.database.postgresUrl,

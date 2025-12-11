@@ -80,6 +80,13 @@ export class Donation extends AggregateRoot<string> {
   #laterPaymentReason: string | undefined;
   #paymentFailureDetail: string | undefined;
   #donorNumber: string | undefined;
+  static outstandingStatus: DonationStatus[] = [
+    DonationStatus.RAISED,
+    DonationStatus.PENDING,
+    DonationStatus.PAYMENT_FAILED,
+    DonationStatus.PAY_LATER,
+    DonationStatus.UPDATE_MISTAKE,
+  ];
 
 
   constructor(
