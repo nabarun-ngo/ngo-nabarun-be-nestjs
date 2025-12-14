@@ -7,6 +7,7 @@ import { AuthToken } from '../../domain/models/auth-token.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { randomBytes } from 'crypto';
+import { OauthMapper } from '../dto/mapper/oauth.mapper';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -62,6 +63,10 @@ export class GoogleOAuthService {
       redirectUri: this.redirectUri
     });
 
+  }
+
+  async getTokens() {
+    return (await this.tokenRepository.findAll()).map(OauthMapper.toDto)
   }
 
   /**

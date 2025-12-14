@@ -84,4 +84,17 @@ export class MapperUtils {
   static emptyIfUndefined<T>(value: T[] | undefined | null): T[] {
     return value ?? [];
   }
+
+  /**
+   * Create Prisma connect object safely
+   * Returns undefined if entity or id is missing
+   * Handles optional IDs correctly
+   */
+  static connect<T extends { id?: any }>(
+    entity: T | undefined | null
+  ): { connect: { id: NonNullable<T['id']> } } | undefined {
+    return (entity?.id !== undefined && entity?.id !== null)
+      ? { connect: { id: entity.id as NonNullable<T['id']> } }
+      : undefined;
+  }
 }

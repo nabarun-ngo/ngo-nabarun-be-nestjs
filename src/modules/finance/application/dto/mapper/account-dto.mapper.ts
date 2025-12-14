@@ -5,17 +5,21 @@ import { Account, BankDetail, UPIDetail } from "../../../domain/model/account.mo
  * Account DTO Mapper
  */
 export class AccountDtoMapper {
-  static toDto(account: Account): AccountDetailDto {
+  static toDto(account: Account, options: {
+    includeBankDetail?: boolean,
+    includeUpiDetail?: boolean,
+    includeBalance?: boolean,
+  }): AccountDetailDto {
     return {
       id: account.id,
       accountHolderName: account.accountHolderName,
-      currentBalance: account.balance,
+      currentBalance: options.includeBalance ? account.balance : 0,
       accountHolder: account.accountHolderId, // UserDetail reference - would need to fetch
       accountStatus: account.status,
       activatedOn: account.activatedOn,
       accountType: account.type,
-      bankDetail: account.bankDetail ? this.bankDetailToDto(account.bankDetail) : undefined,
-      upiDetail: account.upiDetail ? this.upiDetailToDto(account.upiDetail) : undefined,
+      bankDetail: account.bankDetail && options.includeBankDetail ? this.bankDetailToDto(account.bankDetail) : undefined,
+      upiDetail: account.upiDetail && options.includeUpiDetail ? this.upiDetailToDto(account.upiDetail) : undefined,
     };
   }
 

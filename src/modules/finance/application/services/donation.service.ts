@@ -31,6 +31,7 @@ export class DonationService {
       pageIndex: filter.pageIndex,
       pageSize: filter.pageSize,
       props: {
+        donationId: filter.props?.donationId,
         donorId: filter.props?.donorId,
         status: filter.props?.status,
         type: filter.props?.type,
@@ -101,7 +102,9 @@ export class DonationService {
     return {
       outstandingAmount: donations.reduce((total, donation) => total + donation.amount, 0),
       hasOutstanding: donations.length > 0,
-      outstandingMonths: [],
+      outstandingMonths: donations
+        .filter(d => d.startDate)
+        .map(d => d.startDate!.toLocaleString('en-US', { month: 'long', year: 'numeric' })),
     };
   }
 

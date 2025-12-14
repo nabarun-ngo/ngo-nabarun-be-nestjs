@@ -14,17 +14,18 @@ import { ApiKeyEventsHandler } from './application/handler/api-key-events.handle
 import { API_KEY_REPOSITORY } from './domain/repository/api-key.repository.interface';
 import { HttpModule } from '@nestjs/axios';
 import { RecaptchaService } from './application/services/google-recaptcha.service';
+import { Auth0ResourceServerService } from './infrastructure/external/auth0-resource-server.service';
 
 @Global()
 @Module({
   imports: [
     HttpModule
   ],
-  controllers: [OAuthController,ApiKeyController],
+  controllers: [OAuthController, ApiKeyController],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: UnifiedAuthGuard ,
+      useClass: UnifiedAuthGuard,
     },
     {
       provide: APP_GUARD,
@@ -44,9 +45,10 @@ import { RecaptchaService } from './application/services/google-recaptcha.servic
     PermissionsGuard,
     UnifiedAuthGuard,
     ApiKeyEventsHandler,
-    RecaptchaService
+    RecaptchaService,
+    Auth0ResourceServerService
   ],
-  exports: [GoogleOAuthService], 
+  exports: [GoogleOAuthService],
 })
 export class AuthModule { }
 

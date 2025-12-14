@@ -10,6 +10,7 @@ import { SettleExpenseUseCase } from '../use-cases/settle-expense.use-case';
 import { FinalizeExpenseUseCase } from '../use-cases/finalize-expense.use-case';
 import { ExpenseDtoMapper } from '../dto/mapper/expense-dto.mapper';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 @Injectable()
 export class ExpenseService {
@@ -44,8 +45,18 @@ export class ExpenseService {
     return ExpenseDtoMapper.toDto(expense);
   }
 
-  async create(dto: CreateExpenseDto): Promise<ExpenseDetailDto> {
-    const expense = await this.createExpenseUseCase.execute(dto);
+  async create(dto: CreateExpenseDto, createdBy: AuthUser): Promise<ExpenseDetailDto> {
+    const expense = await this.createExpenseUseCase.execute({
+      requestedById: createdBy.profile_id!,
+      paidById: dto.payerId,
+      expenseRefType: dto.expenseRefType,
+      currency: dto.currency,
+      expenseDate: dto.expenseDate,
+      expenseItems: dto.expenseItems,
+      expenseRefId: dto.expenseRefId,
+      name: dto.name,
+      description: dto.description,
+    });
     return ExpenseDtoMapper.toDto(expense);
   }
 
@@ -54,13 +65,13 @@ export class ExpenseService {
     return ExpenseDtoMapper.toDto(expense);
   }
 
-  async settle(id: string, accountId: string, settledBy: string): Promise<ExpenseDetailDto> {
-    const expense = await this.settleExpenseUseCase.execute({ id, accountId, settledBy });
+  async settle(id: string, accountId: string, settledById: string): Promise<ExpenseDetailDto> {
+    const expense = await this.settleExpenseUseCase.execute({ id, accountId, settledById });
     return ExpenseDtoMapper.toDto(expense);
   }
 
-  async finalize(id: string, finalizedBy: string): Promise<ExpenseDetailDto> {
-    const expense = await this.finalizeExpenseUseCase.execute({ id, finalizedBy });
+  async finalize(id: string, finalizedById: string): Promise<ExpenseDetailDto> {
+    const expense = await this.finalizeExpenseUseCase.execute({ id, finalizedById });
     return ExpenseDtoMapper.toDto(expense);
   }
 }

@@ -28,7 +28,7 @@ export class DonationDtoMapper {
       confirmedBy: donation.confirmedBy ? UserDtoMapper.toUserDTO(donation.confirmedBy as User) : undefined,
       confirmedOn: donation.confirmedOn,
       paymentMethod: donation.paymentMethod,
-      paidToAccount: donation.paidToAccount ? AccountDtoMapper.toDto(donation.paidToAccount as Account) : undefined,
+      paidToAccount: donation.paidToAccount ? AccountDtoMapper.toDto(donation.paidToAccount as Account, { includeBankDetail: false, includeUpiDetail: false, includeBalance: false }) : undefined,
       paidUsingUPI: donation.paidUsingUPI,
       isPaymentNotified: donation.isPaymentNotified,
       transactionRef: donation.transactionRef,

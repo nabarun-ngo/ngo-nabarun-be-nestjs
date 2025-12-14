@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { JobState, Queue } from 'bullmq';
+import { jobFailureResponse2 } from 'src/shared/utilities/common.util';
+import { JobDetail } from '../interfaces/job.interface';
+import { stat } from 'fs';
 
 export class JobMetrics {
   total: number;
@@ -132,76 +135,30 @@ export class JobMonitoringService {
   }
 
   /**
-   * Get job metrics by name
-   * WARNING: This method is expensive as it needs to fetch jobs to filter by name.
-   * Consider using separate queues per job type for better performance.
-   */
-  async getJobMetricsByName(jobName: string): Promise<JobMetrics> {
-    try {
-      this.logger.warn(`getJobMetricsByName is expensive - consider using separate queues for job type: ${jobName}`);
-
-      // We need to fetch jobs to filter by name - this is expensive
-      // Using smaller ranges to limit data transfer
-      const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(0, 999),    // Limit to 1000 jobs
-        this.defaultQueue.getActive(0, 999),     // Limit to 1000 jobs
-        this.defaultQueue.getCompleted(0, 999),  // Limit to 1000 jobs
-        this.defaultQueue.getFailed(0, 999),     // Limit to 1000 jobs
-        this.defaultQueue.getDelayed(0, 999),    // Limit to 1000 jobs
-      ]);
-
-      const filterByName = (jobs: any[]) =>
-        jobs.filter((job) => job.name === jobName);
-
-      const waitingJobs = filterByName(waiting);
-      const activeJobs = filterByName(active);
-      const completedJobs = filterByName(completed);
-      const failedJobs = filterByName(failed);
-      const delayedJobs = filterByName(delayed);
-
-      const total =
-        waitingJobs.length +
-        activeJobs.length +
-        completedJobs.length +
-        failedJobs.length +
-        delayedJobs.length;
-      const successRate = total > 0 ? (completedJobs.length / total) * 100 : 0;
-      const failureRate = total > 0 ? (failedJobs.length / total) * 100 : 0;
-
-      return {
-        total,
-        completed: completedJobs.length,
-        failed: failedJobs.length,
-        active: activeJobs.length,
-        waiting: waitingJobs.length,
-        delayed: delayedJobs.length,
-        successRate: Math.round(successRate * 100) / 100,
-        failureRate: Math.round(failureRate * 100) / 100,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get job metrics for: ${jobName}`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Get failed jobs with error details
    */
-  async getFailedJobs(limit = 50) {
+  async getJobs(status: JobState, limit: number = 50) {
     try {
-      const failedJobs = await this.defaultQueue.getFailed(0, limit - 1);
+      const jobs = await this.defaultQueue.getJobs(status, 0, limit - 1);;
 
-      return failedJobs.map((job) => ({
+      return jobs.map((job) => ({
         id: job.id,
         name: job.name,
         data: job.data,
-        error: (job as any).failedReason,
-        failedAt: (job as any).finishedOn,
-        attempts: (job as any).attemptsMade,
-        maxAttempts: job.opts.attempts,
-      }));
+        opts: job.opts,
+        state: status,
+        progress: job.progress,
+        returnvalue: (job as any).returnvalue,
+        failedReason: (job as any).failedReason,
+        processedOn: (job as any).processedOn,
+        finishedOn: (job as any).finishedOn,
+        timestamp: (job as any).timestamp,
+        attemptsMade: (job as any).attemptsMade,
+        delay: (job as any).delay,
+        ttl: (job as any).ttl,
+      } as JobDetail));
     } catch (error) {
-      this.logger.error('Failed to get failed jobs', error);
+      this.logger.error('Failed to get jobs', error);
       throw error;
     }
   }
@@ -214,7 +171,7 @@ export class JobMonitoringService {
       const job = await this.defaultQueue.getJob(jobId);
 
       if (!job) {
-        return null;
+        throw new Error('Job not found');
       }
 
       const state = await job.getState();
@@ -234,7 +191,7 @@ export class JobMonitoringService {
         attemptsMade: (job as any).attemptsMade,
         delay: (job as any).delay,
         ttl: (job as any).ttl,
-      };
+      } as JobDetail;
     } catch (error) {
       this.logger.error(`Failed to get job details: ${jobId}`, error);
       throw error;
@@ -252,7 +209,6 @@ export class JobMonitoringService {
       const healthStatus = {
         status: 'healthy',
         isPaused,
-        metrics,
         issues: [] as string[],
       };
 

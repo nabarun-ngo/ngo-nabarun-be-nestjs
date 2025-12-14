@@ -41,8 +41,11 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create new expense', description: "Authorities : 'create:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async createExpense(@Body() dto: CreateExpenseDto): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.expenseService.create(dto);
+  async createExpense(
+    @Body() dto: CreateExpenseDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<SuccessResponse<ExpenseDetailDto>> {
+    const expense = await this.expenseService.create(dto, user);
     return new SuccessResponse(expense);
   }
 

@@ -67,8 +67,8 @@ export function ApiAutoResponse<T>(
   options: ApiAutoResponseOptions = {},
 ): MethodDecorator {
   // Create concrete response types for Swagger to properly inspect
-  const ConcreteSuccessResponse = createSuccessResponseType(model);
-  
+  const ConcreteSuccessResponse = createSuccessResponseType(model, options.isArray);
+
   return applyDecorators(
     ApiExtraModels(model, SuccessResponse, PagedResult, ErrorResponse, ConcreteSuccessResponse),
     ...createResponseDecorators(model, options, ConcreteSuccessResponse),
@@ -119,7 +119,7 @@ export function ApiAutoVoidResponse(
   options: Omit<ApiAutoResponseOptions, 'wrapInSuccessResponse' | 'isArray'> = {},
 ): MethodDecorator {
   const ConcreteVoidSuccessResponse = createVoidSuccessResponseType();
-  
+
   const {
     status = HttpStatus.OK,
     description,
@@ -134,13 +134,13 @@ export function ApiAutoVoidResponse(
   decorators.push(
     status === HttpStatus.CREATED
       ? ApiCreatedResponse({
-          description: description || 'Operation completed successfully',
-          type: ConcreteVoidSuccessResponse,
-        })
+        description: description || 'Operation completed successfully',
+        type: ConcreteVoidSuccessResponse,
+      })
       : ApiOkResponse({
-          description: description || 'Operation completed successfully',
-          type: ConcreteVoidSuccessResponse,
-        }),
+        description: description || 'Operation completed successfully',
+        type: ConcreteVoidSuccessResponse,
+      }),
   );
 
   return applyDecorators(
@@ -173,43 +173,43 @@ function createPrimitiveResponseDecorators(
     decorators.push(
       status === HttpStatus.CREATED
         ? ApiCreatedResponse({
-            description: description || 'Operation successful',
-            schema: {
-              allOf: [
-                { $ref: getSchemaPath(SuccessResponse) },
-                {
-                  properties: {
-                    responsePayload: { type },
-                  },
+          description: description || 'Operation successful',
+          schema: {
+            allOf: [
+              { $ref: getSchemaPath(SuccessResponse) },
+              {
+                properties: {
+                  responsePayload: { type },
                 },
-              ],
-            },
-          })
+              },
+            ],
+          },
+        })
         : ApiOkResponse({
-            description: description || 'Operation successful',
-            schema: {
-              allOf: [
-                { $ref: getSchemaPath(SuccessResponse) },
-                {
-                  properties: {
-                    responsePayload: { type },
-                  },
+          description: description || 'Operation successful',
+          schema: {
+            allOf: [
+              { $ref: getSchemaPath(SuccessResponse) },
+              {
+                properties: {
+                  responsePayload: { type },
                 },
-              ],
-            },
-          }),
+              },
+            ],
+          },
+        }),
     );
   } else {
     decorators.push(
       status === HttpStatus.CREATED
         ? ApiCreatedResponse({
-            description: description || 'Operation successful',
-            schema: { type },
-          })
+          description: description || 'Operation successful',
+          schema: { type },
+        })
         : ApiOkResponse({
-            description: description || 'Operation successful',
-            schema: { type },
-          }),
+          description: description || 'Operation successful',
+          schema: { type },
+        }),
     );
   }
 
@@ -226,7 +226,7 @@ export function ApiAutoPagedResponse<T>(
   // Create concrete response types for Swagger to properly inspect
   const ConcretePagedResult = createPagedResultType(model);
   const ConcretePagedSuccessResponse = createPagedSuccessResponseType(model);
-  
+
   return applyDecorators(
     ApiExtraModels(model, SuccessResponse, PagedResult, ErrorResponse, ConcretePagedResult, ConcretePagedSuccessResponse),
     ...createPagedResponseDecorators(model, options, ConcretePagedResult, ConcretePagedSuccessResponse),
@@ -266,53 +266,53 @@ function createResponseDecorators(
       decorators.push(
         status === HttpStatus.CREATED
           ? ApiCreatedResponse({
-              description: description || 'Resource created successfully',
-              type: concreteResponseType,
-            })
+            description: description || 'Resource created successfully',
+            type: concreteResponseType,
+          })
           : ApiOkResponse({
-              description: description || 'Operation successful',
-              type: concreteResponseType,
-            }),
+            description: description || 'Operation successful',
+            type: concreteResponseType,
+          }),
       );
     } else {
       // Fallback to inline schema if concrete type not available
       const responsePayloadSchema = isArray
         ? {
-            type: 'array' as const,
-            items: { $ref: getSchemaPath(model) },
-          }
+          type: 'array' as const,
+          items: { $ref: getSchemaPath(model) },
+        }
         : { $ref: getSchemaPath(model) };
 
       decorators.push(
         status === HttpStatus.CREATED
           ? ApiCreatedResponse({
-              description: description || 'Resource created successfully',
-              schema: {
-                type: 'object',
-                required: ['info', 'timestamp', 'message'],
-                properties: {
-                  info: { type: 'string', example: 'Success' },
-                  timestamp: { type: 'string', format: 'date-time' },
-                  traceId: { type: 'string' },
-                  message: { type: 'string' },
-                  responsePayload: responsePayloadSchema,
-                },
+            description: description || 'Resource created successfully',
+            schema: {
+              type: 'object',
+              required: ['info', 'timestamp', 'message'],
+              properties: {
+                info: { type: 'string', example: 'Success' },
+                timestamp: { type: 'string', format: 'date-time' },
+                traceId: { type: 'string' },
+                message: { type: 'string' },
+                responsePayload: responsePayloadSchema,
               },
-            })
+            },
+          })
           : ApiOkResponse({
-              description: description || 'Operation successful',
-              schema: {
-                type: 'object',
-                required: ['info', 'timestamp', 'message'],
-                properties: {
-                  info: { type: 'string', example: 'Success' },
-                  timestamp: { type: 'string', format: 'date-time' },
-                  traceId: { type: 'string' },
-                  message: { type: 'string' },
-                  responsePayload: responsePayloadSchema,
-                },
+            description: description || 'Operation successful',
+            schema: {
+              type: 'object',
+              required: ['info', 'timestamp', 'message'],
+              properties: {
+                info: { type: 'string', example: 'Success' },
+                timestamp: { type: 'string', format: 'date-time' },
+                traceId: { type: 'string' },
+                message: { type: 'string' },
+                responsePayload: responsePayloadSchema,
               },
-            }),
+            },
+          }),
       );
     }
   } else {
@@ -320,13 +320,13 @@ function createResponseDecorators(
     decorators.push(
       status === HttpStatus.CREATED
         ? ApiCreatedResponse({
-            description: description || 'Resource created successfully',
-            type: isArray ? [model] : model,
-          })
+          description: description || 'Resource created successfully',
+          type: isArray ? [model] : model,
+        })
         : ApiOkResponse({
-            description: description || 'Operation successful',
-            type: isArray ? [model] : model,
-          }),
+          description: description || 'Operation successful',
+          type: isArray ? [model] : model,
+        }),
     );
   }
 

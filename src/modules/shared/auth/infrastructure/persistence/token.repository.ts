@@ -31,8 +31,19 @@ export class TokenRepository implements ITokenRepository {
         });
         return token ? this.toToken(token) : null;
     }
-    findAll(filter: any): Promise<AuthToken[]> {
-        throw new Error('Method not implemented.');
+    async findAll(filter: any): Promise<AuthToken[]> {
+        return (await this.prisma.oAuthToken.findMany({
+            where: {
+                ...(filter?.provider ? { provider: filter.provider } : {}),
+                ...(filter?.clientId ? { clientId: filter.clientId } : {}),
+                ...(filter?.scope ? {
+                    scope: {
+                        contains: filter.scope,
+                    }
+                } : {}),
+            },
+
+        })).map(this.toToken);
     }
 
     async findById(id: string): Promise<AuthToken | null> {

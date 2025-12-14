@@ -63,8 +63,8 @@ class AccountRepository implements IAccountRepository {
 
   private whereQuery(props?: AccountDetailFilterDto): Prisma.AccountWhereInput {
     const where: Prisma.AccountWhereInput = {
-      ...(props?.type ? { type: { in: props.type } } : {}),
-      ...(props?.status ? { status: { in: props.status } } : {}),
+      ...(props?.type && props.type.length > 0 ? { type: { in: props.type } } : {}),
+      ...(props?.status && props.status.length > 0 ? { status: { in: props.status } } : {}),
       ...(props?.accountHolderId ? { accountHolderId: props.accountHolderId } : {}),
       deletedAt: null,
     };

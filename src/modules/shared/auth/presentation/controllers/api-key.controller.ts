@@ -2,6 +2,10 @@ import {
   Controller,
   Post,
   Body,
+  Get,
+  Delete,
+  Param,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -54,6 +58,47 @@ export class ApiKeyController {
       updatedAt: apiKey.updatedAt,
       apiToken: token,
     };
+  }
+
+  @Get('list')
+  @ApiOperation({ summary: 'List all API keys' })
+  @ApiAutoResponse(ApiKeyDto, { description: 'List of API keys', wrapInSuccessResponse: true, isArray: true })
+  async listApiKeys(): Promise<SuccessResponse<Array<ApiKeyDto>>> {
+    return new SuccessResponse(
+      await this.apiKeyService.listApiKeys()
+    );
+  }
+
+  @Get('scopes')
+  @ApiOperation({ summary: 'List all API scopes' })
+  @ApiAutoResponse(Array<String>, { description: 'List of API scopes', wrapInSuccessResponse: true, isArray: true })
+  async listApiScopes(): Promise<SuccessResponse<Array<string>>> {
+    return new SuccessResponse(
+      await this.apiKeyService.listApiScopes()
+    );
+  }
+
+  @Patch('permissions/:id')
+  @ApiOperation({ summary: 'Update API key permissions' })
+  @ApiAutoResponse(ApiKeyDto, { description: 'API key permissions updated successfully' })
+  async updateApiKeyPermissions(
+    @Param('id') id: string,
+    @Body() permissions: string[],
+  ): Promise<SuccessResponse<ApiKeyDto>> {
+    return new SuccessResponse(
+      await this.apiKeyService.updateApiKeyPermissions(id, permissions)
+    );
+  }
+
+  @Delete('revoke/:id')
+  @ApiOperation({ summary: 'Revoke API key' })
+  @ApiAutoResponse(Boolean, { description: 'API key revoked successfully', wrapInSuccessResponse: true })
+  async revokeApiKey(
+    @Param('id') id: string,
+  ): Promise<SuccessResponse<boolean>> {
+    return new SuccessResponse(
+      await this.apiKeyService.revokeApiKey(id)
+    );
   }
 
 }

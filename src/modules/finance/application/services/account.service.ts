@@ -12,9 +12,11 @@ import { AccountDtoMapper } from '../dto/mapper/account-dto.mapper';
 import { TransactionDtoMapper } from '../dto/mapper/transaction-dto.mapper';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { type ITransactionRepository, TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
+import { AccountStatus, AccountType } from '../../domain/model/account.model';
 
 @Injectable()
 export class AccountService {
+
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
@@ -38,7 +40,7 @@ export class AccountService {
       }
     });
     return new PagedResult(
-      result.content.map(a => AccountDtoMapper.toDto(a)),
+      result.content.map(a => AccountDtoMapper.toDto(a, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true })),
       result.totalSize,
       result.pageIndex,
       result.pageSize,
@@ -50,17 +52,29 @@ export class AccountService {
     if (!account) {
       throw new BusinessException('Account not found with id ' + id);
     }
-    return AccountDtoMapper.toDto(account);
+    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
   }
 
   async create(dto: CreateAccountDto): Promise<AccountDetailDto> {
     const account = await this.createAccountUseCase.execute(dto);
-    return AccountDtoMapper.toDto(account);
+    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
+  }
+
+  async payableAccount(isTransfer: boolean): Promise<AccountDetailDto[]> {
+    const account = await this.accountRepository.findAll({
+      type: isTransfer === true ? [] : [AccountType.PRINCIPAL],
+      status: [AccountStatus.ACTIVE]
+    });
+    return account.map(a => AccountDtoMapper.toDto(a, {
+      includeBankDetail: true,
+      includeUpiDetail: true,
+      includeBalance: false
+    }));
   }
 
   async update(id: string, dto: UpdateAccountDto, userId?: string): Promise<AccountDetailDto> {
     const account = await this.updateAccountUseCase.execute({ id, dto });
-    return AccountDtoMapper.toDto(account);
+    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
   }
 
   async createTransaction(accountId: string, dto: any): Promise<TransactionDetailDto> {

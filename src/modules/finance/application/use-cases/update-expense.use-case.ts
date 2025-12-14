@@ -23,7 +23,6 @@ export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateE
     if (request.dto.expenseItems) {
       expenseItems = request.dto.expenseItems.map(item =>
         new ExpenseItem(
-          item.id || crypto.randomUUID(),
           item.itemName,
           item.description,
           item.amount,
@@ -34,9 +33,8 @@ export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateE
     expense.update({
       name: request.dto.name,
       description: request.dto.description,
-      amount: request.dto.amount,
       expenseDate: request.dto.expenseDate,
-      receiptUrl: request.dto.receiptUrl,
+      remarks: request.dto.remarks,
       expenseItems,
     });
 

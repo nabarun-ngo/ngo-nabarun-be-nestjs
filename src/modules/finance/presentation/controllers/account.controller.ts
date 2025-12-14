@@ -144,5 +144,14 @@ export class AccountController {
     return new SuccessResponse(result);
   }
 
+  @Get('payable-account')
+  @ApiOperation({ summary: 'Get account data for payable', })
+  @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK', isArray: true, wrapInSuccessResponse: true })
+  @ApiQuery({ name: 'isTransfer', required: false, type: Boolean })
+  async payableAccount(@Query() isTransfer: boolean): Promise<SuccessResponse<AccountDetailDto[]>> {
+    const account = await this.accountService.payableAccount(isTransfer);
+    return new SuccessResponse(account);
+  }
+
 }
 

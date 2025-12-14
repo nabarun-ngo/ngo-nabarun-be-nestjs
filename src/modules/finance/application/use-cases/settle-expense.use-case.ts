@@ -10,9 +10,10 @@ import { Transaction } from '../../domain/model/transaction.model';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { User } from 'src/modules/user/domain/model/user.model';
 
 @Injectable()
-export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: string; settledBy: string }, Expense> {
+export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: string; settledById: string }, Expense> {
   constructor(
     @Inject(EXPENSE_REPOSITORY)
     private readonly expenseRepository: IExpenseRepository,
@@ -21,9 +22,9 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
     @Inject(TRANSACTION_REPOSITORY)
     private readonly transactionRepository: ITransactionRepository,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
-  async execute(request: { id: string; accountId: string; settledBy: string }): Promise<Expense> {
+  async execute(request: { id: string; accountId: string; settledById: string }): Promise<Expense> {
     const expense = await this.expenseRepository.findById(request.id);
     if (!expense) {
       throw new BusinessException(`Expense not found with id: ${request.id}`);
@@ -38,13 +39,13 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
       throw new BusinessException(`Account not found with id: ${request.accountId}`);
     }
 
-    if (!account.hasSufficientFunds(expense.finalAmount)) {
+    if (!account.hasSufficientFunds(expense.amount)) {
       throw new BusinessException('Insufficient account balance');
     }
 
     // Create transaction
     const transaction = Transaction.createOut({
-      amount: expense.finalAmount,
+      amount: expense.amount,
       currency: expense.currency,
       accountId: request.accountId,
       description: `Expense settlement: ${expense.name}`,
@@ -53,7 +54,7 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
     });
 
     // Debit account
-    account.debit(expense.finalAmount);
+    account.debit(expense.amount);
     await this.accountRepository.update(account.id, account);
 
     // Save transaction
@@ -61,7 +62,7 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
 
     // Settle expense
     expense.settle({
-      settledBy: request.settledBy,
+      settledBy: { id: request.settledById },
       accountId: request.accountId,
       transactionId: savedTransaction.id,
     });

@@ -20,7 +20,7 @@ export class MonthlyDonationsJobHandler {
     timeZone: 'UTC',
   })
   async testDemo(): Promise<void> {
-    console.log('[MonthlyDonationsJob] Starting test demo process...');
+    console.log(`[MonthlyDonationsJob] Starting test demo process at ${new Date().toISOString()}`);
   }
 
   /**
