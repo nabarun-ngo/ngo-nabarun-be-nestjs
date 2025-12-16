@@ -42,7 +42,9 @@ export class TokenRepository implements ITokenRepository {
                     }
                 } : {}),
             },
-
+            orderBy: {
+                createdAt: "desc"
+            }
         })).map(this.toToken);
     }
 

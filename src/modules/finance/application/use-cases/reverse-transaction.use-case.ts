@@ -46,6 +46,8 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, T
             });
 
             account.debit(transaction.txnAmount);
+            newTxn?.setFromAccountBalance(account.balance);
+
         } else if (transaction.txnType === 'OUT') {
             newTxn = Transaction.createIn({
                 amount: transaction.txnAmount,
@@ -59,12 +61,13 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, T
             });
 
             account.credit(transaction.txnAmount);
+            newTxn?.setToAccountBalance(account.balance);
+
         } else {
 
         }
 
         await this.accountRepository.update(account.id, account);
-        newTxn?.setAccountBalance(account.balance);
         const savedTransaction = await this.transactionRepository.create(newTxn!);
 
         return savedTransaction;

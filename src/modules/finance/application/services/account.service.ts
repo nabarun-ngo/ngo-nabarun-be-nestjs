@@ -6,16 +6,20 @@ import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateAccountUseCase } from '../use-cases/create-account.use-case';
 import { UpdateAccountUseCase } from '../use-cases/update-account.use-case';
-import { TransactionDetailDto, TransactionDetailFilterDto } from '../dto/transaction.dto';
+import { CreateTransactionDto, TransactionDetailDto, TransactionDetailFilterDto } from '../dto/transaction.dto';
 import { CreateTransactionUseCase } from '../use-cases/create-transaction.use-case';
 import { AccountDtoMapper } from '../dto/mapper/account-dto.mapper';
 import { TransactionDtoMapper } from '../dto/mapper/transaction-dto.mapper';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { type ITransactionRepository, TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import { AccountStatus, AccountType } from '../../domain/model/account.model';
+import { AccountRefDataDto } from '../dto/donation.dto';
+import { MetadataService } from '../../infrastructure/external/metadata.service';
+import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
 
 @Injectable()
 export class AccountService {
+
 
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
@@ -25,6 +29,7 @@ export class AccountService {
     private readonly createAccountUseCase: CreateAccountUseCase,
     private readonly updateAccountUseCase: UpdateAccountUseCase,
     private readonly createTransactionUseCase: CreateTransactionUseCase,
+    private readonly metadataService: MetadataService,
 
   ) { }
 
@@ -77,25 +82,37 @@ export class AccountService {
     return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
   }
 
-  async createTransaction(accountId: string, dto: any): Promise<TransactionDetailDto> {
+  async createTransaction(accountId: string, dto: CreateTransactionDto): Promise<TransactionDetailDto> {
     const transaction = await this.createTransactionUseCase.execute({
       ...dto,
       accountId,
     });
-    return TransactionDtoMapper.toDto(transaction);
+    return TransactionDtoMapper.toDto(transaction, accountId);
   }
 
   async listTransactions(accountId: string, filter: BaseFilter<TransactionDetailFilterDto>, userId?: string): Promise<PagedResult<TransactionDetailDto>> {
     // Add accountId to filter
-    const result = await this.transactionRepository.findPaged(filter);
+    const account = await this.accountRepository.findById(accountId);
+    if (userId && account?.accountHolderId !== userId) {
+      throw new BusinessException('Account does not belongs to user.')
+    }
+    const result = await this.transactionRepository.findPaged({ ...filter, props: { ...filter.props, accountId: accountId } });
     return new PagedResult(
-      result.content.map(t => TransactionDtoMapper.toDto(t)),
+      result.content.map(t => TransactionDtoMapper.toDto(t, accountId)),
       result.totalSize,
       result.pageIndex,
       result.pageSize,
     );
   }
 
+  async getReferenceData(): Promise<AccountRefDataDto> {
+    const data = await this.metadataService.getReferenceData()
+    return {
+      accountStatuses: data.acc_type.map(toKeyValueDto),
+      accountTypes: data.acc_type.map(toKeyValueDto),
+      transactionRefTypes: data.txn_types.map(toKeyValueDto),
+    };
+  }
 }
 
 

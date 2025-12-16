@@ -5,7 +5,7 @@ import { Transaction } from "../../../domain/model/transaction.model";
  * Transaction DTO Mapper
  */
 export class TransactionDtoMapper {
-  static toDto(transaction: Transaction): TransactionDetailDto {
+  static toDto(transaction: Transaction, accId?: string): TransactionDetailDto {
     return {
       txnId: transaction.txnId,
       txnNumber: transaction.txnNumber,
@@ -17,7 +17,7 @@ export class TransactionDtoMapper {
       txnParticulars: transaction.txnParticulars,
       txnRefId: transaction.txnRefId,
       txnRefType: transaction.txnRefType,
-      accBalance: transaction.accBalance,
+      accBalance: transaction.getAccountBalance(accId),
       transferFrom: undefined, // Would need to fetch account
       transferTo: undefined, // Would need to fetch account
       comment: transaction.comment,

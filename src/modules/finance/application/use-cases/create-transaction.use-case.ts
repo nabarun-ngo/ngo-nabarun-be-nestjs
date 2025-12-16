@@ -54,6 +54,8 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, Tra
 
       // Credit account
       account.credit(request.txnAmount);
+      // Set account balance in transaction
+      transaction.setToAccountBalance(account.balance);
     } else if (request.txnType === 'OUT') {
       if (!account.hasSufficientFunds(request.txnAmount)) {
         throw new BusinessException('Insufficient account balance');
@@ -72,15 +74,14 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, Tra
 
       // Debit account
       account.debit(request.txnAmount);
+      // Set account balance in transaction
+      transaction.setFromAccountBalance(account.balance);
     } else {
       throw new BusinessException('Transfer transactions must be created through transfer use case');
     }
 
     // Update account balance
     await this.accountRepository.update(account.id, account);
-
-    // Set account balance in transaction
-    transaction.setAccountBalance(account.balance);
 
     // Save transaction
     const savedTransaction = await this.transactionRepository.create(transaction);

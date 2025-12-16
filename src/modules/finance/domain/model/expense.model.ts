@@ -2,6 +2,7 @@ import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { ExpenseRecordedEvent } from '../events/expense-recorded.event';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { User } from 'src/modules/user/domain/model/user.model';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum ExpenseStatus {
   DRAFT = 'DRAFT',            // Legacy: Draft status
@@ -171,7 +172,7 @@ export class Expense extends AggregateRoot<string> {
 
 
     const expense = new Expense(
-      crypto.randomUUID(),
+      `NEX${generateUniqueNDigitNumber(6)}`,
       props.name,
       amount,
       props.currency || 'INR',

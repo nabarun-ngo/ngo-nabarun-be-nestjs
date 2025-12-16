@@ -26,6 +26,8 @@ export class TransactionInfraMapper {
             MapperUtils.nullToUndefined(p.particulars),
             MapperUtils.nullToUndefined(p.fromAccountId),
             MapperUtils.nullToUndefined(p.toAccountId),
+            MapperUtils.nullToUndefined(Number(p.toAccountBalance)),
+            MapperUtils.nullToUndefined(Number(p.fromAccountBalance)),
             undefined,
             p.createdAt,
             p.updatedAt,
@@ -48,6 +50,8 @@ export class TransactionInfraMapper {
             transactionDate: domain.transactionDate,
             createdAt: domain.createdAt,
             updatedAt: domain.updatedAt,
+            toAccountBalance: MapperUtils.undefinedToNull(domain.toAccBalance)!,
+            fromAccountBalance: MapperUtils.undefinedToNull(domain.toAccBalance)!,
             particulars: domain.txnParticulars,
         };
     }

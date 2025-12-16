@@ -404,6 +404,9 @@ model Transaction {
   fromAccount   Account? @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount     Account? @relation(name: "ToAccount", fields: [toAccountId], references: [id])
 
+  fromAccountBalance   Decimal @db.Decimal(15, 2)
+  toAccountBalance   Decimal @db.Decimal(15, 2)
+
   // Reference to source
   referenceId   String? @db.VarChar(255) // Donation ID, Expense ID, etc.
   referenceType String? @db.VarChar(50) // Donation, Expense, Earning

@@ -25,6 +25,7 @@ import { PagedResult } from 'src/shared/models/paged-result';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { AccountRefDataDto } from '../../application/dto/donation.dto';
 
 /**
  * Account Controller - matches legacy endpoints
@@ -151,6 +152,15 @@ export class AccountController {
   async payableAccount(@Query() isTransfer: boolean): Promise<SuccessResponse<AccountDetailDto[]>> {
     const account = await this.accountService.payableAccount(isTransfer);
     return new SuccessResponse(account);
+  }
+
+  @Get('static/referenceData')
+  @ApiOperation({ summary: 'Get account reference data' })
+  @ApiAutoResponse(AccountRefDataDto, { wrapInSuccessResponse: true, description: 'Donation reference data retrieved successfully' })
+  async getAccountReferenceData(): Promise<SuccessResponse<AccountRefDataDto>> {
+    return new SuccessResponse<AccountRefDataDto>(
+      await this.accountService.getReferenceData()
+    );
   }
 
 }

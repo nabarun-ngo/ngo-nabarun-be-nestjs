@@ -1,5 +1,5 @@
 import { IsNumber, IsString, IsOptional, Min, IsEmail, IsBoolean, IsDate, IsArray, ValidateNested, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DonationType, DonationStatus, PaymentMethod, UPIPaymentType } from '../../domain/model/donation.model';
 import { AccountDetailDto } from './account.dto';
@@ -121,11 +121,17 @@ export class DonationDetailFilterDto {
   @ApiPropertyOptional({ enum: DonationStatus, isArray: true })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   status?: DonationStatus[];
 
   @ApiPropertyOptional({ enum: DonationType, isArray: true })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   type?: DonationType[];
 
   @ApiPropertyOptional()
@@ -318,5 +324,17 @@ export class DonationRefDataDto {
 
   @ApiProperty()
   upiOptions?: KeyValue[];
+
+}
+
+export class AccountRefDataDto {
+  @ApiProperty()
+  accountStatuses?: KeyValue[];
+
+  @ApiProperty()
+  accountTypes?: KeyValue[];
+
+  @ApiProperty()
+  transactionRefTypes?: KeyValue[];
 
 }

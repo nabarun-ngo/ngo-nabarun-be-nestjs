@@ -18,7 +18,7 @@ class MilestoneRepository implements IMilestoneRepository {
   async findAll(filter?: MilestoneFilterProps): Promise<Milestone[]> {
     const milestones = await this.prisma.milestone.findMany({
       where: this.whereQuery(filter),
-      orderBy: { targetDate: 'asc' },
+      orderBy: { targetDate: 'desc' },
       include: { project: true },
     });
     return milestones.map(m => ProjectInfraMapper.toMilestoneDomain(m)!);

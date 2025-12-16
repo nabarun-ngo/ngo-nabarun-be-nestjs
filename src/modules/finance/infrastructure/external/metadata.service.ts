@@ -11,16 +11,14 @@ export class MetadataService {
 
     async getReferenceData() {
         const keyValueConfigs = await this.configService.getAllKeyValues()
-        const donation_status = parsefromString<KeyValueConfig[]>(keyValueConfigs['DONATION_STATUSES'].value);
-        const donation_type = parsefromString<KeyValueConfig[]>(keyValueConfigs['DONATION_TYPES'].value)
-        const payment_method = parsefromString<KeyValueConfig[]>(keyValueConfigs['PAYMENT_METHODS'].value)
-        const upi_option = parsefromString<KeyValueConfig[]>(keyValueConfigs['UPI_OPTIONS'].value)
-
         return {
-            donationStatus: donation_status,
-            donationType: donation_type,
-            paymentMethod: payment_method,
-            upiOption: upi_option,
+            donationStatus: parsefromString<KeyValueConfig[]>(keyValueConfigs['DONATION_STATUSES'].value),
+            donationType: parsefromString<KeyValueConfig[]>(keyValueConfigs['DONATION_TYPES'].value),
+            paymentMethod: parsefromString<KeyValueConfig[]>(keyValueConfigs['PAYMENT_METHODS'].value),
+            upiOption: parsefromString<KeyValueConfig[]>(keyValueConfigs['UPI_OPTIONS'].value),
+            acc_status: parsefromString<KeyValueConfig[]>(keyValueConfigs['ACCOUNT_STATUSES'].value),
+            acc_type: parsefromString<KeyValueConfig[]>(keyValueConfigs['ACCOUNT_TYPES'].value),
+            txn_types: parsefromString<KeyValueConfig[]>(keyValueConfigs['TRANSACTION_TYPES'].value)
         }
     }
 

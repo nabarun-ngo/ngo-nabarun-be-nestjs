@@ -20,10 +20,8 @@ export class ApiKeyRepository implements IApiKeyRepository {
 
     async findAll(filter: any): Promise<ApiKey[]> {
         const apiKeys = await this.prisma.apiKey.findMany({
-            where: {
-                expiresAt: {
-                    gte: new Date()
-                },
+            orderBy: {
+                createdAt: "desc"
             }
         })
         return apiKeys.map(key => this.toApiKey(key));

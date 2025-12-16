@@ -1,4 +1,5 @@
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum EarningCategory {
   SERVICE = 'SERVICE',        // Service-based earnings
@@ -62,7 +63,7 @@ export class Earning extends AggregateRoot<string> {
     earningDate?: Date;
   }): Earning {
     return new Earning(
-      crypto.randomUUID(),
+      `NER${generateUniqueNDigitNumber(6)}`,
       props.category,
       props.amount,
       props.currency,

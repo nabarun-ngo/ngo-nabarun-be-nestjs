@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsDate, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { AccountDetailDto } from './account.dto';
 import { TransactionRefType, TransactionStatus, TransactionType } from '../../domain/model/transaction.model';
 
@@ -66,11 +66,17 @@ export class TransactionDetailFilterDto {
   @ApiPropertyOptional({ enum: TransactionType, isArray: true })
   @IsOptional()
   @IsEnum(TransactionType, { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   txnType?: TransactionType[];
 
   @ApiPropertyOptional({ enum: TransactionStatus, isArray: true })
   @IsOptional()
   @IsEnum(TransactionStatus, { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   txnStatus?: TransactionStatus[];
 
   @ApiPropertyOptional()

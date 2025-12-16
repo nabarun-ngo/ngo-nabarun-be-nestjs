@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 /**
  * Account Type Enum - matches legacy system
@@ -125,10 +125,16 @@ export class AccountDetailDto {
 export class AccountDetailFilterDto {
   @ApiPropertyOptional({ enum: AccountStatus, isArray: true })
   @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   status?: AccountStatus[];
 
   @ApiPropertyOptional({ enum: AccountType, isArray: true })
   @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   type?: AccountType[];
 
   @ApiPropertyOptional()

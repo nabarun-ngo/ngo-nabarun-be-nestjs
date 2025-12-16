@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ArrayNotEmpty, IsArray, IsDate, IsOptional, IsString } from "class-validator";
 
 
@@ -11,7 +11,8 @@ export class CreateApiKeyDto {
     @ApiProperty()
     permissions: string[];
 
-    @ApiProperty()
+    @ApiPropertyOptional()
+    @IsOptional()
     @IsDate()
     expireAt?: Date;
 }

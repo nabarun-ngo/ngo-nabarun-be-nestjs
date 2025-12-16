@@ -5,6 +5,7 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { Account } from './account.model';
 import { ValidationUtil } from 'src/shared/utilities/validation.util';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum DonationType {
   REGULAR = 'REGULAR',        // Monthly subscription for internal users
@@ -180,7 +181,7 @@ export class Donation extends AggregateRoot<string> {
     props.currency = props.currency;
     const raisedDate = new Date();
     const donation = new Donation(
-      crypto.randomUUID(),
+      `NDON${generateUniqueNDigitNumber(6)}`,
       props.type,
       props.amount,
       props.currency || 'INR',

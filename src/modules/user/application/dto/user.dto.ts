@@ -13,7 +13,7 @@ import {
   IsDate,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { LoginMethod, UserStatus } from '../../domain/model/user.model';
 import { LinkType } from '../../domain/model/link.model';
 import { KeyValue } from 'src/shared/dto/KeyValue.dto';
@@ -284,16 +284,37 @@ export class UserUpdateAdminDto {
 export class UserFilterDto {
 
   @ApiPropertyOptional()
-  @IsOptional() readonly firstName?: string;
-  @ApiPropertyOptional() @IsOptional() readonly lastName?: string;
-  @ApiPropertyOptional() @IsOptional() readonly email?: string;
-  @ApiPropertyOptional({ enum: UserStatus }) @IsOptional() readonly status?: UserStatus;
+  @IsOptional() 
+  readonly firstName?: string;
+
+  @ApiPropertyOptional() 
+  @IsOptional() 
+  readonly lastName?: string;
+
+  @ApiPropertyOptional() 
+  @IsOptional() 
+  readonly email?: string;
+
+  @ApiPropertyOptional({ enum: UserStatus }) 
+  @IsOptional() 
+  readonly status?: UserStatus;
+
   @ApiPropertyOptional({ isArray: true, type: String })
   @IsOptional()
+  @IsString({ each: true }) 
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   @IsArray()
-  @IsString({ each: true }) readonly roleCodes?: string[];
-  @ApiPropertyOptional() @IsOptional() readonly phoneNumber?: string;
-  @ApiPropertyOptional() @IsOptional() readonly public?: boolean;
+  readonly roleCodes?: string[];
+
+  @ApiPropertyOptional() 
+  @IsOptional() 
+  readonly phoneNumber?: string;
+
+  @ApiPropertyOptional() 
+  @IsOptional() 
+  readonly public?: boolean;
 
 }
 

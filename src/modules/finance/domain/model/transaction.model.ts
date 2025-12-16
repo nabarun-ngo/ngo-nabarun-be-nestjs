@@ -1,5 +1,6 @@
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { BaseDomain } from 'src/shared/models/base-domain';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum TransactionType {
   IN = 'IN',                  // Legacy: Money coming in
@@ -35,6 +36,7 @@ export class TransactionFilter {
  * All business logic and validations are in this domain model
  */
 export class Transaction extends BaseDomain<string> {
+
   // Private fields for encapsulation
   #currency: string;
   #referenceId: string | undefined;
@@ -57,7 +59,8 @@ export class Transaction extends BaseDomain<string> {
   #transferFromAccountId: string | undefined;
   #transferToAccountId: string | undefined;
   #comment: string | undefined;
-  #accBalance: number | undefined; // Account balance after transaction
+  #toAccBalance: number | undefined; // Account balance after transaction
+  #fromAccBalance: number | undefined; // Account balance after transaction
 
   constructor(
     id: string,
@@ -74,6 +77,8 @@ export class Transaction extends BaseDomain<string> {
     txnParticulars?: string,
     transferFromAccountId?: string,
     transferToAccountId?: string,
+    toAccountBalance?: number,
+    fromAccountBalance?: number,
     comment?: string,
     createdAt?: Date,
     updatedAt?: Date,
@@ -97,6 +102,8 @@ export class Transaction extends BaseDomain<string> {
     this.#txnRefType = referenceType; // Legacy alias
     this.#transferFromAccountId = transferFromAccountId;
     this.#transferToAccountId = transferToAccountId;
+    this.#toAccBalance = toAccountBalance;
+    this.#fromAccBalance = fromAccountBalance;
     this.#comment = comment;
   }
 
@@ -131,7 +138,7 @@ export class Transaction extends BaseDomain<string> {
     }
 
     const transaction = new Transaction(
-      crypto.randomUUID(),
+      `NTXN${generateUniqueNDigitNumber(10)}`,
       TransactionType.IN,
       props.amount,
       props.currency,
@@ -145,6 +152,8 @@ export class Transaction extends BaseDomain<string> {
       props.txnParticulars,
       undefined, // transferFromAccountId
       props.accountId, // transferToAccountId
+      undefined,
+      undefined,
       props.comment,
       new Date(),
       new Date(),
@@ -197,6 +206,8 @@ export class Transaction extends BaseDomain<string> {
       props.txnParticulars,
       props.accountId, // transferFromAccountId
       undefined, // transferToAccountId
+      undefined,
+      undefined,
       props.comment
     );
 
@@ -247,6 +258,8 @@ export class Transaction extends BaseDomain<string> {
       props.txnParticulars,
       props.fromAccountId,
       props.toAccountId,
+      undefined,
+      undefined,
       props.comment,
     );
 
@@ -280,8 +293,12 @@ export class Transaction extends BaseDomain<string> {
   /**
    * Set account balance after transaction
    */
-  setAccountBalance(balance: number): void {
-    this.#accBalance = balance;
+  setToAccountBalance(balance: number): void {
+    this.#toAccBalance = balance;
+  }
+
+  setFromAccountBalance(balance: number): void {
+    this.#fromAccBalance = balance;
   }
 
   // Getters
@@ -304,5 +321,14 @@ export class Transaction extends BaseDomain<string> {
   get transferFromAccountId(): string | undefined { return this.#transferFromAccountId; }
   get transferToAccountId(): string | undefined { return this.#transferToAccountId; }
   get comment(): string | undefined { return this.#comment; }
-  get accBalance(): number | undefined { return this.#accBalance; }
+  get toAccBalance(): number | undefined { return this.#toAccBalance; }
+  get fromAccBalance(): number | undefined { return this.#fromAccBalance; }
+
+  getAccountBalance(accId?: string): number | undefined {
+    if (this.txnType == 'IN') return this.toAccBalance;
+    if (this.txnType == 'OUT') return this.fromAccBalance;
+    if (accId == this.transferFromAccountId) return this.toAccBalance;
+    if (accId == this.fromAccBalance) return this.fromAccBalance;
+  }
+
 }
