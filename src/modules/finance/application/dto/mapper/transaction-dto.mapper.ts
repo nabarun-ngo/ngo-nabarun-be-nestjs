@@ -1,14 +1,14 @@
 import { TransactionDetailDto } from "../transaction.dto";
 import { Transaction } from "../../../domain/model/transaction.model";
+import { Account } from "src/modules/finance/domain/model/account.model";
 
 /**
  * Transaction DTO Mapper
  */
 export class TransactionDtoMapper {
-  static toDto(transaction: Transaction): TransactionDetailDto {
+  static toDto(transaction: Transaction, acc?: string | Account): TransactionDetailDto {
     return {
       txnId: transaction.txnId,
-      txnNumber: transaction.txnNumber,
       txnDate: transaction.txnDate,
       txnAmount: transaction.txnAmount,
       txnType: transaction.txnType,
@@ -17,11 +17,11 @@ export class TransactionDtoMapper {
       txnParticulars: transaction.txnParticulars,
       txnRefId: transaction.txnRefId,
       txnRefType: transaction.txnRefType,
-      accBalance: transaction.accBalance,
-      transferFrom: undefined, // Would need to fetch account
-      transferTo: undefined, // Would need to fetch account
+      accBalance: transaction.getAccountBalance(acc instanceof Account ? acc.id : acc),
+      accTxnType: transaction.getTxnTypeForAccount(acc instanceof Account ? acc.id : acc),
+      transferFrom: transaction.transferFromAccountId,
+      transferTo: transaction.transferToAccountId,
       comment: transaction.comment,
-      account: undefined, // Would need to fetch account
     };
   }
 }

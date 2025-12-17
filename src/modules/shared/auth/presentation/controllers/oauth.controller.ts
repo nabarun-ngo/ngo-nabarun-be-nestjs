@@ -15,10 +15,11 @@ import { GoogleOAuthService } from '../../application/services/google-oauth.serv
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
+import { AuthTokenDto } from '../../application/dto/oauth..dto';
 
 
 
-@ApiTags('OAuth')
+@ApiTags(OAuthController.name)
 @ApiBearerAuth('jwt')
 @Controller('auth/oauth')
 export class OAuthController {
@@ -78,6 +79,15 @@ export class OAuthController {
   @ApiAutoResponse(Array<String>, { description: 'OAuth scopes', wrapInSuccessResponse: true, isArray: true })
   async getGoogleScopes(): Promise<SuccessResponse<string[]>> {
     return new SuccessResponse<string[]>(this.oAuthService.getOAuthScopes());
+  }
+
+  @Get('tokens')
+  @ApiOperation({ summary: 'Get available OAuth tokens' })
+  @ApiAutoResponse(AuthTokenDto, { description: 'OAuth tokens', wrapInSuccessResponse: true, isArray: true })
+  async getGoogleTokens(): Promise<SuccessResponse<Array<AuthTokenDto>>> {
+    return new SuccessResponse(
+      await this.oAuthService.getTokens()
+    );
   }
 
 

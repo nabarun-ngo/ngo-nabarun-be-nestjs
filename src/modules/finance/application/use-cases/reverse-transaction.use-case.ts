@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Transaction, TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
+import { Transaction, TransactionType } from '../../domain/model/transaction.model';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
-import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
-import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
+import { CreateTransactionUseCase } from './create-transaction.use-case';
 
 interface ReverseTransaction {
-    id: string;
+    accountId: string;
+    txnId: string;
     reason: string;
 }
 
@@ -17,57 +17,60 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, T
     constructor(
         @Inject(TRANSACTION_REPOSITORY)
         private readonly transactionRepository: ITransactionRepository,
-        @Inject(ACCOUNT_REPOSITORY)
-        private readonly accountRepository: IAccountRepository,
+        private readonly createTransactionUseCase: CreateTransactionUseCase,
     ) { }
 
     async execute(request: ReverseTransaction): Promise<Transaction> {
-        const transaction = await this.transactionRepository.findById(request.id);
+        const transaction = await this.transactionRepository.findById(request.txnId);
         if (!transaction) {
-            throw new BusinessException(`Transaction not found with id: ${request.id}`);
+            throw new BusinessException(`Transaction not found with id: ${request.txnId}`);
+        }
+        if (!transaction.isEligibleForReverse(request.accountId)) {
+            throw new BusinessException(`Transaction is not eligible for reverse.`);
         }
 
-        let accountId = transaction.txnType == 'IN' ? transaction.transferToAccountId : transaction.transferFromAccountId;
-        const account = await this.accountRepository.findById(accountId!);
-        if (!account) {
-            throw new BusinessException(`Account not found with id: ${accountId}`);
-        }
-        let newTxn: Transaction | null = null;
+        const commonTransactionProps = {
+            txnAmount: transaction.txnAmount,
+            currency: transaction.currency,
+            txnDescription: `Reversed transaction due to ${request.reason}`,
+            txnRefId: transaction.id,
+            txnRefType: transaction.referenceType,
+            txnParticulars: `Reversed transaction ${transaction.id}`,
+            txnDate: new Date(),
+            comment: request.reason,
+        };
         if (transaction.txnType === 'IN') {
-            newTxn = Transaction.createOut({
-                amount: transaction.txnAmount,
-                currency: transaction.currency,
+            const newTransaction = await this.createTransactionUseCase.execute({
+                ...commonTransactionProps,
                 accountId: transaction.transferToAccountId!,
-                description: `Reversed transaction due to ${request.reason}`,
-                referenceId: transaction.id,
-                referenceType: transaction.referenceType,
-                txnParticulars: `Reversed transaction ${transaction.id}`,
-                transactionDate: new Date(),
+                txnType: TransactionType.OUT,
             });
-
-            account.debit(transaction.txnAmount);
-        } else if (transaction.txnType === 'OUT') {
-            newTxn = Transaction.createIn({
-                amount: transaction.txnAmount,
-                currency: transaction.currency,
-                accountId: transaction.transferFromAccountId!,
-                description: `Reversed transaction due to ${request.reason}`,
-                referenceId: transaction.id,
-                referenceType: transaction.referenceType,
-                txnParticulars: `Reversed transaction ${transaction.id}`,
-                transactionDate: new Date(),
-            });
-
-            account.credit(transaction.txnAmount);
-        } else {
-
+            transaction.revert();
+            await this.transactionRepository.update(transaction.id, transaction);
+            return newTransaction;
         }
-
-        await this.accountRepository.update(account.id, account);
-        newTxn?.setAccountBalance(account.balance);
-        const savedTransaction = await this.transactionRepository.create(newTxn!);
-
-        return savedTransaction;
+        if (transaction.txnType === 'OUT') {
+            const newTransaction = await this.createTransactionUseCase.execute({
+                ...commonTransactionProps,
+                accountId: transaction.transferFromAccountId!,
+                txnType: TransactionType.IN,
+            });
+            transaction.revert();
+            await this.transactionRepository.update(transaction.id, transaction);
+            return newTransaction;
+        }
+        if (transaction.txnType === 'TRANSFER') {
+            const newTransaction = await this.createTransactionUseCase.execute({
+                ...commonTransactionProps,
+                accountId: transaction.transferToAccountId!,
+                transferToAccountId: transaction.transferFromAccountId!,
+                txnType: TransactionType.TRANSFER,
+            })
+            transaction.revert();
+            await this.transactionRepository.update(transaction.id, transaction);
+            return newTransaction;
+        }
+        throw new BusinessException(`Transaction type ${transaction.txnType} is not supported for reverse.`);
     }
 }
 

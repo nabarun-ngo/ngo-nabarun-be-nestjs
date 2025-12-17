@@ -5,8 +5,10 @@ import type { Response } from "express";
 import { BadRequestException, UnauthorizedException } from "@nestjs/common";
 import { renderOAuthCallback } from "../utilities/oauth-template.utility";
 import { IgnoreCaptchaValidation } from "src/modules/shared/auth/application/decorators/ignore-captcha.decorator";
+import { ApiTags } from "@nestjs/swagger";
 
 
+@ApiTags(CallbackController.name)
 @Controller('callback')
 @Public()
 export class CallbackController {

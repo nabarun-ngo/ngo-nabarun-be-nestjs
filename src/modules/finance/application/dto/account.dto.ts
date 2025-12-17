@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested, IsDate } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 /**
  * Account Type Enum - matches legacy system
@@ -125,10 +125,16 @@ export class AccountDetailDto {
 export class AccountDetailFilterDto {
   @ApiPropertyOptional({ enum: AccountStatus, isArray: true })
   @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   status?: AccountStatus[];
 
   @ApiPropertyOptional({ enum: AccountType, isArray: true })
   @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   type?: AccountType[];
 
   @ApiPropertyOptional()
@@ -238,6 +244,42 @@ export class UpdateAccountDto {
   @ValidateNested()
   @Type(() => UPIDetailDto)
   upiDetail?: UPIDetailDto;
+}
+
+
+export class TransferDto {
+  @ApiProperty()
+  @IsString()
+  toAccountId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty()
+  @IsString()
+  description: string;
+
+  @ApiProperty()
+  @IsDate()
+  transferDate: Date;
+
+}
+
+export class AddFundDto {
+
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty()
+  @IsString()
+  description: string;
+
+  @ApiProperty()
+  @IsDate()
+  transferDate: Date;
+
 }
 
 

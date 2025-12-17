@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-//import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -14,13 +14,22 @@ export class MonthlyDonationsJobHandler {
     private readonly eventEmitter: EventEmitter2,
   ) { }
 
+  //
+  @Cron('*/5 * * * *', {
+    name: 'test-demo',
+    timeZone: 'UTC',
+  })
+  async testDemo(): Promise<void> {
+    console.log(`[MonthlyDonationsJob] Starting test demo process at ${new Date().toISOString()}`);
+  }
+
   /**
    * Runs on 1st day of every month at 00:00
    */
-  //   @Cron('0 0 1 * *', {
-  //     name: 'raise-monthly-donations',
-  //     timeZone: 'UTC',
-  //   })
+  @Cron('0 0 1 * *', {
+    name: 'raise-monthly-donations',
+    timeZone: 'UTC',
+  })
   async handleMonthlyDonations(): Promise<void> {
     console.log('[MonthlyDonationsJob] Starting monthly donation raise process...');
 

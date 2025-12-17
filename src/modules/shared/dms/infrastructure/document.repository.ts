@@ -8,7 +8,7 @@ import { DocumentReference, Prisma, PrismaClient } from "@prisma/client";
 import { DocumentMapping, DocumentMappingRefType } from "../domain/mapping.model";
 import { IDocumentRepository } from "../domain/document.repository.interface";
 
-
+//TODO: Remove PrismaBaseRepository and use PrismaPostgresService directly
 @Injectable()
 export class DocumentRepository
     extends PrismaBaseRepository<

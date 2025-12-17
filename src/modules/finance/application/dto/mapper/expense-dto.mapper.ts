@@ -1,5 +1,7 @@
 import { ExpenseDetailDto, ExpenseItemDetailDto } from "../expense.dto";
 import { Expense, ExpenseItem } from "../../../domain/model/expense.model";
+import { UserDtoMapper } from "src/modules/user/application/dto/user-dto.mapper";
+import { User } from "src/modules/user/domain/model/user.model";
 
 /**
  * Expense DTO Mapper
@@ -11,23 +13,22 @@ export class ExpenseDtoMapper {
       name: expense.name,
       description: expense.description,
       expenseDate: expense.expenseDate,
-      createdBy: expense.requestedBy, // UserDetail reference
+      createdBy: UserDtoMapper.toUserDTO(expense.requestedBy as User), // UserDetail reference
       createdOn: expense.createdAt!,
-      isAdmin: expense.isAdmin,
       isDeligated: expense.isDelegated,
-      paidBy: expense.requestedBy, // UserDetail reference
-      finalizedBy: expense.finalizedBy, // UserDetail reference
+      paidBy: UserDtoMapper.toUserDTO(expense.paidBy as User), // UserDetail reference
+      finalizedBy: expense.finalizedBy ? UserDtoMapper.toUserDTO(expense.finalizedBy as User) : undefined, // UserDetail reference
       status: expense.status,
       finalizedOn: expense.finalizedDate,
-      settledBy: expense.settledBy, // UserDetail reference
+      settledBy: expense.settledBy ? UserDtoMapper.toUserDTO(expense.settledBy as User) : undefined, // UserDetail reference
       settledOn: expense.settledDate,
       expenseItems: expense.expenseItems.map(item => this.expenseItemToDto(item)),
-      finalAmount: expense.finalAmount,
-      expenseRefType: expense.referenceType as any,
+      finalAmount: expense.amount,
+      expenseRefType: expense.referenceType,
       expenseRefId: expense.referenceId,
       txnNumber: expense.txnNumber,
       settlementAccount: undefined, // Would need to fetch account
-      rejectedBy: expense.rejectedBy, // UserDetail reference
+      rejectedBy: expense.rejectedBy ? UserDtoMapper.toUserDTO(expense.rejectedBy as User) : undefined, // UserDetail reference
       rejectedOn: expense.rejectedDate,
       remarks: expense.remarks,
     };
@@ -35,7 +36,6 @@ export class ExpenseDtoMapper {
 
   private static expenseItemToDto(item: ExpenseItem): ExpenseItemDetailDto {
     return {
-      id: item.id,
       itemName: item.itemName,
       description: item.description,
       amount: item.amount,

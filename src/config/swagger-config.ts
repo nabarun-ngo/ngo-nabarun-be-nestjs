@@ -8,10 +8,10 @@ import { UserDto, PhoneNumberDto, AddressDto, LinkDto, RoleDto } from 'src/modul
 // Add more DTO imports as needed
 
 export function configureSwagger(app: INestApplication) {
-  
+
   const config = new DocumentBuilder()
     .setTitle(process.env[Configkey.APP_NAME] || 'API Documentation')
-    .setDescription(`${process.env[Configkey.APP_NAME]} Backend API powered by NestJS` )
+    .setDescription(`${process.env[Configkey.APP_NAME]} Backend API powered by NestJS`)
     .setVersion('2.0')
     .addBearerAuth(
       {
@@ -51,10 +51,28 @@ export function configureSwagger(app: INestApplication) {
     ],
     // Enable deep scan for better type inference
     deepScanRoutes: true,
-    autoTagControllers:true
+    autoTagControllers: true,
+    // Custom operation ID factory
+    operationIdFactory: (controllerKey: string, methodKey: string) => {
+      // List of common method names that might cause collisions if used alone
+      // const commonMethods = ['create', 'update', 'delete', 'remove', 'get', 'list', 'listSelf', 'getById', 'updateSelf', 'detail'];
+      // console.log(controllerKey, methodKey);
+      // let operationId;
+      // if (commonMethods.includes(methodKey)) {
+      //   // Prepend controller name for common methods to ensure uniqueness
+      //   // e.g. DonationController.create -> donationCreate
+      //   const cleanControllerName = controllerKey.replace(/Controller$/, '');
+      //   operationId = cleanControllerName.charAt(0).toLowerCase() + cleanControllerName.slice(1) + methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      // } else {
+      //   // For specific/unique methods, use the method name as is (capitalized)
+      //   // e.g. DonationController.getSelfDonations -> GetSelfDonations
+      //   operationId = methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+      // }
+      return methodKey.charAt(0).toUpperCase() + methodKey.slice(1);
+    }
   });
 
-  SwaggerModule.setup('swagger-ui', app, document,{
-      jsonDocumentUrl: 'api/docs',
+  SwaggerModule.setup('swagger-ui', app, document, {
+    jsonDocumentUrl: 'api/docs',
   });
 }

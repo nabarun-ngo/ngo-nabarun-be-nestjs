@@ -57,26 +57,27 @@ model UserProfile {
   meetingAttendances MeetingAttendee[]   @relation("MeetingAttendees")
 
   // Project module relations
-  managedProjects         Project[]           @relation("ProjectManager")
-  sponsoredProjects       Project[]           @relation("ProjectSponsor")
-  assignedActivities      Activity[]          @relation("ActivityAssignee")
-  organizedActivities     Activity[]          @relation("ActivityOrganizer")
-  projectTeamMembers      ProjectTeamMember[] @relation("ProjectTeamMember")
-  riskOwners              ProjectRisk[]       @relation("RiskOwner")
-  createdActivityExpenses ActivityExpense[]   @relation("ActivityExpenseCreator")
-  donations               Donation[]          @relation("Donation")
-  confirmedDonations      Donation[]          @relation("DonationConfirmedBy")
-  expenseCreator          Expense[]           @relation("ExpenseCreator")
-  expensePaidBy           Expense[]           @relation("ExpensePaidBy")
-  expenseFinalizedBy      Expense[]           @relation("ExpenseFinalizedBy")
-  expenseSettledBy        Expense[]           @relation("ExpenseSettledBy")
-  expenseRejectedBy       Expense[]           @relation("ExpenseRejectedBy")
-  expenseUpdatedBy        Expense[]           @relation("ExpenseUpdatedBy")
+  managedProjects     Project[]           @relation("ProjectManager")
+  sponsoredProjects   Project[]           @relation("ProjectSponsor")
+  assignedActivities  Activity[]          @relation("ActivityAssignee")
+  organizedActivities Activity[]          @relation("ActivityOrganizer")
+  projectTeamMembers  ProjectTeamMember[] @relation("ProjectTeamMember")
+  riskOwners          ProjectRisk[]       @relation("RiskOwner")
+  donations           Donation[]          @relation("Donation")
+  confirmedDonations  Donation[]          @relation("DonationConfirmedBy")
+  expenseCreator      Expense[]           @relation("ExpenseCreator")
+  expensePaidBy       Expense[]           @relation("ExpensePaidBy")
+  expenseSubmittedBy  Expense[]           @relation("ExpenseSubmittedBy")
+  expenseFinalizedBy  Expense[]           @relation("ExpenseFinalizedBy")
+  expenseSettledBy    Expense[]           @relation("ExpenseSettledBy")
+  expenseRejectedBy   Expense[]           @relation("ExpenseRejectedBy")
+  expenseUpdatedBy    Expense[]           @relation("ExpenseUpdatedBy")
   //workflowTasks      WorkflowTask[]
 
-  accountCreator     Account[]     @relation("AccountCreator")
-  transactionCreator Transaction[] @relation("TransactionCreator")
+  accountCreator     Account[]         @relation("AccountCreator")
+  transactionCreator Transaction[]     @relation("TransactionCreator")
   expenses           Expense[]
+  activityExpenses   ActivityExpense[]
 
   @@index([email])
   @@index([authUserId])
@@ -403,6 +404,9 @@ model Transaction {
   fromAccount   Account? @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount     Account? @relation(name: "ToAccount", fields: [toAccountId], references: [id])
 
+  fromAccountBalance   Decimal @db.Decimal(15, 2)
+  toAccountBalance   Decimal @db.Decimal(15, 2)
+
   // Reference to source
   referenceId   String? @db.VarChar(255) // Donation ID, Expense ID, etc.
   referenceType String? @db.VarChar(50) // Donation, Expense, Earning
@@ -430,10 +434,9 @@ model Transaction {
 }
 
 model Expense {
-  id       String  @id @default(uuid())
-  category String? @db.VarChar(20) // EXPENSE, INCOME
-  title    String  @db.VarChar(255)
-  items    String? @db.Text // Comma-separated or JSON string of expense items
+  id    String  @id @default(uuid())
+  title String  @db.VarChar(255)
+  items String? @db.Text // JSON string of expense items
 
   // Amount and currency
   amount      Decimal @db.Decimal(15, 2)
@@ -451,10 +454,17 @@ model Expense {
   // Creator information
   createdById String       @db.VarChar(255) // User ID
   createdBy   UserProfile? @relation("ExpenseCreator", fields: [createdById], references: [id])
+  // Refer createdAt
 
   // Paid by (person who paid the expense)
-  paidById String       @db.VarChar(255) // User ID
-  paidBy   UserProfile? @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  paidById    String       @db.VarChar(255) // User ID
+  paidBy      UserProfile? @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  expenseDate DateTime
+
+  // Submitted By (person who submitted the expense)
+  submittedById String       @db.VarChar(255) // User ID
+  submittedBy   UserProfile? @relation("ExpenseSubmittedBy", fields: [submittedById], references: [id])
+  submittedOn   DateTime?
 
   // Finalized by (approver)
   finalizedById String?      @db.VarChar(255) // User ID
@@ -469,6 +479,7 @@ model Expense {
   // Rejected by
   rejectedById String?      @db.VarChar(255) // User ID
   rejectedBy   UserProfile? @relation("ExpenseRejectedBy", fields: [rejectedById], references: [id])
+  rejectedOn   DateTime?
 
   // Updated by
   updatedById String?      @db.VarChar(255) // User ID
@@ -483,19 +494,15 @@ model Expense {
   transactionRef String? @db.VarChar(255) // Transaction reference number
 
   // Dates
-  expenseDate    DateTime
-  expenseCreated DateTime @default(now())
-  remarks        String?  @db.Text
+  remarks String? @db.Text
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  version   Int       @default(0)
-  deletedAt DateTime?
-
-  // Project module relation
-  activityExpenses ActivityExpense[] @relation("ActivityExpense")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  version          Int               @default(0)
+  deletedAt        DateTime?
   userProfile      UserProfile?      @relation(fields: [userProfileId], references: [id])
   userProfileId    String?
+  activityExpenses ActivityExpense[]
 
   @@index([status])
   @@index([createdById])
@@ -902,11 +909,13 @@ model ActivityExpense {
   createdBy            String   @db.VarChar(255)
 
   // Relations
-  activity Activity    @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  expense  Expense     @relation("ActivityExpense", fields: [expenseId], references: [id], onDelete: Cascade)
-  creator  UserProfile @relation("ActivityExpenseCreator", fields: [createdBy], references: [id])
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  // creator  UserProfile @relation("ActivityExpenseCreator", fields: [createdBy], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt     DateTime     @default(now())
+  userProfile   UserProfile? @relation(fields: [userProfileId], references: [id])
+  userProfileId String?
+  expense       Expense      @relation(fields: [expenseId], references: [id])
 
   @@unique([activityId, expenseId])
   @@index([activityId])

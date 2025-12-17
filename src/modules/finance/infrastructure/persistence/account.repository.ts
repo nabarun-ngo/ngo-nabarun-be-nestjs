@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { Account } from '../../domain/model/account.model';
+import { Account, AccountFilter } from '../../domain/model/account.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { AccountDetailFilterDto } from '../../application/dto/account.dto';
 import { AccountInfraMapper } from '../mapper/account-infra.mapper';
 
 export type OnlyAccount = Prisma.AccountGetPayload<{
@@ -25,7 +24,7 @@ export type AccountWithTransactions = Prisma.AccountGetPayload<{
 class AccountRepository implements IAccountRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
-  async findPaged(filter?: BaseFilter<AccountDetailFilterDto>): Promise<PagedResult<Account>> {
+  async findPaged(filter?: BaseFilter<AccountFilter>): Promise<PagedResult<Account>> {
     const where = this.whereQuery(filter?.props);
 
     const [data, total] = await Promise.all([
@@ -49,7 +48,7 @@ class AccountRepository implements IAccountRepository {
     );
   }
 
-  async findAll(filter?: AccountDetailFilterDto): Promise<Account[]> {
+  async findAll(filter?: AccountFilter): Promise<Account[]> {
     const accounts = await this.prisma.account.findMany({
       where: this.whereQuery(filter),
       orderBy: { createdAt: 'desc' },
@@ -61,11 +60,12 @@ class AccountRepository implements IAccountRepository {
     return accounts.map(m => AccountInfraMapper.toAccountDomain(m)!);
   }
 
-  private whereQuery(props?: AccountDetailFilterDto): Prisma.AccountWhereInput {
+  private whereQuery(props?: AccountFilter): Prisma.AccountWhereInput {
     const where: Prisma.AccountWhereInput = {
-      ...(props?.type ? { type: { in: props.type } } : {}),
-      ...(props?.status ? { status: { in: props.status } } : {}),
+      ...(props?.type && props.type.length > 0 ? { type: { in: [...props.type] } } : {}),
+      ...(props?.status && props.status.length > 0 ? { status: { in: [...props.status] } } : {}),
       ...(props?.accountHolderId ? { accountHolderId: props.accountHolderId } : {}),
+      ...(props?.id ? { id: props.id } : {}),
       deletedAt: null,
     };
     return where;

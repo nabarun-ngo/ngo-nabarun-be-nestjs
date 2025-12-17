@@ -16,29 +16,52 @@ import { Type } from '@nestjs/common';
  * }
  * ```
  */
-export function createSuccessResponseType<T>(modelClass: Type<T>) {
-  class ConcreteSuccessResponse {
-    @ApiProperty() info: string;
-    @ApiProperty() timestamp: Date;
-    @ApiProperty() traceId?: string;
-    @ApiProperty() message: string;
-    @ApiProperty({ type: () => modelClass, description: 'Response payload data' })
-    responsePayload?: T;
+export function createSuccessResponseType<T>(modelClass: Type<T>, isArray: boolean = false) {
+  if (isArray) {
+    class ConcreteSuccessResponseArray {
+      @ApiProperty() info: string;
+      @ApiProperty() timestamp: Date;
+      @ApiProperty() traceId?: string;
+      @ApiProperty() message: string;
+      @ApiProperty({ type: () => modelClass, description: 'Response payload data', isArray: true })
+      responsePayload?: T[];
+    }
+
+    Object.defineProperty(ConcreteSuccessResponseArray, 'name', {
+      value: `SuccessResponseArray${modelClass.name}`,
+      writable: false,
+    });
+
+    return ConcreteSuccessResponseArray as Type<{
+      info: string;
+      timestamp: Date;
+      traceId?: string;
+      message: string;
+      responsePayload?: T[];
+    }>;
+  } else {
+    class ConcreteSuccessResponse {
+      @ApiProperty() info: string;
+      @ApiProperty() timestamp: Date;
+      @ApiProperty() traceId?: string;
+      @ApiProperty() message: string;
+      @ApiProperty({ type: () => modelClass, description: 'Response payload data' })
+      responsePayload?: T;
+    }
+
+    Object.defineProperty(ConcreteSuccessResponse, 'name', {
+      value: `SuccessResponse${modelClass.name}`,
+      writable: false,
+    });
+
+    return ConcreteSuccessResponse as Type<{
+      info: string;
+      timestamp: Date;
+      traceId?: string;
+      message: string;
+      responsePayload?: T;
+    }>;
   }
-  
-  // Set a unique name for the class to avoid conflicts
-  Object.defineProperty(ConcreteSuccessResponse, 'name', {
-    value: `SuccessResponse${modelClass.name}`,
-    writable: false,
-  });
-  
-  return ConcreteSuccessResponse as Type<{
-    info: string;
-    timestamp: Date;
-    traceId?: string;
-    message: string;
-    responsePayload?: T;
-  }>;
 }
 
 /**
@@ -56,34 +79,48 @@ export function createSuccessResponseType<T>(modelClass: Type<T>) {
  */
 export function createPagedResultType<T>(modelClass: Type<T>) {
   class ConcretePagedResult {
-    @ApiProperty({ 
-      description: 'List of items for the current page', 
+    @ApiProperty({
+      description: 'List of items for the current page',
       type: () => modelClass,
-      isArray: true 
+      isArray: true
     })
-    items: T[];
+    content: T[];
 
-    @ApiProperty({ description: 'Total number of items across all pages' })
-    total: number;
+    @ApiProperty({ description: 'Size of the current content' })
+    currentSize?: number;
+
+    @ApiProperty({ description: 'Next page index' })
+    nextPageIndex?: number;
+
 
     @ApiProperty({ description: 'Current page index (1-based or 0-based depending on API)' })
-    page: number;
+    pageIndex: number;
+
 
     @ApiProperty({ description: 'Page size (number of items per page)' })
-    size: number;
+    pageSize: number;
+
+    @ApiProperty({ description: 'Previous page index' })
+    prevPageIndex?: number;
+
+    @ApiProperty({ description: 'Total number of pages' })
+    totalPages?: number;
+
+    @ApiProperty({ description: 'Total number of items across all pages' })
+    totalSize: number;
   }
-  
+
   // Set a unique name for the class to avoid conflicts
   Object.defineProperty(ConcretePagedResult, 'name', {
     value: `PagedResult${modelClass.name}`,
     writable: false,
   });
-  
+
   return ConcretePagedResult as Type<{
-    items: T[];
-    total: number;
-    page: number;
-    size: number;
+    content: T[];
+    totalSize: number;
+    pageIndex: number;
+    pageSize: number;
   }>;
 }
 
@@ -102,7 +139,7 @@ export function createPagedResultType<T>(modelClass: Type<T>) {
  */
 export function createPagedSuccessResponseType<T>(modelClass: Type<T>) {
   const PagedResultType = createPagedResultType(modelClass);
-  
+
   class ConcretePagedSuccessResponse {
     @ApiProperty() info: string;
     @ApiProperty() timestamp: Date;
@@ -111,13 +148,13 @@ export function createPagedSuccessResponseType<T>(modelClass: Type<T>) {
     @ApiProperty({ type: () => PagedResultType, description: 'Paginated response payload' })
     responsePayload?: InstanceType<typeof PagedResultType>;
   }
-  
+
   // Set a unique name for the class to avoid conflicts
   Object.defineProperty(ConcretePagedSuccessResponse, 'name', {
     value: `SuccessResponsePagedResult${modelClass.name}`,
     writable: false,
   });
-  
+
   return ConcretePagedSuccessResponse as Type<{
     info: string;
     timestamp: Date;
@@ -148,13 +185,13 @@ export function createVoidSuccessResponseType() {
     @ApiProperty() message: string;
     // No responsePayload property for void responses
   }
-  
+
   // Set a unique name for the class
   Object.defineProperty(ConcreteVoidSuccessResponse, 'name', {
     value: 'SuccessResponseVoid',
     writable: false,
   });
-  
+
   return ConcreteVoidSuccessResponse as Type<{
     info: string;
     timestamp: Date;

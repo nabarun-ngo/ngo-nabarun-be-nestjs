@@ -44,7 +44,7 @@ export class UserService {
             }
         }
         const users = await this.userRepository.findPaged(filter);
-        return new PagedResult(users.items.map(UserDtoMapper.toUserDTO), users.total, users.pageIndex, users.pageSize);
+        return new PagedResult(users.content.map(UserDtoMapper.toUserDTO), users.totalSize, users.pageIndex, users.pageSize);
     }
 
 

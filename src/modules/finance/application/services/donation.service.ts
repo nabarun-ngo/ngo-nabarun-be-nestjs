@@ -1,24 +1,29 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
-import { DonationDto, DonationDetailFilterDto, CreateDonationDto, UpdateDonationDto } from '../dto/donation.dto';
+import { DonationDto, DonationDetailFilterDto, CreateDonationDto, UpdateDonationDto, DonationSummaryDto, DonationRefDataDto } from '../dto/donation.dto';
 import { DonationDtoMapper } from '../dto/mapper/donation-dto.mapper';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
 import { UpdateDonationUseCase } from '../use-cases/update-donation.use-case';
 import { ProcessDonationPaymentUseCase } from '../use-cases/process-donation-payment.use-case';
-import { DonationType } from '../../domain/model/donation.model';
+import { Donation, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { MetadataService } from '../../infrastructure/external/metadata.service';
+import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
 
 @Injectable()
 export class DonationService {
+
+
   constructor(
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
     private readonly createDonationUseCase: CreateDonationUseCase,
     private readonly updateDonationUseCase: UpdateDonationUseCase,
     private readonly processPaymentUseCase: ProcessDonationPaymentUseCase,
+    private readonly metadataService: MetadataService,
   ) { }
 
   async list(filter: BaseFilter<DonationDetailFilterDto>): Promise<PagedResult<DonationDto>> {
@@ -26,6 +31,7 @@ export class DonationService {
       pageIndex: filter.pageIndex,
       pageSize: filter.pageSize,
       props: {
+        donationId: filter.props?.donationId,
         donorId: filter.props?.donorId,
         status: filter.props?.status,
         type: filter.props?.type,
@@ -35,8 +41,8 @@ export class DonationService {
       }
     });
     return new PagedResult(
-      result.items.map(d => DonationDtoMapper.toDto(d)),
-      result.total,
+      result.content.map(d => DonationDtoMapper.toDto(d)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );
@@ -85,6 +91,31 @@ export class DonationService {
       ...dto,
     });
     return DonationDtoMapper.toDto(donation);
+  }
+
+  async getSummary(donorId: string): Promise<DonationSummaryDto> {
+    const donations = await this.donationRepository.findAll({
+      donorId: donorId,
+      status: Donation.outstandingStatus,
+      type: [DonationType.REGULAR]
+    });
+    return {
+      outstandingAmount: donations.reduce((total, donation) => total + donation.amount, 0),
+      hasOutstanding: donations.length > 0,
+      outstandingMonths: donations
+        .filter(d => d.startDate)
+        .map(d => d.startDate!.toLocaleString('en-US', { month: 'long', year: 'numeric' })),
+    };
+  }
+
+  async getReferenceData(): Promise<DonationRefDataDto> {
+    const data = await this.metadataService.getReferenceData()
+    return {
+      donationStatuses: data.donationStatus.map(toKeyValueDto),
+      donationTypes: data.donationType.map(toKeyValueDto),
+      paymentMethods: data.paymentMethod.map(toKeyValueDto),
+      upiOptions: data.upiOption.map(toKeyValueDto),
+    };
   }
 }
 

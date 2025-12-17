@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, MaxLength, MinLength } from "class-validator";
+import { IsArray, IsDate, IsString, MaxLength, MinLength } from "class-validator";
 
 export class AuthCallbackDto {
     @IsString()
@@ -21,4 +21,39 @@ export class AuthCallbackDto {
         maxLength: 200,
     })
     state: string;
+}
+
+
+export class AuthTokenDto {
+    @ApiProperty()
+    @IsString()
+    id: string;
+
+    @ApiProperty()
+    @IsString()
+    clientId: string;
+
+    @ApiProperty()
+    @IsString()
+    provider: string;
+
+    @ApiProperty()
+    @IsString()
+    email: string;
+
+    @ApiProperty()
+    @IsDate()
+    expiresAt?: Date;
+
+    @ApiProperty()
+    @IsArray()
+    scope?: string[];
+
+    @ApiProperty()
+    @IsDate()
+    createdAt?: Date;
+
+    @ApiProperty()
+    @IsDate()
+    updatedAt?: Date;
 }

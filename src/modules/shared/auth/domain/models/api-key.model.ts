@@ -87,7 +87,10 @@ export class ApiKey extends AggregateRoot<string> {
 
     }
 
-
+    updatePermissions(permissions: string[]): void {
+        this._permissions = permissions;
+        this.touch();
+    }
 
     get name(): string {
         return this._name;

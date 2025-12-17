@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IExpenseRepository } from '../../domain/repositories/expense.repository.interface';
-import { Expense, ExpenseCategory, ExpenseFilter, ExpenseStatus } from '../../domain/model/expense.model';
+import { Expense, ExpenseFilter, ExpenseStatus } from '../../domain/model/expense.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
@@ -12,6 +12,13 @@ import { ExpenseInfraMapper } from '../mapper/expense-infra.mapper';
 export type ExpensePersistence = Prisma.ExpenseGetPayload<{
   include: {
     account: true;
+    createdBy: true;
+    updatedBy: true;
+    finalizedBy: true;
+    settledBy: true;
+    rejectedBy: true;
+    submittedBy: true;
+    paidBy: true;
   }
 }>;
 
@@ -28,6 +35,13 @@ class ExpenseRepository implements IExpenseRepository {
         orderBy: { expenseDate: 'desc' },
         include: {
           account: true,
+          createdBy: true,
+          updatedBy: true,
+          finalizedBy: true,
+          settledBy: true,
+          rejectedBy: true,
+          submittedBy: true,
+          paidBy: true,
         },
         skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
         take: filter?.pageSize ?? 10,
@@ -49,6 +63,13 @@ class ExpenseRepository implements IExpenseRepository {
       orderBy: { expenseDate: 'desc' },
       include: {
         account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
       },
     });
 
@@ -79,23 +100,19 @@ class ExpenseRepository implements IExpenseRepository {
       where: { id },
       include: {
         account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
       },
     });
 
     return ExpenseInfraMapper.toExpenseDomain(expense!);
   }
 
-  async findByCategory(category: ExpenseCategory): Promise<Expense[]> {
-    const expenses = await this.prisma.expense.findMany({
-      where: { category, deletedAt: null },
-      orderBy: { expenseDate: 'desc' },
-      include: {
-        account: true,
-      },
-    });
-
-    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
-  }
 
   async findByStatus(status: ExpenseStatus): Promise<Expense[]> {
     const expenses = await this.prisma.expense.findMany({
@@ -103,6 +120,13 @@ class ExpenseRepository implements IExpenseRepository {
       orderBy: { expenseDate: 'desc' },
       include: {
         account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
       },
     });
 
@@ -115,6 +139,13 @@ class ExpenseRepository implements IExpenseRepository {
       orderBy: { expenseDate: 'desc' },
       include: {
         account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        paidBy: true,
+        submittedBy: true,
       },
     });
 
@@ -124,7 +155,7 @@ class ExpenseRepository implements IExpenseRepository {
 
 
   async create(expense: Expense): Promise<Expense> {
-    const createData: Prisma.ExpenseUncheckedCreateInput = {
+    const createData: Prisma.ExpenseCreateInput = {
       ...ExpenseInfraMapper.toExpenseCreatePersistence(expense),
     };
 
@@ -132,6 +163,13 @@ class ExpenseRepository implements IExpenseRepository {
       data: createData,
       include: {
         account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
       },
     });
 
@@ -148,6 +186,13 @@ class ExpenseRepository implements IExpenseRepository {
       data: updateData,
       include: {
         account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        paidBy: true,
+        submittedBy: true,
       },
     });
 

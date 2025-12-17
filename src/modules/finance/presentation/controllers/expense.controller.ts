@@ -28,7 +28,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
  * Expense Controller - matches legacy endpoints
  * Base path: /api/expense
  */
-@ApiTags('expense-controller')
+@ApiTags(ExpenseController.name)
 @Controller('expense')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class ExpenseController {
@@ -41,8 +41,11 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create new expense', description: "Authorities : 'create:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async create(@Body() dto: CreateExpenseDto): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.expenseService.create(dto);
+  async createExpense(
+    @Body() dto: CreateExpenseDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<SuccessResponse<ExpenseDetailDto>> {
+    const expense = await this.expenseService.create(dto, user);
     return new SuccessResponse(expense);
   }
 
@@ -51,7 +54,7 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update expense details', description: "Authorities : 'update:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async update(
+  async updateExpense(
     @Param('id') id: string,
     @Body() dto: UpdateExpenseDto,
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
@@ -66,7 +69,7 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Finalize expense', description: "Authorities : 'create:expense_final'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async finalize(
+  async finalizeExpense(
     @Param('id') id: string,
     @Body() body: { finalizedBy: string },
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
@@ -79,7 +82,7 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Settle expense', description: "Authorities : 'create:expense_settle'" })
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
-  async settle(
+  async settleExpense(
     @Param('id') id: string,
     @Body() body: { accountId: string; settledBy: string },
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
@@ -92,7 +95,7 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all expenses', description: "Authorities : 'read:expense'" })
   @ApiAutoPagedResponse(ExpenseDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async list(
+  async listExpenses(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: ExpenseDetailFilterDto,
@@ -109,7 +112,7 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List own expenses', description: "Authorities : 'read:expense'" })
   @ApiAutoPagedResponse(ExpenseDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listSelf(
+  async listSelfExpenses(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: ExpenseDetailFilterDto,
@@ -128,7 +131,7 @@ export class ExpenseController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get expense by ID', description: "Authorities : 'read:expense'" })
   @ApiAutoResponse(ExpenseDetailDto, { description: 'OK' })
-  async getById(@Param('id') id: string): Promise<SuccessResponse<ExpenseDetailDto>> {
+  async getExpenseById(@Param('id') id: string): Promise<SuccessResponse<ExpenseDetailDto>> {
     const expense = await this.expenseService.getById(id);
     return new SuccessResponse(expense);
   }

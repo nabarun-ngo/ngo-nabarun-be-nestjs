@@ -1,9 +1,10 @@
 import { IsNumber, IsString, IsOptional, Min, IsEmail, IsBoolean, IsDate, IsArray, ValidateNested, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DonationType, DonationStatus, PaymentMethod, UPIPaymentType } from '../../domain/model/donation.model';
 import { AccountDetailDto } from './account.dto';
 import { UserDto } from 'src/modules/user/application/dto/user.dto';
+import { KeyValue } from 'src/shared/dto/KeyValue.dto';
 
 export class CreateDonationDto {
 
@@ -120,11 +121,17 @@ export class DonationDetailFilterDto {
   @ApiPropertyOptional({ enum: DonationStatus, isArray: true })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   status?: DonationStatus[];
 
   @ApiPropertyOptional({ enum: DonationType, isArray: true })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   type?: DonationType[];
 
   @ApiPropertyOptional()
@@ -144,6 +151,16 @@ export class DonationDetailFilterDto {
   @Type(() => Date)
   endDate?: Date;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  donationId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  donorName?: string;
+
 }
 
 export class DonationDto {
@@ -159,10 +176,10 @@ export class DonationDto {
   @ApiProperty()
   currency: string;
 
-  @ApiPropertyOptional()
-  donorId?: string;
+  @ApiProperty()
+  donorId: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   donorName: string;
 
   @ApiPropertyOptional()
@@ -276,5 +293,48 @@ export class UpdateDonationDto {
   @Type(() => Date)
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   paidOn?: Date;
+
+}
+
+
+export class DonationSummaryDto {
+  @ApiProperty()
+  @IsBoolean()
+  hasOutstanding: boolean;
+
+  @ApiProperty()
+  @IsArray()
+  outstandingMonths: string[];
+
+  @ApiProperty()
+  @IsNumber()
+  outstandingAmount: number;
+}
+
+
+export class DonationRefDataDto {
+  @ApiProperty()
+  donationStatuses?: KeyValue[];
+
+  @ApiProperty()
+  donationTypes?: KeyValue[];
+
+  @ApiProperty()
+  paymentMethods?: KeyValue[];
+
+  @ApiProperty()
+  upiOptions?: KeyValue[];
+
+}
+
+export class AccountRefDataDto {
+  @ApiProperty()
+  accountStatuses?: KeyValue[];
+
+  @ApiProperty()
+  accountTypes?: KeyValue[];
+
+  @ApiProperty()
+  transactionRefTypes?: KeyValue[];
 
 }

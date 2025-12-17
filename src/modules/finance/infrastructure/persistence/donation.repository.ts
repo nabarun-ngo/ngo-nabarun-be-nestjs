@@ -70,9 +70,10 @@ class DonationRepository implements IDonationRepository {
 
   private whereQuery(props?: DonationFilter): Prisma.DonationWhereInput {
     const where: Prisma.DonationWhereInput = {
-      ...(props?.type ? { type: { in: props.type } } : {}),
-      ...(props?.status ? { status: { in: props.status } } : {}),
+      ...(props?.type && props.type.length > 0 ? { type: { in: props.type } } : {}),
+      ...(props?.status && props.status.length > 0 ? { status: { in: props.status } } : {}),
       ...(props?.donorId ? { donorId: props.donorId } : {}),
+      ...(props?.donationId ? { id: props.donationId } : {}),
       ...(props?.startDate || props?.endDate
         ? {
           raisedOn: {

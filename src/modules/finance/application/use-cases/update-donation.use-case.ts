@@ -6,6 +6,7 @@ import type { IDonationRepository } from '../../domain/repositories/donation.rep
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
+import { ReverseTransactionUseCase } from './reverse-transaction.use-case';
 
 interface UpdateDonation {
   paidOn: Date | undefined;
@@ -27,6 +28,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
     private readonly transactionUseCase: CreateTransactionUseCase,
+    private readonly reverseTransactionUseCase: ReverseTransactionUseCase,
 
   ) { }
 
@@ -55,6 +57,11 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
           break;
         case DonationStatus.UPDATE_MISTAKE:
           donation.markForUpdateMistake();
+          await this.reverseTransactionUseCase.execute({
+            accountId: donation.paidToAccount?.id!,
+            reason: request.remarks || 'Update mistake',
+            txnId: donation.transactionRef!,
+          });
           break;
         case DonationStatus.PENDING:
           donation.markAsPending();

@@ -16,7 +16,7 @@ export class DonationDtoMapper {
       amount: donation.amount,
       currency: donation.currency,
       status: donation.status,
-      donorId: donation.donorId,
+      donorId: donation.donorId!,
       donorName: donation.donorName,
       donorEmail: donation.donorEmail,
       // Legacy fields
@@ -28,7 +28,7 @@ export class DonationDtoMapper {
       confirmedBy: donation.confirmedBy ? UserDtoMapper.toUserDTO(donation.confirmedBy as User) : undefined,
       confirmedOn: donation.confirmedOn,
       paymentMethod: donation.paymentMethod,
-      paidToAccount: donation.paidToAccount ? AccountDtoMapper.toDto(donation.paidToAccount as Account) : undefined,
+      paidToAccount: donation.paidToAccount ? AccountDtoMapper.toDto(donation.paidToAccount as Account, { includeBankDetail: false, includeUpiDetail: false, includeBalance: false }) : undefined,
       paidUsingUPI: donation.paidUsingUPI,
       isPaymentNotified: donation.isPaymentNotified,
       transactionRef: donation.transactionRef,

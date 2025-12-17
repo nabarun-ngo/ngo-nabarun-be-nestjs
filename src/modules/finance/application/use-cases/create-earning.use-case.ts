@@ -4,22 +4,17 @@ import { Earning, EarningCategory } from '../../domain/model/earning.model';
 import { EARNING_REPOSITORY } from '../../domain/repositories/earning.repository.interface';
 import type { IEarningRepository } from '../../domain/repositories/earning.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CreateTransactionUseCase } from './create-transaction.use-case';
+import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
+
 export class CreateEarning {
-
+  accountId: string;
   category: EarningCategory;
-
   amount: number;
-
   currency: string;
-
   description: string;
-
-  source: string;
-
   referenceId?: string;
-
   referenceType?: string;
-
   earningDate?: Date;
 }
 
@@ -30,21 +25,35 @@ export class CreateEarningUseCase implements IUseCase<CreateEarning, Earning> {
     @Inject(EARNING_REPOSITORY)
     private readonly earningRepository: IEarningRepository,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    private readonly createTransactionUseCase: CreateTransactionUseCase,
+  ) { }
 
   async execute(request: CreateEarning): Promise<Earning> {
     const earning = Earning.create({
-      category: request.category as any,
+      category: request.category,
       amount: request.amount,
       currency: request.currency,
       description: request.description,
-      source: request.source,
       referenceId: request.referenceId,
       referenceType: request.referenceType,
       earningDate: request.earningDate,
     });
 
+
+
     const savedEarning = await this.earningRepository.create(earning);
+
+    await this.createTransactionUseCase.execute({
+      txnAmount: request.amount,
+      currency: request.currency,
+      txnDescription: request.description,
+      txnParticulars: `Earning - ${request.category}`,
+      txnRefId: request.referenceId,
+      txnRefType: TransactionRefType.EARNING,
+      accountId: request.accountId,
+      txnDate: request.earningDate,
+      txnType: TransactionType.IN,
+    });
 
     // Emit domain events
     for (const event of savedEarning.domainEvents) {

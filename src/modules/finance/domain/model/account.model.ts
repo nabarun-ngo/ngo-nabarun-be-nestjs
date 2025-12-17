@@ -1,6 +1,7 @@
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AccountCreatedEvent } from '../events/account-created.event';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum AccountType {
   PRINCIPAL = 'PRINCIPAL',    // Legacy: Principal account
@@ -125,7 +126,7 @@ export class Account extends AggregateRoot<string> {
 
     const now = new Date();
     const account = new Account(
-      crypto.randomUUID(),
+      `NACC${generateUniqueNDigitNumber(8)}`,
       props.name,
       props.type,
       props.initialBalance || 0,

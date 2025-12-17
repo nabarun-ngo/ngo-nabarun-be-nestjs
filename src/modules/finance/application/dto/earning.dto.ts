@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsDate, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { EarningCategory, EarningStatus } from '../../domain/model/earning.model';
 
 /**
@@ -59,10 +59,16 @@ export class EarningDetailDto {
 export class EarningDetailFilterDto {
   @ApiPropertyOptional({ enum: EarningStatus, isArray: true })
   @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   status?: EarningStatus[];
 
   @ApiPropertyOptional({ enum: EarningCategory, isArray: true })
   @IsOptional()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   category?: EarningCategory[];
 
   @ApiPropertyOptional()
@@ -111,17 +117,7 @@ export class CreateEarningDto {
 
   @ApiProperty()
   @IsString()
-  source: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  referenceId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  referenceType?: string;
+  accountId: string;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()

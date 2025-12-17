@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsDate, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { AccountDetailDto } from './account.dto';
 import { TransactionRefType, TransactionStatus, TransactionType } from '../../domain/model/transaction.model';
 
@@ -9,48 +9,79 @@ import { TransactionRefType, TransactionStatus, TransactionType } from '../../do
  */
 export class TransactionDetailDto {
   @ApiProperty()
+  @IsString()
   txnId: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   txnNumber?: string;
 
   @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   txnDate: Date;
 
   @ApiProperty()
+  @IsNumber()
+  @Min(0.01)
   txnAmount: number;
 
   @ApiProperty({ enum: TransactionType })
+  @IsEnum(TransactionType)
   txnType: TransactionType;
 
   @ApiProperty({ enum: TransactionStatus })
+  @IsEnum(TransactionStatus)
   txnStatus: TransactionStatus;
 
   @ApiProperty()
+  @IsString()
   txnDescription: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   txnParticulars?: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   txnRefId?: string;
 
   @ApiPropertyOptional({ enum: TransactionRefType })
+  @IsOptional()
+  @IsEnum(TransactionRefType)
   txnRefType?: TransactionRefType;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
   accBalance?: number;
 
-  @ApiPropertyOptional({ type: AccountDetailDto })
-  transferFrom?: AccountDetailDto;
-
-  @ApiPropertyOptional({ type: AccountDetailDto })
-  transferTo?: AccountDetailDto;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  accTxnType?: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  transferFrom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  transferTo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   comment?: string;
 
-  @ApiPropertyOptional({ type: AccountDetailDto })
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => AccountDetailDto)
   account?: AccountDetailDto;
 }
 
@@ -66,11 +97,17 @@ export class TransactionDetailFilterDto {
   @ApiPropertyOptional({ enum: TransactionType, isArray: true })
   @IsOptional()
   @IsEnum(TransactionType, { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   txnType?: TransactionType[];
 
   @ApiPropertyOptional({ enum: TransactionStatus, isArray: true })
   @IsOptional()
   @IsEnum(TransactionStatus, { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   txnStatus?: TransactionStatus[];
 
   @ApiPropertyOptional()
@@ -143,3 +180,13 @@ export class CreateTransactionDto {
   txnDate?: Date;
 }
 
+
+export class ReverseTransactionDto {
+  @ApiProperty()
+  @IsString()
+  transactionId: string;
+
+  @ApiProperty()
+  @IsString()
+  comment: string;
+}

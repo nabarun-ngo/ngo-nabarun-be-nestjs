@@ -2,14 +2,14 @@
 import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
 import { DmsService } from '../../application/services/dms.service';
 import { DmsUploadDto } from '../dto/dms-upload.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { type DocumentMappingRefType } from '../../domain/mapping.model';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { DocumentMappingRefType } from '../../domain/mapping.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { DocumentDto } from '../dto/document.dto';
 import type { Response } from 'express';
 
-@ApiTags('DMS')
+@ApiTags(DmsController.name)
 @ApiBearerAuth('jwt')
 @Controller('dms')
 export class DmsController {
@@ -25,6 +25,8 @@ export class DmsController {
 
     @Get('document/:type/:id/list')
     @ApiOperation({ summary: 'Get all documents for a specific entity' })
+    @ApiParam({ name: 'type', description: 'Type of the entity', required: true, enum: DocumentMappingRefType })
+    @ApiParam({ name: 'id', description: 'ID of the entity', required: true })
     @ApiAutoResponse(DocumentDto, { isArray: true, description: 'List of documents retrieved successfully' })
     async getDocuments(
         @Param('type') type: DocumentMappingRefType,

@@ -3,17 +3,17 @@ const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
 
 const prisma = new PrismaClient({
-    datasourceUrl: process.env.POSTGRES_URL,
+    datasourceUrl: process.env.MIG_POSTGRES_URL,
 });
 
 // Configuration
-const MONGO_URI = process.env.MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
+const MONGO_URI = process.env.MIG_MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
 const BATCH_SIZE = 100;
 
 // Collections
 const COLLECTIONS = {
     ACCOUNTS: 'accounts',
-    DONATIONS: 'contributions', // MongoDB collection name
+    DONATIONS: 'donations', // MongoDB collection name
     TRANSACTIONS: 'transactions',
     EXPENSES: 'expenses',
 };
@@ -156,7 +156,7 @@ const mapToAccount = (doc) => {
         status: mapAccountStatus(doc.accountStatus),
         description: null,
         accountHolderName: doc.bankAccountHolderName || null,
-        accountHolderId: doc.userId || null,
+        accountHolderId: doc.profile || null,
         activatedOn: parseDate(doc.activatedOn),
         bankDetail: Object.keys(bankDetail).length > 0 ? JSON.stringify(bankDetail) : null,
         upiDetail: Object.keys(upiDetail).length > 0 ? JSON.stringify(upiDetail) : null,
@@ -315,41 +315,41 @@ async function migrateAccounts(db) {
             batch.push(await cursor.next());
         }
 
-        for (const doc of batch) {
-            try {
-                const accountId = parseId(doc._id);
+        try {
+            // Map all documents in the batch
+            const accountsData = batch.map(doc => mapToAccount(doc));
 
-                // Check if account already exists
-                const existing = await prisma.account.findUnique({
-                    where: { id: accountId }
-                });
+            // Bulk insert with skipDuplicates
+            const result = await prisma.account.createMany({
+                data: accountsData,
+                skipDuplicates: true,
+            });
 
-                if (existing) {
-                    console.log(`Skipping existing account: ${accountId}`);
-                    processed++;
-                    continue;
+            success += result.count;
+            processed += batch.length;
+
+            console.log(`Progress: ${processed}/${totalDocs} (${success} inserted, ${processed - success} skipped/failed)`);
+        } catch (error) {
+            // If bulk insert fails, fall back to individual inserts for this batch
+            console.warn(`Bulk insert failed for batch, trying individual inserts: ${error.message}`);
+
+            for (const doc of batch) {
+                try {
+                    const accountData = mapToAccount(doc);
+                    await prisma.account.create({
+                        data: accountData,
+                    });
+                    success++;
+                } catch (individualError) {
+                    failed++;
+                    errors.push({
+                        id: parseId(doc._id),
+                        name: doc.accountName,
+                        error: individualError.message,
+                    });
+                    console.error(`Error migrating account ${doc.accountName}:`, individualError.message);
                 }
-
-                // Create account
-                await prisma.account.create({
-                    data: mapToAccount(doc),
-                });
-
-                success++;
                 processed++;
-
-                if (processed % 10 === 0) {
-                    console.log(`Progress: ${processed}/${totalDocs} (${success} success, ${failed} failed)`);
-                }
-            } catch (error) {
-                failed++;
-                processed++;
-                errors.push({
-                    id: parseId(doc._id),
-                    name: doc.accountName,
-                    error: error.message,
-                });
-                console.error(`Error migrating account ${doc.accountName}:`, error.message);
             }
         }
     }
@@ -380,72 +380,103 @@ async function migrateDonations(db) {
             batch.push(await cursor.next());
         }
 
-        for (const doc of batch) {
-            try {
-                const donationId = parseId(doc._id);
+        try {
+            // Map all documents in the batch
+            const donationsData = batch.map(doc => mapToDonation(doc));
 
-                // Check if donation already exists
-                const existing = await prisma.donation.findUnique({
-                    where: { id: donationId }
-                });
+            // Batch validate foreign keys
+            const userIds = [...new Set(donationsData.filter(d => d.donorId).map(d => d.donorId))];
+            const accountIds = [...new Set(donationsData.filter(d => d.paidToAccountId).map(d => d.paidToAccountId))];
+            const confirmerIds = [...new Set(donationsData.filter(d => d.confirmedById).map(d => d.confirmedById))];
 
-                if (existing) {
-                    console.log(`Skipping existing donation: ${donationId}`);
-                    processed++;
-                    continue;
+            // Fetch existing users, accounts, and confirmers in batch
+            const existingUsers = userIds.length > 0
+                ? new Set((await prisma.userProfile.findMany({ where: { id: { in: userIds } }, select: { id: true } })).map(u => u.id))
+                : new Set();
+
+            const existingAccounts = accountIds.length > 0
+                ? new Set((await prisma.account.findMany({ where: { id: { in: accountIds } }, select: { id: true } })).map(a => a.id))
+                : new Set();
+
+            const existingConfirmers = confirmerIds.length > 0
+                ? new Set((await prisma.userProfile.findMany({ where: { id: { in: confirmerIds } }, select: { id: true } })).map(u => u.id))
+                : new Set();
+
+            // Clean up invalid foreign keys
+            donationsData.forEach(donation => {
+                if (donation.donorId && !existingUsers.has(donation.donorId)) {
+                    donation.donorId = null;
+                    donation.isGuest = true;
                 }
+                if (donation.paidToAccountId && !existingAccounts.has(donation.paidToAccountId)) {
+                    donation.paidToAccountId = null;
+                }
+                if (donation.confirmedById && !existingConfirmers.has(donation.confirmedById)) {
+                    donation.confirmedById = null;
+                }
+            });
 
-                // Create donation
-                const donationData = mapToDonation(doc);
+            // Bulk insert with skipDuplicates
+            const result = await prisma.donation.createMany({
+                data: donationsData,
+                skipDuplicates: true,
+            });
 
-                // Validate foreign keys before creating
-                if (donationData.donorId) {
-                    const userExists = await prisma.userProfile.findUnique({
-                        where: { id: donationData.donorId }
-                    });
-                    if (!userExists) {
-                        donationData.donorId = null;
-                        donationData.isGuest = true;
+            success += result.count;
+            processed += batch.length;
+
+            console.log(`Progress: ${processed}/${totalDocs} (${success} inserted, ${processed - success} skipped/failed)`);
+        } catch (error) {
+            // If bulk insert fails, fall back to individual inserts for this batch
+            console.warn(`Bulk insert failed for batch, trying individual inserts: ${error.message}`);
+
+            for (const doc of batch) {
+                try {
+                    const donationData = mapToDonation(doc);
+
+                    // Validate foreign keys individually
+                    if (donationData.donorId) {
+                        const userExists = await prisma.userProfile.findUnique({
+                            where: { id: donationData.donorId }
+                        });
+                        if (!userExists) {
+                            donationData.donorId = null;
+                            donationData.isGuest = true;
+                        }
                     }
-                }
 
-                if (donationData.paidToAccountId) {
-                    const accountExists = await prisma.account.findUnique({
-                        where: { id: donationData.paidToAccountId }
-                    });
-                    if (!accountExists) {
-                        donationData.paidToAccountId = null;
+                    if (donationData.paidToAccountId) {
+                        const accountExists = await prisma.account.findUnique({
+                            where: { id: donationData.paidToAccountId }
+                        });
+                        if (!accountExists) {
+                            donationData.paidToAccountId = null;
+                        }
                     }
-                }
 
-                if (donationData.confirmedById) {
-                    const confirmerExists = await prisma.userProfile.findUnique({
-                        where: { id: donationData.confirmedById }
-                    });
-                    if (!confirmerExists) {
-                        donationData.confirmedById = null;
+                    if (donationData.confirmedById) {
+                        const confirmerExists = await prisma.userProfile.findUnique({
+                            where: { id: donationData.confirmedById }
+                        });
+                        if (!confirmerExists) {
+                            donationData.confirmedById = null;
+                        }
                     }
+
+                    await prisma.donation.create({
+                        data: donationData,
+                    });
+                    success++;
+                } catch (individualError) {
+                    failed++;
+                    errors.push({
+                        id: parseId(doc._id),
+                        donor: doc.donorName || doc.guestFullNameOrOrgName,
+                        error: individualError.message,
+                    });
+                    console.error(`Error migrating donation ${doc.donorName}:`, individualError.message);
                 }
-
-                await prisma.donation.create({
-                    data: donationData,
-                });
-
-                success++;
                 processed++;
-
-                if (processed % 10 === 0) {
-                    console.log(`Progress: ${processed}/${totalDocs} (${success} success, ${failed} failed)`);
-                }
-            } catch (error) {
-                failed++;
-                processed++;
-                errors.push({
-                    id: parseId(doc._id),
-                    donor: doc.donorName || doc.guestFullNameOrOrgName,
-                    error: error.message,
-                });
-                console.error(`Error migrating donation ${doc.donorName}:`, error.message);
             }
         }
     }
@@ -476,72 +507,105 @@ async function migrateTransactions(db) {
             batch.push(await cursor.next());
         }
 
-        for (const doc of batch) {
-            try {
-                const transactionId = parseId(doc._id);
+        try {
+            // Map all documents in the batch
+            const transactionsData = batch.map(doc => mapToTransaction(doc));
 
-                // Check if transaction already exists
-                const existing = await prisma.transaction.findUnique({
-                    where: { id: transactionId }
-                });
+            // Filter out transactions with no accounts
+            const validTransactions = transactionsData.filter(t =>
+                t.fromAccountId !== null || t.toAccountId !== null
+            );
 
-                if (existing) {
-                    console.log(`Skipping existing transaction: ${transactionId}`);
-                    processed++;
-                    continue;
-                }
+            if (validTransactions.length === 0) {
+                processed += batch.length;
+                console.log(`Skipped ${batch.length} transactions with no valid accounts`);
+                continue;
+            }
 
-                // Create transaction
-                const transactionData = mapToTransaction(doc);
+            // Batch validate account references
+            const accountIds = [...new Set([
+                ...validTransactions.filter(t => t.fromAccountId).map(t => t.fromAccountId),
+                ...validTransactions.filter(t => t.toAccountId).map(t => t.toAccountId)
+            ])];
 
-                if (transactionData.fromAccountId === null && transactionData.toAccountId === null) {
-                    console.log(`Skipping transaction with unknown from and to accounts: ${transactionId}`);
-                    processed++;
-                    continue;
-                }
+            const existingAccounts = accountIds.length > 0
+                ? new Set((await prisma.account.findMany({ where: { id: { in: accountIds } }, select: { id: true } })).map(a => a.id))
+                : new Set();
 
-                // Validate account references
-                if (transactionData.fromAccountId !== null) {
-                    const fromAccountExists = await prisma.account.findUnique({
-                        where: { id: transactionData.fromAccountId }
-                    });
-                    if (!fromAccountExists) {
-                        console.warn(`From account not found: ${transactionData.fromAccountId}, skipping transaction`);
+            // Filter transactions with valid account references
+            const transactionsToInsert = validTransactions.filter(t => {
+                const fromValid = t.fromAccountId === null || existingAccounts.has(t.fromAccountId);
+                const toValid = t.toAccountId === null || existingAccounts.has(t.toAccountId);
+                return fromValid && toValid;
+            });
+
+            if (transactionsToInsert.length === 0) {
+                processed += batch.length;
+                console.log(`Skipped ${batch.length} transactions with invalid account references`);
+                continue;
+            }
+
+            // Bulk insert with skipDuplicates
+            const result = await prisma.transaction.createMany({
+                data: transactionsToInsert,
+                skipDuplicates: true,
+            });
+
+            success += result.count;
+            processed += batch.length;
+
+            console.log(`Progress: ${processed}/${totalDocs} (${success} inserted, ${processed - success} skipped/failed)`);
+        } catch (error) {
+            // If bulk insert fails, fall back to individual inserts for this batch
+            console.warn(`Bulk insert failed for batch, trying individual inserts: ${error.message}`);
+
+            for (const doc of batch) {
+                try {
+                    const transactionData = mapToTransaction(doc);
+
+                    if (transactionData.fromAccountId === null && transactionData.toAccountId === null) {
+                        console.log(`Skipping transaction with unknown from and to accounts: ${parseId(doc._id)}`);
                         processed++;
                         continue;
                     }
-                }
 
-                if (transactionData.toAccountId !== null) {
-                    const toAccountExists = await prisma.account.findUnique({
-                        where: { id: transactionData.toAccountId }
-                    });
-                    if (!toAccountExists) {
-                        console.warn(`To account not found: ${transactionData.toAccountId}, skipping transaction`);
-                        processed++;
-                        continue;
+                    // Validate account references
+                    if (transactionData.fromAccountId !== null) {
+                        const fromAccountExists = await prisma.account.findUnique({
+                            where: { id: transactionData.fromAccountId }
+                        });
+                        if (!fromAccountExists) {
+                            console.warn(`From account not found: ${transactionData.fromAccountId}, skipping transaction`);
+                            processed++;
+                            continue;
+                        }
                     }
+
+                    if (transactionData.toAccountId !== null) {
+                        const toAccountExists = await prisma.account.findUnique({
+                            where: { id: transactionData.toAccountId }
+                        });
+                        if (!toAccountExists) {
+                            console.warn(`To account not found: ${transactionData.toAccountId}, skipping transaction`);
+                            processed++;
+                            continue;
+                        }
+                    }
+
+                    await prisma.transaction.create({
+                        data: transactionData,
+                    });
+                    success++;
+                } catch (individualError) {
+                    failed++;
+                    errors.push({
+                        id: parseId(doc._id),
+                        description: doc.transactionDescription,
+                        error: individualError.message,
+                    });
+                    console.error(`Error migrating transaction ${doc.transactionDescription}:`, individualError.message);
                 }
-
-                await prisma.transaction.create({
-                    data: transactionData,
-                });
-
-                success++;
                 processed++;
-
-                if (processed % 10 === 0) {
-                    console.log(`Progress: ${processed}/${totalDocs} (${success} success, ${failed} failed)`);
-                }
-            } catch (error) {
-                failed++;
-                processed++;
-                errors.push({
-                    id: parseId(doc._id),
-                    description: doc.transactionDescription,
-                    error: error.message,
-                });
-                console.error(`Error migrating transaction ${doc.transactionDescription}:`, error.message);
             }
         }
     }
@@ -572,54 +636,68 @@ async function migrateExpenses(db) {
             batch.push(await cursor.next());
         }
 
-        for (const doc of batch) {
-            try {
-                const expenseId = parseId(doc._id);
+        try {
+            // Map all documents in the batch
+            const expensesData = batch.map(doc => mapToExpense(doc));
 
-                // Check if expense already exists
-                const existing = await prisma.expense.findUnique({
-                    where: { id: expenseId }
-                });
+            // Batch validate account references
+            const accountIds = [...new Set(expensesData.filter(e => e.accountId).map(e => e.accountId))];
 
-                if (existing) {
-                    console.log(`Skipping existing expense: ${expenseId}`);
-                    processed++;
-                    continue;
+            const existingAccounts = accountIds.length > 0
+                ? new Set((await prisma.account.findMany({ where: { id: { in: accountIds } }, select: { id: true } })).map(a => a.id))
+                : new Set();
+
+            // Clean up invalid account references
+            expensesData.forEach(expense => {
+                if (expense.accountId && !existingAccounts.has(expense.accountId)) {
+                    expense.accountId = null;
+                    expense.accountName = null;
                 }
+            });
 
-                // Create expense
-                const expenseData = mapToExpense(doc);
+            // Bulk insert with skipDuplicates
+            const result = await prisma.expense.createMany({
+                data: expensesData,
+                skipDuplicates: true,
+            });
 
-                // Validate account reference
-                if (expenseData.accountId) {
-                    const accountExists = await prisma.account.findUnique({
-                        where: { id: expenseData.accountId }
-                    });
-                    if (!accountExists) {
-                        expenseData.accountId = null;
-                        expenseData.accountName = null;
+            success += result.count;
+            processed += batch.length;
+
+            console.log(`Progress: ${processed}/${totalDocs} (${success} inserted, ${processed - success} skipped/failed)`);
+        } catch (error) {
+            // If bulk insert fails, fall back to individual inserts for this batch
+            console.warn(`Bulk insert failed for batch, trying individual inserts: ${error.message}`);
+
+            for (const doc of batch) {
+                try {
+                    const expenseData = mapToExpense(doc);
+
+                    // Validate account reference
+                    if (expenseData.accountId) {
+                        const accountExists = await prisma.account.findUnique({
+                            where: { id: expenseData.accountId }
+                        });
+                        if (!accountExists) {
+                            expenseData.accountId = null;
+                            expenseData.accountName = null;
+                        }
                     }
+
+                    await prisma.expense.create({
+                        data: expenseData,
+                    });
+                    success++;
+                } catch (individualError) {
+                    failed++;
+                    errors.push({
+                        id: parseId(doc._id),
+                        title: doc.expenseTitle,
+                        error: individualError.message,
+                    });
+                    console.error(`Error migrating expense ${doc.expenseTitle}:`, individualError.message);
                 }
-
-                await prisma.expense.create({
-                    data: expenseData,
-                });
-
-                success++;
                 processed++;
-
-                if (processed % 10 === 0) {
-                    console.log(`Progress: ${processed}/${totalDocs} (${success} success, ${failed} failed)`);
-                }
-            } catch (error) {
-                failed++;
-                processed++;
-                errors.push({
-                    id: parseId(doc._id),
-                    title: doc.expenseTitle,
-                    error: error.message,
-                });
-                console.error(`Error migrating expense ${doc.expenseTitle}:`, error.message);
             }
         }
     }

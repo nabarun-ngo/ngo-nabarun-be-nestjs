@@ -19,7 +19,7 @@ import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
-@ApiTags('Workflows')
+@ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
 @Controller('workflows')
 export class WorkflowController {

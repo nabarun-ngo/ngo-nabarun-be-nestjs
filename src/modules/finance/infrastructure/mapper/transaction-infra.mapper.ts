@@ -22,45 +22,48 @@ export class TransactionInfraMapper {
             p.description,
             MapperUtils.nullToUndefined(p.metadata) as Record<string, any> | undefined,
             p.transactionDate,
-            p.id,
             MapperUtils.nullToUndefined(p.particulars),
             MapperUtils.nullToUndefined(p.fromAccountId),
             MapperUtils.nullToUndefined(p.toAccountId),
+            MapperUtils.nullToUndefined(Number(p.toAccountBalance)),
+            MapperUtils.nullToUndefined(Number(p.fromAccountBalance)),
             undefined,
             p.createdAt,
             p.updatedAt,
         );
     }
 
-    static toTransactionCreatePersistence(domain: Transaction): Prisma.TransactionCreateInput {
+    static toTransactionCreatePersistence(domain: Transaction): Prisma.TransactionUncheckedCreateInput {
         return {
             id: domain.id,
             type: domain.txnType,
             amount: domain.txnAmount,
             currency: domain.currency,
             status: domain.txnStatus,
-            toAccount: domain.transferToAccountId ? { connect: { id: domain.transferToAccountId } } : {},
-            fromAccount: domain.transferFromAccountId ? { connect: { id: domain.transferFromAccountId } } : {},
+            toAccountId: domain.transferToAccountId || null,
+            fromAccountId: domain.transferFromAccountId || null,
             referenceId: MapperUtils.undefinedToNull(domain.referenceId),
             referenceType: MapperUtils.undefinedToNull(domain.referenceType),
             description: domain.description,
-            metadata: domain.metadata,
+            metadata: domain.metadata || Prisma.JsonNull,
             transactionDate: domain.transactionDate,
             createdAt: domain.createdAt,
             updatedAt: domain.updatedAt,
+            toAccountBalance: domain.toAccBalance ?? 0,
+            fromAccountBalance: domain.fromAccBalance ?? 0,
             particulars: domain.txnParticulars,
         };
     }
 
-    static toTransactionUpdatePersistence(domain: Transaction): Prisma.TransactionUpdateInput {
+    static toTransactionUpdatePersistence(domain: Transaction): Prisma.TransactionUncheckedUpdateInput {
         return {
             status: domain.txnStatus,
-            toAccount: domain.transferToAccountId ? { connect: { id: domain.transferToAccountId } } : {},
-            fromAccount: domain.transferFromAccountId ? { connect: { id: domain.transferFromAccountId } } : {},
+            toAccountId: domain.transferToAccountId || null,
+            fromAccountId: domain.transferFromAccountId || null,
             referenceId: MapperUtils.undefinedToNull(domain.referenceId),
             referenceType: MapperUtils.undefinedToNull(domain.referenceType),
             description: domain.description,
-            metadata: domain.metadata,
+            metadata: domain.metadata || Prisma.JsonNull,
             transactionDate: domain.transactionDate,
             createdAt: domain.createdAt,
             updatedAt: domain.updatedAt,

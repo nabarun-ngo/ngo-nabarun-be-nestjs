@@ -19,6 +19,8 @@ import {
   DonationDetailFilterDto,
   CreateDonationDto,
   UpdateDonationDto,
+  DonationSummaryDto,
+  DonationRefDataDto,
 } from '../../application/dto/donation.dto';
 import { DonationService } from '../../application/services/donation.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
@@ -29,7 +31,7 @@ import { RequirePermissions } from 'src/modules/shared/auth/application/decorato
  * Donation Controller - matches legacy endpoints
  * Base path: /api/donation
  */
-@ApiTags('donation-controller')
+@ApiTags(DonationController.name)
 @Controller('donation')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 export class DonationController {
@@ -42,7 +44,7 @@ export class DonationController {
   @RequirePermissions('create:donation')
   @ApiOperation({ summary: 'Create new donation', description: "Authorities : 'create:donation'" })
   @ApiAutoResponse(DonationDto, { status: 201, description: 'Created' })
-  async create(@Body() dto: CreateDonationDto): Promise<SuccessResponse<DonationDto>> {
+  async createDonation(@Body() dto: CreateDonationDto): Promise<SuccessResponse<DonationDto>> {
     const donation = await this.donationService.create(dto);
     return new SuccessResponse(donation);
   }
@@ -74,13 +76,13 @@ export class DonationController {
   }
 
 
-  @Get(':donorId/list')
+  @Get(':memberId/list')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:user_donations')
   @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : 'read:user_donations'" })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
-  async getDonorDonations(
-    @Param('donorId') donorId: string,
+  async getMemberDonations(
+    @Param('memberId') memberId: string,
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: DonationDetailFilterDto,
@@ -88,8 +90,19 @@ export class DonationController {
     const result = await this.donationService.list({
       pageIndex,
       pageSize,
-      props: { ...filter, donorId },
+      props: { ...filter, donorId: memberId },
     });
+    return new SuccessResponse(result);
+  }
+
+  @Get(':donorId/summary')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : ''" })
+  @ApiAutoResponse(DonationSummaryDto, { description: 'OK', wrapInSuccessResponse: true })
+  async getDonationSummary(
+    @Param('donorId') donorId: string,
+  ): Promise<SuccessResponse<DonationSummaryDto>> {
+    const result = await this.donationService.getSummary(donorId);
     return new SuccessResponse(result);
   }
 
@@ -145,5 +158,14 @@ export class DonationController {
       props: { ...filter, isGuest: true },
     });
     return new SuccessResponse(result);
+  }
+
+  @Get('static/referenceData')
+  @ApiOperation({ summary: 'Get donation reference data' })
+  @ApiAutoResponse(DonationRefDataDto, { wrapInSuccessResponse: true, description: 'Donation reference data retrieved successfully' })
+  async getReferenceData(): Promise<SuccessResponse<DonationRefDataDto>> {
+    return new SuccessResponse<DonationRefDataDto>(
+      await this.donationService.getReferenceData()
+    );
   }
 }

@@ -8,7 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { CreateUserDto, UserDto, UserFilterDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UserService } from '../../application/services/user.service';
 import { PagedResult } from 'src/shared/models/paged-result';
@@ -17,6 +17,7 @@ import { CurrentUser } from 'src/modules/shared/auth/application/decorators/curr
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
+@ApiTags(UserController.name)
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
 @Controller('users')
 export class UserController {

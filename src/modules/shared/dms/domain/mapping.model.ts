@@ -1,7 +1,13 @@
 import { randomUUID } from "crypto";
 import { BaseDomain } from "src/shared/models/base-domain";
 
-export type DocumentMappingRefType = 'donation'|'profile';
+export enum DocumentMappingRefType {
+    DONATION = 'DONATION',
+    PROFILE = 'PROFILE',
+    TRANSACTION = 'TRANSACTION',
+    EXPENSE = 'EXPENSE',
+    EARNING = 'EARNING'
+}
 
 export class DocumentMapping extends BaseDomain<string> {
     constructor(

@@ -3,14 +3,23 @@ import { API_KEY_REPOSITORY, type IApiKeyRepository } from '../../domain/reposit
 import { ApiKey } from '../../domain/models/api-key.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthUser } from '../../domain/models/api-user.model';
+import { ApiKeyMapper } from '../dto/mapper/api-key.mapper';
+import { ApiKeyDto } from '../dto/api-key.dto';
+import { Configkey } from 'src/shared/config-keys';
+import { ConfigService } from '@nestjs/config';
+import { Auth0ResourceServerService } from '../../infrastructure/external/auth0-resource-server.service';
 
 @Injectable()
 export class ApiKeyService {
+
+
   private apiKeys = new Map<string, ApiKey>();
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
-    @Inject(API_KEY_REPOSITORY) private readonly apiKeyRepository: IApiKeyRepository
+    @Inject(API_KEY_REPOSITORY) private readonly apiKeyRepository: IApiKeyRepository,
+    private readonly configService: ConfigService,
+    private readonly auth0ResourceServerService: Auth0ResourceServerService,
   ) {
   }
 
@@ -67,6 +76,15 @@ export class ApiKeyService {
     return { keyInfo, token };
   }
 
+  async updateApiKeyPermissions(id: string, permissions: string[]): Promise<ApiKeyDto> {
+    const apiKey = await this.apiKeyRepository.findById(id);
+    if (!apiKey) {
+      throw new Error('No ApiKey found with id: ' + id);
+    }
+    apiKey.updatePermissions(permissions);
+    await this.apiKeyRepository.update(id, apiKey);
+    return ApiKeyMapper.toDto(apiKey);
+  }
 
   async revokeApiKey(id: string): Promise<boolean> {
     const apiKeyInfo = await this.apiKeyRepository.findById(id);
@@ -74,7 +92,13 @@ export class ApiKeyService {
     return this.apiKeys.delete(apiKeyInfo?.key!);
   }
 
-  async listApiKeys(): Promise<ApiKey[]> {
-    return await this.apiKeyRepository.findAll();
+  async listApiKeys(): Promise<ApiKeyDto[]> {
+    return (await this.apiKeyRepository.findAll()).map(ApiKeyMapper.toDto);
+  }
+
+  async listApiScopes(): Promise<string[]> {
+    const identifier = this.configService.get(Configkey.AUTH0_RESOURCE_API_AUDIENCE);
+    const scopes = await this.auth0ResourceServerService.getScopes(identifier);
+    return scopes?.map(scope => scope.value) ?? [];
   }
 }

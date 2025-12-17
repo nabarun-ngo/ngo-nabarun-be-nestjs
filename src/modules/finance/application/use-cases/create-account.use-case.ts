@@ -7,6 +7,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AccountType, CreateAccountDto } from '../dto/account.dto';
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { CreateTransactionUseCase } from './create-transaction.use-case';
+import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 
 export class CreateAccountRequest {
   name: string;
@@ -24,6 +26,7 @@ export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account>
     private readonly accountRepository: IAccountRepository,
     private readonly eventEmitter: EventEmitter2,
     @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
+    private readonly transactionUseCase: CreateTransactionUseCase,
   ) { }
 
   async execute(request: CreateAccountDto): Promise<Account> {
@@ -36,13 +39,25 @@ export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account>
       name: request.name,
       type: request.type,
       currency: request.currency,
-      initialBalance: request.initialBalance,
       description: request.description,
       accountHolderId: request.accountHolderId,
       accountHolderName: user.fullName,
     });
 
     const savedAccount = await this.accountRepository.create(account);
+
+    if(request?.initialBalance && request.initialBalance > 0){
+      await this.transactionUseCase.execute({
+        accountId: savedAccount?.id!,
+        txnAmount: request.initialBalance!,
+        currency: 'INR',
+        txnDescription: `Initial Balance for Account`,
+        txnType: TransactionType.IN,
+        txnDate: account.createdAt,
+        txnRefType: TransactionRefType.NONE,
+        txnParticulars: `Initial Balance for Account`,
+      })
+    }
 
     // Emit domain events
     for (const event of savedAccount.domainEvents) {

@@ -25,8 +25,8 @@ export class EarningService {
       props: filter.props,
     });
     return new PagedResult(
-      result.items.map(e => EarningDtoMapper.toDto(e)),
-      result.total,
+      result.content.map(e => EarningDtoMapper.toDto(e)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );
@@ -41,7 +41,14 @@ export class EarningService {
   }
 
   async create(dto: CreateEarningDto): Promise<EarningDetailDto> {
-    const earning = await this.createEarningUseCase.execute(dto);
+    const earning = await this.createEarningUseCase.execute({
+      accountId: dto.accountId,
+      category: dto.category,
+      amount: dto.amount,
+      currency: dto.currency,
+      description: dto.description,
+      earningDate: dto.earningDate,
+    });
     return EarningDtoMapper.toDto(earning);
   }
 

@@ -33,8 +33,8 @@ export class WorkflowService {
       props: filter.props,
     });
     return new PagedResult<WorkflowInstanceDto>(
-      result.items.map(m => WorkflowDtoMapper.toDto(m)),
-      result.total,
+      result.content.map(m => WorkflowDtoMapper.toDto(m)),
+      result.totalSize,
       result.pageIndex,
       result.pageSize,
     );
@@ -48,8 +48,8 @@ export class WorkflowService {
   async getWorkflowTasks(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTaskDto>> {
     const instance = await this.instanceRepository.findTasksPaged(filter);
     return new PagedResult<WorkflowTaskDto>(
-      instance.items.map(m => WorkflowDtoMapper.taskDomainToDto(m)),
-      instance.total,
+      instance.content.map(m => WorkflowDtoMapper.taskDomainToDto(m)),
+      instance.totalSize,
       instance.pageIndex,
       instance.pageSize,
     );

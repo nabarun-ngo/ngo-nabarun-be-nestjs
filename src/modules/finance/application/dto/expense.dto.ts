@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ValidateNested, IsDate, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { AccountDetailDto } from './account.dto';
-import { ExpenseCategory, ExpenseRefType, ExpenseStatus } from '../../domain/model/expense.model';
+import { ExpenseRefType, ExpenseStatus } from '../../domain/model/expense.model';
+import { UserDto } from 'src/modules/user/application/dto/user.dto';
 
 
 /**
@@ -10,15 +11,16 @@ import { ExpenseCategory, ExpenseRefType, ExpenseStatus } from '../../domain/mod
  */
 export class ExpenseItemDetailDto {
   @ApiProperty()
-  id: string;
-
-  @ApiProperty()
+  @IsString()
   itemName: string;
 
   @ApiPropertyOptional()
+  @IsString()
   description?: string;
 
   @ApiProperty()
+  @IsNumber()
+  @Min(1)
   amount: number;
 }
 
@@ -39,22 +41,19 @@ export class ExpenseDetailDto {
   expenseDate: Date;
 
   @ApiPropertyOptional()
-  createdBy?: string; // UserDetail reference
+  createdBy?: UserDto; // UserDetail reference
 
   @ApiProperty({ type: String, format: 'date-time' })
   createdOn: Date;
 
   @ApiPropertyOptional()
-  isAdmin?: boolean;
-
-  @ApiPropertyOptional()
   isDeligated?: boolean;
 
   @ApiPropertyOptional()
-  paidBy?: string; // UserDetail reference
+  paidBy?: UserDto; // UserDetail reference
 
   @ApiPropertyOptional()
-  finalizedBy?: string; // UserDetail reference
+  finalizedBy?: UserDto; // UserDetail reference
 
   @ApiProperty({ enum: ExpenseStatus })
   status: ExpenseStatus;
@@ -63,7 +62,7 @@ export class ExpenseDetailDto {
   finalizedOn?: Date;
 
   @ApiPropertyOptional()
-  settledBy?: string; // UserDetail reference
+  settledBy?: UserDto; // UserDetail reference
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   settledOn?: Date;
@@ -87,7 +86,7 @@ export class ExpenseDetailDto {
   settlementAccount?: AccountDetailDto;
 
   @ApiPropertyOptional()
-  rejectedBy?: string; // UserDetail reference
+  rejectedBy?: UserDto; // UserDetail reference
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   rejectedOn?: Date;
@@ -122,6 +121,9 @@ export class ExpenseDetailFilterDto {
   @IsOptional()
   @IsArray()
   @IsEnum(ExpenseStatus, { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
   expenseStatus?: ExpenseStatus[];
 
   @ApiPropertyOptional()
@@ -142,38 +144,25 @@ export class CreateExpenseDto {
   @IsString()
   description: string;
 
-  @ApiProperty({ enum: ExpenseCategory })
-  @IsEnum(ExpenseCategory)
-  category: ExpenseCategory;
-
-  @ApiProperty({ minimum: 0.01 })
-  @IsNumber()
-  @Min(0.01)
-  amount: number;
-
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  currency: string;
+  currency?: string;
 
-  @ApiProperty({ type: String, format: 'date-time' })
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  expenseDate: Date;
+  expenseDate?: Date;
 
-  @ApiPropertyOptional({ enum: ExpenseRefType })
-  @IsOptional()
+  @ApiProperty({ enum: ExpenseRefType })
   @IsEnum(ExpenseRefType)
-  expenseRefType?: ExpenseRefType;
+  expenseRefType: ExpenseRefType;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   expenseRefId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  receiptUrl?: string;
 
   @ApiPropertyOptional({ type: () => [ExpenseItemDetailDto] })
   @IsOptional()
@@ -181,6 +170,10 @@ export class CreateExpenseDto {
   @ValidateNested({ each: true })
   @Type(() => ExpenseItemDetailDto)
   expenseItems?: ExpenseItemDetailDto[];
+
+  @ApiProperty()
+  @IsString()
+  payerId: string;
 }
 
 /**
@@ -197,22 +190,11 @@ export class UpdateExpenseDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ minimum: 0.01 })
-  @IsOptional()
-  @IsNumber()
-  @Min(0.01)
-  amount?: number;
-
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @IsDate()
   @Type(() => Date)
   expenseDate?: Date;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  receiptUrl?: string;
 
   @ApiPropertyOptional({ type: () => [ExpenseItemDetailDto] })
   @IsOptional()
@@ -220,6 +202,11 @@ export class UpdateExpenseDto {
   @ValidateNested({ each: true })
   @Type(() => ExpenseItemDetailDto)
   expenseItems?: ExpenseItemDetailDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  remarks?: string;
 }
 
 

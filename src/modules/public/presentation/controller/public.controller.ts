@@ -6,7 +6,7 @@ import { IgnoreCaptchaValidation } from "src/modules/shared/auth/application/dec
 import { ContactFormDto, DonationFormDto, SignUpDto } from "../../application/dto/public.dto";
 import { ContentService } from "../../application/services/content.service";
 
-@ApiTags('Public')
+@ApiTags(PublicController.name)
 @Controller('public')
 @Public()
 export class PublicController {
