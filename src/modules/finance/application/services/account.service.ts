@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { AccountDetailDto, AccountDetailFilterDto, CreateAccountDto, UpdateAccountDto } from '../dto/account.dto';
+import { AccountDetailDto, AccountDetailFilterDto, AddFundDto, CreateAccountDto, TransferDto, UpdateAccountDto } from '../dto/account.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateAccountUseCase } from '../use-cases/create-account.use-case';
 import { UpdateAccountUseCase } from '../use-cases/update-account.use-case';
-import { CreateTransactionDto, TransactionDetailDto, TransactionDetailFilterDto } from '../dto/transaction.dto';
+import { CreateTransactionDto, ReverseTransactionDto, TransactionDetailDto, TransactionDetailFilterDto } from '../dto/transaction.dto';
 import { CreateTransactionUseCase } from '../use-cases/create-transaction.use-case';
 import { AccountDtoMapper } from '../dto/mapper/account-dto.mapper';
 import { TransactionDtoMapper } from '../dto/mapper/transaction-dto.mapper';
@@ -16,10 +16,11 @@ import { AccountStatus, AccountType } from '../../domain/model/account.model';
 import { AccountRefDataDto } from '../dto/donation.dto';
 import { MetadataService } from '../../infrastructure/external/metadata.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
+import { TransactionRefType, TransactionStatus, TransactionType } from '../../domain/model/transaction.model';
+import { ReverseTransactionUseCase } from '../use-cases/reverse-transaction.use-case';
 
 @Injectable()
 export class AccountService {
-
 
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
@@ -30,6 +31,7 @@ export class AccountService {
     private readonly updateAccountUseCase: UpdateAccountUseCase,
     private readonly createTransactionUseCase: CreateTransactionUseCase,
     private readonly metadataService: MetadataService,
+    private readonly reverseTransactionUseCase: ReverseTransactionUseCase,
 
   ) { }
 
@@ -86,6 +88,7 @@ export class AccountService {
     const transaction = await this.createTransactionUseCase.execute({
       ...dto,
       accountId,
+      currency: 'INR',
     });
     return TransactionDtoMapper.toDto(transaction, accountId);
   }
@@ -105,10 +108,65 @@ export class AccountService {
     );
   }
 
+  async transferAmount(accountId: string, dto: TransferDto, profile_id: string | undefined) {
+    const account = await this.accountRepository.findById(accountId);
+    if (!account) {
+      throw new BusinessException('Account not found with id ' + accountId);
+    }
+    if (profile_id && account.accountHolderId !== profile_id) {
+      throw new BusinessException('Account does not belongs to user.')
+    }
+    const transaction = await this.createTransactionUseCase.execute({
+      accountId,
+      transferToAccountId: dto.toAccountId,
+      txnAmount: dto.amount,
+      txnDescription: dto.description,
+      txnDate: dto.transferDate,
+      txnType: TransactionType.TRANSFER,
+      currency: 'INR',
+      txnRefType: TransactionRefType.NONE,
+      txnParticulars: 'Transfer to ' + dto.toAccountId,
+    });
+    return TransactionDtoMapper.toDto(transaction, accountId);
+  }
+
+  async addFundToAccount(accountId: string, dto: AddFundDto, profile_id: string | undefined) {
+    const account = await this.accountRepository.findById(accountId);
+    if (!account) {
+      throw new BusinessException('Account not found with id ' + accountId);
+    }
+    if (profile_id && account.accountHolderId !== profile_id) {
+      throw new BusinessException('Account does not belongs to user.')
+    }
+
+    const transaction = await this.createTransactionUseCase.execute({
+      txnAmount: dto.amount,
+      currency: 'INR',
+      txnDescription: dto.description,
+      txnParticulars: `Add fund ${dto.amount} to ${accountId}`,
+      txnRefId: accountId,
+      txnRefType: TransactionRefType.NONE,
+      accountId: accountId,
+      txnDate: dto.transferDate,
+      txnType: TransactionType.IN,
+    });
+    return TransactionDtoMapper.toDto(transaction, accountId);
+  }
+
+  async reverseTransaction(accountId: string, dto: ReverseTransactionDto) {
+    const transaction = await this.reverseTransactionUseCase.execute({
+      accountId: accountId,
+      reason: dto.comment,
+      txnId: dto.transactionId,
+    });
+    return TransactionDtoMapper.toDto(transaction, accountId);
+  }
+
+
   async getReferenceData(): Promise<AccountRefDataDto> {
     const data = await this.metadataService.getReferenceData()
     return {
-      accountStatuses: data.acc_type.map(toKeyValueDto),
+      accountStatuses: data.acc_status.map(toKeyValueDto),
       accountTypes: data.acc_type.map(toKeyValueDto),
       transactionRefTypes: data.txn_types.map(toKeyValueDto),
     };

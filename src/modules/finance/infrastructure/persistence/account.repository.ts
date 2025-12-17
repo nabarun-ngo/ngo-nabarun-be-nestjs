@@ -68,7 +68,6 @@ class AccountRepository implements IAccountRepository {
       ...(props?.id ? { id: props.id } : {}),
       deletedAt: null,
     };
-    console.log(where)
     return where;
   }
 

@@ -117,17 +117,7 @@ export class CreateEarningDto {
 
   @ApiProperty()
   @IsString()
-  source: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  referenceId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  referenceType?: string;
+  accountId: string;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()

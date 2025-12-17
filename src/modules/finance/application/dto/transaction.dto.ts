@@ -9,48 +9,79 @@ import { TransactionRefType, TransactionStatus, TransactionType } from '../../do
  */
 export class TransactionDetailDto {
   @ApiProperty()
+  @IsString()
   txnId: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   txnNumber?: string;
 
   @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   txnDate: Date;
 
   @ApiProperty()
+  @IsNumber()
+  @Min(0.01)
   txnAmount: number;
 
   @ApiProperty({ enum: TransactionType })
+  @IsEnum(TransactionType)
   txnType: TransactionType;
 
   @ApiProperty({ enum: TransactionStatus })
+  @IsEnum(TransactionStatus)
   txnStatus: TransactionStatus;
 
   @ApiProperty()
+  @IsString()
   txnDescription: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   txnParticulars?: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   txnRefId?: string;
 
   @ApiPropertyOptional({ enum: TransactionRefType })
+  @IsOptional()
+  @IsEnum(TransactionRefType)
   txnRefType?: TransactionRefType;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
   accBalance?: number;
 
-  @ApiPropertyOptional({ type: AccountDetailDto })
-  transferFrom?: AccountDetailDto;
-
-  @ApiPropertyOptional({ type: AccountDetailDto })
-  transferTo?: AccountDetailDto;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  accTxnType?: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  transferFrom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  transferTo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   comment?: string;
 
-  @ApiPropertyOptional({ type: AccountDetailDto })
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => AccountDetailDto)
   account?: AccountDetailDto;
 }
 
@@ -149,3 +180,13 @@ export class CreateTransactionDto {
   txnDate?: Date;
 }
 
+
+export class ReverseTransactionDto {
+  @ApiProperty()
+  @IsString()
+  transactionId: string;
+
+  @ApiProperty()
+  @IsString()
+  comment: string;
+}

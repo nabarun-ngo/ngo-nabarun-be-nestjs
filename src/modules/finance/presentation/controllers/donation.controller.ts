@@ -76,13 +76,13 @@ export class DonationController {
   }
 
 
-  @Get(':donorId/list')
+  @Get(':memberId/list')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:user_donations')
   @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : 'read:user_donations'" })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
-  async getDonorDonations(
-    @Param('donorId') donorId: string,
+  async getMemberDonations(
+    @Param('memberId') memberId: string,
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
     @Query() filter?: DonationDetailFilterDto,
@@ -90,7 +90,7 @@ export class DonationController {
     const result = await this.donationService.list({
       pageIndex,
       pageSize,
-      props: { ...filter, donorId },
+      props: { ...filter, donorId: memberId },
     });
     return new SuccessResponse(result);
   }

@@ -11,12 +11,14 @@ interface CreateTeansaction {
   txnType: TransactionType;
   txnAmount: number;
   currency: string;
-  accountId: string;
+  accountId: string;// from Account Id
+  transferToAccountId?: string;// to Account Id
   txnDescription: string;
   txnParticulars?: string;
   txnRefId?: string;
   txnRefType?: TransactionRefType;
   txnDate?: Date;
+  comment?: string;
 }
 
 @Injectable()
@@ -50,12 +52,18 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, Tra
         referenceType: request.txnRefType as any,
         txnParticulars: request.txnParticulars,
         transactionDate: request.txnDate,
+        comment: request.comment,
       });
 
       // Credit account
       account.credit(request.txnAmount);
       // Set account balance in transaction
       transaction.setToAccountBalance(account.balance);
+
+      // Save transaction
+      await this.transactionRepository.create(transaction);
+      // Update account balance
+      await this.accountRepository.update(account.id, account);
     } else if (request.txnType === 'OUT') {
       if (!account.hasSufficientFunds(request.txnAmount)) {
         throw new BusinessException('Insufficient account balance');
@@ -70,21 +78,61 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, Tra
         referenceType: request.txnRefType as any,
         txnParticulars: request.txnParticulars,
         transactionDate: request.txnDate,
+        comment: request.comment,
       });
 
       // Debit account
       account.debit(request.txnAmount);
       // Set account balance in transaction
       transaction.setFromAccountBalance(account.balance);
+
+      // Save transaction
+      await this.transactionRepository.create(transaction);
+      // Update account balance
+      await this.accountRepository.update(account.id, account);
+    } else if (request.txnType === 'TRANSFER') {
+
+      if (!account.hasSufficientFunds(request.txnAmount)) {
+        throw new BusinessException('Insufficient account balance');
+      }
+      if (!request.transferToAccountId) {
+        throw new BusinessException('Transfer to account id is required');
+      }
+      const toAccount = await this.accountRepository.findById(request.transferToAccountId);
+      if (!toAccount) {
+        throw new BusinessException('Account not found with id ' + request.transferToAccountId);
+      }
+
+      transaction = Transaction.createTransfer({
+        amount: request.txnAmount,
+        currency: request.currency,
+        fromAccountId: request.accountId,
+        toAccountId: request.transferToAccountId,
+        description: request.txnDescription,
+        transactionDate: request.txnDate,
+        txnParticulars: request.txnParticulars,
+        comment: request.comment,
+      });
+      // Debit account
+      account.debit(request.txnAmount);
+      // Set account balance in transaction
+      transaction.setFromAccountBalance(account.balance);
+
+      // Credit to account
+      toAccount.credit(request.txnAmount);
+      // Set account balance in transaction
+      transaction.setToAccountBalance(toAccount.balance);
+
+      // Save transaction
+      await this.transactionRepository.create(transaction);
+      // Update account balance
+      await this.accountRepository.update(account.id, account);
+      await this.accountRepository.update(toAccount.id, toAccount);
     } else {
-      throw new BusinessException('Transfer transactions must be created through transfer use case');
+      throw new BusinessException('Invalid transaction type');
     }
 
-    // Update account balance
-    await this.accountRepository.update(account.id, account);
 
-    // Save transaction
-    const savedTransaction = await this.transactionRepository.create(transaction);
 
     // Emit domain events
     // for (const event of savedTransaction.domainEvents) {
@@ -92,7 +140,7 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, Tra
     // }
     // savedTransaction.clearEvents();
 
-    return savedTransaction;
+    return transaction;
   }
 }
 

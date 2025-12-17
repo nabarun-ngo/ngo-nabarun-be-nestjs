@@ -57,7 +57,7 @@ export class Earning extends AggregateRoot<string> {
     amount: number;
     currency: string;
     description: string;
-    source: string;
+    source?: string;
     referenceId?: string;
     referenceType?: string;
     earningDate?: Date;
@@ -69,7 +69,7 @@ export class Earning extends AggregateRoot<string> {
       props.currency,
       EarningStatus.PENDING,
       props.description,
-      props.source,
+      props.source || '',
       props.referenceId,
       props.referenceType,
       undefined,

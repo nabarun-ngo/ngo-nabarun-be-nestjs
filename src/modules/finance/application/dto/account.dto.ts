@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested, IsDate } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 /**
@@ -244,6 +244,42 @@ export class UpdateAccountDto {
   @ValidateNested()
   @Type(() => UPIDetailDto)
   upiDetail?: UPIDetailDto;
+}
+
+
+export class TransferDto {
+  @ApiProperty()
+  @IsString()
+  toAccountId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty()
+  @IsString()
+  description: string;
+
+  @ApiProperty()
+  @IsDate()
+  transferDate: Date;
+
+}
+
+export class AddFundDto {
+
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty()
+  @IsString()
+  description: string;
+
+  @ApiProperty()
+  @IsDate()
+  transferDate: Date;
+
 }
 
 

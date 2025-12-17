@@ -22,7 +22,7 @@ class TransactionRepository implements ITransactionRepository {
     const [data, total] = await Promise.all([
       this.prisma.transaction.findMany({
         where,
-        orderBy: { transactionDate: 'desc' },
+        orderBy: { createdAt: 'desc' },
         include: {
         },
         skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
@@ -42,7 +42,7 @@ class TransactionRepository implements ITransactionRepository {
   async findAll(filter?: TransactionDetailFilterDto): Promise<Transaction[]> {
     const transactions = await this.prisma.transaction.findMany({
       where: this.whereQuery(filter),
-      orderBy: { transactionDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: {
       },
     });
@@ -81,7 +81,7 @@ class TransactionRepository implements ITransactionRepository {
 
 
   async create(transaction: Transaction): Promise<Transaction> {
-    const createData: Prisma.TransactionCreateInput = {
+    const createData: Prisma.TransactionUncheckedCreateInput = {
       ...TransactionInfraMapper.toTransactionCreatePersistence(transaction),
     };
 
@@ -95,7 +95,7 @@ class TransactionRepository implements ITransactionRepository {
   }
 
   async update(id: string, transaction: Transaction): Promise<Transaction> {
-    const updateData: Prisma.TransactionUpdateInput = {
+    const updateData: Prisma.TransactionUncheckedUpdateInput = {
       ...TransactionInfraMapper.toTransactionUpdatePersistence(transaction),
     };
 

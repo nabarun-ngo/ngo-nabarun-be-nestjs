@@ -18,8 +18,10 @@ import {
   UpdateAccountDto,
   UpdateAccountSelfDto,
   AccountDetailFilterDto,
+  TransferDto,
+  AddFundDto,
 } from '../../application/dto/account.dto';
-import { TransactionDetailDto, TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
+import { ReverseTransactionDto, TransactionDetailDto, TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
 import { AccountService } from '../../application/services/account.service';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
@@ -144,6 +146,44 @@ export class AccountController {
     }, user?.profile_id);
     return new SuccessResponse(result);
   }
+
+  @Post(':id/transfer/me')
+  @ApiOperation({ summary: 'Transfer amount to another account', })
+  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async transferAmountSelf(
+    @Param('id') accountId: string,
+    @Body() dto: TransferDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<TransactionDetailDto>> {
+    const result = await this.accountService.transferAmount(accountId, dto, user?.profile_id);
+    return new SuccessResponse(result);
+  }
+
+  @Post(':id/addFund/me')
+  @ApiOperation({ summary: 'Add fund to account', })
+  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async addFundSelf(
+    @Param('id') accountId: string,
+    @Body() dto: AddFundDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<TransactionDetailDto>> {
+    const result = await this.accountService.addFundToAccount(accountId, dto, user?.profile_id);
+    return new SuccessResponse(result);
+  }
+
+
+  @Post(':id/transaction/reverse')
+  @ApiOperation({ summary: 'Reverse transaction for account', description: "" })
+  // @RequirePermissions('update:transactions')
+  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async reverseTransaction(
+    @Param('id') id: string,
+    @Body() dto: ReverseTransactionDto,
+  ): Promise<SuccessResponse<TransactionDetailDto>> {
+    const result = await this.accountService.reverseTransaction(id, dto);
+    return new SuccessResponse(result);
+  }
+
 
   @Get('payable-account')
   @ApiOperation({ summary: 'Get account data for payable', })
