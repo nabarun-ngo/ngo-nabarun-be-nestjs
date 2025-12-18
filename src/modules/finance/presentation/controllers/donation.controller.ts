@@ -42,7 +42,7 @@ export class DonationController {
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   @RequirePermissions('create:donation')
-  @ApiOperation({ summary: 'Create new donation', description: "Authorities : 'create:donation'" })
+  @ApiOperation({ summary: 'Create new donation' })
   @ApiAutoResponse(DonationDto, { status: 201, description: 'Created' })
   async createDonation(@Body() dto: CreateDonationDto): Promise<SuccessResponse<DonationDto>> {
     const donation = await this.donationService.create(dto);
@@ -52,7 +52,7 @@ export class DonationController {
   @Patch(':id/update')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('update:donation')
-  @ApiOperation({ summary: 'Update donation details', description: "Authorities : 'update:donation'" })
+  @ApiOperation({ summary: 'Update donation details' })
   @ApiAutoResponse(DonationDto, { status: 200, description: 'OK' })
   async update(
     @Param('id') id: string,
@@ -79,7 +79,7 @@ export class DonationController {
   @Get(':memberId/list')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:user_donations')
-  @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : 'read:user_donations'" })
+  @ApiOperation({ summary: 'Get donations by donor' })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
   async getMemberDonations(
     @Param('memberId') memberId: string,
@@ -97,7 +97,7 @@ export class DonationController {
 
   @Get(':donorId/summary')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get donations by donor', description: "Authorities : ''" })
+  @ApiOperation({ summary: 'Get donations by donor' })
   @ApiAutoResponse(DonationSummaryDto, { description: 'OK', wrapInSuccessResponse: true })
   async getDonationSummary(
     @Param('donorId') donorId: string,
@@ -127,7 +127,7 @@ export class DonationController {
   @Get('list')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:donations')
-  @ApiOperation({ summary: 'List all donations', description: "Authorities : 'read:donation'" })
+  @ApiOperation({ summary: 'List all donations' })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
   async list(
     @Query('pageIndex') pageIndex?: number,
@@ -145,7 +145,7 @@ export class DonationController {
   @Get('list/guest')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:donation_guest')
-  @ApiOperation({ summary: 'List guest donations', description: "Authorities : 'read:donation_guest'" })
+  @ApiOperation({ summary: 'List guest donations' })
   @ApiAutoPagedResponse(DonationDto, { description: 'OK', wrapInSuccessResponse: true })
   async listGuestDonations(
     @Query('pageIndex') pageIndex?: number,

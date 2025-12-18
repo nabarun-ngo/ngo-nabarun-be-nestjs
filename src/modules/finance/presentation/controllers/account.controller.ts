@@ -44,7 +44,7 @@ export class AccountController {
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
   @RequirePermissions('create:account')
-  @ApiOperation({ summary: 'Create new account', description: "Authorities : 'create:account'" })
+  @ApiOperation({ summary: 'Create new account' })
   @ApiAutoResponse(AccountDetailDto, { status: 201, description: 'Created' })
   async createAccount(@Body() dto: CreateAccountDto): Promise<SuccessResponse<AccountDetailDto>> {
     const account = await this.accountService.create(dto);
@@ -54,7 +54,7 @@ export class AccountController {
   @Put(':id/update')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('update:account')
-  @ApiOperation({ summary: 'Update account details', description: "Authorities : 'update:account'" })
+  @ApiOperation({ summary: 'Update account details' })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK' })
   async updateAccount(
     @Param('id') id: string,
@@ -66,7 +66,7 @@ export class AccountController {
 
   @Put(':id/update/me')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update own account details', description: "" })
+  @ApiOperation({ summary: 'Update own account details' })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK' })
   async updateSelf(
     @Param('id') id: string,
@@ -94,7 +94,7 @@ export class AccountController {
   }
 
   @Get('list/me')
-  @ApiOperation({ summary: 'List own accounts', })
+  @ApiOperation({ summary: 'List own accounts' })
   @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listSelfAccounts(
     @Query('pageIndex') pageIndex?: number,
@@ -112,7 +112,7 @@ export class AccountController {
 
 
   @Get(':id/transactions')
-  @ApiOperation({ summary: 'List transactions for account', description: "Authorities : 'read:transactions'" })
+  @ApiOperation({ summary: 'List transactions for account' })
   @RequirePermissions('read:transactions')
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listAccountTransactions(
@@ -130,7 +130,7 @@ export class AccountController {
   }
 
   @Get(':id/transactions/me')
-  @ApiOperation({ summary: 'List own transactions for account', })
+  @ApiOperation({ summary: 'List own transactions for account' })
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listSelfAccountTransactions(
     @Param('id') accountId: string,
@@ -148,7 +148,7 @@ export class AccountController {
   }
 
   @Post(':id/transfer/me')
-  @ApiOperation({ summary: 'Transfer amount to another account', })
+  @ApiOperation({ summary: 'Transfer amount to another account' })
   @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async transferAmountSelf(
     @Param('id') accountId: string,
@@ -160,7 +160,7 @@ export class AccountController {
   }
 
   @Post(':id/addFund/me')
-  @ApiOperation({ summary: 'Add fund to account', })
+  @ApiOperation({ summary: 'Add fund to account' })
   @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async addFundSelf(
     @Param('id') accountId: string,
@@ -173,7 +173,7 @@ export class AccountController {
 
 
   @Post(':id/transaction/reverse')
-  @ApiOperation({ summary: 'Reverse transaction for account', description: "" })
+  @ApiOperation({ summary: 'Reverse transaction for account' })
   // @RequirePermissions('update:transactions')
   @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async reverseTransaction(
@@ -186,7 +186,7 @@ export class AccountController {
 
 
   @Get('payable-account')
-  @ApiOperation({ summary: 'Get account data for payable', })
+  @ApiOperation({ summary: 'Get account data for payable' })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK', isArray: true, wrapInSuccessResponse: true })
   @ApiQuery({ name: 'isTransfer', required: false, type: Boolean })
   async payableAccount(@Query() isTransfer: boolean): Promise<SuccessResponse<AccountDetailDto[]>> {
