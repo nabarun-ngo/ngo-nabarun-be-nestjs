@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Account, BankDetail, UPIDetail } from '../../domain/model/account.model';
+import { Account, AccountType, BankDetail, UPIDetail } from '../../domain/model/account.model';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AccountType, CreateAccountDto } from '../dto/account.dto';
+import { CreateAccountDto } from '../dto/account.dto';
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
@@ -46,7 +46,7 @@ export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account>
 
     const savedAccount = await this.accountRepository.create(account);
 
-    if(request?.initialBalance && request.initialBalance > 0){
+    if (request?.initialBalance && request.initialBalance > 0) {
       await this.transactionUseCase.execute({
         accountId: savedAccount?.id!,
         txnAmount: request.initialBalance!,

@@ -1,25 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested, IsDate } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-
-/**
- * Account Type Enum - matches legacy system
- */
-export enum AccountType {
-  PRINCIPAL = 'PRINCIPAL',
-  GENERAL = 'GENERAL',
-  DONATION = 'DONATION',
-  PUBLIC_DONATION = 'PUBLIC_DONATION',
-}
-
-/**
- * Account Status Enum - matches legacy system
- */
-export enum AccountStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  BLOCKED = 'BLOCKED',
-}
+import { AccountStatus, AccountType } from '../../domain/model/account.model';
 
 /**
  * Bank Detail DTO - matches legacy system

@@ -5,15 +5,17 @@ import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum AccountType {
   PRINCIPAL = 'PRINCIPAL',    // Legacy: Principal account
-  GENERAL = 'GENERAL',        // Legacy: General account
-  DONATION = 'DONATION',      // Legacy: Donation account
+  GENERAL = 'GENERAL',        // Legacy: General account // Not in use
+  DONATION = 'DONATION',      // Legacy: Donation account // Cashier Account
   PUBLIC_DONATION = 'PUBLIC_DONATION', // Legacy: Public donation account
+  EXPENSE = 'EXPENSE',        // Expense Account
 }
 
 export enum AccountStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   BLOCKED = 'BLOCKED',        // Legacy: BLOCKED instead of CLOSED
+  CLOSED = 'CLOSED',
 }
 
 /**
