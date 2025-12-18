@@ -72,6 +72,31 @@ export function configureSwagger(app: INestApplication) {
     }
   });
 
+  // Post-process document to add permissions to description
+  Object.values(document.paths).forEach((pathItem) => {
+    Object.keys(pathItem).forEach((method) => {
+      // only process http methods
+      if (['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].includes(method)) {
+        const operation: any = pathItem[method];
+        if (operation && operation['x-required-permissions']) {
+          const permissions = operation['x-required-permissions'] as string[];
+          const requireAll = operation['x-require-all-permissions'] === true;
+
+          if (Array.isArray(permissions) && permissions.length > 0) {
+            const permissionList = permissions.map((p) => `- \`${p}\``).join('\n');
+            const suffix = requireAll
+              ? '\n_(All permissions required)_'
+              : '\n_(Any of these permissions)_';
+
+            const permissionText = `\n\n**Required Permissions:**\n${permissionList}${suffix}`;
+
+            operation.description = (operation.description || '') + permissionText;
+          }
+        }
+      }
+    });
+  });
+
   SwaggerModule.setup('swagger-ui', app, document, {
     jsonDocumentUrl: 'api/docs',
   });
