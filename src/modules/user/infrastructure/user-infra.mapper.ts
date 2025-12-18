@@ -111,34 +111,6 @@ export class UserInfraMapper {
     );
   }
 
-  // static toUserPersistence(
-  //   user: User,
-  // ): Partial<Prisma.UserProfileUpdateInput | Prisma.UserProfileCreateInput> {
-  //   return {
-  //     id: user.id,
-  //     title: user.title,
-  //     firstName: user.firstName,
-  //     middleName: user.middleName,
-  //     lastName: user.lastName,
-  //     dateOfBirth: user.dateOfBirth,
-  //     gender: user.gender,
-  //     about: user.about,
-  //     picture: user.picture,
-  //     email: user.email,
-  //     isPublic: user.isPublic,
-  //     authUserId: user.authUserId,
-  //     status: user.status,
-  //     isTemporary: user.isTemporary,
-  //     isSameAddress: user.isSameAddress,
-  //     loginMethods: user.loginMethod.join(','),
-  //     panNumber: user.panNumber,
-  //     aadharNumber: user.aadharNumber,
-  //     donationPauseStart: user.donationPauseStart,
-  //     donationPauseEnd: user.donationPauseEnd,
-  //     createdAt: user.createdAt,
-  //     updatedAt: user.updatedAt
-  //   };
-  // }
 
   /**
    * Convert User domain model to Prisma create input

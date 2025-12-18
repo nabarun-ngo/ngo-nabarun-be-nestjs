@@ -291,8 +291,8 @@ export class Expense extends AggregateRoot<string> {
     expenseItems?: ExpenseItem[];
     remarks?: string;
   }): void {
-    if (this.#status !== ExpenseStatus.DRAFT) {
-      throw new BusinessException('Can only update draft expenses');
+    if (!(this.#status === ExpenseStatus.DRAFT || this.#status === ExpenseStatus.SUBMITTED)) {
+      throw new BusinessException('Can only update draft or submitted expenses');
     }
 
     if (props.name !== undefined) {

@@ -72,9 +72,9 @@ export class ExpenseController {
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async finalizeExpense(
     @Param('id') id: string,
-    @Body() body: { finalizedBy: string },
+    @CurrentUser() user: AuthUser,
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.expenseService.finalize(id, body.finalizedBy);
+    const expense = await this.expenseService.finalize(id, user.profile_id!);
     return new SuccessResponse(expense);
   }
 
@@ -85,16 +85,17 @@ export class ExpenseController {
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async settleExpense(
     @Param('id') id: string,
-    @Body() body: { accountId: string; settledBy: string },
+    @Body() body: { accountId: string },
+    @CurrentUser() user: AuthUser,
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.expenseService.settle(id, body.accountId, body.settledBy);
+    const expense = await this.expenseService.settle(id, body.accountId, user.profile_id!);
     return new SuccessResponse(expense);
   }
 
   @Get('list')
-  @RequirePermissions('read:expense')
+  @RequirePermissions('read:expenses')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List all expenses', description: "Authorities : 'read:expense'" })
+  @ApiOperation({ summary: 'List all expenses', description: "Authorities : 'read:expenses'" })
   @ApiAutoPagedResponse(ExpenseDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listExpenses(
     @Query('pageIndex') pageIndex?: number,
@@ -111,7 +112,7 @@ export class ExpenseController {
 
   @Get('list/me')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'List own expenses', description: "Authorities : 'read:expense'" })
+  @ApiOperation({ summary: 'List own expenses', description: "" })
   @ApiAutoPagedResponse(ExpenseDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listSelfExpenses(
     @Query('pageIndex') pageIndex?: number,
@@ -128,9 +129,9 @@ export class ExpenseController {
   }
 
   @Get(':id')
-  @RequirePermissions('read:expense')
+  @RequirePermissions('read:expenses')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get expense by ID', description: "Authorities : 'read:expense'" })
+  @ApiOperation({ summary: 'Get expense by ID', description: "Authorities : 'read:expenses'" })
   @ApiAutoResponse(ExpenseDetailDto, { description: 'OK' })
   async getExpenseById(@Param('id') id: string): Promise<SuccessResponse<ExpenseDetailDto>> {
     const expense = await this.expenseService.getById(id);
