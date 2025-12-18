@@ -36,11 +36,11 @@ export class UserInfraMapper {
       model.email,
       primaryNumber
         ? new PhoneNumber(
-            primaryNumber.id,
-            primaryNumber.phoneCode ?? '',
-            primaryNumber.phoneNumber ?? '',
-            primaryNumber.hidden,
-          )
+          primaryNumber.id,
+          primaryNumber.phoneCode ?? '',
+          primaryNumber.phoneNumber ?? '',
+          primaryNumber.hidden,
+        )
         : undefined,
       model.status as UserStatus,
       model.isTemporary,
@@ -62,37 +62,37 @@ export class UserInfraMapper {
       ),
       secondaryNumber
         ? new PhoneNumber(
-            secondaryNumber.id,
-            secondaryNumber.phoneCode ?? '',
-            secondaryNumber.phoneNumber ?? '',
-            secondaryNumber.hidden,
-          )
+          secondaryNumber.id,
+          secondaryNumber.phoneCode ?? '',
+          secondaryNumber.phoneNumber ?? '',
+          secondaryNumber.hidden,
+        )
         : undefined,
       presentAddress
         ? new Address(
-            presentAddress.id,
-            presentAddress.addressLine1 ?? '',
-            presentAddress.addressLine2 ?? '',
-            presentAddress.addressLine3 ?? '',
-            presentAddress.hometown ?? '',
-            presentAddress.zipCode ?? '',
-            presentAddress.state ?? '',
-            presentAddress.district ?? '',
-            presentAddress.country ?? '',
-          )
+          presentAddress.id,
+          presentAddress.addressLine1 ?? '',
+          presentAddress.addressLine2 ?? '',
+          presentAddress.addressLine3 ?? '',
+          presentAddress.hometown ?? '',
+          presentAddress.zipCode ?? '',
+          presentAddress.state ?? '',
+          presentAddress.district ?? '',
+          presentAddress.country ?? '',
+        )
         : undefined,
       permanentAddress
         ? new Address(
-            permanentAddress.id,
-            permanentAddress.addressLine1 ?? '',
-            permanentAddress.addressLine2 ?? '',
-            permanentAddress.addressLine3 ?? '',
-            permanentAddress.hometown ?? '',
-            permanentAddress.zipCode ?? '',
-            permanentAddress.state ?? '',
-            permanentAddress.district ?? '',
-            permanentAddress.country ?? '',
-          )
+          permanentAddress.id,
+          permanentAddress.addressLine1 ?? '',
+          permanentAddress.addressLine2 ?? '',
+          permanentAddress.addressLine3 ?? '',
+          permanentAddress.hometown ?? '',
+          permanentAddress.zipCode ?? '',
+          permanentAddress.state ?? '',
+          permanentAddress.district ?? '',
+          permanentAddress.country ?? '',
+        )
         : undefined,
       MapperUtils.withDefault(model.isPublic, true),
       MapperUtils.nullToUndefined(model.authUserId),
@@ -107,6 +107,7 @@ export class UserInfraMapper {
       MapperUtils.nullToUndefined(model.donationPauseEnd),
       MapperUtils.nullToUndefined(model.panNumber),
       MapperUtils.nullToUndefined(model.aadharNumber),
+      MapperUtils.nullToUndefined(model.deletedAt) == undefined ? undefined : true,
     );
   }
 
@@ -167,6 +168,7 @@ export class UserInfraMapper {
       donationPauseEnd: MapperUtils.undefinedToNull(user.donationPauseEnd),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      deletedAt: user.isDeleted ? new Date() : null,
     };
   }
 

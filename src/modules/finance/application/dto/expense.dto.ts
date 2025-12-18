@@ -190,6 +190,11 @@ export class UpdateExpenseDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEnum(ExpenseStatus)
+  status?: ExpenseStatus;
+
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @IsDate()

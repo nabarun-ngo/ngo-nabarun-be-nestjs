@@ -60,8 +60,8 @@ export class ExpenseService {
     return ExpenseDtoMapper.toDto(expense);
   }
 
-  async update(id: string, dto: UpdateExpenseDto): Promise<ExpenseDetailDto> {
-    const expense = await this.updateExpenseUseCase.execute({ id, dto });
+  async update(id: string, dto: UpdateExpenseDto, updatedById: string): Promise<ExpenseDetailDto> {
+    const expense = await this.updateExpenseUseCase.execute({ id, dto, updatedById });
     return ExpenseDtoMapper.toDto(expense);
   }
 

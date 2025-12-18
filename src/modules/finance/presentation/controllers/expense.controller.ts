@@ -57,8 +57,9 @@ export class ExpenseController {
   async updateExpense(
     @Param('id') id: string,
     @Body() dto: UpdateExpenseDto,
+    @CurrentUser() user: AuthUser,
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.expenseService.update(id, dto);
+    const expense = await this.expenseService.update(id, dto, user.profile_id!);
     return new SuccessResponse(expense);
   }
 

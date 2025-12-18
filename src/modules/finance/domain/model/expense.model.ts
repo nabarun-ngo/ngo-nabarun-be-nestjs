@@ -242,7 +242,7 @@ export class Expense extends AggregateRoot<string> {
    * Reject expense
    * Business validation: Can only reject submitted expenses
    */
-  reject(rejectedBy: User, remarks?: string): void {
+  reject(rejectedBy: Partial<User>, remarks?: string): void {
     if (this.#status !== ExpenseStatus.SUBMITTED) {
       throw new BusinessException('Can only reject submitted expenses');
     }
