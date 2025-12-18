@@ -8,6 +8,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { randomBytes } from 'crypto';
 import { OauthMapper } from '../dto/mapper/oauth.mapper';
+import { SlackNotificationRequestEvent } from 'src/modules/shared/correspondence/events/slack-notification-request.event';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -310,6 +311,10 @@ export class GoogleOAuthService {
     });
 
     if (!tokenRecord) {
+      this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
+        message: `No OAuth token found with scope ${scope}. Please login to admin portal and create a new token with the mentioned scope.`,
+        type: 'error',
+      });
       throw new Error(
         `No OAuth token found with scope ${scope}. Please ask admin to authenticate first.`,
       );

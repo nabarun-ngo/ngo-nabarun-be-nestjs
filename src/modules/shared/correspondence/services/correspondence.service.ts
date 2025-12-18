@@ -7,6 +7,9 @@ import { EmailTemplateData } from '../dtos/email-template.dto';
 
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+
 
 
 
@@ -18,6 +21,7 @@ export class CorrespondenceService {
     private readonly configService: ConfigService,
     private readonly gmailService: GmailService,
     private readonly rcService: RemoteConfigService,
+    private readonly httpService: HttpService,
   ) { }
 
   /**
@@ -41,8 +45,8 @@ export class CorrespondenceService {
       return await this.gmailService.sendEmail(html, {
         ...request.options,
         subject: request.options.subject ?? data.subject,
-        recipients: { to: mockedEmail}
-      },from);
+        recipients: { to: mockedEmail }
+      }, from);
     } else {
       return Promise.resolve({
         success: false,
@@ -61,44 +65,41 @@ export class CorrespondenceService {
     return renderJsonTemplateFromString<EmailTemplateData>(configStr, data);
   }
 
-  /**
-   * Send a notification (email, SMS, or push)
-   */
-  async sendNotification(
-    request: SendNotificationRequest,
-  ): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
-    switch (request.type) {
-      case 'email':
-        return {
-          success: false,
-          error: 'Email notifications not implemented',
-        };
-      case 'sms':
-        // TODO: Implement SMS sending
-        this.logger.warn('SMS notification not implemented yet');
-        return {
-          success: false,
-          error: 'SMS notifications not implemented',
-        };
 
-      case 'push':
-        // TODO: Implement push notification sending
-        this.logger.warn('Push notification not implemented yet');
-        return {
-          success: false,
-          error: 'Push notifications not implemented',
-        };
-
-      default:
-        return {
-          success: false,
-          error: `Unsupported notification type: ${request.type}`,
-        };
+  async sendSlackAlert(message: string, type: string = 'error') {
+    this.logger.log(`Sending slack notification`);
+    try {
+      const webhookUrl = this.configService.get<string>(Configkey.SLACK_WEBHOOK_URL);
+      if (!webhookUrl) {
+        return { success: false, error: 'Slack webhook URL not configured' };
+      }
+      const response$ = this.httpService.post(webhookUrl, {
+        text: `
+        <!channel> 🚨 *${type} Notification*
+        *Environment:* \`${this.configService.get<string>(Configkey.NODE_ENV)}\`
+        *Type:* *${type}*
+        *Message:*
+        ${message}
+        `
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const response = await firstValueFrom(response$)
+      this.logger.log(`Slack notification sent successfully`);
+      return {
+        success: true,
+        response: response,
+      };
+    }
+    catch (error) {
+      this.logger.error(`Failed to send slack notification: ${error}`);
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
-
 }
 

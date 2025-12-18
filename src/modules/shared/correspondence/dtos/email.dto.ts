@@ -33,7 +33,7 @@ export interface SendEmailRequest {
 
 export interface SendNotificationRequest {
     userId: string;
-    type: 'email' | 'sms' | 'push';
+    type: 'email' | 'sms' | 'push' | 'slack';
     to: string;
     subject: string;
     message: string;

@@ -31,4 +31,5 @@ export enum Configkey {
     EMAIL_SENDER = "EMAIL_SENDER",
     NODE_ENV = "NODE_ENV",
     LOG_LEVEL = "LOG_LEVEL",
+    SLACK_WEBHOOK_URL = "SLACK_WEBHOOK_URL",
 }
