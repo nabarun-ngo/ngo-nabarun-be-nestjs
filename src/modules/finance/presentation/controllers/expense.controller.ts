@@ -48,7 +48,6 @@ export class ExpenseController {
     const expense = await this.expenseService.create(dto, user);
     return new SuccessResponse(expense);
   }
-
   @Put(':id/update')
   @RequirePermissions('update:expense')
   @HttpCode(HttpStatus.OK)
@@ -62,7 +61,6 @@ export class ExpenseController {
     const expense = await this.expenseService.update(id, dto, user.profile_id!);
     return new SuccessResponse(expense);
   }
-
 
 
   @Post(':id/finalize')
@@ -85,10 +83,10 @@ export class ExpenseController {
   @ApiAutoResponse(ExpenseDetailDto, { status: 200, description: 'OK' })
   async settleExpense(
     @Param('id') id: string,
-    @Body() body: { accountId: string },
+    @Query('accountId') accountId: string,
     @CurrentUser() user: AuthUser,
   ): Promise<SuccessResponse<ExpenseDetailDto>> {
-    const expense = await this.expenseService.settle(id, body.accountId, user.profile_id!);
+    const expense = await this.expenseService.settle(id, accountId, user.profile_id!);
     return new SuccessResponse(expense);
   }
 

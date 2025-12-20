@@ -6,11 +6,11 @@ import type { IExpenseRepository } from '../../domain/repositories/expense.repos
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { Transaction } from '../../domain/model/transaction.model';
+import { Transaction, TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { User } from 'src/modules/user/domain/model/user.model';
+import { CreateTransactionUseCase } from './create-transaction.use-case';
 
 @Injectable()
 export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: string; settledById: string }, Expense> {
@@ -19,9 +19,8 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
     private readonly expenseRepository: IExpenseRepository,
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
-    @Inject(TRANSACTION_REPOSITORY)
-    private readonly transactionRepository: ITransactionRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly transactionUseCase: CreateTransactionUseCase,
   ) { }
 
   async execute(request: { id: string; accountId: string; settledById: string }): Promise<Expense> {
@@ -43,28 +42,23 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
       throw new BusinessException('Insufficient account balance');
     }
 
-    // Create transaction
-    const transaction = Transaction.createOut({
-      amount: expense.amount,
+    const transaction = await this.transactionUseCase.execute({
+      txnAmount: expense.amount,
       currency: expense.currency,
       accountId: request.accountId,
-      description: `Expense settlement: ${expense.name}`,
-      referenceId: expense.id,
-      referenceType: 'EXPENSE' as any,
+      txnDescription: `Expense settlement: ${expense.name}`,
+      txnRefId: expense.id,
+      txnRefType: TransactionRefType.EXPENSE,
+      txnType: TransactionType.OUT,
+      txnDate: new Date(),
+      txnParticulars: 'Expense settlement',
     });
-
-    // Debit account
-    account.debit(expense.amount);
-    await this.accountRepository.update(account.id, account);
-
-    // Save transaction
-    const savedTransaction = await this.transactionRepository.create(transaction);
 
     // Settle expense
     expense.settle({
       settledBy: { id: request.settledById },
       accountId: request.accountId,
-      transactionId: savedTransaction.id,
+      transactionId: transaction.id,
     });
 
     const updatedExpense = await this.expenseRepository.update(expense.id, expense);

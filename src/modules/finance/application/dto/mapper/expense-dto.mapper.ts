@@ -27,7 +27,7 @@ export class ExpenseDtoMapper {
       expenseRefType: expense.referenceType,
       expenseRefId: expense.referenceId,
       txnNumber: expense.txnNumber,
-      settlementAccount: undefined, // Would need to fetch account
+      settlementAccountId: expense.accountId!, // Would need to fetch account
       rejectedBy: expense.rejectedBy ? UserDtoMapper.toUserDTO(expense.rejectedBy as User) : undefined, // UserDetail reference
       rejectedOn: expense.rejectedDate,
       remarks: expense.remarks,

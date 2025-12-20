@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
-import { KeyValue } from "src/shared/dto/KeyValue.dto";
 import { parseKeyValueConfigs, toKeyValueDto } from "src/shared/utilities/kv-config.util";
 import { StaticDocumentDto } from "../../presentation/dto/static-docs.dto";
 

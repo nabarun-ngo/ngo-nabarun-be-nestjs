@@ -8,9 +8,8 @@ export enum AccountType {
   GENERAL = 'GENERAL',        // Legacy: General account // Not in use
   DONATION = 'DONATION',      // Legacy: Donation account // Cashier Account
   PUBLIC_DONATION = 'PUBLIC_DONATION', // Legacy: Public donation account
-  EXPENSE = 'EXPENSE',        // Expense Account
+  WALLET = 'WALLET',
 }
-
 export enum AccountStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',

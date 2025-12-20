@@ -4,7 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DonationType, DonationStatus, PaymentMethod, UPIPaymentType } from '../../domain/model/donation.model';
 import { AccountDetailDto } from './account.dto';
 import { UserDto } from 'src/modules/user/application/dto/user.dto';
-import { KeyValue } from 'src/shared/dto/KeyValue.dto';
+import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
 
 export class CreateDonationDto {
 
@@ -314,27 +314,27 @@ export class DonationSummaryDto {
 
 export class DonationRefDataDto {
   @ApiProperty()
-  donationStatuses?: KeyValue[];
+  donationStatuses?: KeyValueDto[];
 
   @ApiProperty()
-  donationTypes?: KeyValue[];
+  donationTypes?: KeyValueDto[];
 
   @ApiProperty()
-  paymentMethods?: KeyValue[];
+  paymentMethods?: KeyValueDto[];
 
   @ApiProperty()
-  upiOptions?: KeyValue[];
+  upiOptions?: KeyValueDto[];
 
 }
 
 export class AccountRefDataDto {
   @ApiProperty()
-  accountStatuses?: KeyValue[];
+  accountStatuses?: KeyValueDto[];
 
   @ApiProperty()
-  accountTypes?: KeyValue[];
+  accountTypes?: KeyValueDto[];
 
   @ApiProperty()
-  transactionRefTypes?: KeyValue[];
+  transactionRefTypes?: KeyValueDto[];
 
 }

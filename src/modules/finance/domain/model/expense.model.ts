@@ -218,6 +218,9 @@ export class Expense extends AggregateRoot<string> {
     if (this.#status !== ExpenseStatus.DRAFT) {
       throw new BusinessException('Can only submit draft expenses');
     }
+    if (this.#amount <= 0) {
+      throw new BusinessException('Expense amount must be greater than zero');
+    }
     this.#status = ExpenseStatus.SUBMITTED;
     this.#submittedBy = submittedBy;
     this.#submittedDate = new Date();
@@ -291,7 +294,8 @@ export class Expense extends AggregateRoot<string> {
     expenseItems?: ExpenseItem[];
     remarks?: string;
   }): void {
-    if (!(this.#status === ExpenseStatus.DRAFT || this.#status === ExpenseStatus.SUBMITTED)) {
+    const allowedStatus = [ExpenseStatus.DRAFT, ExpenseStatus.SUBMITTED];
+    if (!allowedStatus.includes(this.#status)) {
       throw new BusinessException('Can only update draft or submitted expenses');
     }
 

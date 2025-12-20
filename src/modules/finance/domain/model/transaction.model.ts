@@ -25,6 +25,7 @@ export class TransactionFilter {
   type?: TransactionType[];
   status?: TransactionStatus[];
   referenceType?: TransactionRefType[];
+  referenceId?: string;
   accountId?: string;
   startDate?: Date;
   endDate?: Date;

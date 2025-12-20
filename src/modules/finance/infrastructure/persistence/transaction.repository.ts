@@ -39,7 +39,7 @@ class TransactionRepository implements ITransactionRepository {
     );
   }
 
-  async findAll(filter?: TransactionDetailFilterDto): Promise<Transaction[]> {
+  async findAll(filter?: TransactionFilter): Promise<Transaction[]> {
     const transactions = await this.prisma.transaction.findMany({
       where: this.whereQuery(filter),
       orderBy: { createdAt: 'desc' },
@@ -55,6 +55,8 @@ class TransactionRepository implements ITransactionRepository {
       ...(props?.type ? { type: { in: props.type } } : {}),
       ...(props?.status ? { status: { in: props.status } } : {}),
       ...(props?.accountId ? { OR: [{ fromAccountId: props.accountId }, { toAccountId: props.accountId }] } : {}),
+      ...(props?.referenceType ? { referenceType: { in: props.referenceType } } : {}),
+      ...(props?.referenceId ? { referenceId: props.referenceId } : {}),
       ...(props?.startDate || props?.endDate
         ? {
           transactionDate: {

@@ -9,7 +9,7 @@ import { ExpenseItemDetailDto } from '../dto/expense.dto';
 
 class CreateExpense {
   name: string;
-  description: string;
+  description?: string;
   currency?: string;
   expenseDate?: Date;
   expenseRefId?: string;
@@ -41,7 +41,7 @@ export class CreateExpenseUseCase implements IUseCase<CreateExpense, Expense> {
 
     const expense = Expense.create({
       name: request.name,
-      description: request.description,
+      description: request.description || '',
       requestedBy: { id: request.requestedById },
       paidBy: { id: request.paidById },
       referenceId: request.expenseRefId,

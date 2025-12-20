@@ -11,9 +11,15 @@ import { FinalizeExpenseUseCase } from '../use-cases/finalize-expense.use-case';
 import { ExpenseDtoMapper } from '../dto/mapper/expense-dto.mapper';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
+import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
+import { AccountStatus, AccountType } from '../../domain/model/account.model';
+import { AccountDtoMapper } from '../dto/mapper/account-dto.mapper';
+import { ExpenseStatus } from '../../domain/model/expense.model';
 
 @Injectable()
 export class ExpenseService {
+
   constructor(
     @Inject(EXPENSE_REPOSITORY)
     private readonly expenseRepository: IExpenseRepository,
@@ -21,6 +27,8 @@ export class ExpenseService {
     private readonly updateExpenseUseCase: UpdateExpenseUseCase,
     private readonly settleExpenseUseCase: SettleExpenseUseCase,
     private readonly finalizeExpenseUseCase: FinalizeExpenseUseCase,
+    @Inject(ACCOUNT_REPOSITORY)
+    private readonly accountRepository: IAccountRepository,
   ) { }
 
   async list(filter: BaseFilter<ExpenseDetailFilterDto>): Promise<PagedResult<ExpenseDetailDto>> {
@@ -73,6 +81,10 @@ export class ExpenseService {
   async finalize(id: string, finalizedById: string): Promise<ExpenseDetailDto> {
     const expense = await this.finalizeExpenseUseCase.execute({ id, finalizedById });
     return ExpenseDtoMapper.toDto(expense);
+  }
+
+  async allocateFund(id: string, dto: UpdateExpenseDto, arg2: string) {
+    throw new Error('Method not implemented.');
   }
 }
 
