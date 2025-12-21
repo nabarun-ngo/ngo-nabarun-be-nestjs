@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
-import { DonationDto, DonationDetailFilterDto, CreateDonationDto, UpdateDonationDto, DonationSummaryDto, DonationRefDataDto } from '../dto/donation.dto';
+import { DonationDto, DonationDetailFilterDto, CreateDonationDto, UpdateDonationDto, DonationSummaryDto, DonationRefDataDto, CreateGuestDonationDto } from '../dto/donation.dto';
 import { DonationDtoMapper } from '../dto/mapper/donation-dto.mapper';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
@@ -65,6 +65,19 @@ export class DonationService {
       startDate: dto.startDate,
       donorId: dto.donorId,
       forEventId: dto.type == DonationType.ONETIME ? dto.forEventId : undefined,
+    });
+    return DonationDtoMapper.toDto(donation);
+  }
+
+  async createGuest(dto: CreateGuestDonationDto): Promise<DonationDto> {
+    const donation = await this.createDonationUseCase.execute({
+      type: DonationType.ONETIME,
+      amount: dto.amount,
+      isGuest: true,
+      donorName: dto.donorName,
+      donorEmail: dto.donorEmail,
+      donorNumber: dto.donorNumber,
+      forEventId: dto.forEventId,
     });
     return DonationDtoMapper.toDto(donation);
   }

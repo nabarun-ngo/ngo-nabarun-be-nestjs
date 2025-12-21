@@ -21,6 +21,7 @@ import {
   UpdateDonationDto,
   DonationSummaryDto,
   DonationRefDataDto,
+  CreateGuestDonationDto,
 } from '../../application/dto/donation.dto';
 import { DonationService } from '../../application/services/donation.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
@@ -46,6 +47,16 @@ export class DonationController {
   @ApiAutoResponse(DonationDto, { status: 201, description: 'Created' })
   async createDonation(@Body() dto: CreateDonationDto): Promise<SuccessResponse<DonationDto>> {
     const donation = await this.donationService.create(dto);
+    return new SuccessResponse(donation);
+  }
+
+  @Post('create/guest')
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('create:donation')
+  @ApiOperation({ summary: 'Create new guest donation' })
+  @ApiAutoResponse(DonationDto, { status: 201, description: 'Created' })
+  async createGuestDonation(@Body() dto: CreateGuestDonationDto): Promise<SuccessResponse<DonationDto>> {
+    const donation = await this.donationService.createGuest(dto);
     return new SuccessResponse(donation);
   }
 
