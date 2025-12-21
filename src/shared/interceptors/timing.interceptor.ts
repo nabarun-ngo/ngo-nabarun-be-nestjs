@@ -9,7 +9,7 @@ export class TimingInterceptor implements NestInterceptor {
             tap(() => {
                 const req = ctx.switchToHttp().getRequest();
                 console.log(
-                    `${req.method} ${req.url} ${Date.now() - start}ms`
+                    `[TimingInterceptor] ${req.method} ${req.url} ${Date.now() - start}ms`
                 );
             }),
         );

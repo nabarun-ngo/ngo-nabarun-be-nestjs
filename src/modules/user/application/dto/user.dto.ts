@@ -16,7 +16,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { LoginMethod, UserStatus } from '../../domain/model/user.model';
 import { LinkType } from '../../domain/model/link.model';
-import { KeyValue } from 'src/shared/dto/KeyValue.dto';
+import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
 
 export class PhoneNumberDto {
 
@@ -284,36 +284,36 @@ export class UserUpdateAdminDto {
 export class UserFilterDto {
 
   @ApiPropertyOptional()
-  @IsOptional() 
+  @IsOptional()
   readonly firstName?: string;
 
-  @ApiPropertyOptional() 
-  @IsOptional() 
+  @ApiPropertyOptional()
+  @IsOptional()
   readonly lastName?: string;
 
-  @ApiPropertyOptional() 
-  @IsOptional() 
+  @ApiPropertyOptional()
+  @IsOptional()
   readonly email?: string;
 
-  @ApiPropertyOptional({ enum: UserStatus }) 
-  @IsOptional() 
+  @ApiPropertyOptional({ enum: UserStatus })
+  @IsOptional()
   readonly status?: UserStatus;
 
   @ApiPropertyOptional({ isArray: true, type: String })
   @IsOptional()
-  @IsString({ each: true }) 
+  @IsString({ each: true })
   @Transform(({ value }) =>
     Array.isArray(value) ? value : value ? [value] : undefined
   )
   @IsArray()
   readonly roleCodes?: string[];
 
-  @ApiPropertyOptional() 
-  @IsOptional() 
+  @ApiPropertyOptional()
+  @IsOptional()
   readonly phoneNumber?: string;
 
-  @ApiPropertyOptional() 
-  @IsOptional() 
+  @ApiPropertyOptional()
+  @IsOptional()
   readonly public?: boolean;
 
 }
@@ -379,23 +379,23 @@ export class UserDto {
 
 export class UserRefDataDto {
   @ApiProperty()
-  userStatuses?: KeyValue[];
+  userStatuses?: KeyValueDto[];
   @ApiProperty()
-  loginMethods?: KeyValue[];
+  loginMethods?: KeyValueDto[];
   @ApiProperty()
-  userGenders?: KeyValue[];
+  userGenders?: KeyValueDto[];
   @ApiProperty()
-  availableRoles?: KeyValue[];
+  availableRoles?: KeyValueDto[];
   @ApiProperty()
-  userTitles?: KeyValue[];
+  userTitles?: KeyValueDto[];
   @ApiProperty()
-  countries?: KeyValue[];
+  countries?: KeyValueDto[];
   @ApiProperty()
-  states?: KeyValue[];
+  states?: KeyValueDto[];
   @ApiProperty()
-  districts?: KeyValue[];
+  districts?: KeyValueDto[];
   @ApiProperty()
-  phoneCodes?: KeyValue[];
+  phoneCodes?: KeyValueDto[];
 
 }
 

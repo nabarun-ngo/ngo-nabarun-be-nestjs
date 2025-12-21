@@ -55,7 +55,7 @@ export class UserController {
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   @RequirePermissions('read:user')
-  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User retrieved successfully, Authorities : read:user' })
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User retrieved successfully' })
   async getUser(@Param('id') id: string): Promise<SuccessResponse<UserDto>> {
     return new SuccessResponse<UserDto>(
       await this.userService.getById(id)
@@ -95,7 +95,7 @@ export class UserController {
   @Put(':id')
   @ApiOperation({ summary: 'Update user (admin update)' })
   @RequirePermissions('update:user')
-  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User updated successfully, Authorities : update:user' })
+  @ApiAutoResponse(UserDto, { wrapInSuccessResponse: true, description: 'User updated successfully' })
   async updateUser(
     @Param('id') id: string,
     @Body() command: UserUpdateAdminDto,
@@ -109,7 +109,7 @@ export class UserController {
   @Post(':id/assign-role')
   @ApiOperation({ summary: 'Assign Role to user' })
   @RequirePermissions('update:user_role')
-  @ApiAutoVoidResponse({ description: 'Role assigned successfully, Authorities : update:user_role' })
+  @ApiAutoVoidResponse({ description: 'Role assigned successfully' })
   async assignRole(
     @Param('id') id: string,
     @Body() roles: string[],
@@ -122,7 +122,7 @@ export class UserController {
   @Post('role/:roleCode/assign')
   @ApiOperation({ summary: 'Assign Role to user' })
   @RequirePermissions('update:user_role')
-  @ApiAutoVoidResponse({ description: 'Role assigned to users successfully, Authorities : update:user_role' })
+  @ApiAutoVoidResponse({ description: 'Role assigned to users successfully' })
   async assignRoleToUser(
     @Param('roleCode') roleCode: string,
     @Body() userIds: string[],

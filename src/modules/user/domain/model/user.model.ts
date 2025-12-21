@@ -6,7 +6,7 @@ import { Role } from './role.model';
 import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.model';
 import { Link } from './link.model';
-import { generatePassword, generateUniqueNDigitNumber } from '../../../../shared/utilities/password-util';
+import { generateUniqueNDigitNumber } from '../../../../shared/utilities/password-util';
 import { RoleAssignedEvent } from '../events/role-assigned.event';
 
 export enum UserStatus {
@@ -87,6 +87,8 @@ export class User extends AggregateRoot<string> {
   #panNumber?: string;
   #aadharNumber?: string;
   #isProfileCompleted!: boolean;
+  #isDeleted?: boolean;
+
 
   // ---- Factory
   public static create(data: {
@@ -95,27 +97,46 @@ export class User extends AggregateRoot<string> {
     email: string;
     number: PhoneNumber;
     isTemporary: boolean;
-  }): User {
+  }, existingUser?: User | null): User {
     if (!data.firstName || !data.lastName || !data.email || !data.number) {
       throw new BusinessException(
         'firstName, lastName, phoneNumber and email are required',
       );
     }
     const user = new User(
-      randomUUID(),
+      existingUser?.id ?? randomUUID(),
       data.firstName,
       data.lastName,
       data.email,
       data.number,
       UserStatus.DRAFT,
       data.isTemporary,
+      existingUser?.title,
+      existingUser?.middleName,
+      existingUser?.dateOfBirth,
+      existingUser?.gender,
+      existingUser?.about,
+      existingUser?.picture,
+      undefined,
+      existingUser?.secondaryNumber,
+      existingUser?.presentAddress,
+      existingUser?.permanentAddress,
+      existingUser?.isPublic,
+      undefined,
+      existingUser?.isSameAddress,
+      undefined,
+      existingUser?.socialMediaLinks as Link[],
+      existingUser?.donationPauseStart,
+      existingUser?.donationPauseEnd,
+      existingUser?.panNumber,
+      existingUser?.aadharNumber,
     );
-    user.generatePassword();
+    user.createPassword();
     user.addDomainEvent(new UserCreatedEvent(user.id, user));
     return user;
   }
 
-  private generatePassword() {
+  private createPassword() {
     this.#password = `Nabarun@${generateUniqueNDigitNumber(6)}#Default`;
   }
 
@@ -359,6 +380,7 @@ export class User extends AggregateRoot<string> {
     donationPauseEnd?: Date,
     panNumber?: string,
     aadharNumber?: string,
+    deleted?: boolean,
   ) {
     super(id);
     this.#firstName = firstName;
@@ -385,6 +407,7 @@ export class User extends AggregateRoot<string> {
     this.#donationPauseEnd = donationPauseEnd;
     this.#panNumber = panNumber;
     this.#aadharNumber = aadharNumber;
+    this.#isDeleted = deleted;
     this.#isProfileCompleted = this.checkComplteness();
     this.#fullName = this.computeFullName();
     this.#initials = this.computeInitials();
@@ -509,5 +532,9 @@ export class User extends AggregateRoot<string> {
 
   get password() {
     return this.#password;
+  }
+
+  get isDeleted() {
+    return this.#isDeleted;
   }
 }

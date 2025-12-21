@@ -39,7 +39,7 @@ export class EarningController {
   @Post('create')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('create:earning')
-  @ApiOperation({ summary: 'Create new earning', description: "Authorities : 'create:earning'" })
+  @ApiOperation({ summary: 'Create new earning' })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
   async createEarning(@Body() dto: CreateEarningDto): Promise<SuccessResponse<EarningDetailDto>> {
     const earning = await this.earningService.create(dto);
@@ -49,7 +49,7 @@ export class EarningController {
   @Put(':id/update')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('update:earning')
-  @ApiOperation({ summary: 'Update earning details', description: "Authorities : 'update:earning'" })
+  @ApiOperation({ summary: 'Update earning details' })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
   async updateEarning(
     @Param('id') id: string,
@@ -62,7 +62,7 @@ export class EarningController {
   @Get('list')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:earning')
-  @ApiOperation({ summary: 'List all earnings', description: "Authorities : 'read:earning'" })
+  @ApiOperation({ summary: 'List all earnings' })
   @ApiAutoPagedResponse(EarningDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listEarnings(
     @Query('pageIndex') pageIndex?: number,
@@ -98,7 +98,7 @@ export class EarningController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions('read:earning')
-  @ApiOperation({ summary: 'Get earning by ID', description: "Authorities : 'read:earning'" })
+  @ApiOperation({ summary: 'Get earning by ID' })
   @ApiAutoResponse(EarningDetailDto, { description: 'OK' })
   async getEarningById(@Param('id') id: string): Promise<SuccessResponse<EarningDetailDto>> {
     const earning = await this.earningService.getById(id);

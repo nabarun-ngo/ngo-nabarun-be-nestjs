@@ -20,20 +20,24 @@ export class UserEventsHandler {
   @OnEvent(UserCreatedEvent.name, { async: true })
   async handleUserCreatedEvent(event: UserCreatedEvent) {
     this.logger.log(`Handling ${UserCreatedEvent.name} event: for user ${event.user.email} `)
-    await this.corrService.sendTemplatedEmail({
-      templateName: EmailTemplateName.USER_ONBOARDED,
-      data: {
-        name: event.user.fullName,
+
+    await this.jobProcessingService.addJob(
+      JobName.SEND_ONBOARDING_EMAIL,
+      {
+        fullName: event.user.fullName,
         email: event.user.email,
         password: event.user.password,
       },
-      options: {
-        recipients: {
-          to: event.user.email,
-        }
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
       }
-    });
-    this.logger.log(`Onboarding Email sent successfully!!`);
+    );
     await this.jobProcessingService.addJob(
       JobName.UPDATE_USER_ROLE,
       {

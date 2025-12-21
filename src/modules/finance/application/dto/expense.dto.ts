@@ -16,6 +16,7 @@ export class ExpenseItemDetailDto {
 
   @ApiPropertyOptional()
   @IsString()
+  @IsOptional()
   description?: string;
 
   @ApiProperty()
@@ -82,8 +83,8 @@ export class ExpenseDetailDto {
   @ApiPropertyOptional()
   txnNumber?: string;
 
-  @ApiPropertyOptional({ type: AccountDetailDto })
-  settlementAccount?: AccountDetailDto;
+  @ApiPropertyOptional()
+  settlementAccountId?: string;
 
   @ApiPropertyOptional()
   rejectedBy?: UserDto; // UserDetail reference
@@ -140,9 +141,10 @@ export class CreateExpenseDto {
   @IsString()
   name: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsString()
-  description: string;
+  @IsOptional()
+  description?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -190,6 +192,11 @@ export class UpdateExpenseDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEnum(ExpenseStatus)
+  status?: ExpenseStatus;
+
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @IsDate()
@@ -209,4 +216,17 @@ export class UpdateExpenseDto {
   remarks?: string;
 }
 
+export class AllocateFundDto {
 
+  @ApiProperty()
+  @IsString()
+  fromAccountId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty()
+  @IsString()
+  toAccountId: string;
+}
