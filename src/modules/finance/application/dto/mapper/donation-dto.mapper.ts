@@ -37,6 +37,7 @@ export class DonationDtoMapper {
       cancelletionReason: donation.cancelletionReason,
       laterPaymentReason: donation.laterPaymentReason,
       paymentFailureDetail: donation.paymentFailureDetail,
+      nextStatuses: donation.nextStatus(),
     };
   }
 

@@ -242,6 +242,11 @@ export class DonationDto {
   @ApiPropertyOptional({ description: 'Payment failure details' })
   paymentFailureDetail?: string;
 
+  @ApiProperty({ description: 'Next possible statuses for this donation', isArray: true, enum: DonationStatus })
+  @IsArray()
+  @IsEnum(DonationStatus, { each: true })
+  nextStatuses: DonationStatus[];
+
 }
 
 export class UpdateDonationDto {
