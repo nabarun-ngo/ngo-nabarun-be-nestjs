@@ -26,7 +26,6 @@ export class CreateDonationUseCase implements IUseCase<CreateDonation, Donation>
   constructor(
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
-    private readonly userService: UserService,
     private readonly eventEmitter: EventEmitter2,
   ) { }
 

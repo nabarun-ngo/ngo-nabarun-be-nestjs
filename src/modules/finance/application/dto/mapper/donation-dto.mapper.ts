@@ -19,6 +19,7 @@ export class DonationDtoMapper {
       donorId: donation.donorId!,
       donorName: donation.donorName,
       donorEmail: donation.donorEmail,
+      donorNumber: donation.donorNumber,
       // Legacy fields
       isGuest: donation.isGuest,
       startDate: donation.startDate,
@@ -36,6 +37,7 @@ export class DonationDtoMapper {
       cancelletionReason: donation.cancelletionReason,
       laterPaymentReason: donation.laterPaymentReason,
       paymentFailureDetail: donation.paymentFailureDetail,
+      nextStatuses: donation.nextStatus(),
     };
   }
 

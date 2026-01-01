@@ -93,8 +93,8 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
       }
 
     }
-    const updatedDonation = await this.donationRepository.update(request.id, donation);
-    return updatedDonation;
+    console.log(donation.toJson());
+    return await this.donationRepository.update(request.id, donation);
   }
 }
 

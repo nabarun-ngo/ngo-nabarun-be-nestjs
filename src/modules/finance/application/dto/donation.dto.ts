@@ -65,7 +65,7 @@ export class CreateGuestDonationDto {
   @IsOptional()
   @IsString()
   @ApiPropertyOptional({ description: 'Required in case of ONETIME donations' })
-  forEventId?: Date;
+  forEventId?: string;
 }
 
 export class ProcessDonationPaymentDto {
@@ -185,6 +185,9 @@ export class DonationDto {
   @ApiPropertyOptional()
   donorEmail?: string;
 
+  @ApiPropertyOptional()
+  donorNumber?: string;
+
   @ApiPropertyOptional({ type: String, format: 'date-time', description: 'Start date for regular donations' })
   startDate?: Date;
 
@@ -238,6 +241,11 @@ export class DonationDto {
 
   @ApiPropertyOptional({ description: 'Payment failure details' })
   paymentFailureDetail?: string;
+
+  @ApiProperty({ description: 'Next possible statuses for this donation', isArray: true, enum: DonationStatus })
+  @IsArray()
+  @IsEnum(DonationStatus, { each: true })
+  nextStatuses: DonationStatus[];
 
 }
 

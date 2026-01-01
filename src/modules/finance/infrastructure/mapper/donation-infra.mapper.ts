@@ -87,6 +87,7 @@ export class DonationInfraMapper {
   static toDonationUpdatePersistence(domain: Donation): Prisma.DonationUncheckedUpdateInput {
     return {
       status: domain.status,
+      amount: domain.amount,
       paidOn: MapperUtils.undefinedToNull(domain.paidOn),
       transactionRef: MapperUtils.undefinedToNull(domain.transactionRef),
       confirmedById: MapperUtils.undefinedToNull(domain.confirmedBy?.id),
@@ -99,7 +100,7 @@ export class DonationInfraMapper {
       cancelletionReason: MapperUtils.undefinedToNull(domain.cancelletionReason),
       laterPaymentReason: MapperUtils.undefinedToNull(domain.laterPaymentReason),
       paymentFailureDetail: MapperUtils.undefinedToNull(domain.paymentFailureDetail),
-      updatedAt: new Date(),
+      updatedAt: domain.updatedAt,
     };
   }
 
