@@ -85,7 +85,7 @@ model UserProfile {
 }
 
 model UserRole {
-  id           String  @id
+  id           String  @id @default(uuid())
   roleCode     String  @db.VarChar(50)
   roleName     String  @db.VarChar(50)
   authRoleCode String  @db.VarChar(50)
@@ -404,7 +404,7 @@ model Transaction {
   fromAccount   Account? @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount     Account? @relation(name: "ToAccount", fields: [toAccountId], references: [id])
 
-  fromAccountBalance   Decimal @db.Decimal(15, 2)
+  fromAccountBalance Decimal @db.Decimal(15, 2)
   toAccountBalance   Decimal @db.Decimal(15, 2)
 
   // Reference to source

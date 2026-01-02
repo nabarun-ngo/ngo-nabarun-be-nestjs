@@ -1,6 +1,5 @@
 import { MongoClient, ObjectId, Db } from 'mongodb';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
 
 
 const prisma = new PrismaClient({
@@ -29,7 +28,7 @@ const getDatabase = (client: MongoClient): Db => {
 const parseId = (id: any): string => {
     if (typeof id === 'string') return id;
     if (id && typeof id === 'object' && id.$oid) return id.$oid;
-    return id?.toString() || uuidv4();
+    return id?.toString() || '';
 };
 
 // Parse MongoDB Date
