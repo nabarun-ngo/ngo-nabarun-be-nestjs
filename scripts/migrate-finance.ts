@@ -2,6 +2,7 @@ import { MongoClient, ObjectId, Db } from 'mongodb';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
+
 const prisma = new PrismaClient({
     datasourceUrl: process.env.MIG_POSTGRES_URL,
 });
@@ -1005,15 +1006,22 @@ export async function verifyMigration() {
     }
 }
 
-if (require.main === module) {
-    migrateFinance()
-        .then(() => {
-            console.log('\nRunning verification...');
-            return verifyMigration();
-        })
-        .then(() => process.exit(0))
-        .catch(err => {
-            console.error(err);
-            process.exit(1);
-        });
+async function main() {
+    const args = process.argv.slice(2);
+    const verify = args.includes('--verify');
+
+    if (verify) {
+        await verifyMigration();
+    } else {
+        await migrateFinance();
+        console.log('\nRunning verification...');
+        await verifyMigration();
+    }
 }
+
+main()
+    .then(() => process.exit(0))
+    .catch(err => {
+        console.error(err);
+        process.exit(1);
+    });
