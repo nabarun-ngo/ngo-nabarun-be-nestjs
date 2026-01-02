@@ -195,7 +195,7 @@ model WorkflowInstance {
   name          String
   type          String  @db.VarChar(50)
   description   String  @db.Text
-  status        String  @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  status        String  @db.VarChar(50) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
   currentStepId String? @db.VarChar(100)
   data          String? @db.Text
 
@@ -206,7 +206,7 @@ model WorkflowInstance {
   initiatedForId String?      @db.VarChar(100)
 
   completedAt DateTime?
-  remarks     String?   @db.VarChar(255)
+  remarks     String?   @db.Text
   delegated   Boolean   @default(false)
 
   createdAt DateTime @default(now())
