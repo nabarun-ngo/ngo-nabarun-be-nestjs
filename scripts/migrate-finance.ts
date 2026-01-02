@@ -243,7 +243,7 @@ interface MongoExpenseDoc {
 
 
 // Map MongoDB Account to Prisma Account
-const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountCreateInput => {
+const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountUncheckedCreateInput => {
     const bankDetail: any = {};
     if (doc.bankAccountHolderName) bankDetail.bankAccountHolderName = doc.bankAccountHolderName;
     if (doc.bankName) bankDetail.bankName = doc.bankName;
@@ -266,7 +266,7 @@ const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountCreateInput => {
         status: mapAccountStatus(doc.accountStatus),
         description: null,
         accountHolderName: doc.bankAccountHolderName || null,
-        accountHolder: doc.profile ? { connect: { id: doc.profile } } : undefined,
+        accountHolderId: doc.profile ? doc.profile : undefined,
         activatedOn: parseDate(doc.activatedOn),
         bankDetail: Object.keys(bankDetail).length > 0 ? JSON.stringify(bankDetail) : null,
         upiDetail: Object.keys(upiDetail).length > 0 ? JSON.stringify(upiDetail) : null,
@@ -299,9 +299,9 @@ const mapToDonation = (doc: MongoDonationDoc): Prisma.DonationCreateInput => {
         currency: 'INR',
         status: mapDonationStatus(doc.status),
         donor: donorId ? { connect: { id: donorId } } : undefined,
-        donorName: isGuest ? donorName : null,
-        donorEmail: isGuest ? donorEmail : null,
-        donorPhone: isGuest ? donorPhone : null,
+        donorName: donorName,
+        donorEmail: donorEmail,
+        donorPhone: donorPhone,
         isGuest: isGuest,
         startDate: parseDate(doc.startDate),
         endDate: parseDate(doc.endDate),
@@ -439,7 +439,7 @@ async function migrateAccounts(db: Db): Promise<{ success: number; failed: numbe
 
             // Bulk insert with skipDuplicates
             const result = await prisma.account.createMany({
-                data: accountsData as any, // Cast to any to avoid strict relations check in createMany
+                data: accountsData, // Cast to any to avoid strict relations check in createMany
                 skipDuplicates: true,
             });
 
@@ -809,7 +809,7 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
         for (let i = 0; i < BATCH_SIZE && await cursor.hasNext(); i++) {
             const nextDoc = await cursor.next();
             if (nextDoc) {
-                batch.push(nextDoc as unknown as MongoExpenseDoc);
+                batch.push(nextDoc as MongoExpenseDoc);
             }
         }
 
@@ -817,7 +817,7 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
 
         try {
             // Map to Scalars for Bulk Insert
-            const expensesData = batch.map(doc => {
+            const expensesData: Prisma.ExpenseUncheckedCreateInput[] = batch.map(doc => {
                 return {
                     id: parseId(doc._id),
                     title: doc.expenseTitle || 'Untitled Expense',
@@ -829,7 +829,7 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
                     referenceId: doc.expenseRefId || null,
                     referenceType: doc.expenseRefType || null,
                     isDelegated: doc.deligated || false, // Note: MongoDB has typo 'deligated'
-
+                    rejectedOn: doc.rejectedById ? parseDate(doc.rejectedOn) : null,
                     createdById: doc.createdById,
                     paidById: doc.paidById,
                     finalizedById: doc.finalizedById,
@@ -839,7 +839,8 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
                     rejectedById: doc.rejectedById,
                     updatedById: doc.updatedById,
                     updatedOn: parseDate(doc.updatedOn),
-
+                    submittedById: doc.createdById,
+                    submittedOn: parseDate(doc.expenseCreatedOn),
                     accountId: doc.expenseAccountId || null,
                     accountName: doc.expenseAccountName || null,
                     transactionRef: doc.transactionRefNumber || null,
@@ -852,7 +853,7 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
                     updatedAt: new Date(),
                     version: 0,
                     deletedAt: doc.deleted ? new Date() : null,
-                };
+                } as Prisma.ExpenseUncheckedCreateInput;
             });
 
 
@@ -873,7 +874,7 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
 
             // Bulk insert with skipDuplicates
             const result = await prisma.expense.createMany({
-                data: expensesData as any,
+                data: expensesData,
                 skipDuplicates: true,
             });
 
@@ -998,6 +999,22 @@ export async function verifyMigration() {
         console.log(`  MongoDB: ${mongoDonationsCount}`);
         console.log(`  PostgreSQL: ${pgDonationsCount}`);
         console.log(`  Match: ${mongoDonationsCount === pgDonationsCount ? '✓' : '✗'}`);
+
+        // Verify Transactions
+        const mongoTransactionsCount = await db.collection(COLLECTIONS.TRANSACTIONS).countDocuments();
+        const pgTransactionsCount = await prisma.transaction.count();
+        console.log(`\nTransactions:`);
+        console.log(`  MongoDB: ${mongoTransactionsCount}`);
+        console.log(`  PostgreSQL: ${pgTransactionsCount}`);
+        console.log(`  Match: ${mongoTransactionsCount === pgTransactionsCount ? '✓' : '✗'}`);
+
+        // Verify Expenses
+        const mongoExpensesCount = await db.collection(COLLECTIONS.EXPENSES).countDocuments();
+        const pgExpensesCount = await prisma.expense.count();
+        console.log(`\nExpenses:`);
+        console.log(`  MongoDB: ${mongoExpensesCount}`);
+        console.log(`  PostgreSQL: ${pgExpensesCount}`);
+        console.log(`  Match: ${mongoExpensesCount === pgExpensesCount ? '✓' : '✗'}`);
 
     } finally {
         await mongoClient.close();
