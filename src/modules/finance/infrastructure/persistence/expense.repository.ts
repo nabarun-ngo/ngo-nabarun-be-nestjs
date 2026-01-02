@@ -80,8 +80,8 @@ class ExpenseRepository implements IExpenseRepository {
     const where: Prisma.ExpenseWhereInput = {
       ...(props?.expenseStatus ? { status: { in: props.expenseStatus } } : {}),
       ...(props?.expenseId ? { id: props.expenseId } : {}),
-
-
+      ...(props?.payerId ? { paidById: props.payerId } : {}),
+      ...(props?.expenseRefId ? { expenseRefId: props.expenseRefId } : {}),
       ...(props?.startDate || props?.endDate
         ? {
           expenseDate: {
