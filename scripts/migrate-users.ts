@@ -1,13 +1,13 @@
 import { MongoClient, Db, ObjectId } from 'mongodb';
 import { PrismaClient, Prisma } from '@prisma/client';
-const { v4: uuidv4 } = require('uuid');
+import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient({
     datasourceUrl: process.env.MIG_POSTGRES_URL,
 });
 
 // Configuration
-const MONGO_URI = process.env.MIG_MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
+const MONGO_URI = process.env.MIG_MONGODB_URL;
 const MONGO_COLLECTION = 'user_profiles';
 const BATCH_SIZE = 100;
 
@@ -242,7 +242,7 @@ const mapToLinks = (doc: MongoUserDoc, userId: string): Prisma.LinkCreateManyInp
 
 // Main migration function
 export async function migrateUsers() {
-    const mongoClient = new MongoClient(MONGO_URI);
+    const mongoClient = new MongoClient(MONGO_URI!);
 
     try {
         console.log('Connecting to MongoDB...');
@@ -433,7 +433,7 @@ export async function migrateUsers() {
 
 // Verification function
 export async function verifyMigration() {
-    const mongoClient = new MongoClient(MONGO_URI);
+    const mongoClient = new MongoClient(MONGO_URI!);
 
     try {
         await mongoClient.connect();
@@ -478,28 +478,22 @@ export async function verifyMigration() {
     }
 }
 
-// Run migration if called directly
-if (require.main === module) {
+async function main() {
     const args = process.argv.slice(2);
     const verify = args.includes('--verify');
 
     if (verify) {
-        verifyMigration()
-            .then(() => process.exit(0))
-            .catch(err => {
-                console.error(err);
-                process.exit(1);
-            });
+        await verifyMigration();
     } else {
-        migrateUsers()
-            .then(() => {
-                console.log('\nRunning verification...');
-                return verifyMigration();
-            })
-            .then(() => process.exit(0))
-            .catch(err => {
-                console.error(err);
-                process.exit(1);
-            });
+        await migrateUsers();
+        console.log('\nRunning verification...');
+        await verifyMigration();
     }
 }
+
+main()
+    .then(() => process.exit(0))
+    .catch(err => {
+        console.error(err);
+        process.exit(1);
+    });
