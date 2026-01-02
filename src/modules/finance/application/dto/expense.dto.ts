@@ -14,11 +14,6 @@ export class ExpenseItemDetailDto {
   @IsString()
   itemName: string;
 
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  description?: string;
-
   @ApiProperty()
   @IsNumber()
   @Min(1)

@@ -6,9 +6,7 @@ import type { IExpenseRepository } from '../../domain/repositories/expense.repos
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { Transaction, TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
-import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
-import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
+import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 

@@ -37,7 +37,6 @@ export class ExpenseDtoMapper {
   private static expenseItemToDto(item: ExpenseItem): ExpenseItemDetailDto {
     return {
       itemName: item.itemName,
-      description: item.description,
       amount: item.amount,
     };
   }
