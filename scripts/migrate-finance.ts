@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId, Db } from 'mongodb';
+import { MongoClient, Db } from 'mongodb';
 import { PrismaClient, Prisma } from '@prisma/client';
 
 
@@ -22,6 +22,41 @@ const COLLECTIONS = {
 const getDatabase = (client: MongoClient): Db => {
     // If MONGO_DB is explicitly set, use it; otherwise use the database from the connection URI
     return process.env.MONGO_DB ? client.db(process.env.MONGO_DB) : client.db();
+};
+
+// User Mapping
+let userMapping: Map<string, string> = new Map();
+let accountMapping: Set<string> = new Set();
+
+async function initMappings() {
+    console.log('Initializing mappings...');
+
+    // User mapping
+    const users = await prisma.userProfile.findMany({
+        select: { id: true, authUserId: true }
+    });
+    users.forEach(u => {
+        if (u.id) userMapping.set(u.id, u.id);
+        if (u.authUserId) userMapping.set(u.authUserId, u.id);
+    });
+    console.log(`Mapped ${userMapping.size} user IDs (including Auth0 IDs)`);
+
+    // Account mapping (to check existence)
+    const accounts = await prisma.account.findMany({
+        select: { id: true }
+    });
+    accounts.forEach(a => accountMapping.add(a.id));
+    console.log(`Mapped ${accountMapping.size} accounts`);
+}
+
+const resolveUserId = (id: string | null | undefined): string | null => {
+    if (!id) return null;
+    return userMapping.get(id) || null;
+};
+
+const resolveAccountId = (id: string | null | undefined): string | null => {
+    if (!id) return null;
+    return accountMapping.has(id) ? id : null;
 };
 
 // Utility function to parse MongoDB ID
@@ -155,13 +190,13 @@ interface MongoAccountDoc {
     activatedOn?: any;
     createdOn?: any;
     deleted?: boolean;
-    [key: string]: any;
+    createdById?: string;
 }
 
 interface MongoDonationDoc {
     _id: any;
     isGuest?: boolean;
-    userId?: string;
+    profile?: string;
     donorName?: string;
     guestFullNameOrOrgName?: string;
     donorEmailAddress?: string;
@@ -189,7 +224,6 @@ interface MongoDonationDoc {
     paymentFailDetail?: string;
     customFields?: any[];
     deleted?: boolean;
-    [key: string]: any;
 }
 
 interface MongoTransactionDoc {
@@ -238,7 +272,6 @@ interface MongoExpenseDoc {
     expenseCreatedOn?: any;
     remarks?: string;
     deleted?: boolean;
-    [key: string]: any;
 }
 
 
@@ -266,7 +299,7 @@ const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountUncheckedCreateInput 
         status: mapAccountStatus(doc.accountStatus),
         description: null,
         accountHolderName: doc.bankAccountHolderName || null,
-        accountHolderId: doc.profile ? doc.profile : undefined,
+        accountHolderId: resolveUserId(doc.profile),
         activatedOn: parseDate(doc.activatedOn),
         bankDetail: Object.keys(bankDetail).length > 0 ? JSON.stringify(bankDetail) : null,
         upiDetail: Object.keys(upiDetail).length > 0 ? JSON.stringify(upiDetail) : null,
@@ -274,23 +307,16 @@ const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountUncheckedCreateInput 
         updatedAt: new Date(),
         version: 0,
         deletedAt: doc.deleted ? new Date() : null,
+        createdById: resolveUserId(doc.createdById),
     };
 };
 
 // Map MongoDB Donation to Prisma Donation
-const mapToDonation = (doc: MongoDonationDoc): Prisma.DonationCreateInput => {
+const mapToDonation = (doc: MongoDonationDoc): Prisma.DonationUncheckedCreateInput => {
     // Determine donor information
-    const isGuest = doc.isGuest === true;
-    const donorId = !isGuest && doc.userId ? doc.userId : null;
-    const donorName = isGuest ? (doc.guestFullNameOrOrgName || doc.donorName) : doc.donorName;
-    const donorEmail = isGuest ? (doc.guestEmailAddress || doc.donorEmailAddress) : doc.donorEmailAddress;
-    const donorPhone = isGuest ? (doc.guestContactNumber || doc.donorContactNumber) : doc.donorContactNumber;
-
-    // Map additional fields
-    const additionalFields: any[] = [];
-    if (doc.customFields && Array.isArray(doc.customFields)) {
-        additionalFields.push(...doc.customFields);
-    }
+    const donorName = doc.guestFullNameOrOrgName || doc.donorName;
+    const donorEmail = doc.guestEmailAddress || doc.donorEmailAddress;
+    const donorPhone = doc.guestContactNumber || doc.donorContactNumber;
 
     return {
         id: parseId(doc._id),
@@ -298,28 +324,26 @@ const mapToDonation = (doc: MongoDonationDoc): Prisma.DonationCreateInput => {
         amount: new Prisma.Decimal(parseDouble(doc.amount)),
         currency: 'INR',
         status: mapDonationStatus(doc.status),
-        donor: donorId ? { connect: { id: donorId } } : undefined,
+        donorId: resolveUserId(doc.profile),
         donorName: donorName,
         donorEmail: donorEmail,
         donorPhone: donorPhone,
-        isGuest: isGuest,
+        isGuest: doc.isGuest,
         startDate: parseDate(doc.startDate),
         endDate: parseDate(doc.endDate),
         raisedOn: parseDate(doc.raisedOn) || new Date(),
         paidOn: parseDate(doc.paidOn),
-        confirmedBy: doc.paymentConfirmedBy ? { connect: { id: doc.paymentConfirmedBy } } : undefined,
+        confirmedById: doc.paymentConfirmedBy,
         confirmedOn: parseDate(doc.paymentConfirmedOn),
         paymentMethod: doc.paymentMethod || null,
-        paidToAccount: doc.accountId ? { connect: { id: doc.accountId } } : undefined,
+        paidToAccountId: resolveAccountId(doc.accountId),
         forEventId: doc.eventId || null,
         paidUsingUPI: doc.paidUPIName || null,
-        isPaymentNotified: doc.isPaymentNotified || false,
         transactionRef: doc.transactionRefNumber || null,
         remarks: doc.comment || null,
         cancelletionReason: doc.cancelReason || null,
         laterPaymentReason: doc.payLaterReason || null,
         paymentFailureDetail: doc.paymentFailDetail || null,
-        additionalFields: additionalFields.length > 0 ? additionalFields : Prisma.JsonNull,
         createdAt: parseDate(doc.raisedOn) || new Date(),
         updatedAt: new Date(),
         version: 0,
@@ -328,7 +352,7 @@ const mapToDonation = (doc: MongoDonationDoc): Prisma.DonationCreateInput => {
 };
 
 // Map MongoDB Transaction to Prisma Transaction
-const mapToTransaction = (doc: MongoTransactionDoc): Prisma.TransactionCreateInput => {
+const mapToTransaction = (doc: MongoTransactionDoc): Prisma.TransactionUncheckedCreateInput => {
     return {
         id: parseId(doc._id),
         type: mapTransactionType(doc.transactionType),
@@ -338,14 +362,14 @@ const mapToTransaction = (doc: MongoTransactionDoc): Prisma.TransactionCreateInp
         referenceId: doc.transactionRefId || doc.transactionRef || null,
         referenceType: doc.transactionRefType || null,
         currency: 'INR',
-        fromAccount: doc.fromAccount ? { connect: { id: doc.fromAccount } } : undefined,
-        toAccount: doc.toAccount ? { connect: { id: doc.toAccount } } : undefined,
+        fromAccountId: resolveAccountId(doc.fromAccount),
+        toAccountId: resolveAccountId(doc.toAccount),
         fromAccountBalance: new Prisma.Decimal(parseDouble(doc.fromAccBalAfterTxn) || 0),
         toAccountBalance: new Prisma.Decimal(parseDouble(doc.toAccBalAfterTxn) || 0),
         transactionDate: parseDate(doc.transactionDate) || new Date(),
         particulars: doc.transactionDescription || '',
         createdAt: parseDate(doc.creationDate) || new Date(),
-        createdBy: doc.createdById ? { connect: { id: doc.createdById } } : undefined,
+        createdById: resolveUserId(doc.createdById),
         updatedAt: new Date(),
         version: 0,
         deletedAt: doc.revertedTransaction ? new Date() : null,
@@ -353,7 +377,7 @@ const mapToTransaction = (doc: MongoTransactionDoc): Prisma.TransactionCreateInp
 };
 
 // Map MongoDB Expense to Prisma Expense
-const mapToExpense = (doc: MongoExpenseDoc): Prisma.ExpenseCreateInput => {
+const mapToExpense = (doc: MongoExpenseDoc): Prisma.ExpenseUncheckedCreateInput => {
     return {
         id: parseId(doc._id),
         title: doc.expenseTitle || 'Untitled Expense',
@@ -367,36 +391,37 @@ const mapToExpense = (doc: MongoExpenseDoc): Prisma.ExpenseCreateInput => {
         isDelegated: doc.deligated || false, // Note: MongoDB has typo 'deligated'
 
         // Creator information
-        createdBy: doc.createdById ? { connect: { id: doc.createdById } } : undefined,
+        createdById: resolveUserId(doc.createdById) || '',
 
         // Paid by information
-        paidBy: doc.paidById ? { connect: { id: doc.paidById } } : undefined,
+        paidById: resolveUserId(doc.paidById) || '',
 
         // Finalized by information
-        finalizedBy: doc.finalizedById ? { connect: { id: doc.finalizedById } } : undefined,
+        finalizedById: resolveUserId(doc.finalizedById) || null,
         finalizedOn: parseDate(doc.finalizedOn),
 
         // Settled by information
-        settledBy: doc.settledById ? { connect: { id: doc.settledById } } : undefined,
+        settledById: resolveUserId(doc.settledById) || null,
         settledOn: parseDate(doc.settledOn),
 
         // Rejected by information
-        rejectedBy: doc.rejectedById ? { connect: { id: doc.rejectedById } } : undefined,
+        rejectedById: resolveUserId(doc.rejectedById) || null,
 
         // Updated by information
-        updatedBy: doc.updatedById ? { connect: { id: doc.updatedById } } : undefined,
+        updatedById: resolveUserId(doc.updatedById) || null,
         updatedOn: parseDate(doc.updatedOn),
 
         // Account information
-        account: doc.expenseAccountId ? { connect: { id: doc.expenseAccountId } } : undefined,
+        accountId: doc.expenseAccountId || null,
         accountName: doc.expenseAccountName || null,
 
         transactionRef: doc.transactionRefNumber || null,
+        submittedById: resolveUserId(doc.createdById) || '',
+        rejectedOn: parseDate(doc.updatedOn),
+
 
         // Dates
         expenseDate: parseDate(doc.expenseDate) || new Date(),
-        // Prisma requires 'expenseCreated' to be a date? No, mapped to createdAt usually but schema has expenseDate
-        // Schema: createdAt, updatedAt, expenseDate.
         remarks: doc.remarks || null,
 
         createdAt: parseDate(doc.expenseCreatedOn) || new Date(),
@@ -427,7 +452,7 @@ async function migrateAccounts(db: Db): Promise<{ success: number; failed: numbe
         for (let i = 0; i < BATCH_SIZE && await cursor.hasNext(); i++) {
             const nextDoc = await cursor.next();
             if (nextDoc) {
-                batch.push(nextDoc as unknown as MongoAccountDoc);
+                batch.push(nextDoc as MongoAccountDoc);
             }
         }
 
@@ -441,6 +466,11 @@ async function migrateAccounts(db: Db): Promise<{ success: number; failed: numbe
             const result = await prisma.account.createMany({
                 data: accountsData, // Cast to any to avoid strict relations check in createMany
                 skipDuplicates: true,
+            });
+
+            // Update account mapping for successful insertions
+            accountsData.forEach(a => {
+                if (a.id) accountMapping.add(a.id);
             });
 
             success += result.count;
@@ -457,6 +487,7 @@ async function migrateAccounts(db: Db): Promise<{ success: number; failed: numbe
                     await prisma.account.create({
                         data: accountData,
                     });
+                    if (accountData.id) accountMapping.add(accountData.id);
                     success++;
                 } catch (individualError: any) {
                     failed++;
@@ -497,113 +528,18 @@ async function migrateDonations(db: Db): Promise<{ success: number; failed: numb
         for (let i = 0; i < BATCH_SIZE && await cursor.hasNext(); i++) {
             const nextDoc = await cursor.next();
             if (nextDoc) {
-                batch.push(nextDoc as unknown as MongoDonationDoc);
+                batch.push(nextDoc as MongoDonationDoc);
             }
         }
 
         if (batch.length === 0) break;
 
         try {
-            // Map all documents in the batch
-            // Note: For relations to work in createMany, we usually need actual FK IDs in the input object
-            // properties `donorId`, `paidToAccountId` etc, NOT `connect` objects.
-            // mapToDonation returns relations using `connect`. `createMany` does not support `connect`.
-            // We must rewrite mapToDonation for createMany or fallback to loops/transaction.
-            // However, Prisma `createMany` strictly accepts scalar fields.
-            // So we need two mapper versions or just use individual creates for safety/relations.
-            // Or extract scalars for createMany.
-
-            // Strategy: Try individual creates in parallel batch for relations support?
-            // Actually, `createMany` is much faster.
-            // Let's use `createMany` but we need to map to SCALARS, not `connect`.
-            // The `mapToDonation` above uses `connect`.
-            // Modifying `mapToDonation` to return scalars is hard because `connect` is cleaner for types.
-            // Use `transaction` of `create`s instead of `createMany` to keep relation safety?
-            // `migrate-users.ts` used `createMany`.
-            // Let's stick to the logic from the JS file: it used `createMany`.
-            // Wait, the JS file passed objects with `donorId: ...`. Prisma `createMany` takes objects with scalar FKs.
-            // My `mapToDonation` uses `connect`. This is a mismatch from JS logic which used scalars.
-            // I should revert to SCALAR mapping for `createMany` compatibility in the "Bulk" path.
-
-            // Re-mapping for Bulk Insert (Use Scalar IDs)
-            const donationsData = batch.map(doc => {
-                const isGuest = doc.isGuest === true;
-                const donorId = !isGuest && doc.userId ? doc.userId : null;
-                const additionalFields: any[] = [];
-                if (doc.customFields && Array.isArray(doc.customFields)) {
-                    additionalFields.push(...doc.customFields);
-                }
-
-                return {
-                    id: parseId(doc._id),
-                    type: mapDonationType(doc.type),
-                    amount: new Prisma.Decimal(parseDouble(doc.amount)),
-                    currency: 'INR',
-                    status: mapDonationStatus(doc.status),
-                    donorId: donorId,
-                    donorName: isGuest ? (doc.guestFullNameOrOrgName || doc.donorName) : doc.donorName,
-                    donorEmail: isGuest ? (doc.guestEmailAddress || doc.donorEmailAddress) : doc.donorEmailAddress,
-                    donorPhone: isGuest ? (doc.guestContactNumber || doc.donorContactNumber) : doc.donorContactNumber,
-                    isGuest: isGuest,
-                    startDate: parseDate(doc.startDate),
-                    endDate: parseDate(doc.endDate),
-                    raisedOn: parseDate(doc.raisedOn) || new Date(),
-                    paidOn: parseDate(doc.paidOn),
-                    confirmedById: doc.paymentConfirmedBy || null,
-                    confirmedOn: parseDate(doc.paymentConfirmedOn),
-                    paymentMethod: doc.paymentMethod || null,
-                    paidToAccountId: doc.accountId || null,
-                    forEventId: doc.eventId || null,
-                    paidUsingUPI: doc.paidUPIName || null,
-                    isPaymentNotified: doc.isPaymentNotified || false,
-                    transactionRef: doc.transactionRefNumber || null,
-                    remarks: doc.comment || null,
-                    cancelletionReason: doc.cancelReason || null,
-                    laterPaymentReason: doc.payLaterReason || null,
-                    paymentFailureDetail: doc.paymentFailDetail || null,
-                    additionalFields: additionalFields.length > 0 ? additionalFields : Prisma.JsonNull,
-                    createdAt: parseDate(doc.raisedOn) || new Date(),
-                    updatedAt: new Date(),
-                    version: 0,
-                    deletedAt: doc.deleted ? new Date() : null,
-                }
-            });
-
-
-            // Batch validate foreign keys
-            // Clean up invalid foreign keys similar to JS logic
-            const userIds = [...new Set(donationsData.filter(d => d.donorId).map(d => d.donorId as string))];
-            const accountIds = [...new Set(donationsData.filter(d => d.paidToAccountId).map(d => d.paidToAccountId as string))];
-            const confirmerIds = [...new Set(donationsData.filter(d => d.confirmedById).map(d => d.confirmedById as string))];
-
-            const existingUsers = userIds.length > 0
-                ? new Set((await prisma.userProfile.findMany({ where: { id: { in: userIds } }, select: { id: true } })).map(u => u.id))
-                : new Set();
-
-            const existingAccounts = accountIds.length > 0
-                ? new Set((await prisma.account.findMany({ where: { id: { in: accountIds } }, select: { id: true } })).map(a => a.id))
-                : new Set();
-
-            const existingConfirmers = confirmerIds.length > 0
-                ? new Set((await prisma.userProfile.findMany({ where: { id: { in: confirmerIds } }, select: { id: true } })).map(u => u.id))
-                : new Set();
-
-            donationsData.forEach(donation => {
-                if (donation.donorId && !existingUsers.has(donation.donorId)) {
-                    donation.donorId = null;
-                    donation.isGuest = true;
-                }
-                if (donation.paidToAccountId && !existingAccounts.has(donation.paidToAccountId)) {
-                    donation.paidToAccountId = null;
-                }
-                if (donation.confirmedById && !existingConfirmers.has(donation.confirmedById)) {
-                    donation.confirmedById = null;
-                }
-            });
+            const donationsData = batch.map(doc => mapToDonation(doc));
 
             // Bulk insert with skipDuplicates
             const result = await prisma.donation.createMany({
-                data: donationsData as any,
+                data: donationsData,
                 skipDuplicates: true,
             });
 
@@ -618,20 +554,6 @@ async function migrateDonations(db: Db): Promise<{ success: number; failed: numb
             for (const doc of batch) {
                 try {
                     const donationData = mapToDonation(doc);
-
-                    // Validate foreign keys individually (using the connect syntax from mapToDonation)
-                    if (donationData.donor?.connect?.id) {
-                        const userExists = await prisma.userProfile.findUnique({ where: { id: donationData.donor.connect.id } });
-                        if (!userExists) {
-                            donationData.donor = undefined;
-                            donationData.isGuest = true;
-                        }
-                    }
-                    if (donationData.paidToAccount?.connect?.id) {
-                        const accExists = await prisma.account.findUnique({ where: { id: donationData.paidToAccount.connect.id } });
-                        if (!accExists) donationData.paidToAccount = undefined;
-                    }
-
                     await prisma.donation.create({
                         data: donationData,
                     });
@@ -675,37 +597,14 @@ async function migrateTransactions(db: Db): Promise<{ success: number; failed: n
         for (let i = 0; i < BATCH_SIZE && await cursor.hasNext(); i++) {
             const nextDoc = await cursor.next();
             if (nextDoc) {
-                batch.push(nextDoc as unknown as MongoTransactionDoc);
+                batch.push(nextDoc as MongoTransactionDoc);
             }
         }
 
         if (batch.length === 0) break;
 
         try {
-            // Map to Scalars for Bulk Insert
-            const transactionsData = batch.map(doc => {
-                return {
-                    id: parseId(doc._id),
-                    type: mapTransactionType(doc.transactionType),
-                    status: mapTransactionStatus(doc.status),
-                    amount: new Prisma.Decimal(parseDouble(doc.transactionAmt)),
-                    description: doc.transactionDescription || '',
-                    referenceId: doc.transactionRefId || doc.transactionRef || null,
-                    referenceType: doc.transactionRefType || null,
-                    currency: 'INR',
-                    fromAccountId: doc.fromAccount || null,
-                    toAccountId: doc.toAccount || null,
-                    fromAccountBalance: new Prisma.Decimal(parseDouble(doc.fromAccBalAfterTxn) || 0),
-                    toAccountBalance: new Prisma.Decimal(parseDouble(doc.toAccBalAfterTxn) || 0),
-                    transactionDate: parseDate(doc.transactionDate) || new Date(),
-                    particulars: doc.transactionDescription || '',
-                    createdAt: parseDate(doc.creationDate) || new Date(),
-                    createdById: doc.createdById || null,
-                    updatedAt: new Date(),
-                    version: 0,
-                    deletedAt: doc.revertedTransaction ? new Date() : null,
-                };
-            });
+            const transactionsData = batch.map(doc => mapToTransaction(doc));
 
             // Filter out transactions with no accounts
             const validTransactions = transactionsData.filter(t =>
@@ -743,7 +642,7 @@ async function migrateTransactions(db: Db): Promise<{ success: number; failed: n
 
             // Bulk insert with skipDuplicates
             const result = await prisma.transaction.createMany({
-                data: transactionsToInsert as any,
+                data: transactionsToInsert,
                 skipDuplicates: true,
             });
 
@@ -760,7 +659,7 @@ async function migrateTransactions(db: Db): Promise<{ success: number; failed: n
                     const transactionData = mapToTransaction(doc);
 
                     // Check undefined because mapToTransaction returns connect objects
-                    if (!transactionData.fromAccount && !transactionData.toAccount) {
+                    if (!transactionData.fromAccountId && !transactionData.toAccountId) {
                         console.log(`Skipping transaction with unknown from and to accounts: ${parseId(doc._id)}`);
                         processed++;
                         continue;
@@ -817,45 +716,7 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
 
         try {
             // Map to Scalars for Bulk Insert
-            const expensesData: Prisma.ExpenseUncheckedCreateInput[] = batch.map(doc => {
-                return {
-                    id: parseId(doc._id),
-                    title: doc.expenseTitle || 'Untitled Expense',
-                    items: doc.expenseItems || null,
-                    amount: new Prisma.Decimal(parseDouble(doc.expenseAmount)),
-                    currency: 'INR',
-                    status: mapExpenseStatus(doc.status),
-                    description: doc.expenseDescription || null,
-                    referenceId: doc.expenseRefId || null,
-                    referenceType: doc.expenseRefType || null,
-                    isDelegated: doc.deligated || false, // Note: MongoDB has typo 'deligated'
-                    rejectedOn: doc.rejectedById ? parseDate(doc.rejectedOn) : null,
-                    createdById: doc.createdById,
-                    paidById: doc.paidById,
-                    finalizedById: doc.finalizedById,
-                    finalizedOn: parseDate(doc.finalizedOn),
-                    settledById: doc.settledById,
-                    settledOn: parseDate(doc.settledOn),
-                    rejectedById: doc.rejectedById,
-                    updatedById: doc.updatedById,
-                    updatedOn: parseDate(doc.updatedOn),
-                    submittedById: doc.createdById,
-                    submittedOn: parseDate(doc.expenseCreatedOn),
-                    accountId: doc.expenseAccountId || null,
-                    accountName: doc.expenseAccountName || null,
-                    transactionRef: doc.transactionRefNumber || null,
-                    remarks: doc.remarks || null,
-
-                    // expenseDate mapped to expenseDate in schema (DateTime)
-                    expenseDate: parseDate(doc.expenseDate) || new Date(),
-
-                    createdAt: parseDate(doc.expenseCreatedOn) || new Date(),
-                    updatedAt: new Date(),
-                    version: 0,
-                    deletedAt: doc.deleted ? new Date() : null,
-                } as Prisma.ExpenseUncheckedCreateInput;
-            });
-
+            const expensesData = batch.map(doc => mapToExpense(doc));
 
             // Batch validate account references
             const accountIds = [...new Set(expensesData.filter(e => e.accountId).map(e => e.accountId as string))];
@@ -889,14 +750,6 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
             for (const doc of batch) {
                 try {
                     const expenseData = mapToExpense(doc);
-
-                    if (expenseData.account?.connect?.id) {
-                        const accountExists = await prisma.account.findUnique({ where: { id: expenseData.account.connect.id } });
-                        if (!accountExists) {
-                            expenseData.account = undefined;
-                            expenseData.accountName = null;
-                        }
-                    }
 
                     await prisma.expense.create({
                         data: expenseData,
@@ -936,6 +789,8 @@ export async function migrateFinance() {
         console.log('Connected to MongoDB successfully');
 
         const db = getDatabase(mongoClient);
+
+        await initMappings();
 
 
 

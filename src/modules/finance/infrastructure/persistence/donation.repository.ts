@@ -74,6 +74,7 @@ class DonationRepository implements IDonationRepository {
       ...(props?.status && props.status.length > 0 ? { status: { in: props.status } } : {}),
       ...(props?.donorId ? { donorId: props.donorId } : {}),
       ...(props?.donationId ? { id: props.donationId } : {}),
+      ...(props?.isGuest ? { isGuest: props.isGuest } : {}),
       ...(props?.startDate || props?.endDate
         ? {
           raisedOn: {
