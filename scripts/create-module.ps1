@@ -381,7 +381,7 @@ export class ${EntityName}EventsHandler {
 
     # Persistence Types
     "$modulePath\infrastructure\types\$ModuleName-persistence.types.ts" = @"
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 
 /**
  * ${EntityName} Persistence Types
@@ -418,7 +418,7 @@ export namespace ${EntityName}Persistence {
     # Infrastructure Mapper
     "$modulePath\infrastructure\$ModuleName-infra.mapper.ts" = @"
 import { ${EntityName}, ${EntityName}Status } from '../domain/model/${ModuleName}.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 import { ${EntityName}Persistence } from './types/${ModuleName}-persistence.types';
 import { MapperUtils } from 'src/modules/shared/database/mapper-utils';
 
@@ -504,7 +504,7 @@ export class ${EntityName}MapperHelpers {
 import { Injectable } from '@nestjs/common';
 import { I${EntityName}Repository } from '../../domain/repositories/${ModuleName}.repository.interface';
 import { ${EntityName} } from '../../domain/model/${ModuleName}.model';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
 import { ${EntityName}InfraMapper } from '../${ModuleName}-infra.mapper';

@@ -1,0 +1,89 @@
+import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { DatabaseModule } from '../shared/database/database.module';
+
+// Repositories
+import { ProjectRepository } from './infrastructure/persistence/project.repository';
+import { PROJECT_REPOSITORY } from './domain/repositories/project.repository.interface';
+import { GoalRepository } from './infrastructure/persistence/goal.repository';
+import { GOAL_REPOSITORY } from './domain/repositories/goal.repository.interface';
+import { ActivityRepository } from './infrastructure/persistence/activity.repository';
+import { ACTIVITY_REPOSITORY } from './domain/repositories/activity.repository.interface';
+import { MilestoneRepository } from './infrastructure/persistence/milestone.repository';
+import { MILESTONE_REPOSITORY } from './domain/repositories/milestone.repository.interface';
+import { ProjectTeamMemberRepository } from './infrastructure/persistence/project-team-member.repository';
+import { PROJECT_TEAM_MEMBER_REPOSITORY } from './domain/repositories/project-team-member.repository.interface';
+import { BeneficiaryRepository } from './infrastructure/persistence/beneficiary.repository';
+import { BENEFICIARY_REPOSITORY } from './domain/repositories/beneficiary.repository.interface';
+import { ProjectRiskRepository } from './infrastructure/persistence/project-risk.repository';
+import { PROJECT_RISK_REPOSITORY } from './domain/repositories/project-risk.repository.interface';
+import { ActivityExpenseRepository } from './infrastructure/persistence/activity-expense.repository';
+import { ACTIVITY_EXPENSE_REPOSITORY } from './domain/repositories/activity-expense.repository.interface';
+
+// Use Cases
+import { CreateProjectUseCase } from './application/use-cases/create-project.use-case';
+import { UpdateProjectUseCase } from './application/use-cases/update-project.use-case';
+import { GetProjectUseCase } from './application/use-cases/get-project.use-case';
+import { ListProjectsUseCase } from './application/use-cases/list-projects.use-case';
+import { CreateGoalUseCase } from './application/use-cases/create-goal.use-case';
+import { CreateActivityUseCase } from './application/use-cases/create-activity.use-case';
+import { LinkExpenseToActivityUseCase } from './application/use-cases/link-expense-to-activity.use-case';
+
+// Services
+import { ProjectService } from './application/services/project.service';
+
+// Controllers
+import { ProjectController } from './presentation/controllers/project.controller';
+
+@Module({
+  imports: [DatabaseModule, EventEmitterModule],
+  controllers: [ProjectController],
+  providers: [
+    // Repositories
+    {
+      provide: PROJECT_REPOSITORY,
+      useClass: ProjectRepository,
+    },
+    {
+      provide: GOAL_REPOSITORY,
+      useClass: GoalRepository,
+    },
+    {
+      provide: ACTIVITY_REPOSITORY,
+      useClass: ActivityRepository,
+    },
+    {
+      provide: MILESTONE_REPOSITORY,
+      useClass: MilestoneRepository,
+    },
+    {
+      provide: PROJECT_TEAM_MEMBER_REPOSITORY,
+      useClass: ProjectTeamMemberRepository,
+    },
+    {
+      provide: BENEFICIARY_REPOSITORY,
+      useClass: BeneficiaryRepository,
+    },
+    {
+      provide: PROJECT_RISK_REPOSITORY,
+      useClass: ProjectRiskRepository,
+    },
+    {
+      provide: ACTIVITY_EXPENSE_REPOSITORY,
+      useClass: ActivityExpenseRepository,
+    },
+    // Use Cases
+    CreateProjectUseCase,
+    UpdateProjectUseCase,
+    GetProjectUseCase,
+    ListProjectsUseCase,
+    CreateGoalUseCase,
+    CreateActivityUseCase,
+    LinkExpenseToActivityUseCase,
+    // Services
+    ProjectService,
+  ],
+  exports: [ProjectService],
+})
+export class ProjectModule {}
+

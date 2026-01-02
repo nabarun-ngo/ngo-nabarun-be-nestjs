@@ -1,96 +1,148 @@
 import { User } from 'src/modules/user/domain/model/user.model';
 import { BaseDomain } from '../../../../shared/models/base-domain';
+import { randomUUID } from 'crypto';
 
 export enum TaskAssignmentStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',
+  REMOVED = 'REMOVED',
   REJECTED = 'REJECTED',
-  COMPLETED = 'COMPLETED',
 }
 
 export class TaskAssignment extends BaseDomain<string> {
+
+  #taskId: string;
+  #assignedTo: User;
+  #roleName: string | null;
+  #status: TaskAssignmentStatus;
+  #assignedBy?: string;
+  #acceptedAt?: Date;
+  #completedAt?: Date;
+  #notes?: string;
+
   constructor(
     protected _id: string,
-    private _taskId: string,
-    private _assignedTo: User,
-    private _roleName: string | null,
-    private _status: TaskAssignmentStatus,
+    taskId: string,
+    assignedTo: User,
+    roleName: string | null,
+    status: TaskAssignmentStatus,
     createdAt?: Date,
     updatedAt?: Date,
-    private _assignedBy?: string,
-    private _acceptedAt?: Date,
-    private _completedAt?: Date,
-    private _notes?: string,
+    assignedBy?: string,
+    acceptedAt?: Date,
+    completedAt?: Date,
+    notes?: string,
   ) {
     super(_id, createdAt, updatedAt);
+
+    this.#taskId = taskId;
+    this.#assignedTo = assignedTo;
+    this.#roleName = roleName;
+    this.#status = status;
+    this.#assignedBy = assignedBy;
+    this.#acceptedAt = acceptedAt;
+    this.#completedAt = completedAt;
+    this.#notes = notes;
   }
 
+  // -------- GETTERS (auto-exposed to toJson()) --------
+
   get taskId(): string {
-    return this._taskId;
+    return this.#taskId;
   }
 
   get assignedTo(): User {
-    return this._assignedTo;
+    return this.#assignedTo;
   }
 
   get roleName(): string | null {
-    return this._roleName;
+    return this.#roleName;
   }
 
   get status(): TaskAssignmentStatus {
-    return this._status;
+    return this.#status;
   }
 
   get assignedBy(): string | undefined {
-    return this._assignedBy;
+    return this.#assignedBy;
   }
 
   get acceptedAt(): Date | undefined {
-    return this._acceptedAt;
+    return this.#acceptedAt;
   }
 
   get completedAt(): Date | undefined {
-    return this._completedAt;
+    return this.#completedAt;
   }
 
   get notes(): string | undefined {
-    return this._notes;
+    return this.#notes;
   }
 
+  // -------- FACTORY --------
+
+  static create(data: {
+    taskId: string;
+    assignedTo: User;
+    roleName?: string | null;
+    assignedBy?: string;
+  }): TaskAssignment {
+    return new TaskAssignment(
+      randomUUID(),
+      data.taskId,
+      data.assignedTo,
+      data.roleName ?? null,
+      TaskAssignmentStatus.PENDING,
+      undefined,
+      undefined,
+      data.assignedBy,
+    );
+  }
+
+  // -------- STATE TRANSITIONS --------
+
   public accept(): void {
-    if (this._status !== TaskAssignmentStatus.PENDING) {
-      throw new Error(`Cannot accept assignment in status: ${this._status}`);
+    if (this.#status !== TaskAssignmentStatus.PENDING) {
+      throw new Error(`Cannot accept assignment in status: ${this.#status}`);
     }
-    this._status = TaskAssignmentStatus.ACCEPTED;
-    this._acceptedAt = new Date();
+    this.#status = TaskAssignmentStatus.ACCEPTED;
+    this.#acceptedAt = new Date();
+    this.touch();
+  }
+
+  remove(){
+    if (this.#status !== TaskAssignmentStatus.PENDING) {
+      throw new Error(`Cannot reject assignment in status: ${this.#status}`);
+    }
+    this.#status = TaskAssignmentStatus.REMOVED;
     this.touch();
   }
 
   public reject(notes?: string): void {
-    if (this._status !== TaskAssignmentStatus.PENDING) {
-      throw new Error(`Cannot reject assignment in status: ${this._status}`);
+    if (this.#status !== TaskAssignmentStatus.PENDING) {
+      throw new Error(`Cannot reject assignment in status: ${this.#status}`);
     }
-    this._status = TaskAssignmentStatus.REJECTED;
-    this._notes = notes;
+    this.#status = TaskAssignmentStatus.REJECTED;
+    this.#notes = notes;
     this.touch();
   }
 
   public complete(notes?: string): void {
-    if (this._status !== TaskAssignmentStatus.ACCEPTED && this._status !== TaskAssignmentStatus.PENDING) {
-      throw new Error(`Cannot complete assignment in status: ${this._status}`);
+    if (
+      this.#status !== TaskAssignmentStatus.ACCEPTED &&
+      this.#status !== TaskAssignmentStatus.PENDING
+    ) {
+      throw new Error(`Cannot complete assignment in status: ${this.#status}`);
     }
-    this._status = TaskAssignmentStatus.COMPLETED;
-    this._notes = notes;
-    this._completedAt = new Date();
+   // this.#status = TaskAssignmentStatus.COMPLETED;
+    this.#notes = notes;
+    this.#completedAt = new Date();
     this.touch();
   }
 
-  public isCompleted(): boolean {
-    return this._status === TaskAssignmentStatus.COMPLETED;
-  }
+  // -------- HELPERS --------
 
   public isPending(): boolean {
-    return this._status === TaskAssignmentStatus.PENDING;
+    return this.#status === TaskAssignmentStatus.PENDING;
   }
 }
-

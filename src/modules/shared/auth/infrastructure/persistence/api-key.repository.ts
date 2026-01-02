@@ -1,9 +1,9 @@
 import { PrismaPostgresService } from "src/modules/shared/database/prisma-postgres.service";
-import { IApiKeyRepository } from "../../domain/api-key.repository.interface";
 import { Injectable } from "@nestjs/common";
-import { ApiKey } from "../../domain/api-key.model";
+import { ApiKey } from "../../domain/models/api-key.model";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
+import { IApiKeyRepository } from "../../domain/repository/api-key.repository.interface";
 
 @Injectable()
 export class ApiKeyRepository implements IApiKeyRepository {
@@ -20,10 +20,8 @@ export class ApiKeyRepository implements IApiKeyRepository {
 
     async findAll(filter: any): Promise<ApiKey[]> {
         const apiKeys = await this.prisma.apiKey.findMany({
-            where: {
-                expiresAt: {
-                    gte: new Date()
-                },
+            orderBy: {
+                createdAt: "desc"
             }
         })
         return apiKeys.map(key => this.toApiKey(key));
@@ -78,7 +76,7 @@ export class ApiKeyRepository implements IApiKeyRepository {
     }
 
     private toApiKey(key: {
-        apiKeyId: string; apiKey: string; id: string; name: string; permissions: string; rateLimit: bigint | null; expiresAt: Date | null; lastUsedAt: Date | null; createdAt: Date; updatedAt: Date;
+        apiKeyId: string; apiKey: string; id: string; name: string; permissions: string; rateLimit: number | null; expiresAt: Date | null; lastUsedAt: Date | null; createdAt: Date; updatedAt: Date;
     }): ApiKey {
         return new ApiKey({
             id: key.id,

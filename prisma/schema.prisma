@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -30,9 +29,7 @@ model UserProfile {
   phoneNumbers     PhoneNumber[]
   addresses        Address[]
   socialMediaLinks Link[]
-  taskAssignments  TaskAssignment[]
-  tasks            WorkflowTask[]
-  donations        Donation[]
+  accounts         Account[]     @relation("AccountHolder")
 
   email              String    @unique @db.VarChar(100)
   isPublic           Boolean?
@@ -40,7 +37,7 @@ model UserProfile {
   status             String    @db.VarChar(20)
   isTemporary        Boolean
   isSameAddress      Boolean?
-  loginMethods       String?   @db.VarChar(20)
+  loginMethods       String?   @db.VarChar(100)
   panNumber          String?   @db.VarChar(20)
   aadharNumber       String?   @db.VarChar(20)
   donationPauseStart DateTime?
@@ -48,11 +45,39 @@ model UserProfile {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  version   BigInt    @default(0)
+  version   Int       @default(0)
   deletedAt DateTime?
 
-  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
-  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
+  initiatedWorkflows WorkflowInstance[]  @relation("InitiatedBy")
+  receivedWorkflows  WorkflowInstance[]  @relation("InitiatedFor")
+  documentsUploaded  DocumentReference[] @relation("uploadedBy")
+  taskAssignments    TaskAssignment[]    @relation("taskAssignments")
+  taskCompleted      WorkflowTask[]      @relation("taskCompletedBy")
+  noticesCreated     Notice[]            @relation("NoticeCreator")
+  meetingAttendances MeetingAttendee[]   @relation("MeetingAttendees")
+
+  // Project module relations
+  managedProjects     Project[]           @relation("ProjectManager")
+  sponsoredProjects   Project[]           @relation("ProjectSponsor")
+  assignedActivities  Activity[]          @relation("ActivityAssignee")
+  organizedActivities Activity[]          @relation("ActivityOrganizer")
+  projectTeamMembers  ProjectTeamMember[] @relation("ProjectTeamMember")
+  riskOwners          ProjectRisk[]       @relation("RiskOwner")
+  donations           Donation[]          @relation("Donation")
+  confirmedDonations  Donation[]          @relation("DonationConfirmedBy")
+  expenseCreator      Expense[]           @relation("ExpenseCreator")
+  expensePaidBy       Expense[]           @relation("ExpensePaidBy")
+  expenseSubmittedBy  Expense[]           @relation("ExpenseSubmittedBy")
+  expenseFinalizedBy  Expense[]           @relation("ExpenseFinalizedBy")
+  expenseSettledBy    Expense[]           @relation("ExpenseSettledBy")
+  expenseRejectedBy   Expense[]           @relation("ExpenseRejectedBy")
+  expenseUpdatedBy    Expense[]           @relation("ExpenseUpdatedBy")
+  //workflowTasks      WorkflowTask[]
+
+  accountCreator     Account[]         @relation("AccountCreator")
+  transactionCreator Transaction[]     @relation("TransactionCreator")
+  expenses           Expense[]
+  activityExpenses   ActivityExpense[]
 
   @@index([email])
   @@index([authUserId])
@@ -61,9 +86,9 @@ model UserProfile {
 
 model UserRole {
   id           String  @id
-  roleCode     String  @db.VarChar(20)
+  roleCode     String  @db.VarChar(50)
   roleName     String  @db.VarChar(50)
-  authRoleCode String  @db.VarChar(20)
+  authRoleCode String  @db.VarChar(50)
   isDefault    Boolean @default(false)
 
   // Relation to UserProfile (UserEntity in JPA)
@@ -73,7 +98,7 @@ model UserRole {
   createdAt DateTime  @default(now())
   createdBy String?   @db.VarChar(255)
   expireAt  DateTime?
-  version   BigInt    @default(0)
+  version   Int       @default(0)
 
   @@map("user_roles")
 }
@@ -88,7 +113,7 @@ model PhoneNumber {
   user   UserProfile @relation(fields: [userId], references: [id])
   userId String
 
-  version BigInt @default(0)
+  version Int @default(0)
 
   @@map("phone_numbers")
 }
@@ -105,7 +130,7 @@ model Link {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  version   BigInt   @default(0)
+  version   Int      @default(0)
 
   @@map("links")
 }
@@ -125,7 +150,7 @@ model Address {
   user         UserProfile @relation(fields: [userId], references: [id])
   userId       String
 
-  version BigInt @default(0)
+  version Int @default(0)
 
   @@map("addresses")
 }
@@ -154,7 +179,7 @@ model ApiKey {
   apiKey      String    @db.Text
   apiKeyId    String    @unique @db.VarChar(50)
   permissions String    @db.Text
-  rateLimit   BigInt?   @db.BigInt()
+  rateLimit   Int?
   expiresAt   DateTime?
   lastUsedAt  DateTime?
 
@@ -172,19 +197,21 @@ model WorkflowInstance {
   description   String  @db.Text
   status        String  @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
   currentStepId String? @db.VarChar(100)
+  data          String? @db.Text
 
   initiatedBy   UserProfile? @relation(name: "InitiatedBy", fields: [initiatedById], references: [id])
-  initiatedById String?
+  initiatedById String?      @db.VarChar(100)
 
   initiatedFor   UserProfile? @relation(name: "InitiatedFor", fields: [initiatedForId], references: [id])
-  initiatedForId String?
+  initiatedForId String?      @db.VarChar(100)
 
   completedAt DateTime?
   remarks     String?   @db.VarChar(255)
+  delegated   Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  version   BigInt   @default(0)
+  version   Int      @default(0)
 
   steps WorkflowStep[]
 
@@ -214,7 +241,6 @@ model WorkflowStep {
   tasks WorkflowTask[]
 
   @@index([instanceId])
-  @@index([instanceId, orderIndex])
   @@map("workflow_steps")
 }
 
@@ -234,10 +260,9 @@ model WorkflowTask {
   jobId          String?      @db.VarChar(255) // Job ID if automatic task
   resultData     String?      @db.Text // JSON result data
   completedAt    DateTime?
-  completedBy    String?      @db.VarChar(255)
+  completedBy    UserProfile? @relation(name: "taskCompletedBy", fields: [completedById], references: [id])
+  completedById  String?      @db.VarChar(255)
   failureReason  String?      @db.Text
-  assignedTo     UserProfile? @relation(fields: [assignedToId], references: [id])
-  assignedToId   String       @db.VarChar(255) // User ID
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -252,9 +277,9 @@ model WorkflowTask {
 
 model TaskAssignment {
   id           String       @id @default(uuid())
-  taskId       String
   task         WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assignedTo   UserProfile  @relation(fields: [assignedToId], references: [id])
+  taskId       String
+  assignedTo   UserProfile  @relation(name: "taskAssignments", fields: [assignedToId], references: [id])
   assignedToId String       @db.VarChar(255) // User ID
   roleName     String?      @db.VarChar(50) // Role name if assigned by role
   assignedBy   String?      @db.VarChar(255)
@@ -278,55 +303,91 @@ model TaskAssignment {
 model Account {
   id          String  @id @default(uuid())
   name        String  @db.VarChar(100)
-  type        String  @db.VarChar(20) // MAIN, PROJECT, EVENT, RESERVE
+  type        String  @db.VarChar(20) // PRINCIPAL, GENERAL, DONATION, PUBLIC_DONATION (legacy)
   balance     Decimal @db.Decimal(15, 2)
   currency    String  @db.VarChar(3) // USD, INR, etc.
-  status      String  @db.VarChar(20) // ACTIVE, INACTIVE, CLOSED
+  status      String  @db.VarChar(20) // ACTIVE, INACTIVE, BLOCKED (legacy)
   description String? @db.Text
 
-  // Relations
-  transactions Transaction[]
-  expenses     Expense[]
-  earnings     Earning[]
+  // Legacy fields
+  accountHolderName String?   @db.VarChar(255)
+  accountHolderId   String?   @db.VarChar(255) // User ID
+  activatedOn       DateTime?
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  version   BigInt    @default(0)
-  deletedAt DateTime?
+  // Bank details (stored as JSON for flexibility)
+  bankDetail String? @db.Text // BankDetail: bankAccountHolderName, bankName, bankBranch, bankAccountNumber, bankAccountType, IFSCNumber
+  upiDetail  String? @db.Text // UPIDetail: payeeName, upiId, mobileNumber, qrData
+
+  // Relations
+  donations Donation[] @relation("DonationAccount")
+
+  accountHolder UserProfile? @relation("AccountHolder", fields: [accountHolderId], references: [id])
+
+  createdBy   UserProfile? @relation("AccountCreator", fields: [createdById], references: [id])
+  createdById String?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  version          Int           @default(0)
+  deletedAt        DateTime?
+  fromTransactions Transaction[] @relation(name: "FromAccount")
+  toTransactions   Transaction[] @relation(name: "ToAccount")
+  expenses         Expense[]
+  earnings         Earning[]
 
   @@index([type, status])
+  @@index([accountHolderId])
   @@map("accounts")
 }
 
 model Donation {
   id       String  @id @default(uuid())
-  type     String  @db.VarChar(20) // REGULAR, ONE_TIME
+  type     String  @db.VarChar(20) // REGULAR, ONETIME
   amount   Decimal @db.Decimal(10, 2)
   currency String  @db.VarChar(3)
-  status   String  @db.VarChar(20) // RAISED, PAID, CANCELLED, FAILED
+  status   String  @db.VarChar(20) // RAISED, PAID, PENDING, PAYMENT_FAILED, PAY_LATER, CANCELLED, UPDATE_MISTAKE
 
   // Donor information
-  donorId    String? @db.VarChar(255) // UserId for internal members
-  donorName  String? @db.VarChar(100) // Name for guest donations
-  donorEmail String? @db.VarChar(100) // Email for guest donations
+  donorId    String?      @db.VarChar(255) // UserId for internal members
+  donor      UserProfile? @relation("Donation", fields: [donorId], references: [id])
+  donorName  String?      @db.VarChar(100) // Name for guest donations
+  donorEmail String?      @db.VarChar(100) // Email for guest donations
+  donorPhone String?      @db.VarChar(20) // Phone for guest donations
 
-  description String?   @db.Text
-  raisedDate  DateTime
-  paidDate    DateTime?
+  // Legacy fields
+  isGuest   Boolean?  @default(false)
+  startDate DateTime? // For regular donations
+  endDate   DateTime? // For regular donations
+  raisedOn  DateTime // Alias for raisedDate (legacy)
+  paidOn    DateTime? // Alias for paidDate (legacy)
+
+  confirmedById        String?      @db.VarChar(255) // User ID
+  confirmedBy          UserProfile? @relation("DonationConfirmedBy", fields: [confirmedById], references: [id])
+  confirmedOn          DateTime?
+  paymentMethod        String?      @db.VarChar(20) // CASH, NETBANKING, UPI
+  paidToAccountId      String?      @db.VarChar(255) // Account ID
+  forEventId           String?      @db.VarChar(255) // Event ID
+  paidUsingUPI         String?      @db.VarChar(20) // GPAY, PAYTM, PHONEPE, BHARATPAY, UPI_OTH
+  isPaymentNotified    Boolean?     @default(false)
+  transactionRef       String?      @db.VarChar(255) // Legacy alias for transactionId
+  remarks              String?      @db.Text
+  cancelletionReason   String?      @db.Text // Legacy typo preserved
+  laterPaymentReason   String?      @db.Text
+  paymentFailureDetail String?      @db.Text
+  additionalFields     Json? // AdditionalField[] as JSON
 
   // Relations
-  transactionId String?      @unique @db.VarChar(255)
-  transaction   Transaction? @relation(fields: [transactionId], references: [id])
-  donor         UserProfile? @relation(fields: [donorId], references: [id])
+  paidToAccount Account? @relation("DonationAccount", fields: [paidToAccountId], references: [id])
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  version   BigInt    @default(0)
-  deletedAt DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  version      Int           @default(0)
+  deletedAt    DateTime?
+  transactions Transaction[]
 
   @@index([donorId, status])
   @@index([type, status])
-  @@index([raisedDate])
+  @@index([raisedOn])
   @@map("donations")
 }
 
@@ -338,8 +399,13 @@ model Transaction {
   status   String  @db.VarChar(20) // PENDING, COMPLETED, FAILED, REVERSED
 
   // Account relation
-  accountId String  @db.VarChar(255)
-  account   Account @relation(fields: [accountId], references: [id])
+  fromAccountId String?  @db.VarChar(255)
+  toAccountId   String?  @db.VarChar(255)
+  fromAccount   Account? @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
+  toAccount     Account? @relation(name: "ToAccount", fields: [toAccountId], references: [id])
+
+  fromAccountBalance   Decimal @db.Decimal(15, 2)
+  toAccountBalance   Decimal @db.Decimal(15, 2)
 
   // Reference to source
   referenceId   String? @db.VarChar(255) // Donation ID, Expense ID, etc.
@@ -348,55 +414,100 @@ model Transaction {
   description     String   @db.Text
   metadata        Json? // Additional data as JSON
   transactionDate DateTime
+  particulars     String?  @db.Text
 
   // Relations
-  donation Donation?
+  donation    Donation?    @relation(fields: [donationId], references: [id])
+  createdBy   UserProfile? @relation("TransactionCreator", fields: [createdById], references: [id])
+  createdById String?      @db.VarChar(255)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  version   BigInt    @default(0)
-  deletedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  version    Int       @default(0)
+  deletedAt  DateTime?
+  donationId String?
 
-  @@index([accountId, transactionDate])
+  @@index([fromAccountId, toAccountId, transactionDate])
   @@index([type, status])
   @@index([referenceId, referenceType])
   @@map("transactions")
 }
 
 model Expense {
-  id          String  @id @default(uuid())
-  category    String  @db.VarChar(30) // PROJECT, EVENT, ADHOC, OPERATIONAL, ADMINISTRATIVE
-  amount      Decimal @db.Decimal(10, 2)
-  currency    String  @db.VarChar(3)
-  status      String  @db.VarChar(20) // PENDING, APPROVED, PAID, REJECTED
-  description String  @db.Text
+  id    String  @id @default(uuid())
+  title String  @db.VarChar(255)
+  items String? @db.Text // JSON string of expense items
+
+  // Amount and currency
+  amount      Decimal @db.Decimal(15, 2)
+  currency    String  @default("INR") @db.VarChar(3)
+  status      String  @db.VarChar(20) // PENDING, APPROVED, PAID, REJECTED, SETTLED
+  description String? @db.Text
 
   // Reference to project/event
   referenceId   String? @db.VarChar(255)
   referenceType String? @db.VarChar(50)
 
-  // User relations
-  requestedBy String  @db.VarChar(255) // User ID
-  approvedBy  String? @db.VarChar(255) // User ID
+  // Legacy fields
+  isDelegated Boolean @default(false)
+
+  // Creator information
+  createdById String       @db.VarChar(255) // User ID
+  createdBy   UserProfile? @relation("ExpenseCreator", fields: [createdById], references: [id])
+  // Refer createdAt
+
+  // Paid by (person who paid the expense)
+  paidById    String       @db.VarChar(255) // User ID
+  paidBy      UserProfile? @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  expenseDate DateTime
+
+  // Submitted By (person who submitted the expense)
+  submittedById String       @db.VarChar(255) // User ID
+  submittedBy   UserProfile? @relation("ExpenseSubmittedBy", fields: [submittedById], references: [id])
+  submittedOn   DateTime?
+
+  // Finalized by (approver)
+  finalizedById String?      @db.VarChar(255) // User ID
+  finalizedBy   UserProfile? @relation("ExpenseFinalizedBy", fields: [finalizedById], references: [id])
+  finalizedOn   DateTime?
+
+  // Settled by (person who settled/paid back)
+  settledById String?      @db.VarChar(255) // User ID
+  settledBy   UserProfile? @relation("ExpenseSettledBy", fields: [settledById], references: [id])
+  settledOn   DateTime?
+
+  // Rejected by
+  rejectedById String?      @db.VarChar(255) // User ID
+  rejectedBy   UserProfile? @relation("ExpenseRejectedBy", fields: [rejectedById], references: [id])
+  rejectedOn   DateTime?
+
+  // Updated by
+  updatedById String?      @db.VarChar(255) // User ID
+  updatedBy   UserProfile? @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  updatedOn   DateTime?
 
   // Account and transaction
-  accountId     String?  @db.VarChar(255)
-  account       Account? @relation(fields: [accountId], references: [id])
-  transactionId String?  @unique @db.VarChar(255)
+  accountId   String?  @db.VarChar(255)
+  accountName String?  @db.VarChar(255)
+  account     Account? @relation(fields: [accountId], references: [id])
 
-  receiptUrl   String?   @db.VarChar(500)
-  expenseDate  DateTime
-  approvedDate DateTime?
-  paidDate     DateTime?
+  transactionRef String? @db.VarChar(255) // Transaction reference number
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  version   BigInt    @default(0)
-  deletedAt DateTime?
+  // Dates
+  remarks String? @db.Text
 
-  @@index([category, status])
-  @@index([requestedBy])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  version          Int               @default(0)
+  deletedAt        DateTime?
+  userProfile      UserProfile?      @relation(fields: [userProfileId], references: [id])
+  userProfileId    String?
+  activityExpenses ActivityExpense[]
+
   @@index([status])
+  @@index([createdById])
+  @@index([paidById])
+  @@index([referenceId, referenceType])
   @@map("expenses")
 }
 
@@ -423,10 +534,391 @@ model Earning {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  version   BigInt    @default(0)
+  version   Int       @default(0)
   deletedAt DateTime?
 
   @@index([category, status])
   @@index([source])
   @@map("earnings")
+}
+
+model DocumentReference {
+  id          String  @id @default(uuid())
+  fileName    String  @db.VarChar(500)
+  remotePath  String  @db.VarChar(1000)
+  publicToken String  @db.VarChar(255)
+  contentType String  @db.VarChar(100)
+  fileSize    Int
+  isPublic    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  mappings     DocumentMapping[]
+  uploadedBy   UserProfile?      @relation(name: "uploadedBy", fields: [uploadedById], references: [id])
+  uploadedById String?
+
+  @@map("document_references")
+}
+
+model DocumentMapping {
+  id                  String            @id @default(uuid())
+  documentReferenceId String            @db.VarChar(255)
+  documentReference   DocumentReference @relation(fields: [documentReferenceId], references: [id], onDelete: Cascade)
+  entityType          String            @db.VarChar(100) // e.g., UserProfile, Expense
+  entityId            String            @db.VarChar(255) // ID of the entity
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("document_mappings")
+}
+
+// ====================================
+// NOTICE MODULE MODELS
+// ====================================
+
+model Notice {
+  id          String    @id @default(uuid())
+  title       String    @db.VarChar(255)
+  description String    @db.Text
+  status      String    @db.VarChar(20) // ACTIVE, EXPIRED, DRAFT
+  noticeDate  DateTime
+  publishDate DateTime?
+  hasMeeting  Boolean   @default(false)
+
+  // Creator relation
+  creatorId       String       @db.VarChar(255)
+  creator         UserProfile? @relation("NoticeCreator", fields: [creatorId], references: [id])
+  creatorRoleCode String?      @db.VarChar(50)
+
+  // Meeting relation
+  meetingId String?  @unique @db.VarChar(255)
+  meeting   Meeting? @relation(fields: [meetingId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([creatorId])
+  @@index([noticeDate])
+  @@map("notices")
+}
+
+model Meeting {
+  id                     String   @id @default(uuid())
+  extMeetingId           String?  @db.VarChar(255) // Google Calendar event ID
+  meetingSummary         String   @db.VarChar(500)
+  meetingDescription     String?  @db.Text
+  meetingLocation        String?  @db.VarChar(500)
+  meetingDate            DateTime
+  meetingStartTime       String?  @db.VarChar(20) // Format: "HH:mm" or "HH:mm:ss"
+  meetingEndTime         String?  @db.VarChar(20) // Format: "HH:mm" or "HH:mm:ss"
+  meetingRefId           String?  @db.VarChar(255) // Reference to Notice or Event
+  meetingType            String   @db.VarChar(20) // OFFLINE, ONLINE_VIDEO, ONLINE_AUDIO
+  status                 String   @db.VarChar(20) // CREATED_L, CREATED_G, FAILED_L, FAILED_G, UPDATED_L, UPDATED_G
+  meetingRemarks         String?  @db.Text
+  meetingRefType         String?  @db.VarChar(20) // NOTICE, EVENT
+  extAudioConferenceLink String?  @db.VarChar(1000) // Google Meet phone link
+  extVideoConferenceLink String?  @db.VarChar(1000) // Google Meet video link
+  extHtmlLink            String?  @db.VarChar(1000) // Google Calendar event link
+  creatorEmail           String?  @db.VarChar(255)
+  extConferenceStatus    String?  @db.VarChar(100)
+
+  // Relations
+  notices   Notice[] // Notices that reference this meeting
+  attendees MeetingAttendee[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([meetingType, status])
+  @@index([meetingRefId, meetingRefType])
+  @@index([meetingDate])
+  @@index([extMeetingId])
+  @@map("meetings")
+}
+
+model MeetingAttendee {
+  id        String       @id @default(uuid())
+  meetingId String       @db.VarChar(255)
+  meeting   Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId    String       @db.VarChar(255) // User ID
+  user      UserProfile? @relation("MeetingAttendees", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_attendees")
+}
+
+// ====================================
+// PROJECT MODULE MODELS
+// ====================================
+
+model Project {
+  id                     String    @id @default(uuid())
+  name                   String    @db.VarChar(255)
+  description            String    @db.Text
+  code                   String    @unique @db.VarChar(50)
+  category               String    @db.VarChar(50) // EDUCATION, HEALTH, etc.
+  status                 String    @db.VarChar(20) // PLANNING, ACTIVE, etc.
+  phase                  String    @db.VarChar(20) // INITIATION, PLANNING, etc.
+  startDate              DateTime
+  endDate                DateTime?
+  actualEndDate          DateTime?
+  budget                 Decimal   @db.Decimal(15, 2)
+  spentAmount            Decimal   @default(0) @db.Decimal(15, 2)
+  currency               String    @db.VarChar(3)
+  location               String?   @db.VarChar(255)
+  targetBeneficiaryCount Int?
+  actualBeneficiaryCount Int?
+  managerId              String    @db.VarChar(255)
+  sponsorId              String?   @db.VarChar(255)
+  tags                   String[]  @db.VarChar(50)
+  metadata               Json?
+
+  // Relations
+  manager       UserProfile         @relation("ProjectManager", fields: [managerId], references: [id])
+  sponsor       UserProfile?        @relation("ProjectSponsor", fields: [sponsorId], references: [id])
+  goals         Goal[]
+  activities    Activity[]
+  milestones    Milestone[]
+  teamMembers   ProjectTeamMember[]
+  beneficiaries Beneficiary[]
+  risks         ProjectRisk[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([category])
+  @@index([phase])
+  @@index([managerId])
+  @@index([code])
+  @@map("projects")
+}
+
+model Goal {
+  id           String    @id @default(uuid())
+  projectId    String    @db.VarChar(255)
+  title        String    @db.VarChar(255)
+  description  String?   @db.Text
+  targetValue  Decimal?  @db.Decimal(15, 2)
+  targetUnit   String?   @db.VarChar(50)
+  currentValue Decimal   @default(0) @db.Decimal(15, 2)
+  deadline     DateTime?
+  priority     String    @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  status       String    @db.VarChar(30) // NOT_STARTED, IN_PROGRESS, etc.
+  weight       Decimal?  @db.Decimal(5, 4) // 0-1
+  dependencies String[] // Array of goal IDs
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+  @@map("goals")
+}
+
+model Activity {
+  id                   String    @id @default(uuid())
+  projectId            String    @db.VarChar(255)
+  name                 String    @db.VarChar(255)
+  description          String?   @db.Text
+  scale                String    @db.VarChar(20) // TASK, ACTIVITY, EVENT
+  type                 String    @db.VarChar(50) // TRAINING, AWARENESS, etc.
+  status               String    @db.VarChar(20) // PLANNED, IN_PROGRESS, etc.
+  priority             String    @db.VarChar(20) // LOW, MEDIUM, HIGH, URGENT
+  startDate            DateTime?
+  endDate              DateTime?
+  actualStartDate      DateTime?
+  actualEndDate        DateTime?
+  location             String?   @db.VarChar(255)
+  venue                String?   @db.VarChar(255) // Mainly for EVENTS
+  assignedTo           String?   @db.VarChar(255) // Mainly for TASKS/ACTIVITIES
+  organizerId          String?   @db.VarChar(255) // Mainly for EVENTS
+  parentActivityId     String?   @db.VarChar(255) // For hierarchical breakdown
+  expectedParticipants Int? // Mainly for EVENTS
+  actualParticipants   Int? // Mainly for EVENTS
+  estimatedCost        Decimal?  @db.Decimal(15, 2)
+  actualCost           Decimal?  @db.Decimal(15, 2)
+  currency             String?   @db.VarChar(3)
+  tags                 String[]  @db.VarChar(50)
+  metadata             Json?
+
+  // Relations
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee         UserProfile?      @relation("ActivityAssignee", fields: [assignedTo], references: [id])
+  organizer        UserProfile?      @relation("ActivityOrganizer", fields: [organizerId], references: [id])
+  parentActivity   Activity?         @relation("ActivityHierarchy", fields: [parentActivityId], references: [id])
+  childActivities  Activity[]        @relation("ActivityHierarchy")
+  activityExpenses ActivityExpense[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([scale])
+  @@index([type])
+  @@index([assignedTo])
+  @@index([organizerId])
+  @@index([parentActivityId])
+  @@map("activities")
+}
+
+model Milestone {
+  id           String    @id @default(uuid())
+  projectId    String    @db.VarChar(255)
+  name         String    @db.VarChar(255)
+  description  String?   @db.Text
+  targetDate   DateTime
+  actualDate   DateTime?
+  status       String    @db.VarChar(20) // PENDING, IN_PROGRESS, etc.
+  importance   String    @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  dependencies String[] // Array of milestone IDs
+  notes        String?   @db.Text
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([targetDate])
+  @@map("milestones")
+}
+
+model ProjectTeamMember {
+  id               String    @id @default(uuid())
+  projectId        String    @db.VarChar(255)
+  userId           String    @db.VarChar(255)
+  role             String    @db.VarChar(30) // PROJECT_MANAGER, TEAM_LEAD, etc.
+  responsibilities String?   @db.Text
+  startDate        DateTime
+  endDate          DateTime?
+  hoursAllocated   Decimal?  @db.Decimal(10, 2)
+  isActive         Boolean   @default(true)
+
+  // Relations
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    UserProfile @relation("ProjectTeamMember", fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([projectId, userId, isActive])
+  @@index([projectId])
+  @@index([userId])
+  @@index([isActive])
+  @@map("project_team_members")
+}
+
+model Beneficiary {
+  id               String    @id @default(uuid())
+  projectId        String    @db.VarChar(255)
+  name             String    @db.VarChar(255)
+  type             String    @db.VarChar(30) // INDIVIDUAL, FAMILY, etc.
+  gender           String?   @db.VarChar(20) // MALE, FEMALE, etc.
+  age              Int?
+  dateOfBirth      DateTime?
+  contactNumber    String?   @db.VarChar(20)
+  email            String?   @db.VarChar(255)
+  address          String?   @db.Text
+  location         String?   @db.VarChar(255)
+  category         String?   @db.VarChar(100)
+  enrollmentDate   DateTime
+  exitDate         DateTime?
+  status           String    @db.VarChar(20) // ACTIVE, COMPLETED, etc.
+  benefitsReceived String[]  @db.VarChar(100)
+  notes            String?   @db.Text
+  metadata         Json?
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([type])
+  @@index([enrollmentDate])
+  @@map("beneficiaries")
+}
+
+model ProjectRisk {
+  id             String    @id @default(uuid())
+  projectId      String    @db.VarChar(255)
+  title          String    @db.VarChar(255)
+  description    String?   @db.Text
+  category       String    @db.VarChar(30) // BUDGET, TIMELINE, etc.
+  severity       String    @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  probability    String    @db.VarChar(20) // LOW, MEDIUM, HIGH
+  status         String    @db.VarChar(20) // IDENTIFIED, MONITORING, etc.
+  impact         String?   @db.Text
+  mitigationPlan String?   @db.Text
+  ownerId        String?   @db.VarChar(255)
+  identifiedDate DateTime
+  resolvedDate   DateTime?
+  notes          String?   @db.Text
+
+  // Relations
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   UserProfile? @relation("RiskOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([severity])
+  @@index([category])
+  @@map("project_risks")
+}
+
+model ActivityExpense {
+  id                   String   @id @default(uuid())
+  activityId           String   @db.VarChar(255)
+  expenseId            String   @db.VarChar(255) // References Finance module Expense entity
+  allocationPercentage Decimal? @db.Decimal(5, 2) // 0-100
+  allocationAmount     Decimal? @db.Decimal(15, 2)
+  notes                String?  @db.Text
+  createdBy            String   @db.VarChar(255)
+
+  // Relations
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  // creator  UserProfile @relation("ActivityExpenseCreator", fields: [createdBy], references: [id])
+
+  createdAt     DateTime     @default(now())
+  userProfile   UserProfile? @relation(fields: [userProfileId], references: [id])
+  userProfileId String?
+  expense       Expense      @relation(fields: [expenseId], references: [id])
+
+  @@unique([activityId, expenseId])
+  @@index([activityId])
+  @@index([expenseId])
+  @@map("activity_expenses")
 }

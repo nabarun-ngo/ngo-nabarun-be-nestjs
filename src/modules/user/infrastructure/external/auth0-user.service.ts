@@ -6,17 +6,18 @@ import { UserInfraMapper } from '../user-infra.mapper';
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { Role } from '../../domain/model/role.model';
-import { CACHE_MANAGER ,Cache } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 export type Auth0User = Awaited<ReturnType<ManagementClient['users']['get']>>;
 export type Auth0Role = Awaited<ReturnType<ManagementClient['roles']['get']>>;
 
 @Injectable()
 export class Auth0UserService {
+
   private readonly logger = new Logger(Auth0UserService.name);
   private readonly managementClient: ManagementClient;
 
-  constructor(private readonly configService: ConfigService, 
+  constructor(private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {
     const domain = this.configService.get<string>(Configkey.AUTH0_DOMAIN)!;
@@ -73,23 +74,7 @@ export class Auth0UserService {
   async createUser(newUser: User, emailVerified: boolean): Promise<User> {
     try {
       for (const lm of newUser.loginMethod) {
-        await this.managementClient.users.create({
-          email: newUser.email,
-          connection: UserInfraMapper.loginMethod2Connection(lm),
-          given_name: newUser.firstName,
-          family_name: newUser.lastName,
-          name: newUser.fullName,
-          picture: newUser.picture,
-          user_metadata: {
-            profile_id: newUser.id,
-            active_user: newUser.status == UserStatus.ACTIVE,
-            reset_password: true,
-            profile_updated: newUser.isProfileCompleted,
-          },
-          password:
-            lm == LoginMethod.PASSWORD ? newUser.password! : undefined,
-          email_verified: emailVerified,
-        });
+        await this.createUserForLogin(newUser, lm, emailVerified);
       }
 
       return await this.linkAllAccountsForUser(newUser.email);
@@ -97,6 +82,26 @@ export class Auth0UserService {
       this.logger.error(`Error creating Auth0 user:`, e);
       throw new ThirdPartyException('auth0', e as Error);
     }
+  }
+  private async createUserForLogin(newUser: User, lm: LoginMethod, emailVerified: boolean) {
+    await this.managementClient.users.create({
+      email: newUser.email,
+      connection: UserInfraMapper.loginMethod2Connection(lm),
+      given_name: newUser.firstName,
+      family_name: newUser.lastName,
+      name: newUser.fullName,
+      picture: newUser.picture,
+      user_metadata: {
+        profile_id: newUser.id,
+        active_user: newUser.status == UserStatus.ACTIVE,
+        //reset_password:  ? true : false,
+        ...(lm == LoginMethod.PASSWORD ? { reset_password: true } : {}),
+        profile_updated: newUser.isProfileCompleted,
+      },
+      password:
+        lm == LoginMethod.PASSWORD ? newUser.password! : undefined,
+      email_verified: emailVerified,
+    });
   }
 
   async linkAllAccountsForUser(email: string): Promise<User> {
@@ -135,11 +140,11 @@ export class Auth0UserService {
     return UserInfraMapper.toAuthUser(updated);
   }
 
-  async updateUser(id: string, user: Partial<User>, password?: string): Promise<User> {
+  async updateUser(id: string, user: Partial<User>, password?: string,): Promise<User> {
     try {
       const response = await this.managementClient.users.update(
-       id,
-        { 
+        id,
+        {
           email: user.email,
           given_name: user.firstName,
           family_name: user.lastName,
@@ -150,10 +155,10 @@ export class Auth0UserService {
           user_metadata: {
             profile_id: user.id,
             active_user: user.status == UserStatus.ACTIVE,
-            reset_password: true,
+            //reset_password: true,
             profile_updated: user.isProfileCompleted,
           }
-         },
+        },
       );
       return response.data;
     } catch (e) {
@@ -164,7 +169,7 @@ export class Auth0UserService {
 
   async deleteUser(id: string): Promise<void> {
     try {
-      await this.managementClient.users.delete( id );
+      await this.managementClient.users.delete(id);
     } catch (e) {
       this.logger.error(`Failed to delete user ${id}: ${e.message}`, e.stack);
       throw new ThirdPartyException('auth0', e);
@@ -217,17 +222,26 @@ export class Auth0UserService {
 
   async getRoles(): Promise<Role[]> {
     const cachedRoles = await this.cacheManager.get<Auth0Role[]>('ALL_ROLES');
-    var allRoles =  cachedRoles ?? (await this.managementClient.roles.list()).data;
-    if(!cachedRoles){
-      await this.cacheManager.set<Auth0Role[]>('ALL_ROLES',allRoles);
+    var allRoles = cachedRoles ?? (await this.managementClient.roles.list()).data;
+    if (!cachedRoles) {
+      await this.cacheManager.set<Auth0Role[]>('ALL_ROLES', allRoles);
     }
     try {
       return allRoles.map((role) => {
         return new Role(role.id!, role.name!, role.description!, role.name!);
-      });      
+      });
     } catch (e) {
       this.logger.error(`Failed to get roles: ${e.message}`, e.stack);
       throw new ThirdPartyException('auth0', e);
+    }
+  }
+
+  async addLoginMethods(user: User, toAdd: LoginMethod[]) {
+    if (toAdd) {
+      for (const lm of toAdd) {
+        await this.createUserForLogin(user, lm, true)
+      }
+      await this.linkAllAccountsForUser(user.email);
     }
   }
 

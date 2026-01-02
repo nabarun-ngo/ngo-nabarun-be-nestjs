@@ -6,128 +6,129 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
-import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
-import { StartWorkflowUseCase } from '../../application/use-cases/start-workflow.use-case';
-import { CompleteTaskUseCase } from '../../application/use-cases/complete-task.use-case';
-import { StartWorkflowDto, WorkflowInstanceDto } from '../../application/dto/start-workflow.dto';
-import { CompleteTaskDto } from '../../application/dto/complete-task.dto';
-import { CreateWorkflowDefinitionDto } from '../../application/dto/create-workflow-definition.dto';
-import { WorkflowStepHistoryDto } from '../../application/dto/step-history.dto';
-import { Inject } from '@nestjs/common';
-import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
+import { StartWorkflowDto, UpdateTaskDto, WorkflowInstanceDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
-import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
-import { WorkflowDtoMapper } from '../WorkflowDtoMapper';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
+import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
-@ApiTags('Workflows')
-@ApiSecurity('api-key')
+@ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
 @Controller('workflows')
-@UseApiKey()
 export class WorkflowController {
   constructor(
-    private readonly startWorkflowUseCase: StartWorkflowUseCase,
-    private readonly completeTaskUseCase: CompleteTaskUseCase,
-    @Inject(WORKFLOW_INSTANCE_REPOSITORY)
-    private readonly instanceRepository: IWorkflowInstanceRepository,
     private readonly workflowService: WorkflowService,
-  ) {}
+  ) { }
 
+  @RequireAllPermissions('create:request')
   @Post('create')
-  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Start a new workflow instance' })
-  @ApiResponse({
-    status: 201,
-    description: 'Workflow started successfully',
-    type: SuccessResponse<WorkflowInstanceDto>,
-  })
-  async startWorkflow(@Body() dto: StartWorkflowDto): Promise<SuccessResponse<WorkflowInstanceDto>> {
-    const result = await this.startWorkflowUseCase.execute(dto);
+  @ApiAutoResponse(WorkflowInstanceDto, { status: 201, description: 'Workflow started successfully' })
+  async startWorkflow(@Body() dto: StartWorkflowDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowInstanceDto>> {
+    const result = await this.workflowService.createWorkflow(dto, user);
     return new SuccessResponse<WorkflowInstanceDto>(result);
   }
 
-  @Post('tasks/complete')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Complete a workflow task' })
-  @ApiResponse({
-    status: 200,
-    description: 'Task completed successfully',
-    type: SuccessResponse<WorkflowInstanceDto>,
-  })
-  async completeTask(@Body() dto: CompleteTaskDto): Promise<SuccessResponse<WorkflowInstanceDto>> {
-    const result = await this.completeTaskUseCase.execute(dto);
-    return new SuccessResponse<WorkflowInstanceDto>(result);
+
+  @RequireAllPermissions('update:work')
+  @Post(':id/tasks/:taskId/update')
+  @ApiOperation({ summary: 'Update a workflow task' })
+  @ApiAutoResponse(WorkflowTaskDto, { description: 'Task updated successfully' })
+  async updateTask(@Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
+    const result = await this.workflowService.updateTask(id, taskId, dto, user);
+    return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
-  @Get('instances/:id')
+
+  @RequireAllPermissions('read:request')
+  @Get(':id/instance')
   @ApiOperation({ summary: 'Get workflow instance by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Workflow instance retrieved successfully',
-    type: SuccessResponse<WorkflowInstanceDto>,
-  })
+  @ApiAutoResponse(WorkflowInstanceDto, { description: 'Workflow instance retrieved successfully' })
   async getInstance(@Param('id') id: string): Promise<SuccessResponse<WorkflowInstanceDto>> {
-    const instance = await this.instanceRepository.findById(id, true);
+    const instance = await this.workflowService.getWorkflow(id, true);
     if (!instance) {
       throw new Error('Workflow instance not found');
     }
-    return new SuccessResponse<WorkflowInstanceDto>(
-      WorkflowDtoMapper.toDto(instance),
-    );
+    return new SuccessResponse<WorkflowInstanceDto>(instance);
   }
 
-  @Get('instances')
+  @RequireAllPermissions('read:request')
+  @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
-  @ApiResponse({
-    status: 200,
-    description: 'Workflow instances retrieved successfully',
-    type: SuccessResponse<WorkflowInstanceDto[]>,
-  })
-  async listInstances(
-    @Param('type') type?: string,
-    @Param('status') status?: string,
-  ): Promise<SuccessResponse<WorkflowInstanceDto[]>> {
-    let instances;
-    if (type) {
-      instances = await this.instanceRepository.findByType(type, status);
-    } else if (status) {
-      instances = await this.instanceRepository.findByStatus(status);
-    } else {
-      // Return empty for now - in production, you'd have a findAll method
-      instances = [];
-    }
-
-    return new SuccessResponse<WorkflowInstanceDto[]>(
-      instances.map((inst) => WorkflowDtoMapper.toDto(inst)),
-    );
+  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully', wrapInSuccessResponse: true })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  async listInstancesForMe(
+    @Query('page') page?: number,
+    @Query('size') size?: number,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
+    const instances =
+      await this.workflowService.getWorkflows({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          initiatedFor: user?.profile_id,
+        }
+      })
+    return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
-  @Get('instances/:id/history')
-  @ApiOperation({ summary: 'Get workflow step history' })
-  @ApiResponse({
-    status: 200,
-    description: 'Step history retrieved successfully',
-    type: SuccessResponse<WorkflowStepHistoryDto>,
-  })
-  async getStepHistory(@Param('id') id: string): Promise<SuccessResponse<WorkflowStepHistoryDto>> {
-    const history = await this.workflowService.getStepHistory(id);
-    return new SuccessResponse<WorkflowStepHistoryDto>(history);
+  @RequireAllPermissions('read:request')
+  @Get('instances/byMe')
+  @ApiOperation({ summary: 'List workflow instances' })
+  @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  async listInstancesByMe(
+    @Query('page') page?: number,
+    @Query('size') size?: number,
+    @Query('delegated') delegated?: boolean,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
+    const instances =
+      await this.workflowService.getWorkflows({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          initiatedBy: user?.profile_id,
+          delegated: delegated,
+        }
+      })
+    return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
-  @Post('definitions')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a workflow definition' })
-  @ApiResponse({
-    status: 201,
-    description: 'Workflow definition created successfully',
-  })
-  async createDefinition(@Body() dto: CreateWorkflowDefinitionDto) {
-    // This would be implemented in a use case
-    // For now, just a placeholder
-    throw new Error('Not implemented');
+  @RequireAllPermissions('read:work')
+  @Get('tasks/forMe')
+  @ApiOperation({ summary: 'List workflow tasks' })
+  @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  async listTasks(
+    @Query('page') page?: number,
+    @Query('size') size?: number,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
+    const instances =
+      await this.workflowService.getWorkflowTasks({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          assignedTo: user?.profile_id,
+          status: [TaskAssignmentStatus.PENDING, TaskAssignmentStatus.ACCEPTED]
+        }
+      })
+    return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
   }
-} 
+
+}
 

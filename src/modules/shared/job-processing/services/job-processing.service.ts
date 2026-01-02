@@ -10,7 +10,7 @@ export class JobProcessingService {
 
   constructor(
     @InjectQueue('default') private readonly defaultQueue: Queue,
-  ) {}
+  ) { }
 
   /**
    * Add a job to the default queue
@@ -22,7 +22,7 @@ export class JobProcessingService {
   ): Promise<Job<T>> {
     try {
       this.logger.log(`Adding job: ${name} with data: ${JSON.stringify(data)}`);
-      
+
       // Set TTL based on job type and configuration
       const jobOptions = this.setJobTTL(options);
       const job = await this.defaultQueue.add(name, data, jobOptions);
@@ -104,6 +104,65 @@ export class JobProcessingService {
   }
 
   /**
+   * Retry a failed job
+   */
+  async retryJob(jobId: string): Promise<void> {
+    try {
+      const job = await this.defaultQueue.getJob(jobId);
+
+      if (!job) {
+        this.logger.warn(`Job not found: ${jobId}`);
+        throw new Error(`Job ${jobId} not found`);
+      }
+
+      const state = await job.getState();
+
+      if (state !== 'failed') {
+        this.logger.warn(`Job ${jobId} is not in failed state (current state: ${state})`);
+        throw new Error(`Job ${jobId} is not in failed state. Current state: ${state}`);
+      }
+
+      // Retry the job
+      await job.retry();
+      this.logger.log(`Job ${jobId} has been queued for retry`);
+    } catch (error) {
+      this.logger.error(`Failed to retry job: ${jobId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retry all failed jobs
+   */
+  async retryAllFailedJobs(): Promise<{ retriedCount: number; failedCount: number }> {
+    try {
+      const failedJobs = await this.defaultQueue.getFailed();
+      let retriedCount = 0;
+      let failedCount = 0;
+
+      this.logger.log(`Found ${failedJobs.length} failed jobs to retry`);
+
+      for (const job of failedJobs) {
+        try {
+          await job.retry();
+          retriedCount++;
+          this.logger.log(`Retried job: ${job.id}`);
+        } catch (error) {
+          failedCount++;
+          this.logger.error(`Failed to retry job ${job.id}: ${error.message}`);
+        }
+      }
+
+      this.logger.log(`Retry complete: ${retriedCount} succeeded, ${failedCount} failed`);
+
+      return { retriedCount, failedCount };
+    } catch (error) {
+      this.logger.error('Failed to retry all failed jobs', error);
+      throw error;
+    }
+  }
+
+  /**
    * Remove a job from a specific queue
    */
   async removeJobFromQueue(queueName: string, jobId: string): Promise<void> {
@@ -168,11 +227,11 @@ export class JobProcessingService {
       const failedJobsDays = parseInt(process.env.JOB_RETENTION_FAILED_DAYS || '7');
       const completedJobsCount = parseInt(process.env.JOB_RETENTION_COMPLETED_COUNT || '100');
       const failedJobsCount = parseInt(process.env.JOB_RETENTION_FAILED_COUNT || '50');
-      
-      const age = status === 'completed' 
-        ? completedJobsDays * 24 * 60 * 60 
+
+      const age = status === 'completed'
+        ? completedJobsDays * 24 * 60 * 60
         : failedJobsDays * 24 * 60 * 60;
-      
+
       const count = status === 'completed' ? completedJobsCount : failedJobsCount;
       await this.defaultQueue.clean(grace, count, status);
       this.logger.log(`Cleaned ${status} jobs`);
@@ -221,7 +280,7 @@ export class JobProcessingService {
   }
 
   /**
-   * Get queue statistics
+   * Get queue statistics (optimized with count methods)
    */
   async getQueueStats(): Promise<{
     waiting: number;
@@ -231,20 +290,21 @@ export class JobProcessingService {
     delayed: number;
   }> {
     try {
+      // Use count methods instead of fetching arrays - much more efficient!
       const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(),
-        this.defaultQueue.getActive(),
-        this.defaultQueue.getCompleted(),
-        this.defaultQueue.getFailed(),
-        this.defaultQueue.getDelayed(),
+        this.defaultQueue.getWaitingCount(),
+        this.defaultQueue.getActiveCount(),
+        this.defaultQueue.getCompletedCount(),
+        this.defaultQueue.getFailedCount(),
+        this.defaultQueue.getDelayedCount(),
       ]);
 
       return {
-        waiting: waiting.length,
-        active: active.length,
-        completed: completed.length,
-        failed: failed.length,
-        delayed: delayed.length,
+        waiting,
+        active,
+        completed,
+        failed,
+        delayed,
       };
     } catch (error) {
       this.logger.error('Failed to get queue stats', error);

@@ -1,4 +1,5 @@
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 export enum EarningCategory {
   SERVICE = 'SERVICE',        // Service-based earnings
@@ -12,6 +13,15 @@ export enum EarningStatus {
   PENDING = 'PENDING',
   RECEIVED = 'RECEIVED',
   CANCELLED = 'CANCELLED',
+}
+
+export class EarningFilter {
+  status?: EarningStatus[];
+  category?: EarningCategory[];
+  source?: string;
+  referenceId?: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 /**
@@ -47,19 +57,19 @@ export class Earning extends AggregateRoot<string> {
     amount: number;
     currency: string;
     description: string;
-    source: string;
+    source?: string;
     referenceId?: string;
     referenceType?: string;
     earningDate?: Date;
   }): Earning {
     return new Earning(
-      crypto.randomUUID(),
+      `NER${generateUniqueNDigitNumber(6)}`,
       props.category,
       props.amount,
       props.currency,
       EarningStatus.PENDING,
       props.description,
-      props.source,
+      props.source || '',
       props.referenceId,
       props.referenceType,
       undefined,

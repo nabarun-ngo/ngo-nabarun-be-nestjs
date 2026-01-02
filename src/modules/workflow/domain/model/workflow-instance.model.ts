@@ -5,7 +5,10 @@ import { WorkflowDefinition } from '../vo/workflow-def.vo';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { WorkflowCreatedEvent } from '../events/workflow-created.event';
 import { StepStartedEvent } from '../events/step-started.event';
-import { BaseDomain } from 'src/shared/models/base-domain';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { WorkflowTaskStatus } from './workflow-task.model';
+import { TaskCompletedEvent } from '../events/task-completed.event';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -17,160 +20,214 @@ export enum WorkflowInstanceStatus {
 
 export enum WorkflowType {
   JOIN_REQUEST = 'JOIN_REQUEST',
+  CONTACT_REQUEST = "CONTACT_REQUEST",
+  DONATION_REQUEST = "DONATION_REQUEST",
 
 }
 
 export interface WorkflowFilter {
   readonly initiatedBy?: string;
+  readonly initiatedFor?: string;
   readonly status?: string;
   readonly type?: string;
+  readonly delegated?: boolean;
 }
 
 
 export class WorkflowInstance extends AggregateRoot<string> {
-  private _steps: WorkflowStep[] = [];
+
+  #type: WorkflowType;
+  #name: string;
+  #description: string;
+  #status: WorkflowInstanceStatus;
+  #initiatedBy?: User;
+  #initiatedFor?: User;
+  #requestData?: Record<string, string>;
+  #currentStepId?: string;
+  #completedAt?: Date;
+  #remarks?: string;
+  #steps: WorkflowStep[] = [];
 
   constructor(
     protected _id: string,
-    private _type: WorkflowType,
-    private _name: string,
-    private _description: string,
-    private _status: WorkflowInstanceStatus,
-    private _initiatedBy?: User,
-    private _initiatedFor?: User,
-    private _requestData?: Record<string, string>,
-    private _currentStepId?: string,
-    private _completedAt?: Date,
-    private _remarks?: string,
-    _createdAt?: Date,
-    _updatedAt?: Date,
+    type: WorkflowType,
+    name: string,
+    description: string,
+    status: WorkflowInstanceStatus,
+    initiatedBy?: User,
+    initiatedFor?: User,
+    requestData?: Record<string, string>,
+    currentStepId?: string,
+    completedAt?: Date,
+    remarks?: string,
+    createdAt?: Date,
+    updatedAt?: Date,
   ) {
-    super(_id);
+    super(_id, createdAt, updatedAt);
+
+    this.#type = type;
+    this.#name = name;
+    this.#description = description;
+    this.#status = status;
+    this.#initiatedBy = initiatedBy;
+    this.#initiatedFor = initiatedFor ?? initiatedBy;
+    this.#requestData = requestData;
+    this.#currentStepId = currentStepId;
+    this.#completedAt = completedAt;
+    this.#remarks = remarks;
   }
 
   static create(data: {
     type: WorkflowType;
     definition: WorkflowDefinition;
+    requestedBy: string;
+    data?: Record<string, any>
+    requestedFor?: string;
   }) {
     const instance = new WorkflowInstance(
-      randomUUID(),
+      `NW${generateUniqueNDigitNumber(6)}`,
       data.type,
       data.definition.name,
       data.definition.description,
       WorkflowInstanceStatus.PENDING,
+      new User(data.requestedBy, '', '', ''),
+      data.requestedFor ? new User(data.requestedFor, '', '', '') : undefined,
+      data.data,
     );
+
     data.definition.steps.forEach(step => {
-      instance.addSteps(WorkflowStep.create(step))
-    })
-    instance.addDomainEvent(new WorkflowCreatedEvent(instance.id, instance))
+      instance.addSteps(WorkflowStep.create(step));
+    });
+
+    instance.addDomainEvent(new WorkflowCreatedEvent(instance.id));
     return instance;
   }
 
   public addSteps(step: WorkflowStep): void {
-    this._steps.push(step);
+    this.#steps.push(step);
     this.touch();
   }
 
   public start(): void {
-    this._status = WorkflowInstanceStatus.IN_PROGRESS;
-    this._currentStepId = this.steps.find(f => f.orderIndex == 0)?.stepId;
-    const step = this.steps.find(f => f.stepId == this._currentStepId);
+    this.#status = WorkflowInstanceStatus.IN_PROGRESS;
+
+    this.#currentStepId = this.steps.find(s => s.orderIndex === 0)?.stepId;
+
+    const step = this.steps.find(s => s.stepId === this.#currentStepId);
     step?.start();
-    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step!));
+
+    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
     this.touch();
   }
 
   public moveToNextStep(): void {
-    const currentStep = this.steps.find(f => f.stepId == this._currentStepId);
-    if (!currentStep) {
+    const current = this.steps.find(s => s.stepId === this.#currentStepId);
+
+    if (this.isAllStepsCompleted) {
       this.complete();
       return;
     }
-    
-    if (currentStep?.isCompleted()) {
-      //ON_SUCCESS : Update the current step id to next 
-      this._currentStepId = currentStep.onSuccessStepId;
-      const step=this.steps.find(f => f.stepId == this._currentStepId);
-      step?.start()
-      this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step!));
-      this.touch();
-    }
-    if (currentStep?.isFailed()) {
-      //ON_ERROR : Update the current step id to next 
-      this._currentStepId = currentStep.onFailureStepId;
-      const step=this.steps.find(f => f.stepId == this._currentStepId);
-      step?.start()
-      this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step!));
-      this.touch();
+
+    if (current?.isCompleted()) {
+      this.#currentStepId = current.onSuccessStepId;
+    } else if (current?.isFailed()) {
+      this.#currentStepId = current.onFailureStepId;
     }
 
+    const step = this.steps.find(s => s.stepId === this.#currentStepId);
+    step?.start();
+
+    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
+    this.touch();
+  }
+
+  updateTask(taskId: string, status: WorkflowTaskStatus, user?: User, remarks?: string) {
+    const step = this.steps.find(s => s.stepId === this.#currentStepId);
+    const task = step?.tasks?.find(t => t.id === taskId);
+
+    if (!task) {
+      throw new BusinessException(`Task not found: ${taskId}`);
+    }
+
+    // Check if task can be completed
+    if (task.status !== WorkflowTaskStatus.PENDING &&
+      task.status !== WorkflowTaskStatus.IN_PROGRESS) {
+      throw new BusinessException(`Task cannot be completed in status: ${task.status}`);
+    }
+
+    switch (status) {
+      case WorkflowTaskStatus.IN_PROGRESS:
+        task.start(user!);
+        break;
+      case WorkflowTaskStatus.COMPLETED:
+        task.complete(user);
+        break;
+      case WorkflowTaskStatus.FAILED:
+        task.fail(remarks!);
+        break;
+    }
+
+    if (step?.isAllTasksCompleted()) {
+      step.complete();
+      this.moveToNextStep();
+    }
+
+    this.touch();
+    this.addDomainEvent(new TaskCompletedEvent(this.id, step?.id!, task.id));
+    return task;
   }
 
   public complete(): void {
-    if (this._status == WorkflowInstanceStatus.COMPLETED) {
-      throw new Error(`Cannot complete workflow in status: ${this._status}`);
+    if (this.#status === WorkflowInstanceStatus.COMPLETED) {
+      throw new Error(`Cannot complete workflow in status: ${this.#status}`);
     }
-    this._status = WorkflowInstanceStatus.COMPLETED;
-    this._completedAt = new Date();
+    this.#status = WorkflowInstanceStatus.COMPLETED;
+    this.#completedAt = new Date();
     this.touch();
   }
 
   public fail(reason: string): void {
-    this._status = WorkflowInstanceStatus.FAILED;
-    this._remarks = reason;
+    this.#status = WorkflowInstanceStatus.FAILED;
+    this.#remarks = reason;
     this.touch();
   }
 
   public cancel(reason: string): void {
-    this._status = WorkflowInstanceStatus.CANCELLED;
-    this._remarks = reason;
+    this.#status = WorkflowInstanceStatus.CANCELLED;
+    this.#remarks = reason;
     this.touch();
   }
 
-
-  get name(): string {
-    return this._name;
+  get isAllStepsCompleted(): boolean {
+    return this.#steps.length > 0 && this.#steps.every(s => s.isCompleted());
   }
 
-  get description(): string {
-    return this._description;
+
+  // --- GETTERS (auto-picked by toJson) ---
+  get name(): string { return this.#name; }
+
+  get description(): string { return this.#description; }
+
+  get type(): WorkflowType { return this.#type; }
+
+  get status(): WorkflowInstanceStatus { return this.#status; }
+
+  get requestData(): Record<string, string> {
+    return this.#requestData ? { ...this.#requestData } : {};
   }
 
-  get type(): WorkflowType {
-    return this._type;
-  }
+  get currentStepId(): string | undefined { return this.#currentStepId; }
 
-  get status(): WorkflowInstanceStatus {
-    return this._status;
-  }
+  get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
 
-  get requestData(): Record<string, any> {
-    return { ...this._requestData };
-  }
+  get initiatedBy(): User | undefined { return this.#initiatedBy; }
 
-  get currentStepId(): string | undefined {
-    return this._currentStepId;
-  }
+  get initiatedFor(): User | undefined { return this.#initiatedFor; }
 
-  get steps(): ReadonlyArray<WorkflowStep> {
-    return [...this._steps];
-  }
+  get completedAt(): Date | undefined { return this.#completedAt; }
 
-  get initiatedBy(): User | undefined {
-    return this._initiatedBy;
-  }
+  get remarks(): string | undefined { return this.#remarks; }
 
-  get initiatedFor(): User | undefined {
-    return this._initiatedFor;
-  }
-
-  get completedAt(): Date | undefined {
-    return this._completedAt;
-  }
-
-  get remarks(): string | undefined {
-    return this._remarks;
-  }
-
+  get isDelegated(): boolean { return this.#initiatedBy?.id !== this.#initiatedFor?.id; }
 }
 

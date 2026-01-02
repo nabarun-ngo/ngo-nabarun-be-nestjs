@@ -2,95 +2,93 @@ import {
   Controller,
   Get,
   Query,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
+  BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
-import { Public } from '../../application/decorators/public.decorator';
-import { AuthCallbackDto } from '../dto/oauth..dto';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { SuccessResponse } from 'src/shared/models/response-model';
+import { AuthTokenDto } from '../../application/dto/oauth..dto';
 
 
 
-@ApiTags('OAuth')
-@ApiBearerAuth()
+@ApiTags(OAuthController.name)
+@ApiBearerAuth('jwt')
 @Controller('auth/oauth')
 export class OAuthController {
+
+
   constructor(
     private readonly oAuthService: GoogleOAuthService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) { }
 
-  @Public()
+
   @Get('google/auth-url')
   @ApiOperation({
     summary: 'Get Gmail OAuth authorization URL',
     description:
-      'Returns the OAuth URL to redirect users to for Gmail authentication',
+      'Returns the OAuth URL to redirect users to for Gmail authentication. State parameter is automatically generated server-side for security.',
+  })
+  @ApiQuery({
+    name: 'scopes',
+    required: false,
+    description: 'Space-separated list of OAuth scopes (must be whitelisted)',
+    type: String,
   })
   @ApiQuery({
     name: 'state',
     required: false,
-    description: 'Optional state parameter for OAuth flow',
+    description: 'Optional custom state parameter (if not provided, secure state will be generated server-side)',
+    type: String,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'OAuth authorization URL generated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        authUrl: {
-          type: 'string',
-          example: 'https://accounts.google.com/o/oauth2/v2/auth?...',
-        },
-      },
-    },
-  })
-  getGmailAuthUrl(@Query('state') state?: string) {
-    return this.oAuthService.getAuthUrl(state);
+  @ApiAutoResponse(String, { description: 'OAuth URL', wrapInSuccessResponse: true })
+  async getGmailAuthUrl(
+    @Query('scopes') scopes?: string,
+    @Query('state') state?: string,
+  ): Promise<SuccessResponse<string>> {
+    // Input validation
+    if (scopes && scopes.length > 1000) {
+      throw new BadRequestException('Scopes parameter is too long. Maximum 1000 characters allowed.');
+    }
+
+    // Parse and validate scopes
+    const scopeList = scopes
+      ? scopes.split(' ').filter(s => s.trim().length > 0)
+      : [];
+
+    // Validate scope format (basic check)
+    for (const scope of scopeList) {
+      if (scope.length > 200) {
+        throw new BadRequestException(`Scope "${scope.substring(0, 50)}..." is too long. Maximum 200 characters per scope.`);
+      }
+    }
+    const response = await this.oAuthService.getAuthUrl(scopeList, state);
+    return new SuccessResponse<string>(response.url);
   }
 
-  @Public()
-  @Post('google/submit-callback')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Handle Gmail OAuth callback',
-    description:
-      'Processes the OAuth callback code and stores the authentication tokens. Email can be provided in body or will be fetched from Google.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Gmail authentication successful, tokens stored',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        email: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid OAuth code or callback data',
-  })
-  async handleGmailCallback(
-    @Body() callbackDto: AuthCallbackDto,
-  ) {
-    // Email is optional - will be fetched from Google if not provided
-    const result = await this.oAuthService.handleCallback(
-      callbackDto.code,
-      callbackDto.clientId,
+  @Get('google/scopes')
+  @ApiOperation({ summary: 'Get available Google OAuth scopes' })
+  @ApiAutoResponse(Array<String>, { description: 'OAuth scopes', wrapInSuccessResponse: true, isArray: true })
+  async getGoogleScopes(): Promise<SuccessResponse<string[]>> {
+    return new SuccessResponse<string[]>(this.oAuthService.getOAuthScopes());
+  }
+
+  @Get('tokens')
+  @ApiOperation({ summary: 'Get available OAuth tokens' })
+  @ApiAutoResponse(AuthTokenDto, { description: 'OAuth tokens', wrapInSuccessResponse: true, isArray: true })
+  async getGoogleTokens(): Promise<SuccessResponse<Array<AuthTokenDto>>> {
+    return new SuccessResponse(
+      await this.oAuthService.getTokens()
     );
-    return result;
   }
-
 
 
 }

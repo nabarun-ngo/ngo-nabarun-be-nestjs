@@ -1,193 +1,334 @@
-# Documentation Index
+# Finance Module
 
-Welcome to the NestJS project documentation! This guide will help you navigate all available documentation resources.
+## Overview
 
-## 📚 Available Documentation
+The Finance Module manages all financial operations including donations, expenses, earnings, transactions, and accounts. It supports both regular monthly donations (subscriptions) and one-time donations from guests or members.
 
-### 🚀 Getting Started
+## Features
 
-1. **[Quick Reference Guide](./QUICK_REFERENCE.md)** - Start here!
-   - Module scaffolding commands
-   - Naming conventions cheat sheet
-   - Common code snippets
-   - Best practices checklist
+### 💰 Donations
+- **Regular Donations**: Monthly subscription donations for internal users
+- **One-Time Donations**: Single donations from guests or internal members
+- **Automatic Monthly Raising**: Cron job raises donations on 1st of every month
+- **Payment Processing**: Links donations to transactions and accounts
+- **Status Tracking**: RAISED → PAID → COMPLETED workflow
 
-2. **[Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide
-   - Clean Architecture principles
-   - Step-by-step module creation
-   - Complete folder structure
-   - Testing guidelines
+### 💳 Transactions
+- **Multi-Type Support**: DONATION, EXPENSE, EARNING, TRANSFER
+- **Account Linking**: All transactions linked to accounts
+- **Reference Tracking**: Links to source (donation, expense, or earning)
+- **Immutable Records**: Transactions cannot be modified after creation
+- **Metadata Support**: JSON metadata for additional information
 
-### 🔧 Technical Guides
+### 🏦 Accounts
+- **Account Types**: MAIN, PROJECT, EVENT, RESERVE
+- **Balance Tracking**: Real-time balance updates
+- **Credit/Debit Operations**: Automatic balance management
+- **Account Status**: ACTIVE, INACTIVE, CLOSED
 
-3. **[Base Repository Guide](./BASE_REPOSITORY_GUIDE.md)**
-   - Using PrismaBaseRepository
-   - Type parameters explained
-   - Common repository patterns
+### 📊 Expenses
+- **Categories**: PROJECT, EVENT, ADHOC, OPERATIONAL, ADMINISTRATIVE
+- **Approval Workflow**: PENDING → APPROVED → PAID
+- **Receipt Management**: URL storage for receipts/invoices
+- **Reference Tracking**: Links to projects/events
+- **Multi-User**: Requested by, Approved by tracking
 
-4. **[Type-Safe Infrastructure](./TYPE_SAFE_INFRASTRUCTURE.md)**
-   - Infrastructure mapper patterns
-   - Type-safe relation extraction
-   - MapperUtils usage
+### 📈 Earnings
+- **Categories**: SERVICE, PRODUCT, GRANT, SPONSORSHIP, OTHER
+- **Source Tracking**: Record earning sources
+- **Status Management**: PENDING → RECEIVED
+- **Account Integration**: Automatic account crediting
 
-5. **[Prisma Types Guide](./PRISMA_TYPES_GUIDE.md)**
-   - Creating persistence type definitions
-   - Query result types
-   - Type safety best practices
-
-## 🛠️ Tools
-
-### PowerShell Script
-
-**Location**: `scripts/create-module.ps1`
-
-**Usage**:
-```powershell
-.\scripts\create-module.ps1 -ModuleName "product"
-```
-
-**What it does**:
-- ✅ Creates complete folder structure
-- ✅ Generates all template files
-- ✅ Sets up proper naming conventions
-- ✅ Includes documentation and examples
-- ✅ Follows Clean Architecture standards
-
-## 📖 Quick Navigation
-
-### For New Modules
-
-1. Read [Quick Reference](./QUICK_REFERENCE.md) (5 min)
-2. Run `.\scripts\create-module.ps1 -ModuleName "your-module"`
-3. Follow the on-screen instructions
-4. Refer to [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md) for details
-
-### For Understanding Architecture
-
-1. [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md) - Architecture overview
-2. [Base Repository Guide](./BASE_REPOSITORY_GUIDE.md) - Data access layer
-3. [Type-Safe Infrastructure](./TYPE_SAFE_INFRASTRUCTURE.md) - Mapper patterns
-
-### For Specific Tasks
-
-| Task | Document |
-|------|----------|
-| Create new module | [Quick Reference](./QUICK_REFERENCE.md) |
-| Implement repository | [Base Repository Guide](./BASE_REPOSITORY_GUIDE.md) |
-| Create mapper | [Type-Safe Infrastructure](./TYPE_SAFE_INFRASTRUCTURE.md) |
-| Define Prisma types | [Prisma Types Guide](./PRISMA_TYPES_GUIDE.md) |
-| Full module walkthrough | [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md) |
-
-## 📋 Module Creation Checklist
-
-Use this when creating a new module:
-
-- [ ] Run `create-module.ps1` script
-- [ ] Add Prisma schema to `schema.prisma`
-- [ ] Run `npx prisma migrate dev --name add_entity_table`
-- [ ] Run `npx prisma generate`
-- [ ] Update persistence types if needed
-- [ ] Implement domain model business logic
-- [ ] Implement repository methods
-- [ ] Create use cases
-- [ ] Add controller endpoints
-- [ ] Register module in `AppModule`
-- [ ] Write unit tests
-- [ ] Update module README.md
-
-## 🏗️ Project Structure Overview
+## Architecture
 
 ```
-project-root/
-├── docs/                           # 📚 You are here
-│   ├── README.md                   # This file
-│   ├── QUICK_REFERENCE.md          # Quick start guide
-│   ├── MODULE_DEVELOPMENT_GUIDE.md # Comprehensive guide
-│   ├── BASE_REPOSITORY_GUIDE.md    # Repository patterns
-│   ├── TYPE_SAFE_INFRASTRUCTURE.md # Mapper patterns
-│   └── PRISMA_TYPES_GUIDE.md       # Prisma types
+finance/
+├── domain/                    # Business logic
+│   ├── model/                # Domain entities
+│   │   ├── donation.model.ts
+│   │   ├── transaction.model.ts
+│   │   ├── account.model.ts
+│   │   ├── expense.model.ts
+│   │   └── earning.model.ts
+│   ├── repositories/         # Repository interfaces
+│   ├── events/               # Domain events
+│   └── value-objects/        # Value objects
 │
-├── scripts/
-│   └── create-module.ps1           # 🛠️ Module generator
+├── application/              # Use cases
+│   ├── use-cases/
+│   │   ├── create-regular-donation.use-case.ts
+│   │   ├── create-one-time-donation.use-case.ts
+│   │   └── process-donation-payment.use-case.ts
+│   ├── dto/                  # Data transfer objects
+│   └── handlers/
+│       └── monthly-donations-job.handler.ts
 │
-├── src/
-│   ├── modules/                    # 📦 Your modules go here
-│   │   ├── user/                   # Example: user module
-│   │   ├── workflow/               # Example: workflow module
-│   │   └── your-module/            # Your new module
-│   │
-│   └── shared/                     # 🔧 Shared utilities
-│       ├── database/               # Base repository, utilities
-│       ├── exceptions/             # Custom exceptions
-│       ├── interfaces/             # Shared interfaces
-│       └── models/                 # Base domain models
+├── infrastructure/           # External concerns
+│   ├── persistence/
+│   │   ├── donation.repository.ts
+│   │   ├── transaction.repository.ts
+│   │   ├── account.repository.ts
+│   │   ├── expense.repository.ts
+│   │   └── earning.repository.ts
+│   ├── types/
+│   │   └── finance-persistence.types.ts
+│   └── finance-infra.mapper.ts
 │
-└── prisma/
-    ├── schema.prisma               # 💾 Database schema
-    └── migrations/                 # Database migrations
+└── presentation/             # API layer
+    └── controllers/
+        └── donation.controller.ts
 ```
 
-## 🎯 Common Scenarios
+## Database Schema
 
-### Scenario 1: "I need to create a new module"
+### Donations Table
+- Regular donations (monthly subscriptions)
+- One-time donations (guests or members)
+- Links to UserProfile for internal users
+- Optional guest information (name, email)
 
-1. **Quick**: `.\scripts\create-module.ps1 -ModuleName "product"`
-2. **Learn**: Read [Quick Reference](./QUICK_REFERENCE.md)
-3. **Deep dive**: [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md)
+### Transactions Table
+- All financial transactions
+- Links to Account
+- References source (Donation, Expense, Earning)
+- Immutable audit trail
 
-### Scenario 2: "I'm getting TypeScript errors in my repository"
+### Accounts Table
+- Different account types (MAIN, PROJECT, EVENT, RESERVE)
+- Real-time balance tracking
+- Multi-currency support
 
-1. Check [Base Repository Guide](./BASE_REPOSITORY_GUIDE.md) - Type parameters section
-2. Verify you're using `any` for `toDomain` parameter
-3. Confirm type parameter order matches `PrismaBaseRepository`
+### Expenses Table
+- Expense requests with approval workflow
+- Links to projects/events
+- Receipt URL storage
+- Approval tracking
 
-### Scenario 3: "My mapper isn't type-safe"
+### Earnings Table
+- Income tracking from various sources
+- Category-based organization
+- Account integration
 
-1. Read [Type-Safe Infrastructure](./TYPE_SAFE_INFRASTRUCTURE.md)
-2. Create persistence types in `types/` folder
-3. Use mapper helpers for relation extraction
-4. Follow [Prisma Types Guide](./PRISMA_TYPES_GUIDE.md)
+## API Endpoints
 
-### Scenario 4: "I need to understand the architecture"
+### Donations
 
-1. Start with [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md) - Architecture section
-2. Review existing modules: `src/modules/user/` and `src/modules/workflow/`
-3. Follow the patterns in those modules
+```typescript
+// Create regular donation (monthly subscription)
+POST /finance/donations/regular
+Body: {
+  amount: number,
+  currency: string,
+  donorId: string,        // User ID
+  description?: string
+}
 
-## 📞 Getting Help
+// Create one-time donation
+POST /finance/donations/one-time
+Body: {
+  amount: number,
+  currency: string,
+  donorId?: string,       // Optional for internal users
+  donorName?: string,     // Required for guests
+  donorEmail?: string,    // Required for guests
+  description?: string
+}
 
-### Documentation Priority
+// Process donation payment
+POST /finance/donations/:id/process-payment
+Body: {
+  accountId: string       // Account to credit
+}
+```
 
-1. **Start here**: [Quick Reference](./QUICK_REFERENCE.md)
-2. **Need examples**: Look at `src/modules/user/` (reference implementation)
-3. **Deep dive**: [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md)
-4. **Specific issues**: Check relevant technical guide
+## Usage Examples
 
-### Example Modules
+### Creating a Regular Donation
 
-- **User Module** (`src/modules/user/`) - Complete reference implementation
-- **Workflow Module** (`src/modules/workflow/`) - Complex relationships example
+```typescript
+// Regular donation for internal user (monthly subscription)
+const donation = await createRegularDonationUseCase.execute({
+  amount: 100.00,
+  currency: 'USD',
+  donorId: 'user-123',
+  description: 'Monthly membership donation'
+});
+```
 
-## 🔄 Keeping Up to Date
+### Creating a One-Time Donation (Guest)
 
-This documentation follows the current project standards. When standards change:
+```typescript
+// One-time donation from guest
+const donation = await createOneTimeDonationUseCase.execute({
+  amount: 50.00,
+  currency: 'USD',
+  donorName: 'John Doe',
+  donorEmail: 'john@example.com',
+  description: 'Support for community project'
+});
+```
 
-1. Update relevant documentation files
-2. Update the `create-module.ps1` script templates
-3. Refactor existing modules to match (gradually)
-4. Update this index
+### Processing Donation Payment
 
-## 📝 Contributing
+```typescript
+// Process payment and create transaction
+await processDonationPaymentUseCase.execute({
+  donationId: 'donation-123',
+  accountId: 'main-account-id'
+});
 
-When adding new patterns or standards:
+// This will:
+// 1. Mark donation as PAID
+// 2. Create a DONATION transaction
+// 3. Credit the account balance
+// 4. Link donation to transaction
+```
 
-1. Document in appropriate guide
-2. Add to [Quick Reference](./QUICK_REFERENCE.md)
-3. Update `create-module.ps1` templates
-4. Update this index if needed
+### Monthly Auto-Raise (Cron Job)
+
+```typescript
+// Automatically runs on 1st of every month at 00:00 UTC
+// Raises all pending regular donations for active subscribers
+@Cron('0 0 1 * *')
+async handleMonthlyDonations() {
+  // Gets all active subscriptions
+  // Creates RAISED donations for each
+  // Sends notification to users
+}
+```
+
+## Domain Events
+
+The module emits the following domain events:
+
+- `DonationRaisedEvent` - When a donation is created/raised
+- `DonationPaidEvent` - When a donation payment is processed
+- `TransactionCreatedEvent` - When a transaction is recorded
+- `ExpenseRecordedEvent` - When an expense is submitted
+
+## Business Rules
+
+### Donations
+1. Regular donations are auto-raised monthly for active users
+2. Guest donations require name and email
+3. Donations must be paid before creating transaction
+4. Cannot cancel paid donations
+5. Failed payments can be retried
+
+### Transactions
+6. Transactions are immutable once created
+7. Must link to a valid account
+8. Amount must be positive
+9. Reference ID tracks source entity
+
+### Accounts
+10. Cannot debit more than current balance
+11. Only active accounts can receive credits/debits
+12. Accounts with non-zero balance cannot be closed
+
+### Expenses
+13. Expenses require approval before payment
+14. Only approved expenses can be paid
+15. Payment creates transaction and debits account
+
+## Configuration
+
+### Cron Schedule
+
+The monthly donation job runs on the 1st of every month at midnight UTC. To modify:
+
+```typescript
+@Cron('0 0 1 * *', {  // minute hour day month dayOfWeek
+  name: 'raise-monthly-donations',
+  timeZone: 'UTC',
+})
+```
+
+### Currency
+
+Default currency is USD. To change:
+
+```typescript
+// In domain models
+const DEFAULT_CURRENCY = 'USD';
+```
+
+## Testing
+
+```bash
+# Run all finance module tests
+npm test -- finance
+
+# Run specific test file
+npm test -- donation.repository.spec.ts
+
+# E2E tests
+npm run test:e2e -- finance
+```
+
+## Next Steps
+
+### TODO: Additional Use Cases Needed
+- [ ] Get Account Balance
+- [ ] List Transactions by Account
+- [ ] Create Expense
+- [ ] Approve Expense
+- [ ] Pay Expense
+- [ ] Record Earning
+- [ ] Receive Earning Payment
+- [ ] Transfer Between Accounts
+- [ ] Generate Financial Reports
+
+### TODO: Additional Controllers
+- [ ] TransactionController - Transaction history and queries
+- [ ] AccountController - Account management
+- [ ] ExpenseController - Expense submission and approval
+- [ ] EarningController - Earning tracking
+
+### TODO: Additional Features
+- [ ] Recurring expense tracking
+- [ ] Budget management
+- [ ] Financial reports (monthly, yearly)
+- [ ] Export to CSV/Excel
+- [ ] Payment gateway integration
+- [ ] Email notifications for donations
+- [ ] SMS notifications for payment reminders
+
+## Dependencies
+
+- `@nestjs/schedule` - For cron jobs (monthly donations)
+- `@nestjs/event-emitter` - For domain events
+- Prisma - Database ORM
+
+## Migration
+
+To create database tables:
+
+```bash
+# Run migration (if not done already)
+npx prisma migrate dev --name add_finance_module
+
+# Generate Prisma client
+npx prisma generate
+```
+
+## Security Considerations
+
+1. **Authorization**: Implement proper role-based access control
+2. **Validation**: All monetary amounts validated
+3. **Audit Trail**: Immutable transaction records
+4. **Data Protection**: Sensitive donor information encrypted
+5. **Rate Limiting**: Prevent abuse of donation endpoints
+
+## Support
+
+For issues or questions about the Finance module:
+- Check the main project documentation
+- Review domain models for business rules
+- Examine use cases for workflows
+- Check Prisma schema for data structure
 
 ---
 
+**Module Status**: ✅ Core features implemented, ready for testing
 **Last Updated**: November 8, 2025
-
-**Need something not covered here?** Check the [Module Development Guide](./MODULE_DEVELOPMENT_GUIDE.md) or examine the existing modules in `src/modules/`.

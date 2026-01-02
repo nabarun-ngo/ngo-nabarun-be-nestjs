@@ -9,8 +9,14 @@ import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { config } from './config/config';
+import { DMSModule } from './modules/shared/dms/dms.module';
+import { PublicModule } from './modules/public/public.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ProjectModule } from './modules/project/project.module';
 
 @Module({
+  controllers: [],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -24,7 +30,7 @@ import { FinanceModule } from './modules/finance/finance.module';
     }),
     JobProcessingModule.forRoot({
       connection: {
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
+        url: config.database.redisUrl,
       }
     }),
     CacheModule.registerAsync({
@@ -32,18 +38,24 @@ import { FinanceModule } from './modules/finance/finance.module';
       useFactory: async () => {
         return {
           stores: [
-            new KeyvRedis('redis://localhost:6379'),
+            new KeyvRedis(config.database.redisUrl),
           ],
         };
       },
     }),
+    ScheduleModule.forRoot({
+
+    }),
     DatabaseModule.forRoot({
-      postgresUrl: process.env.POSTGRES_URL,
+      postgresUrl: config.database.postgresUrl,
     }),
     UserModule,
     AuthModule,
     WorkflowModule,
     FinanceModule,
+    DMSModule,
+    PublicModule,
+    ProjectModule
   ],
 })
 export class AppModule { }

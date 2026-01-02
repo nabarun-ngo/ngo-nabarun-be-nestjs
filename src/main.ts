@@ -1,41 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import compression from 'compression';
-import { configureSwagger } from './config/swagger-config';
+import { applyConfig, config } from './config/config';
 
 async function bootstrap() {
-  const isProd = process.env.NODE_ENV === 'prod';
+
+
+  console.time('BOOT');
   const app = await NestFactory.create(AppModule, {
-    logger: ['log'],
-    // Minimal logging in production
-    //bufferLogs: false,
+    logger: [config.app.logLevel as any]
   });
-
-  app.use(compression()); // Response compression
-
-  // Global validation with transform and whitelist
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: false,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-      disableErrorMessages: isProd,
-    }),
-  );
-
-  configureSwagger(app);
-  app.enableCors();
-  //app.useGlobalFilters(new GlobalExceptionFilter());
-  app.enableShutdownHooks();
-  app.setGlobalPrefix('api');
-
-  const port = process.env.PORT || 8080;
-  await app.listen(port, '0.0.0.0');
-  console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+  console.timeEnd('BOOT');
+  console.time('CONFIG');
+  applyConfig(app);
+  console.timeEnd('CONFIG');
+  console.time('LISTEN');
+  await app.listen(config.app.port, '0.0.0.0');
+  console.timeEnd('LISTEN');
+  console.log(`Application is running on: ${await app.getUrl()} - Environment: ${config.app.environment} Port: ${config.app.port}`);
+  if (!config.app.isProd) {
+    console.log(`Swagger documentation (UI): ${await app.getUrl()}/swagger-ui`);
+    console.log(`Swagger documentation (API): ${await app.getUrl()}/api/docs`);
+  }
 }
 bootstrap();

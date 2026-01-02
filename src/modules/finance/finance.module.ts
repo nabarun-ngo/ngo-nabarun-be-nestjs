@@ -3,11 +3,29 @@ import { Module } from '@nestjs/common';
 
 // Controllers
 import { DonationController } from './presentation/controllers/donation.controller';
+import { AccountController } from './presentation/controllers/account.controller';
+import { ExpenseController } from './presentation/controllers/expense.controller';
+import { EarningController } from './presentation/controllers/earning.controller';
 
 // Use Cases
-import { CreateRegularDonationUseCase } from './application/use-cases/create-regular-donation.use-case';
-import { CreateOneTimeDonationUseCase } from './application/use-cases/create-one-time-donation.use-case';
+import { CreateDonationUseCase } from './application/use-cases/create-donation.use-case';
+import { UpdateDonationUseCase } from './application/use-cases/update-donation.use-case';
 import { ProcessDonationPaymentUseCase } from './application/use-cases/process-donation-payment.use-case';
+import { CreateAccountUseCase } from './application/use-cases/create-account.use-case';
+import { UpdateAccountUseCase } from './application/use-cases/update-account.use-case';
+import { CreateExpenseUseCase } from './application/use-cases/create-expense.use-case';
+import { UpdateExpenseUseCase } from './application/use-cases/update-expense.use-case';
+import { SettleExpenseUseCase } from './application/use-cases/settle-expense.use-case';
+import { FinalizeExpenseUseCase } from './application/use-cases/finalize-expense.use-case';
+import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
+import { CreateEarningUseCase } from './application/use-cases/create-earning.use-case';
+import { UpdateEarningUseCase } from './application/use-cases/update-earning.use-case';
+
+// Services
+import { DonationService } from './application/services/donation.service';
+import { AccountService } from './application/services/account.service';
+import { ExpenseService } from './application/services/expense.service';
+import { EarningService } from './application/services/earning.service';
 
 // Repositories
 import { DONATION_REPOSITORY } from './domain/repositories/donation.repository.interface';
@@ -24,6 +42,10 @@ import EarningRepository from './infrastructure/persistence/earning.repository';
 
 // Handlers
 import { MonthlyDonationsJobHandler } from './application/handlers/monthly-donations-job.handler';
+import { UserModule } from '../user/user.module';
+import { MetadataService } from './infrastructure/external/metadata.service';
+import { FirebaseModule } from '../shared/firebase/firebase.module';
+import { ReverseTransactionUseCase } from './application/use-cases/reverse-transaction.use-case';
 
 /**
  * Finance Module
@@ -41,44 +63,60 @@ import { MonthlyDonationsJobHandler } from './application/handlers/monthly-donat
 @Module({
   controllers: [
     DonationController,
-    // TODO: Add more controllers
-    // TransactionController,
-    // AccountController,
-    // ExpenseController,
-    // EarningController,
+    AccountController,
+    ExpenseController,
+    EarningController,
   ],
   imports: [
-    //ScheduleModule.forRoot(), // Required for cron jobs
+    UserModule,
+    FirebaseModule,
   ],
   providers: [
     // ===== DONATION =====
-    CreateRegularDonationUseCase,
-    CreateOneTimeDonationUseCase,
+    CreateDonationUseCase,
+    UpdateDonationUseCase,
     ProcessDonationPaymentUseCase,
+    DonationService,
     {
       provide: DONATION_REPOSITORY,
       useClass: DonationRepository,
     },
 
-    // ===== TRANSACTION =====
-    {
-      provide: TRANSACTION_REPOSITORY,
-      useClass: TransactionRepository,
-    },
-
     // ===== ACCOUNT =====
+    CreateAccountUseCase,
+    UpdateAccountUseCase,
+    AccountService,
     {
       provide: ACCOUNT_REPOSITORY,
       useClass: AccountRepository,
     },
 
     // ===== EXPENSE =====
+    CreateExpenseUseCase,
+    UpdateExpenseUseCase,
+    SettleExpenseUseCase,
+    FinalizeExpenseUseCase,
+    ReverseTransactionUseCase,
+    ExpenseService,
     {
       provide: EXPENSE_REPOSITORY,
       useClass: ExpenseRepository,
     },
 
+    // ===== TRANSACTION =====
+    CreateTransactionUseCase,
+    {
+      provide: TRANSACTION_REPOSITORY,
+      useClass: TransactionRepository,
+    },
+
+    // ===== EXPENSE =====
+    ExpenseService,
+
     // ===== EARNING =====
+    CreateEarningUseCase,
+    UpdateEarningUseCase,
+    EarningService,
     {
       provide: EARNING_REPOSITORY,
       useClass: EarningRepository,
@@ -86,6 +124,7 @@ import { MonthlyDonationsJobHandler } from './application/handlers/monthly-donat
 
     // ===== HANDLERS =====
     MonthlyDonationsJobHandler,
+    MetadataService,
   ],
   exports: [
     DONATION_REPOSITORY,
@@ -95,4 +134,4 @@ import { MonthlyDonationsJobHandler } from './application/handlers/monthly-donat
     EARNING_REPOSITORY,
   ],
 })
-export class FinanceModule {}
+export class FinanceModule { }

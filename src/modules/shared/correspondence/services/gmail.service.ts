@@ -8,7 +8,7 @@ import { EmailOptions, SendEmailResult } from '../dtos/email.dto';
 @Injectable()
 export class GmailService {
   private readonly logger = new Logger(GmailService.name);
-  private readonly scope = 'https://www.googleapis.com/auth/gmail.send';
+  public static readonly scope = 'https://www.googleapis.com/auth/gmail.send';
 
   constructor(private readonly googleOAuthService: GoogleOAuthService) { }
 
@@ -18,11 +18,18 @@ export class GmailService {
   async sendEmail(
     html: string,
     options: EmailOptions,
-    fromEmail: string,
+    fromName: string,
   ): Promise<SendEmailResult> {
-    const oauth2Client = await this.googleOAuthService.getAuthenticatedClient(this.scope);
+    const oauth2Client = await this.googleOAuthService.getAuthenticatedClient(GmailService.scope);
+    if (!oauth2Client) {
+      return {
+        success: false,
+        error: 'Failed to get authenticated client'
+      };
+    }
+    const user = await oauth2Client.getTokenInfo(oauth2Client.credentials.access_token!);
     const gmail = googleMail({ version: 'v1', auth: oauth2Client });
-    const message = this.buildEmailMessage({ html: html }, options, fromEmail);
+    const message = this.buildEmailMessage({ html: html }, options, user.email!, fromName);
     // Send email
     const response = await gmail.users.messages.send({
       userId: 'me',
@@ -45,12 +52,12 @@ export class GmailService {
   /**
    * Build RFC 2822 email message
    */
-  private buildEmailMessage(content: { text?: string, html?: string }, options: EmailOptions, fromEmail: string,): string {
+  private buildEmailMessage(content: { text?: string, html?: string }, options: EmailOptions, fromEmail: string, senderName: string): string {
     const lines: string[] = [];
 
     // Headers
     if (fromEmail) {
-      lines.push(`From: ${fromEmail}`);
+      lines.push(`From: "${senderName}" <${fromEmail}>`);
     }
 
     if (options.recipients.to) {

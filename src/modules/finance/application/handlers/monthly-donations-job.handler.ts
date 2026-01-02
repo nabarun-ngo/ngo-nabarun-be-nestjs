@@ -1,10 +1,11 @@
-import { Injectable, Inject } from '@nestjs/common';
-//import { Cron, CronExpression } from '@nestjs/schedule';
-import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
-import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
+import { Inject, Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { Donation, DonationType } from '../../domain/model/donation.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
+import { UserStatus } from 'src/modules/user/domain/model/user.model';
+import { DonationService } from '../services/donation.service';
+import { DonationType } from '../../domain/model/donation.model';
 
 /**
  * Monthly Donations Job Handler
@@ -13,61 +14,49 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 @Injectable()
 export class MonthlyDonationsJobHandler {
   constructor(
-    @Inject(DONATION_REPOSITORY)
-    private readonly donationRepository: IDonationRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: IUserRepository,
+    private readonly donationService: DonationService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
+
+
 
   /**
    * Runs on 1st day of every month at 00:00
+   * 
    */
-//   @Cron('0 0 1 * *', {
-//     name: 'raise-monthly-donations',
-//     timeZone: 'UTC',
-//   })
+  @Cron('0 10 1-5 * *', {
+    name: 'raise-monthly-donations',
+    timeZone: 'UTC',
+  })
   async handleMonthlyDonations(): Promise<void> {
     console.log('[MonthlyDonationsJob] Starting monthly donation raise process...');
+    const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
 
-    try {
-      // TODO: Get all active users with regular donation subscriptions
-      // For now, this would need to fetch from UserProfile with donation settings
-      // const activeSubscribers = await this.userRepository.findActiveSubscribers();
+    const now = new Date();
+    // First date: set day to 1
+    const firstDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Last date: set month to next month, day to 0 (last day of current month)
+    const lastDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    for (const user of users) {
+      try {
+        // TODO: Get all active users with regular donation subscriptions
+        // For now, this would need to fetch from UserProfile with donation settings
 
-      // For each subscriber, create a RAISED donation
-      // This is a placeholder - you'll need to implement user subscription logic
-      
-      console.log('[MonthlyDonationsJob] Monthly donations raised successfully');
-    } catch (error) {
-      console.error('[MonthlyDonationsJob] Error raising monthly donations:', error);
-      // Consider sending alert/notification
+        await this.donationService.create({
+          type: DonationType.REGULAR,
+          amount: 150,
+          donorId: user.id,
+          startDate: firstDate,
+          endDate: lastDate,
+        });
+        console.log(`[MonthlyDonationsJob] Monthly donation raised successfully for user: ${user.id}`);
+      } catch (error) {
+        console.warn(`[MonthlyDonationsJob] Error raising monthly donation for user: ${user.id} Error : ${error}`);
+        // Consider sending alert/notification
+      }
     }
   }
 
-  /**
-   * Manual method to raise donations for a specific user
-   * Useful for testing or manual intervention
-   */
-  async raiseRegularDonationForUser(
-    donorId: string,
-    amount: number,
-    currency: string = 'USD',
-  ): Promise<Donation> {
-    const donation = Donation.createRegular({
-      amount,
-      currency,
-      donorId,
-      description: 'Monthly subscription donation',
-      raisedDate: new Date(),
-    });
-
-    const savedDonation = await this.donationRepository.create(donation);
-
-    // Emit events
-    for (const event of donation.domainEvents) {
-      this.eventEmitter.emit(event.constructor.name, event);
-    }
-    donation.clearEvents();
-
-    return savedDonation;
-  }
 }

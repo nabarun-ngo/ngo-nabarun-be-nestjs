@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { AuthToken } from '../../domain/auth-token.model';
-import { ITokenRepository } from '../../domain/token.repository.interface';
-import { Prisma } from 'generated/prisma';
+import { ITokenRepository } from '../../domain/repository/token.repository.interface';
+import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { AuthToken } from '../../domain/models/auth-token.model';
 
 @Injectable()
 export class TokenRepository implements ITokenRepository {
@@ -31,8 +31,21 @@ export class TokenRepository implements ITokenRepository {
         });
         return token ? this.toToken(token) : null;
     }
-    findAll(filter: any): Promise<AuthToken[]> {
-        throw new Error('Method not implemented.');
+    async findAll(filter: any): Promise<AuthToken[]> {
+        return (await this.prisma.oAuthToken.findMany({
+            where: {
+                ...(filter?.provider ? { provider: filter.provider } : {}),
+                ...(filter?.clientId ? { clientId: filter.clientId } : {}),
+                ...(filter?.scope ? {
+                    scope: {
+                        contains: filter.scope,
+                    }
+                } : {}),
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        })).map(this.toToken);
     }
 
     async findById(id: string): Promise<AuthToken | null> {

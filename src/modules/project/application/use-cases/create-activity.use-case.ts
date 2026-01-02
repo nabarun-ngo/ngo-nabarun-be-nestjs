@@ -1,0 +1,77 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
+import { Activity } from '../../domain/model/activity.model';
+import { ACTIVITY_REPOSITORY } from '../../domain/repositories/activity.repository.interface';
+import type { IActivityRepository } from '../../domain/repositories/activity.repository.interface';
+import { PROJECT_REPOSITORY } from '../../domain/repositories/project.repository.interface';
+import type { IProjectRepository } from '../../domain/repositories/project.repository.interface';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CreateActivityDto } from '../dto/activity.dto';
+import { BusinessException } from '../../../../shared/exceptions/business-exception';
+
+@Injectable()
+export class CreateActivityUseCase implements IUseCase<CreateActivityDto, Activity> {
+  constructor(
+    @Inject(ACTIVITY_REPOSITORY)
+    private readonly activityRepository: IActivityRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: IProjectRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async execute(request: CreateActivityDto): Promise<Activity> {
+    // Verify project exists and is active
+    const project = await this.projectRepository.findById(request.projectId);
+    if (!project) {
+      throw new BusinessException('Project not found');
+    }
+    if (!project.isActive()) {
+      throw new BusinessException('Cannot add activity to inactive project');
+    }
+
+    // Verify parent activity if provided
+    if (request.parentActivityId) {
+      const parentActivity = await this.activityRepository.findById(request.parentActivityId);
+      if (!parentActivity) {
+        throw new BusinessException('Parent activity not found');
+      }
+      if (parentActivity.projectId !== request.projectId) {
+        throw new BusinessException('Parent activity must belong to the same project');
+      }
+    }
+
+    // Create domain entity
+    const activity = Activity.create({
+      projectId: request.projectId,
+      name: request.name,
+      description: request.description,
+      scale: request.scale,
+      type: request.type,
+      priority: request.priority,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      location: request.location,
+      venue: request.venue,
+      assignedTo: request.assignedTo,
+      organizerId: request.organizerId,
+      parentActivityId: request.parentActivityId,
+      expectedParticipants: request.expectedParticipants,
+      estimatedCost: request.estimatedCost,
+      currency: request.currency,
+      tags: request.tags,
+      metadata: request.metadata,
+    });
+
+    // Save to repository
+    const savedActivity = await this.activityRepository.create(activity);
+
+    // Emit domain events
+    for (const event of savedActivity.domainEvents) {
+      this.eventEmitter.emit(event.constructor.name, event);
+    }
+    savedActivity.clearEvents();
+
+    return savedActivity;
+  }
+}
+

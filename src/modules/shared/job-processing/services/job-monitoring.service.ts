@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { JobState, Queue } from 'bullmq';
+import { jobFailureResponse2 } from 'src/shared/utilities/common.util';
+import { JobDetail } from '../interfaces/job.interface';
+import { stat } from 'fs';
 
-export interface JobMetrics {
+export class JobMetrics {
   total: number;
   completed: number;
   failed: number;
@@ -24,40 +27,52 @@ export interface JobPerformanceMetrics {
 export class JobMonitoringService {
   private readonly logger = new Logger(JobMonitoringService.name);
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
+  // Cache for metrics to reduce Redis calls
+  private metricsCache: { data: JobMetrics; timestamp: number } | null = null;
+  private readonly METRICS_CACHE_TTL = 60000; // 1 minute cache
+
+  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) { }
 
   /**
-   * Get comprehensive job metrics
+   * Get comprehensive job metrics (optimized with caching and count methods)
    */
   async getJobMetrics(): Promise<JobMetrics> {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (this.metricsCache && (now - this.metricsCache.timestamp) < this.METRICS_CACHE_TTL) {
+        this.logger.debug('Returning cached metrics');
+        return this.metricsCache.data;
+      }
+
+      // Use count methods instead of fetching full arrays - MUCH more efficient!
       const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(),
-        this.defaultQueue.getActive(),
-        this.defaultQueue.getCompleted(),
-        this.defaultQueue.getFailed(),
-        this.defaultQueue.getDelayed(),
+        this.defaultQueue.getWaitingCount(),
+        this.defaultQueue.getActiveCount(),
+        this.defaultQueue.getCompletedCount(),
+        this.defaultQueue.getFailedCount(),
+        this.defaultQueue.getDelayedCount(),
       ]);
 
-      const total =
-        waiting.length +
-        active.length +
-        completed.length +
-        failed.length +
-        delayed.length;
-      const successRate = total > 0 ? (completed.length / total) * 100 : 0;
-      const failureRate = total > 0 ? (failed.length / total) * 100 : 0;
+      const total = waiting + active + completed + failed + delayed;
+      const successRate = total > 0 ? (completed / total) * 100 : 0;
+      const failureRate = total > 0 ? (failed / total) * 100 : 0;
 
-      return {
+      const metrics = {
         total,
-        completed: completed.length,
-        failed: failed.length,
-        active: active.length,
-        waiting: waiting.length,
-        delayed: delayed.length,
+        completed,
+        failed,
+        active,
+        waiting,
+        delayed,
         successRate: Math.round(successRate * 100) / 100,
         failureRate: Math.round(failureRate * 100) / 100,
       };
+
+      // Update cache
+      this.metricsCache = { data: metrics, timestamp: now };
+
+      return metrics;
     } catch (error) {
       this.logger.error('Failed to get job metrics', error);
       throw error;
@@ -65,11 +80,12 @@ export class JobMonitoringService {
   }
 
   /**
-   * Get job performance metrics
+   * Get job performance metrics (optimized to limit data fetching)
    */
   async getJobPerformanceMetrics(): Promise<JobPerformanceMetrics> {
     try {
-      const completedJobs = await this.defaultQueue.getCompleted();
+      // Only fetch last 100 completed jobs instead of ALL jobs - huge optimization!
+      const completedJobs = await this.defaultQueue.getCompleted(0, 99);
 
       if (completedJobs.length === 0) {
         return {
@@ -119,70 +135,30 @@ export class JobMonitoringService {
   }
 
   /**
-   * Get job metrics by name
-   */
-  async getJobMetricsByName(jobName: string): Promise<JobMetrics> {
-    try {
-      const [waiting, active, completed, failed, delayed] = await Promise.all([
-        this.defaultQueue.getWaiting(),
-        this.defaultQueue.getActive(),
-        this.defaultQueue.getCompleted(),
-        this.defaultQueue.getFailed(),
-        this.defaultQueue.getDelayed(),
-      ]);
-
-      const filterByName = (jobs: any[]) =>
-        jobs.filter((job) => job.name === jobName);
-
-      const waitingJobs = filterByName(waiting);
-      const activeJobs = filterByName(active);
-      const completedJobs = filterByName(completed);
-      const failedJobs = filterByName(failed);
-      const delayedJobs = filterByName(delayed);
-
-      const total =
-        waitingJobs.length +
-        activeJobs.length +
-        completedJobs.length +
-        failedJobs.length +
-        delayedJobs.length;
-      const successRate = total > 0 ? (completedJobs.length / total) * 100 : 0;
-      const failureRate = total > 0 ? (failedJobs.length / total) * 100 : 0;
-
-      return {
-        total,
-        completed: completedJobs.length,
-        failed: failedJobs.length,
-        active: activeJobs.length,
-        waiting: waitingJobs.length,
-        delayed: delayedJobs.length,
-        successRate: Math.round(successRate * 100) / 100,
-        failureRate: Math.round(failureRate * 100) / 100,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get job metrics for: ${jobName}`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Get failed jobs with error details
    */
-  async getFailedJobs(limit = 50) {
+  async getJobs(status: JobState, limit: number = 50) {
     try {
-      const failedJobs = await this.defaultQueue.getFailed(0, limit - 1);
+      const jobs = await this.defaultQueue.getJobs(status, 0, limit - 1);;
 
-      return failedJobs.map((job) => ({
+      return jobs.map((job) => ({
         id: job.id,
         name: job.name,
         data: job.data,
-        error: (job as any).failedReason,
-        failedAt: (job as any).finishedOn,
-        attempts: (job as any).attemptsMade,
-        maxAttempts: job.opts.attempts,
-      }));
+        opts: job.opts,
+        state: status,
+        progress: job.progress,
+        returnvalue: (job as any).returnvalue,
+        failedReason: (job as any).failedReason,
+        processedOn: (job as any).processedOn,
+        finishedOn: (job as any).finishedOn,
+        timestamp: (job as any).timestamp,
+        attemptsMade: (job as any).attemptsMade,
+        delay: (job as any).delay,
+        ttl: (job as any).ttl,
+      } as JobDetail));
     } catch (error) {
-      this.logger.error('Failed to get failed jobs', error);
+      this.logger.error('Failed to get jobs', error);
       throw error;
     }
   }
@@ -195,7 +171,7 @@ export class JobMonitoringService {
       const job = await this.defaultQueue.getJob(jobId);
 
       if (!job) {
-        return null;
+        throw new Error('Job not found');
       }
 
       const state = await job.getState();
@@ -215,7 +191,7 @@ export class JobMonitoringService {
         attemptsMade: (job as any).attemptsMade,
         delay: (job as any).delay,
         ttl: (job as any).ttl,
-      };
+      } as JobDetail;
     } catch (error) {
       this.logger.error(`Failed to get job details: ${jobId}`, error);
       throw error;
@@ -233,7 +209,6 @@ export class JobMonitoringService {
       const healthStatus = {
         status: 'healthy',
         isPaused,
-        metrics,
         issues: [] as string[],
       };
 

@@ -5,7 +5,7 @@ export class TaskAssignmentCreatedEvent extends DomainEvent {
   constructor(
     aggregateId: string,
     public readonly taskId: string,
-    public readonly assignment: TaskAssignment,
+    public readonly assignmentId: string,
   ) {
     super(aggregateId);
   }

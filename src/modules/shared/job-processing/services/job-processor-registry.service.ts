@@ -59,15 +59,17 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
 
           // Try to get metadata from the method descriptor
           const methodRef = prototype[methodName];
-          const options = this.reflector.get<ProcessJobOptions>(
-            PROCESS_JOB_KEY,
-            methodRef,
-          );
+          if (methodRef) {
+            const options = this.reflector.get<ProcessJobOptions>(
+              PROCESS_JOB_KEY,
+              methodRef,
+            );
 
-          if (options) {
-            this.logger.log(`✓ Found processor: ${options.name} in ${className}.${methodName}`);
-            this.registerProcessor(options, instance[methodName].bind(instance));
-            processorsFound++;
+            if (options) {
+              this.logger.log(`✓ Found processor: ${options.name} in ${className}.${methodName}`);
+              this.registerProcessor(options, instance[methodName].bind(instance));
+              processorsFound++;
+            }
           }
         }
       }
@@ -120,18 +122,17 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
         // Optimize for in-process execution
         lockDuration: 30000, // 30 seconds
         lockRenewTime: 15000, // Renew every 15 seconds
-        stalledInterval: 30000,
+        stalledInterval: 60000, // OPTIMIZED: Increased from 30s to 60s to reduce Redis polling
         maxStalledCount: 2,
         settings: {
-
         },
         // Aggressive cleanup for in-process workers
         removeOnComplete: {
-          age: 3600, // 1 hour
+          age: 3600 * 24 * 1, // 1 Day
           count: 1000,
         },
         removeOnFail: {
-          age: 86400, // 24 hours
+          age: 3600 * 24 * 7, // 7 Days
           count: 500,
         },
       },
@@ -154,7 +155,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   }
 
   /**
-   * Process a job by routing to the appropriate processor
+   * Process a job by routing to the appropriate processor with enhanced error handling
    */
   private async processJob(job: BullJob): Promise<any> {
     if (this.isShuttingDown) {
@@ -169,24 +170,93 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     }
 
     const startTime = Date.now();
+    const attemptNumber = (job.attemptsMade || 0) + 1;
+    const maxAttempts = job.opts.attempts || 3;
 
     try {
-      this.logger.log(`Processing: ${job.name}:${job.id}`);
+      this.logger.log(
+        `Processing: ${job.name}:${job.id} (attempt ${attemptNumber}/${maxAttempts})`
+      );
 
-      const result = await processorData.processor(job as unknown as Job);
+      // Apply timeout if configured
+      const timeout = processorData.options.timeout;
+      let result: any;
+
+      if (timeout) {
+        result = await this.executeWithTimeout(
+          processorData.processor(job as unknown as Job),
+          timeout,
+          job.name,
+        );
+      } else {
+        result = await processorData.processor(job as unknown as Job);
+      }
 
       const duration = Date.now() - startTime;
       this.logger.log(`Completed: ${job.name}:${job.id} in ${duration}ms`);
 
+      // Call onSuccess callback if defined
+      if (processorData.options.onRetry && attemptNumber > 1) {
+        // This was a retry that succeeded
+        this.logger.log(
+          `Job ${job.name}:${job.id} succeeded after ${attemptNumber} attempts`
+        );
+      }
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
+
       this.logger.error(
-        `Failed: ${job.name}:${job.id} after ${duration}ms - ${error.message}`,
+        `Failed: ${job.name}:${job.id} after ${duration}ms (attempt ${attemptNumber}/${maxAttempts}) - ${error.message}`,
         error.stack
       );
+
+      // Call onRetry callback if defined and not final attempt
+      if (processorData.options.onRetry && attemptNumber < maxAttempts) {
+        try {
+          await processorData.options.onRetry(attemptNumber, error);
+        } catch (callbackError) {
+          this.logger.error(
+            `Error in onRetry callback for ${job.name}:${job.id}`,
+            callbackError
+          );
+        }
+      }
+
+      // Call onFailed callback if this is the final attempt
+      if (processorData.options.onFailed && attemptNumber >= maxAttempts) {
+        try {
+          await processorData.options.onFailed(error, attemptNumber);
+        } catch (callbackError) {
+          this.logger.error(
+            `Error in onFailed callback for ${job.name}:${job.id}`,
+            callbackError
+          );
+        }
+      }
+
       throw error;
     }
+  }
+
+  /**
+   * Execute processor with timeout
+   */
+  private async executeWithTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    jobName: string,
+  ): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Job ${jobName} timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        )
+      ),
+    ]);
   }
 
   /**
@@ -306,7 +376,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   }
 
   /**
-   * Get queue statistics
+   * Get queue statistics (optimized with count methods)
    */
   async getQueueStats() {
     const [waiting, active, completed, failed, delayed] = await Promise.all([

@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { JobProcessingService } from './services/job-processing.service';
 import { JobProcessorRegistry } from './services/job-processor-registry.service';
 import { JobMonitoringService } from './services/job-monitoring.service';
-import { JobMonitoringController } from './controllers/job-monitoring.controller';
+import { JobController } from './controllers/job.controller';
 
 export interface JobProcessingModuleOptions {
   connection: {
@@ -46,9 +46,9 @@ export class JobProcessingModule {
         JobMonitoringService,
       ],
       exports: [
-        JobProcessingService
+        JobProcessingService,
       ],
-      controllers: [JobMonitoringController],
+      controllers: [JobController],
     };
   }
 }

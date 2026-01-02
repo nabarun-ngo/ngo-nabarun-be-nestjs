@@ -4,24 +4,28 @@ import { APP_GUARD } from '@nestjs/core';
 import { OAuthController } from './presentation/controllers/oauth.controller';
 import { GoogleOAuthService } from './application/services/google-oauth.service';
 import { TokenRepository } from './infrastructure/persistence/token.repository';
-import { TOKEN_REPOSITORY } from './domain/token.repository.interface';
+import { TOKEN_REPOSITORY } from './domain/repository/token.repository.interface';
 import { JwtAuthService } from './application/services/jwt-auth.service';
 import { ApiKeyService } from './application/services/api-key.service';
 import { UnifiedAuthGuard } from './application/guards/unified-auth.guard';
-import { API_KEY_REPOSITORY } from './domain/api-key.repository.interface';
 import { ApiKeyRepository } from './infrastructure/persistence/api-key.repository';
 import { ApiKeyController } from './presentation/controllers/api-key.controller';
 import { ApiKeyEventsHandler } from './application/handler/api-key-events.handler';
+import { API_KEY_REPOSITORY } from './domain/repository/api-key.repository.interface';
+import { HttpModule } from '@nestjs/axios';
+import { RecaptchaService } from './application/services/google-recaptcha.service';
+import { Auth0ResourceServerService } from './infrastructure/external/auth0-resource-server.service';
 
 @Global()
 @Module({
   imports: [
+    HttpModule
   ],
-  controllers: [OAuthController,ApiKeyController],
+  controllers: [OAuthController, ApiKeyController],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: UnifiedAuthGuard ,
+      useClass: UnifiedAuthGuard,
     },
     {
       provide: APP_GUARD,
@@ -40,9 +44,11 @@ import { ApiKeyEventsHandler } from './application/handler/api-key-events.handle
     ApiKeyService,
     PermissionsGuard,
     UnifiedAuthGuard,
-    ApiKeyEventsHandler
+    ApiKeyEventsHandler,
+    RecaptchaService,
+    Auth0ResourceServerService
   ],
-  exports: [GoogleOAuthService], 
+  exports: [GoogleOAuthService],
 })
 export class AuthModule { }
 

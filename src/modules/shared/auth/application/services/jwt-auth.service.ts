@@ -6,21 +6,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import * as jose from 'jose';
 import { Configkey } from 'src/shared/config-keys';
+import { AuthUser } from '../../domain/models/api-user.model';
 
-export interface AuthUser {
-  sub: string;
-  email?: string;
-  email_verified?: boolean;
-  permissions?: string[];
-  roles?: string[];
-  iat?: number;
-  exp?: number;
-  [key: string]: any;
-}
+
 
 @Injectable()
 export class JwtAuthService implements OnModuleInit {
- 
+
   private jwks: jose.JWTVerifyGetKey;
   private readonly issuer: string;
   private readonly audience: string;
@@ -50,7 +42,23 @@ export class JwtAuthService implements OnModuleInit {
         algorithms: ['RS256'], // Auth0 uses RS256
       });
 
-      return payload as AuthUser;
+      return {
+        sub: payload.sub,
+        name: payload.name,
+        permissions: payload.permissions,
+        profile_name: payload.profile_name,
+        user_id: payload.user_id,
+        aud: payload.aud,
+        iss: payload.iss,
+        iat: payload.iat,
+        exp: payload.exp,
+        email: payload.email,
+        picture: payload.picture,
+        email_verified: payload.email_verified,
+        profile_id: payload.profile_id,
+        profile_updated: payload.profile_updated,
+        type: 'jwt',
+      } as AuthUser;
     } catch (error) {
       // jose provides specific error types
       if (error.code === 'ERR_JWT_EXPIRED') {
@@ -65,5 +73,5 @@ export class JwtAuthService implements OnModuleInit {
       throw new UnauthorizedException('Token verification failed');
     }
   }
-  
+
 }

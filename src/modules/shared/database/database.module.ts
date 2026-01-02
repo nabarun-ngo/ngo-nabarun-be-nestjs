@@ -11,25 +11,19 @@ export interface DatabaseOptions {
 @Module({})
 export class DatabaseModule {
   static forRoot(options: DatabaseOptions): DynamicModule {
-    const providers: Provider[] = [];
-
-    if (options.postgresUrl) {
-      providers.push({
-        provide: 'POSTGRES_URL',
-        useValue: options.postgresUrl,
-      });
-    }
-
-    if (options.mongoUrl) {
-      providers.push({
-        provide: 'MONGO_URL',
-        useValue: options.mongoUrl,
-      });
-    }
     return {
       module: DatabaseModule,
       imports: [],
-      providers: [...providers,PrismaPostgresService],
+      providers: [
+        {
+          provide: 'POSTGRES_URL',
+          useValue: options.postgresUrl,
+        },
+        {
+          provide: 'MONGO_URL',
+          useValue: options.mongoUrl,
+        },
+        PrismaPostgresService],
       global: true,
       exports: [PrismaPostgresService],
     };

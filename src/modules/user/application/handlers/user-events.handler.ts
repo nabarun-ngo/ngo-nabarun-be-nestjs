@@ -5,7 +5,6 @@ import { Injectable, Logger } from "@nestjs/common";
 import { RoleAssignedEvent } from "../../domain/events/role-assigned.event";
 import { EmailTemplateName } from "src/modules/shared/correspondence/dtos/email.dto";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
-import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 import { JobName } from "src/modules/shared/job-processing/decorators/process-job.decorator";
 
 @Injectable()
@@ -15,30 +14,44 @@ export class UserEventsHandler {
   constructor(
     private readonly corrService: CorrespondenceService,
     private readonly jobProcessingService: JobProcessingService,
-  
-    ) { }
+
+  ) { }
 
   @OnEvent(UserCreatedEvent.name, { async: true })
   async handleUserCreatedEvent(event: UserCreatedEvent) {
     this.logger.log(`Handling ${UserCreatedEvent.name} event: for user ${event.user.email} `)
-    await this.corrService.sendTemplatedEmail({
-      templateName: EmailTemplateName.USER_ONBOARDED,
-      data: {
-        name: event.user.fullName,
+
+    await this.jobProcessingService.addJob(
+      JobName.SEND_ONBOARDING_EMAIL,
+      {
+        fullName: event.user.fullName,
         email: event.user.email,
         password: event.user.password,
       },
-      options: {
-        recipients: {
-          to: event.user.email,
-        }
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
       }
-    });
-    this.logger.log(`Onboarding Email sent successfully!!`);
-    await this.jobProcessingService.addJob(JobName.UPDATE_USER_ROLE, {
-      userId: event.user.id,
-      newRoles: []
-    });
+    );
+    await this.jobProcessingService.addJob(
+      JobName.UPDATE_USER_ROLE,
+      {
+        userId: event.user.id,
+        newRoles: []
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      }
+    );
   }
 
   @OnEvent(RoleAssignedEvent.name, { async: true })

@@ -3,7 +3,7 @@ import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { User, UserStatus } from '../../domain/model/user.model';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
-import { PhoneNumber } from '../../domain/model/phone-number.vo';
+import { PhoneNumber } from '../../domain/model/phone-number.model';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';
@@ -31,7 +31,7 @@ export class CreateUserUseCase implements IUseCase<CreateUserProps, User> {
   async execute(request: CreateUserProps): Promise<User> {
     // Check if user exists
     const existingUser = await this.userRepository.findByEmail(request.email);
-    if (existingUser) {
+    if (existingUser && !existingUser.isDeleted) {
       throw new BusinessException('User with this email already exists');
     }
 
@@ -45,7 +45,7 @@ export class CreateUserUseCase implements IUseCase<CreateUserProps, User> {
         request.phoneNumber.number,
       ),
       isTemporary: request.isTemporary || false,
-    });
+    }, existingUser);
 
     user.changeStatus(UserStatus.ACTIVE);
     const auth0User = await this.auth0User.createUser(user, false);
@@ -55,7 +55,7 @@ export class CreateUserUseCase implements IUseCase<CreateUserProps, User> {
     });
 
     // Save to repository
-    const savedUser = await this.userRepository.create(user);
+    const savedUser = existingUser ? await this.userRepository.update(user.id, user) : await this.userRepository.create(user);
 
     // Emit domain events
     for (const event of user.domainEvents) {

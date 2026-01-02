@@ -30,12 +30,16 @@ export class UpdateUserUseCase implements IUseCase<CreateUserProps, User> {
         if (!existingUser) {
             throw new BusinessException('User not exists with id ' + request.id);
         }
+        
         if (request.mode === 'admin') {
             existingUser.updateAdmin(request.detail!);
+            const toAdd = existingUser.addLoginMethod(request.detail?.loginMethods);
+            if(toAdd.length > 0){
+                await this.auth0User.addLoginMethods(existingUser, toAdd);
+            }
         } else if (request.mode === 'self') {
             existingUser.updateUser(request.profile!);
         }
-
         // Save to repository
         const savedUser = await this.userRepository.update(existingUser.id, existingUser);
 

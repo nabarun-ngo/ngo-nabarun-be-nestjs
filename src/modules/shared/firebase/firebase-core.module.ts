@@ -14,6 +14,7 @@ import * as admin from 'firebase-admin';
                 const serviceAccount = config.get<string>(Configkey.FIREBASE_CREDENTIAL)!;
                 return admin.initializeApp({
                     credential: admin.credential.cert(JSON.parse(serviceAccount)),
+                    storageBucket : config.get<string>(Configkey.FIREBASE_FILESTORAGE_BUCKET),
                 });
             },
         }

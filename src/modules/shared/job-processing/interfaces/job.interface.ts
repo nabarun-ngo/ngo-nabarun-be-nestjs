@@ -62,3 +62,21 @@ export interface JobQueue {
   removeRepeatable(name: string, repeat: any): Promise<void>;
   close(): Promise<void>;
 }
+
+
+export class JobDetail {
+  id: string;
+  name: string;
+  data: JobData;
+  opts: JobOptions;
+  state: string;
+  progress: number;
+  returnvalue: any;
+  failedReason: string;
+  processedOn: Date;
+  finishedOn: Date;
+  timestamp: Date;
+  attemptsMade: number;
+  delay: number;
+  ttl: number;
+}

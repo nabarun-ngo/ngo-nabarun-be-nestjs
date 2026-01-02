@@ -25,7 +25,7 @@ export interface EmailOptions {
 
 export interface SendEmailRequest {
     options: EmailOptions;
-    fromEmail?: string;
+    fromName?: string;
     templateData?: EmailTemplateData;
     templateName?: EmailTemplateName;
     data?: Record<string, any>
@@ -33,7 +33,7 @@ export interface SendEmailRequest {
 
 export interface SendNotificationRequest {
     userId: string;
-    type: 'email' | 'sms' | 'push';
+    type: 'email' | 'sms' | 'push' | 'slack';
     to: string;
     subject: string;
     message: string;

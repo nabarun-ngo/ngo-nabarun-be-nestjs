@@ -2,26 +2,26 @@ import {
   Controller,
   Post,
   Body,
-  HttpCode,
-  HttpStatus,
+  Get,
+  Delete,
+  Param,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
-  ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
 import { ApiKeyService } from '../../application/services/api-key.service';
-import { ApiKeyDto, CreateApiKeyDto } from '../dto/api-key.dto';
+import { ApiKeyDto, CreateApiKeyDto } from '../../application/dto/api-key.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
-import { ApiKey } from '../../domain/api-key.model';
-import { Public } from '../../application/decorators/public.decorator';
+import { ApiKey } from '../../domain/models/api-key.model';
+import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 
-@Public()
-@ApiBearerAuth()
-@ApiTags('ApiKey')
+@ApiBearerAuth('jwt')
+@ApiTags(ApiKeyController.name)
 @Controller('auth/apikey')
 export class ApiKeyController {
   constructor(
@@ -34,24 +34,20 @@ export class ApiKeyController {
   @ApiOperation({
     summary: 'Generate API Key',
   })
-  @ApiResponse({
-      status: 200,
-      description: '',
-      type: SuccessResponse<ApiKeyDto>,
-    })
-  @ApiBody({ type: CreateApiKeyDto  })
+  @ApiAutoResponse(ApiKeyDto, { description: 'API Key generated successfully' })
+  @ApiBody({ type: CreateApiKeyDto })
   async generateApiKey(
     @Body() create: CreateApiKeyDto,
-  ) {
+  ): Promise<SuccessResponse<ApiKeyDto>> {
     const result = await this.apiKeyService.generateApiKey(
       create.name,
       create.permissions,
       create.expireAt,
     );
-    return new SuccessResponse<ApiKeyDto>(this.toApiKeyDto(result.keyInfo,result.token));
+    return new SuccessResponse<ApiKeyDto>(this.toApiKeyDto(result.keyInfo, result.token));
   }
 
-  private toApiKeyDto(apiKey: ApiKey,token?: string): ApiKeyDto {
+  private toApiKeyDto(apiKey: ApiKey, token?: string): ApiKeyDto {
     return {
       id: apiKey.id,
       name: apiKey.name,
@@ -62,6 +58,47 @@ export class ApiKeyController {
       updatedAt: apiKey.updatedAt,
       apiToken: token,
     };
+  }
+
+  @Get('list')
+  @ApiOperation({ summary: 'List all API keys' })
+  @ApiAutoResponse(ApiKeyDto, { description: 'List of API keys', wrapInSuccessResponse: true, isArray: true })
+  async listApiKeys(): Promise<SuccessResponse<Array<ApiKeyDto>>> {
+    return new SuccessResponse(
+      await this.apiKeyService.listApiKeys()
+    );
+  }
+
+  @Get('scopes')
+  @ApiOperation({ summary: 'List all API scopes' })
+  @ApiAutoResponse(Array<String>, { description: 'List of API scopes', wrapInSuccessResponse: true, isArray: true })
+  async listApiScopes(): Promise<SuccessResponse<Array<string>>> {
+    return new SuccessResponse(
+      await this.apiKeyService.listApiScopes()
+    );
+  }
+
+  @Patch('permissions/:id')
+  @ApiOperation({ summary: 'Update API key permissions' })
+  @ApiAutoResponse(ApiKeyDto, { description: 'API key permissions updated successfully' })
+  async updateApiKeyPermissions(
+    @Param('id') id: string,
+    @Body() permissions: string[],
+  ): Promise<SuccessResponse<ApiKeyDto>> {
+    return new SuccessResponse(
+      await this.apiKeyService.updateApiKeyPermissions(id, permissions)
+    );
+  }
+
+  @Delete('revoke/:id')
+  @ApiOperation({ summary: 'Revoke API key' })
+  @ApiAutoResponse(Boolean, { description: 'API key revoked successfully', wrapInSuccessResponse: true })
+  async revokeApiKey(
+    @Param('id') id: string,
+  ): Promise<SuccessResponse<boolean>> {
+    return new SuccessResponse(
+      await this.apiKeyService.revokeApiKey(id)
+    );
   }
 
 }

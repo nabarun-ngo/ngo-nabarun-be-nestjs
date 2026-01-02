@@ -1,10 +1,10 @@
 import { LoginMethod, User, UserStatus } from '../domain/model/user.model';
-import { PhoneNumber } from '../domain/model/phone-number.vo';
+import { PhoneNumber } from '../domain/model/phone-number.model';
 import { Role } from '../domain/model/role.model';
 import { Address } from '../domain/model/address.model';
 import { Link, LinkType } from '../domain/model/link.model';
 import { Auth0User } from './external/auth0-user.service';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '@prisma/client';
 import { UserPersistence } from './types/user-persistence.types';
 import { UserMapperHelpers } from './user-mapper-helpers';
 import { MapperUtils } from 'src/modules/shared/database/mapper-utils';
@@ -36,11 +36,11 @@ export class UserInfraMapper {
       model.email,
       primaryNumber
         ? new PhoneNumber(
-            primaryNumber.id,
-            primaryNumber.phoneCode ?? '',
-            primaryNumber.phoneNumber ?? '',
-            primaryNumber.hidden,
-          )
+          primaryNumber.id,
+          primaryNumber.phoneCode ?? '',
+          primaryNumber.phoneNumber ?? '',
+          primaryNumber.hidden,
+        )
         : undefined,
       model.status as UserStatus,
       model.isTemporary,
@@ -62,37 +62,37 @@ export class UserInfraMapper {
       ),
       secondaryNumber
         ? new PhoneNumber(
-            secondaryNumber.id,
-            secondaryNumber.phoneCode ?? '',
-            secondaryNumber.phoneNumber ?? '',
-            secondaryNumber.hidden,
-          )
+          secondaryNumber.id,
+          secondaryNumber.phoneCode ?? '',
+          secondaryNumber.phoneNumber ?? '',
+          secondaryNumber.hidden,
+        )
         : undefined,
       presentAddress
         ? new Address(
-            presentAddress.id,
-            presentAddress.addressLine1 ?? '',
-            presentAddress.addressLine2 ?? '',
-            presentAddress.addressLine3 ?? '',
-            presentAddress.hometown ?? '',
-            presentAddress.zipCode ?? '',
-            presentAddress.state ?? '',
-            presentAddress.district ?? '',
-            presentAddress.country ?? '',
-          )
+          presentAddress.id,
+          presentAddress.addressLine1 ?? '',
+          presentAddress.addressLine2 ?? '',
+          presentAddress.addressLine3 ?? '',
+          presentAddress.hometown ?? '',
+          presentAddress.zipCode ?? '',
+          presentAddress.state ?? '',
+          presentAddress.district ?? '',
+          presentAddress.country ?? '',
+        )
         : undefined,
       permanentAddress
         ? new Address(
-            permanentAddress.id,
-            permanentAddress.addressLine1 ?? '',
-            permanentAddress.addressLine2 ?? '',
-            permanentAddress.addressLine3 ?? '',
-            permanentAddress.hometown ?? '',
-            permanentAddress.zipCode ?? '',
-            permanentAddress.state ?? '',
-            permanentAddress.district ?? '',
-            permanentAddress.country ?? '',
-          )
+          permanentAddress.id,
+          permanentAddress.addressLine1 ?? '',
+          permanentAddress.addressLine2 ?? '',
+          permanentAddress.addressLine3 ?? '',
+          permanentAddress.hometown ?? '',
+          permanentAddress.zipCode ?? '',
+          permanentAddress.state ?? '',
+          permanentAddress.district ?? '',
+          permanentAddress.country ?? '',
+        )
         : undefined,
       MapperUtils.withDefault(model.isPublic, true),
       MapperUtils.nullToUndefined(model.authUserId),
@@ -107,37 +107,10 @@ export class UserInfraMapper {
       MapperUtils.nullToUndefined(model.donationPauseEnd),
       MapperUtils.nullToUndefined(model.panNumber),
       MapperUtils.nullToUndefined(model.aadharNumber),
+      MapperUtils.nullToUndefined(model.deletedAt) == undefined ? undefined : true,
     );
   }
 
-  // static toUserPersistence(
-  //   user: User,
-  // ): Partial<Prisma.UserProfileUpdateInput | Prisma.UserProfileCreateInput> {
-  //   return {
-  //     id: user.id,
-  //     title: user.title,
-  //     firstName: user.firstName,
-  //     middleName: user.middleName,
-  //     lastName: user.lastName,
-  //     dateOfBirth: user.dateOfBirth,
-  //     gender: user.gender,
-  //     about: user.about,
-  //     picture: user.picture,
-  //     email: user.email,
-  //     isPublic: user.isPublic,
-  //     authUserId: user.authUserId,
-  //     status: user.status,
-  //     isTemporary: user.isTemporary,
-  //     isSameAddress: user.isSameAddress,
-  //     loginMethods: user.loginMethod.join(','),
-  //     panNumber: user.panNumber,
-  //     aadharNumber: user.aadharNumber,
-  //     donationPauseStart: user.donationPauseStart,
-  //     donationPauseEnd: user.donationPauseEnd,
-  //     createdAt: user.createdAt,
-  //     updatedAt: user.updatedAt
-  //   };
-  // }
 
   /**
    * Convert User domain model to Prisma create input
@@ -167,6 +140,7 @@ export class UserInfraMapper {
       donationPauseEnd: MapperUtils.undefinedToNull(user.donationPauseEnd),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      deletedAt: user.isDeleted ? new Date() : null,
     };
   }
 
@@ -215,7 +189,6 @@ export class UserInfraMapper {
       a0User.user_id,
       undefined,
       a0User.identities?.map((i) => this.connection2LoginMethod(i.connection!)),
-      undefined,
       undefined,
       undefined,
       undefined,

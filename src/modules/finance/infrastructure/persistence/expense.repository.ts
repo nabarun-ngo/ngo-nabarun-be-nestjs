@@ -1,85 +1,211 @@
 import { Injectable } from '@nestjs/common';
 import { IExpenseRepository } from '../../domain/repositories/expense.repository.interface';
-import { Expense, ExpenseCategory, ExpenseStatus } from '../../domain/model/expense.model';
-import { Prisma } from 'generated/prisma';
+import { Expense, ExpenseFilter, ExpenseStatus } from '../../domain/model/expense.model';
+import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
-import { PrismaBaseRepository } from 'src/modules/shared/database/base-repository';
-import { FinanceInfraMapper } from '../finance-infra.mapper';
-import { ExpensePersistence } from '../types/finance-persistence.types';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DefaultArgs } from 'generated/prisma/runtime/library';
+import { ExpenseDetailFilterDto } from '../../application/dto/expense.dto';
+import { ExpenseInfraMapper } from '../mapper/expense-infra.mapper';
+
+
+export type ExpensePersistence = Prisma.ExpenseGetPayload<{
+  include: {
+    account: true;
+    createdBy: true;
+    updatedBy: true;
+    finalizedBy: true;
+    settledBy: true;
+    rejectedBy: true;
+    submittedBy: true;
+    paidBy: true;
+  }
+}>;
 
 @Injectable()
-class ExpenseRepository
-  extends PrismaBaseRepository<
-    Expense,
-    PrismaPostgresService['expense'],
-    Prisma.ExpenseWhereUniqueInput,
-    Prisma.ExpenseWhereInput,
-    ExpensePersistence.Base,
-    Prisma.ExpenseCreateInput,
-    Prisma.ExpenseUpdateInput
-  >
-  implements IExpenseRepository
-{
-  protected getDelegate(prisma: PrismaPostgresService): Prisma.ExpenseDelegate<DefaultArgs, Prisma.PrismaClientOptions> {
-    return prisma.expense;
-  }
-  constructor(prisma: PrismaPostgresService) {
-    super(prisma);
-  }
-  findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Expense>> {
-    throw new Error('Method not implemented.');
+class ExpenseRepository implements IExpenseRepository {
+  constructor(private readonly prisma: PrismaPostgresService) { }
+
+  async findPaged(filter?: BaseFilter<ExpenseDetailFilterDto>): Promise<PagedResult<Expense>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.expense.findMany({
+        where,
+        orderBy: { expenseDate: 'desc' },
+        include: {
+          account: true,
+          createdBy: true,
+          updatedBy: true,
+          finalizedBy: true,
+          settledBy: true,
+          rejectedBy: true,
+          submittedBy: true,
+          paidBy: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
+        take: filter?.pageSize ?? 10,
+      }),
+      this.prisma.expense.count({ where }),
+    ]);
+
+    return new PagedResult<Expense>(
+      data.map(m => ExpenseInfraMapper.toExpenseDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 10,
+    );
   }
 
- 
+  async findAll(filter?: ExpenseDetailFilterDto): Promise<Expense[]> {
+    const expenses = await this.prisma.expense.findMany({
+      where: this.whereQuery(filter),
+      orderBy: { expenseDate: 'desc' },
+      include: {
+        account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
+      },
+    });
 
-  protected toDomain(prismaModel: any): Expense | null {
-    return FinanceInfraMapper.toExpenseDomain(prismaModel);
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
-  async findAll(filter?: any): Promise<Expense[]> {
+  private whereQuery(props?: ExpenseFilter): Prisma.ExpenseWhereInput {
     const where: Prisma.ExpenseWhereInput = {
-      category: filter?.category,
-      status: filter?.status,
+      ...(props?.expenseStatus ? { status: { in: props.expenseStatus } } : {}),
+      ...(props?.expenseId ? { id: props.expenseId } : {}),
+
+
+      ...(props?.startDate || props?.endDate
+        ? {
+          expenseDate: {
+            ...(props.startDate ? { gte: props.startDate } : {}),
+            ...(props.endDate ? { lte: props.endDate } : {}),
+          },
+        }
+        : {}),
       deletedAt: null,
     };
-    return this.findMany(where);
+    return where;
   }
 
   async findById(id: string): Promise<Expense | null> {
-    return this.findUnique({ id });
+    const expense = await this.prisma.expense.findUnique({
+      where: { id },
+      include: {
+        account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
+      },
+    });
+
+    return ExpenseInfraMapper.toExpenseDomain(expense!);
   }
 
-  async findByCategory(category: ExpenseCategory): Promise<Expense[]> {
-    return this.findMany({ category, deletedAt: null });
-  }
 
   async findByStatus(status: ExpenseStatus): Promise<Expense[]> {
-    return this.findMany({ status, deletedAt: null });
+    const expenses = await this.prisma.expense.findMany({
+      where: { status, deletedAt: null },
+      orderBy: { expenseDate: 'desc' },
+      include: {
+        account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
+      },
+    });
+
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
   async findByRequestedBy(userId: string): Promise<Expense[]> {
-    return this.findMany({ requestedBy: userId, deletedAt: null });
+    const expenses = await this.prisma.expense.findMany({
+      where: { createdById: userId, deletedAt: null },
+      orderBy: { expenseDate: 'desc' },
+      include: {
+        account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        paidBy: true,
+        submittedBy: true,
+      },
+    });
+
+    return expenses.map(m => ExpenseInfraMapper.toExpenseDomain(m)!);
   }
 
-  async findPendingExpenses(): Promise<Expense[]> {
-    return this.findMany({ status: ExpenseStatus.PENDING, deletedAt: null });
-  }
+
 
   async create(expense: Expense): Promise<Expense> {
-    const createData = FinanceInfraMapper.toExpenseCreatePersistence(expense);
-    return this.createRecord(createData);
+    const createData: Prisma.ExpenseCreateInput = {
+      ...ExpenseInfraMapper.toExpenseCreatePersistence(expense),
+    };
+
+    const created = await this.prisma.expense.create({
+      data: createData,
+      include: {
+        account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        submittedBy: true,
+        paidBy: true,
+      },
+    });
+
+    return ExpenseInfraMapper.toExpenseDomain(created)!;
   }
 
   async update(id: string, expense: Expense): Promise<Expense> {
-    const updateData = FinanceInfraMapper.toExpenseUpdatePersistence(expense);
-    return this.updateRecord({ id }, updateData);
+    const updateData: Prisma.ExpenseUncheckedUpdateInput = {
+      ...ExpenseInfraMapper.toExpenseUpdatePersistence(expense),
+    };
+
+    const updated = await this.prisma.expense.update({
+      where: { id },
+      data: updateData,
+      include: {
+        account: true,
+        createdBy: true,
+        updatedBy: true,
+        finalizedBy: true,
+        settledBy: true,
+        rejectedBy: true,
+        paidBy: true,
+        submittedBy: true,
+      },
+    });
+
+    return ExpenseInfraMapper.toExpenseDomain(updated)!;
   }
 
   async delete(id: string): Promise<void> {
-    await this.softDelete({ id });
+    await this.prisma.expense.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
   }
 }
 
