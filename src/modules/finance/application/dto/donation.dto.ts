@@ -21,11 +21,13 @@ export class CreateDonationDto {
 
   @IsDate()
   @Type(() => Date)
+  @IsOptional()
   @ApiPropertyOptional({ type: String, format: 'date-time', description: 'Start date for regular donations' })
   startDate?: Date;
 
   @IsDate()
   @Type(() => Date)
+  @IsOptional()
   @ApiPropertyOptional({ type: String, format: 'date-time', description: 'End date for regular donations' })
   endDate?: Date;
 
