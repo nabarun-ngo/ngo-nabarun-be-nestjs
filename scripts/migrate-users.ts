@@ -1,6 +1,6 @@
 import { MongoClient, Db, ObjectId } from 'mongodb';
 import { PrismaClient, Prisma } from '@prisma/client';
-const { v4: uuidv4 } = require('uuid');
+import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient({
     datasourceUrl: process.env.MIG_POSTGRES_URL,
