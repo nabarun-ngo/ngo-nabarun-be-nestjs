@@ -249,6 +249,7 @@ model WorkflowTask {
   stepId         String
   step           WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
   taskId         String       @db.VarChar(50) // Task ID from definition
+  workflowId     String       @db.VarChar(50) // Workflow ID 
   name           String       @db.VarChar(200)
   description    String?      @db.Text
   type           String       @db.VarChar(20) // VERIFICATION, APPROVAL, AUTOMATIC

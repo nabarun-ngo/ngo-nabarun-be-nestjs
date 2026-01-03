@@ -17,7 +17,6 @@ export class WorkflowStep extends BaseDomain<string> {
   #description: string;
   #status: WorkflowStepStatus;
   #orderIndex: number;
-
   #onSuccessStepId?: string;
   #onFailureStepId?: string;
 
@@ -49,7 +48,6 @@ export class WorkflowStep extends BaseDomain<string> {
     this.#description = description;
     this.#status = status;
     this.#orderIndex = orderIndex;
-
     this.#onSuccessStepId = onSuccessStepId;
     this.#onFailureStepId = onFailureStepId;
 

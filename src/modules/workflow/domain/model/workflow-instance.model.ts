@@ -40,8 +40,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
   #name: string;
   #description: string;
   #status: WorkflowInstanceStatus;
-  #initiatedBy?: User;
-  #initiatedFor?: User;
+  #initiatedBy?: Partial<User>;
+  #initiatedFor?: Partial<User>;
   #requestData?: Record<string, string>;
   #currentStepId?: string;
   #completedAt?: Date;
@@ -54,8 +54,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     name: string,
     description: string,
     status: WorkflowInstanceStatus,
-    initiatedBy?: User,
-    initiatedFor?: User,
+    initiatedBy?: Partial<User>,
+    initiatedFor?: Partial<User>,
     requestData?: Record<string, string>,
     currentStepId?: string,
     completedAt?: Date,
@@ -70,7 +70,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#description = description;
     this.#status = status;
     this.#initiatedBy = initiatedBy;
-    this.#initiatedFor = initiatedFor ?? initiatedBy;
+    this.#initiatedFor = initiatedFor;
     this.#requestData = requestData;
     this.#currentStepId = currentStepId;
     this.#completedAt = completedAt;
@@ -80,9 +80,10 @@ export class WorkflowInstance extends AggregateRoot<string> {
   static create(data: {
     type: WorkflowType;
     definition: WorkflowDefinition;
-    requestedBy: string;
+    requestedBy: Partial<User>;
     data?: Record<string, any>
-    requestedFor?: string;
+    requestedFor?: Partial<User>;
+    forExternalUser?: boolean;
   }) {
     const instance = new WorkflowInstance(
       `NW${generateUniqueNDigitNumber(6)}`,
@@ -90,8 +91,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
       data.definition.name,
       data.definition.description,
       WorkflowInstanceStatus.PENDING,
-      new User(data.requestedBy, '', '', ''),
-      data.requestedFor ? new User(data.requestedFor, '', '', '') : undefined,
+      data.requestedBy,
+      data.requestedFor ?? (data.forExternalUser ? undefined : data.requestedBy),
+      // If external user, then requestedFor will be undefined, need to be updated later if required
       data.data,
     );
 
@@ -220,9 +222,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
 
-  get initiatedBy(): User | undefined { return this.#initiatedBy; }
+  get initiatedBy(): Partial<User> | undefined { return this.#initiatedBy; }
 
-  get initiatedFor(): User | undefined { return this.#initiatedFor; }
+  get initiatedFor(): Partial<User> | undefined { return this.#initiatedFor; }
 
   get completedAt(): Date | undefined { return this.#completedAt; }
 

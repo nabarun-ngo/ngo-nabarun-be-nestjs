@@ -29,6 +29,7 @@ export class WorkflowTask extends BaseDomain<string> {
 
   // 🔒 All private fields
   #step: WorkflowStep;
+  #workflowId: string;
   #taskId: string;
   #name: string;
   #description: string | null;
@@ -48,6 +49,7 @@ export class WorkflowTask extends BaseDomain<string> {
   constructor(
     id: string,
     step: WorkflowStep,
+    workflowId: string,
     taskId: string,
     name: string,
     description: string | null,
@@ -67,6 +69,7 @@ export class WorkflowTask extends BaseDomain<string> {
     super(id, createdAt, updatedAt);
 
     this.#step = step;
+    this.#workflowId = workflowId;
     this.#taskId = taskId;
     this.#name = name;
     this.#description = description;
@@ -82,10 +85,11 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#failureReason = failureReason;
   }
 
-  static create(step: WorkflowStep, task: TaskDef): WorkflowTask {
+  static create(workflowId: string, step: WorkflowStep, task: TaskDef): WorkflowTask {
     return new WorkflowTask(
       `NWT${generateUniqueNDigitNumber(6)}`,
       step,
+      workflowId,
       task.taskId,
       task.name,
       task.description,
@@ -127,8 +131,8 @@ export class WorkflowTask extends BaseDomain<string> {
     if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
       throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
     }
-    const assignee =this.#assignments.find(a=>a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
-    if(this.requiresManualAction() && !assignee){
+    const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+    if (this.requiresManualAction() && !assignee) {
       throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
     }
     this.#status = WorkflowTaskStatus.COMPLETED;
@@ -137,9 +141,9 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  fail(reason: string,completedBy?:User): void {
-    const assignee =this.#assignments.find(a=>a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
-    if(this.requiresManualAction() && !assignee){
+  fail(reason: string, completedBy?: User): void {
+    const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+    if (this.requiresManualAction() && !assignee) {
       throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
     }
     this.#status = WorkflowTaskStatus.FAILED;
@@ -168,6 +172,10 @@ export class WorkflowTask extends BaseDomain<string> {
   // 🔓 Getters (Public Read-Only API)
   get stepId(): string {
     return this.#step.stepId;
+  }
+
+  get workflowId(): string {
+    return this.#workflowId;
   }
 
   get taskId(): string {

@@ -4,8 +4,9 @@ import {
   IsObject,
   IsOptional,
   IsDefined,
+  IsBoolean,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   WorkflowInstanceStatus,
   WorkflowType,
@@ -16,6 +17,7 @@ import {
 } from '../../domain/model/workflow-task.model';
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
 import { TaskAssignmentStatus as TaskAssignmentStatusEnum } from '../../domain/model/task-assignment.model';
+import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
 
 export class StartWorkflowDto {
   @ApiProperty({ description: 'Workflow type (e.g., JOIN_REQUEST)', required: true })
@@ -34,6 +36,11 @@ export class StartWorkflowDto {
   @IsOptional()
   @IsString()
   requestedFor?: string;
+
+  @ApiProperty({ description: 'Is external user (use only when requestedFor id is not available)', required: false })
+  @IsOptional()
+  @IsBoolean()
+  forExternalUser?: boolean;
 }
 
 export class UpdateTaskDto {
@@ -105,6 +112,10 @@ export class WorkflowTaskDto {
   @ApiProperty({ required: true })
   @IsDefined()
   taskId: string;
+
+  @ApiPropertyOptional({ required: false })
+  @IsOptional()
+  workflowId?: string;
 
   @ApiProperty({ required: true })
   @IsDefined()
@@ -287,4 +298,37 @@ export class WorkflowInstanceDto {
   @ApiProperty({ type: [WorkflowStepDto], required: true })
   @IsDefined()
   steps: WorkflowStepDto[];
+}
+
+
+export class WorkflowRefDataDto {
+  @ApiProperty()
+  workflowTypes?: KeyValueDto[];
+  @ApiProperty()
+  additionalFields?: KeyValueDto[];
+  @ApiProperty()
+  visibleWorkflowTypes?: KeyValueDto[];
+  @ApiProperty()
+  workflowStatuses?: KeyValueDto[];
+  @ApiProperty()
+  workflowTaskStatuses?: KeyValueDto[];
+}
+
+export class FieldAttributeDto {
+  @ApiProperty()
+  key: string;
+  @ApiProperty()
+  value: string;
+  @ApiProperty()
+  type: string;
+  @ApiProperty()
+  isMandatory: boolean;
+  @ApiProperty()
+  fieldOptions: string[];
+  @ApiProperty()
+  fieldType: string;
+  @ApiProperty()
+  isHidden: boolean;
+  @ApiProperty()
+  isEncrypted: boolean;
 }

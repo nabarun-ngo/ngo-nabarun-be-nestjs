@@ -113,6 +113,7 @@ export class WorkflowInfraMapper {
     const task = new WorkflowTask(
       prisma.id,
       { id: prisma.stepId } as WorkflowStep,
+      prisma.workflowId,
       prisma.taskId,
       prisma.name,
       prisma.description,
@@ -240,6 +241,7 @@ export class WorkflowInfraMapper {
     return {
       id: domain.id,
       taskId: domain.taskId,
+      workflowId: domain.workflowId,
       step: { connect: { id: stepId } },
       name: domain.name,
       description: domain.description ?? null,

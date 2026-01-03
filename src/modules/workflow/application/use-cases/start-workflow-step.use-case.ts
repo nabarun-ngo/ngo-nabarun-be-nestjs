@@ -40,7 +40,7 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         }
 
         if (taskDefs && taskDefs.length > 0) {
-            const tasks = taskDefs.map(td => WorkflowTask.create(step, td));
+            const tasks = taskDefs.map(td => WorkflowTask.create(workflow.id, step, td));
             step?.setTasks(tasks);
 
             for (const task of tasks) {
@@ -62,7 +62,7 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                     task.setAssignments(assignments);
                     this.corrService.sendTemplatedEmail({
                         templateName: EmailTemplateName.TASK_ASSIGNED,
-                        data: {...task.toJson(),workflowId: workflow.id},
+                        data: { ...task.toJson(), workflowId: workflow.id },
                         options: {
                             recipients: { to: users.map(user => user.email) }
                         }
