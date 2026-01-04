@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Public } from "src/modules/shared/auth/application/decorators/public.decorator";
-import { PublicService } from "../../application/services/public.services";
+import { PublicService } from "../../application/services/public.service";
 import { IgnoreCaptchaValidation } from "src/modules/shared/auth/application/decorators/ignore-captcha.decorator";
 import { ContactFormDto, DonationFormDto, SignUpDto } from "../../application/dto/public.dto";
 import { ContentService } from "../../application/services/content.service";
