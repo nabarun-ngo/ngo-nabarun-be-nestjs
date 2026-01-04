@@ -78,5 +78,6 @@ export interface TeamMember {
   fullName: string;
   picture: string;
   roleString: string;
-  email:string;
+  email: string;
+  bio?: string;
 }

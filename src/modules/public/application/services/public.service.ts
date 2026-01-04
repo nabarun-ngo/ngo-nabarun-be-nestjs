@@ -1,5 +1,4 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { UserService } from "src/modules/user/application/services/user.service";
 import { UserStatus } from "src/modules/user/domain/model/user.model";
 import { dtoToRecord, toTeamMemberDTO } from "../dto/public-dto.mapper";
 import { WorkflowService } from "src/modules/workflow/application/services/workflow.service";
@@ -23,7 +22,8 @@ export class PublicService {
         if (!cached) {
             const users = (await this.userRepository.findAll({
                 public: true,
-                status: UserStatus.ACTIVE
+                status: UserStatus.ACTIVE,
+                includeLinks: true,
             })).map(toTeamMemberDTO);
             await this.cacheManager.set('team-members', users);
             return users;
@@ -45,7 +45,8 @@ export class PublicService {
     async signUp(dto: SignUpDto) {
         const workflow = await this.workflowService.createWorkflow({
             type: WorkflowType.JOIN_REQUEST,
-            data: dtoToRecord(dto)
+            data: dtoToRecord(dto),
+            forExternalUser: true,
         })
         return workflow.id;
     }
