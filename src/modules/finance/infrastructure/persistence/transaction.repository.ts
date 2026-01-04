@@ -25,8 +25,8 @@ class TransactionRepository implements ITransactionRepository {
         orderBy: { createdAt: 'desc' },
         include: {
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.transaction.count({ where }),
     ]);
@@ -35,7 +35,7 @@ class TransactionRepository implements ITransactionRepository {
       data.map(m => TransactionInfraMapper.toTransactionDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
-      filter?.pageSize ?? 10,
+      filter?.pageSize ?? 1000,
     );
   }
 

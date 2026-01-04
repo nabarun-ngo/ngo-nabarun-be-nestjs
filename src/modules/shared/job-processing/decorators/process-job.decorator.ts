@@ -5,7 +5,6 @@ export const PROCESS_JOB_KEY = 'process_job';
 export enum JobName {
   SEND_ONBOARDING_EMAIL = 'send-onboarding-email',
   UPDATE_USER_ROLE = 'update-user-role',
-  TASK_AUTOMATIC = "TASK_AUTOMATIC",
   START_WORKFLOW_STEP = "START_WORKFLOW_STEP",
 }
 

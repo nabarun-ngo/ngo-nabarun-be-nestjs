@@ -59,10 +59,10 @@ export class User extends AggregateRoot<string> {
   #updateAuth: boolean = false;
   #password?: string;
 
-  #fullName!: string;
-  #initials!: string;
-  #firstName!: string;
-  #lastName!: string;
+  #fullName?: string;
+  #initials?: string;
+  #firstName?: string;
+  #lastName?: string;
   #email!: string;
   #primaryNumber?: PhoneNumber;
   #status!: UserStatus;
@@ -142,7 +142,8 @@ export class User extends AggregateRoot<string> {
 
 
   // ---- Domain behaviors (helpers) ----
-  private computeFullName(): string {
+  private computeFullName(): string | undefined {
+    if (!this.firstName || !this.lastName) return undefined;
     const f = this.firstName ?? '';
     const l = this.lastName ?? '';
     return (f + ' ' + l).trim();
@@ -414,19 +415,19 @@ export class User extends AggregateRoot<string> {
     this.#picture = picture ?? this.generatePictureUrl();
   }
 
-  get fullName(): string {
+  get fullName(): string | undefined {
     return this.#fullName;
   }
 
-  get initials(): string {
+  get initials(): string | undefined {
     return this.#initials;
   }
 
-  get firstName(): string {
+  get firstName(): string | undefined {
     return this.#firstName;
   }
 
-  get lastName(): string {
+  get lastName(): string | undefined {
     return this.#lastName;
   }
 

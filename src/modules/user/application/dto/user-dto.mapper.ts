@@ -16,9 +16,9 @@ export class UserDtoMapper {
   static toUserDTO(user: User): UserDto {
     return {
       id: user.id,
-      fullName: user.fullName,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      fullName: user.fullName!,
+      firstName: user.firstName!,
+      lastName: user.lastName!,
       activeDonor: true,
       blocked: false,
       status: user.status,

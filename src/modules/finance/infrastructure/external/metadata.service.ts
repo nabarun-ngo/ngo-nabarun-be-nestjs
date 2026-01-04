@@ -18,7 +18,8 @@ export class MetadataService {
             upiOption: parsefromString<KeyValueConfig[]>(keyValueConfigs['UPI_OPTIONS'].value),
             acc_status: parsefromString<KeyValueConfig[]>(keyValueConfigs['ACCOUNT_STATUSES'].value),
             acc_type: parsefromString<KeyValueConfig[]>(keyValueConfigs['ACCOUNT_TYPES'].value),
-            txn_types: parsefromString<KeyValueConfig[]>(keyValueConfigs['TRANSACTION_TYPES'].value)
+            txn_types: parsefromString<KeyValueConfig[]>(keyValueConfigs['TRANSACTION_TYPES'].value),
+            exp_status: parsefromString<KeyValueConfig[]>(keyValueConfigs['EXPENSE_STATUSES'].value),
         }
     }
 

@@ -12,7 +12,7 @@ class TaskUpdate {
   taskId: string;
   status: WorkflowTaskStatus;
   remarks: string;
-  completedBy?: User;
+  completedBy?: Partial<User>;
 }
 
 @Injectable()
@@ -30,7 +30,7 @@ export class CompleteTaskUseCase implements IUseCase<TaskUpdate, WorkflowTask> {
       throw new BusinessException(`Workflow instance not found: ${request.instanceId}`);
     }
 
-    const task=instance.updateTask(request.taskId, request.status,request.completedBy!, request.remarks);
+    const task = instance.updateTask(request.taskId, request.status, request.completedBy!, request.remarks);
 
     // Save instance
     await this.instanceRepository.update(instance.id, instance);

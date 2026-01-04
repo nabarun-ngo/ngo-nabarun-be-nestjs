@@ -48,6 +48,7 @@ class WorkflowInstanceRepository
     const where: Prisma.WorkflowTaskWhereInput = {
       ...(filter.props?.assignedTo ? { assignments: { some: { assignedToId: filter.props.assignedTo } } } : {}),
       ...(filter.props?.status ? { status: { in: filter.props.status } } : {}),
+      ...(filter.props?.completed ? { completedAt: { not: null } } : { completedAt: null }),
     };
     const [data, total] = await Promise.all([
       this.prisma.workflowTask.findMany({
@@ -61,8 +62,8 @@ class WorkflowInstanceRepository
             },
           },
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.workflowTask.count({
         where
@@ -103,8 +104,8 @@ class WorkflowInstanceRepository
           initiatedBy: true,
           initiatedFor: true,
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.workflowInstance.count({
         where: this.whereQuery(filter?.props),

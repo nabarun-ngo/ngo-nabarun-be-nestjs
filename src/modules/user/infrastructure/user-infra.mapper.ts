@@ -120,9 +120,9 @@ export class UserInfraMapper {
     return {
       id: user.id,
       title: MapperUtils.undefinedToNull(user.title),
-      firstName: user.firstName,
+      firstName: user.firstName!,
       middleName: MapperUtils.undefinedToNull(user.middleName),
-      lastName: user.lastName,
+      lastName: user.lastName!,
       dateOfBirth: MapperUtils.undefinedToNull(user.dateOfBirth),
       gender: MapperUtils.undefinedToNull(user.gender),
       about: MapperUtils.undefinedToNull(user.about),

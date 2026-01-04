@@ -169,6 +169,7 @@ export class AccountService {
       accountStatuses: data.acc_status.map(toKeyValueDto),
       accountTypes: data.acc_type.map(toKeyValueDto),
       transactionRefTypes: data.txn_types.map(toKeyValueDto),
+      expenseStatuses: data.exp_status.map(toKeyValueDto),
     };
   }
 }

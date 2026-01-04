@@ -25,7 +25,7 @@ export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateE
       expenseItems = request.dto.expenseItems.map(item =>
         new ExpenseItem(
           item.itemName,
-          item.description,
+          undefined,
           item.amount,
         )
       );

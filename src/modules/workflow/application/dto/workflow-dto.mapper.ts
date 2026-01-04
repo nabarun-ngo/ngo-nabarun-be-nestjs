@@ -1,8 +1,9 @@
-import { TaskAssignmentDto, WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto } from "./workflow.dto";
+import { FieldAttributeDto, TaskAssignmentDto, WorkflowInstanceDto, WorkflowStepDto, WorkflowTaskDto } from "./workflow.dto";
 import { TaskAssignment } from "../../domain/model/task-assignment.model";
 import { WorkflowInstance } from "../../domain/model/workflow-instance.model";
 import { WorkflowStep } from "../../domain/model/workflow-step.model";
 import { WorkflowTask } from "../../domain/model/workflow-task.model";
+import { KeyValueConfig } from "src/shared/models/key-value-config.model";
 
 
 /**
@@ -26,7 +27,7 @@ export class WorkflowDtoMapper {
       initiatedForId: domain.initiatedFor?.id ?? undefined,
       initiatedForName: domain.initiatedFor?.fullName ?? undefined,
       completedAt: domain.completedAt,
-      failureReason: domain.remarks,
+      remarks: domain.remarks,
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
       steps: domain.steps.map(s => this.stepDomainToDto(s)),
@@ -41,7 +42,7 @@ export class WorkflowDtoMapper {
       description: step.description ?? undefined,
       status: step.status,
       orderIndex: step.orderIndex,
-      failureReason: step.failureReason,
+      remarks: step.remarks,
       startedAt: step.startedAt,
       completedAt: step.completedAt,
       createdAt: step.createdAt,
@@ -57,6 +58,7 @@ export class WorkflowDtoMapper {
       stepId: task.stepId,
       taskId: task.taskId,
       name: task.name,
+      workflowId: task.workflowId,
       description: task.description ?? undefined,
       type: task.type,
       status: task.status,
@@ -69,7 +71,7 @@ export class WorkflowDtoMapper {
       completedAt: task.completedAt,
       completedById: task.completedBy?.id,
       completedByName: task.completedBy?.fullName,
-      failureReason: task.failureReason,
+      remarks: task.remarks,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       assignments: task.assignments.map(a => this.assignmentDomainToDto(a)),
@@ -81,7 +83,7 @@ export class WorkflowDtoMapper {
       id: a.id,
       taskId: a.taskId,
       assignedToId: a.assignedTo.id,
-      assignedToName: a.assignedTo.fullName,
+      assignedToName: a.assignedTo.fullName!,
       roleName: a.roleName,
       status: a.status,
       acceptedAt: a.acceptedAt,
@@ -89,4 +91,19 @@ export class WorkflowDtoMapper {
       notes: a.notes,
     };
   }
+
+  static fieldAttributeDomainToDto(a: KeyValueConfig): FieldAttributeDto {
+    return {
+      key: a.KEY,
+      value: a.VALUE,
+      type: a.getAttribute('TYPE'),
+      isMandatory: a.getAttribute('MANDATORY'),
+      fieldOptions: a.getAttribute('FIELD_OPTIONS'),
+      fieldType: a.getAttribute('FIELD_TYPE'),
+      isHidden: a.getAttribute('HIDDEN'),
+      isEncrypted: a.getAttribute('ENCRYPTED'),
+    };
+  }
+
+
 }

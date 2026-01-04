@@ -23,12 +23,14 @@ export enum WorkflowTaskStatus {
 export class TaskFilter {
   readonly assignedTo?: string;
   readonly status?: string[];
+  readonly completed?: boolean;
 }
 
 export class WorkflowTask extends BaseDomain<string> {
 
   // 🔒 All private fields
   #step: WorkflowStep;
+  #workflowId: string;
   #taskId: string;
   #name: string;
   #description: string | null;
@@ -40,14 +42,15 @@ export class WorkflowTask extends BaseDomain<string> {
   #jobId?: string;
   #autoCloseRefId?: string;
   #completedAt?: Date;
-  #completedBy?: User;
-  #failureReason?: string;
+  #completedBy?: Partial<User>;
+  #remarks?: string;
 
   #assignments: TaskAssignment[] = [];
 
   constructor(
     id: string,
     step: WorkflowStep,
+    workflowId: string,
     taskId: string,
     name: string,
     description: string | null,
@@ -60,13 +63,14 @@ export class WorkflowTask extends BaseDomain<string> {
     autoCloseRefId?: string,
     completedAt?: Date,
     completedBy?: User,
-    failureReason?: string,
+    remarks?: string,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
     super(id, createdAt, updatedAt);
 
     this.#step = step;
+    this.#workflowId = workflowId;
     this.#taskId = taskId;
     this.#name = name;
     this.#description = description;
@@ -79,13 +83,14 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#autoCloseRefId = autoCloseRefId;
     this.#completedAt = completedAt;
     this.#completedBy = completedBy;
-    this.#failureReason = failureReason;
+    this.#remarks = remarks;
   }
 
-  static create(step: WorkflowStep, task: TaskDef): WorkflowTask {
+  static create(workflowId: string, step: WorkflowStep, task: TaskDef): WorkflowTask {
     return new WorkflowTask(
       `NWT${generateUniqueNDigitNumber(6)}`,
       step,
+      workflowId,
       task.taskId,
       task.name,
       task.description,
@@ -108,13 +113,13 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  start(starter?: User): void {
+  start(starter?: Partial<User>): void {
     if (this.#status !== WorkflowTaskStatus.PENDING) {
       throw new BusinessException(`Cannot start task in status: ${this.#status}`);
     }
     const assignment = this.assignments.find((a) => a.assignedTo.id == starter?.id);
     if (this.requiresManualAction() && !assignment) {
-      throw new BusinessException(`No assignment found for user: ${starter?.id}`);
+      throw new BusinessException(`User: ${starter?.id} cannot act on this task.`);
     }
     assignment?.accept();
     this.#assignments.filter(f => f.assignedTo.id != starter?.id).forEach(a => a.remove());
@@ -123,27 +128,28 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  complete(completedBy?: User): void {
+  complete(completedBy?: Partial<User>, remarks?: string): void {
     if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
       throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
     }
-    const assignee =this.#assignments.find(a=>a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
-    if(this.requiresManualAction() && !assignee){
+    const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+    if (this.requiresManualAction() && !assignee) {
       throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
     }
     this.#status = WorkflowTaskStatus.COMPLETED;
     this.#completedBy = completedBy;
     this.#completedAt = new Date();
+    this.#remarks = remarks;
     this.touch();
   }
 
-  fail(reason: string,completedBy?:User): void {
-    const assignee =this.#assignments.find(a=>a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
-    if(this.requiresManualAction() && !assignee){
+  fail(reason: string, completedBy?: User): void {
+    const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+    if (this.requiresManualAction() && !assignee) {
       throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
     }
     this.#status = WorkflowTaskStatus.FAILED;
-    this.#failureReason = reason;
+    this.#remarks = reason;
     this.touch();
   }
 
@@ -168,6 +174,10 @@ export class WorkflowTask extends BaseDomain<string> {
   // 🔓 Getters (Public Read-Only API)
   get stepId(): string {
     return this.#step.stepId;
+  }
+
+  get workflowId(): string {
+    return this.#workflowId;
   }
 
   get taskId(): string {
@@ -222,11 +232,11 @@ export class WorkflowTask extends BaseDomain<string> {
     return this.#completedAt;
   }
 
-  get completedBy(): User | undefined {
+  get completedBy(): Partial<User> | undefined {
     return this.#completedBy;
   }
 
-  get failureReason(): string | undefined {
-    return this.#failureReason;
+  get remarks(): string | undefined {
+    return this.#remarks;
   }
 }

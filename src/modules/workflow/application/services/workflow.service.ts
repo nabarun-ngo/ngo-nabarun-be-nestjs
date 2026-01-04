@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { WorkflowFilter, WorkflowInstance } from '../../domain/model/workflow-instance.model';
-import { TaskFilter } from '../../domain/model/workflow-task.model';
-import { WorkflowInstanceDto, WorkflowTaskDto, StartWorkflowDto, UpdateTaskDto } from '../dto/workflow.dto';
+import { WorkflowFilter, WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
+import { TaskFilter, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
+import { WorkflowInstanceDto, WorkflowTaskDto, StartWorkflowDto, UpdateTaskDto, WorkflowRefDataDto } from '../dto/workflow.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
 import { WorkflowDtoMapper } from '../dto/workflow-dto.mapper';
@@ -12,9 +12,12 @@ import { PagedResult } from 'src/shared/models/paged-result';
 import { CompleteTaskUseCase } from '../use-cases/complete-task.use-case';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { AutomaticTaskService } from './automatic-task.service';
+import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
+import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
 
 @Injectable()
 export class WorkflowService {
+
 
   private readonly logger = new Logger(WorkflowService.name);
 
@@ -24,6 +27,7 @@ export class WorkflowService {
     private readonly workflowStart: StartWorkflowUseCase,
     private readonly completeTask: CompleteTaskUseCase,
     private readonly taskService: AutomaticTaskService,
+    private readonly workflowDefService: WorkflowDefService,
   ) { }
 
   async getWorkflows(filter: BaseFilter<WorkflowFilter>): Promise<PagedResult<WorkflowInstanceDto>> {
@@ -61,7 +65,7 @@ export class WorkflowService {
       taskId: taskId,
       remarks: dto.remarks,
       status: dto.status,
-      completedBy: new User(authUser.profile_id!, '', '', ''),
+      completedBy: { id: authUser.profile_id },
     })
     return WorkflowDtoMapper.taskDomainToDto(instance);
   }
@@ -72,6 +76,7 @@ export class WorkflowService {
       data: input.data,
       requestedBy: requestedBy?.profile_id!,
       requestedFor: input.requestedFor,
+      forExternalUser: input.forExternalUser,
     });
     return WorkflowDtoMapper.toDto(workflow);
   }
@@ -92,10 +97,35 @@ export class WorkflowService {
     if (!task.isAutomatic()) {
       throw new BusinessException(`Task is not automatic: ${taskId}`);
     }
-    await this.taskService.handleTask(task, workflow?.requestData);
 
-    task.complete();
+    try {
+      workflow?.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
+      await this.taskService.handleTask(task, workflow?.requestData);
+      workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
+    } catch (error) {
+      workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);
+    }
+
     await this.instanceRepository.update(workflow?.id!, workflow!);
+  }
+
+  async getWorkflowRefData(): Promise<WorkflowRefDataDto> {
+    const refData = await this.workflowDefService.getWorkflowRefData();
+    return {
+      workflowTypes: refData.workflowTypes.map(toKeyValueDto),
+      visibleWorkflowTypes: refData.visibleWorkflowTypes.map(toKeyValueDto),
+      additionalFields: refData.additionalFields.map(toKeyValueDto),
+      workflowStatuses: refData.workflowStatus.map(toKeyValueDto),
+      workflowStepStatuses: refData.workflowStepStatus.map(toKeyValueDto),
+      workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),
+      workflowTaskTypes: refData.workflowTaskType.map(toKeyValueDto),
+      visibleTaskStatuses: refData.visibleTaskStatus.map(toKeyValueDto),
+    }
+  }
+
+  async getAdditionalFields(type: WorkflowType) {
+    const additionalFields = await this.workflowDefService.getAdditionalFields(type);
+    return additionalFields.map(WorkflowDtoMapper.fieldAttributeDomainToDto);
   }
 
 }

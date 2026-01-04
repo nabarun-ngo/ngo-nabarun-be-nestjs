@@ -32,7 +32,7 @@ export class DocumentRepository
     }
 
     async findPaged(filter?: BaseFilter<DocumentProps> | undefined): Promise<PagedResult<Document>> {
-        const result = await this.findPaginated<Prisma.DocumentReferenceInclude>(this.whereQuery(filter?.props!), filter?.pageIndex ?? 0, filter?.pageSize ?? 10, {
+        const result = await this.findPaginated<Prisma.DocumentReferenceInclude>(this.whereQuery(filter?.props!), filter?.pageIndex ?? 0, filter?.pageSize ?? 1000, {
             mappings: true,
         });
         return new PagedResult<Document>(result.data, result.total, result.page, result.pageSize);

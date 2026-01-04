@@ -161,13 +161,13 @@ const mapTransactionType = (type: string): string => {
 // Map Expense Status
 const mapExpenseStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
-        'PENDING': 'PENDING',
+        'PENDING': 'DRAFT',
         'APPROVED': 'APPROVED',
         'PAID': 'PAID',
         'REJECTED': 'REJECTED',
         'SETTLED': 'SETTLED',
     };
-    return statusMap[status] || 'PENDING';
+    return statusMap[status] || 'DRAFT';
 };
 
 // --- Mongo Document Interfaces ---

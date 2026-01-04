@@ -347,4 +347,7 @@ export class AccountRefDataDto {
   @ApiProperty()
   transactionRefTypes?: KeyValueDto[];
 
+  @ApiProperty()
+  expenseStatuses?: KeyValueDto[];
+
 }

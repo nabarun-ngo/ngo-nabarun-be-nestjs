@@ -121,7 +121,7 @@ export class ExpenseController {
     const result = await this.expenseService.list({
       pageIndex,
       pageSize,
-      props: { ...filter, },
+      props: { ...filter, payerId: user?.profile_id },
     });
     return new SuccessResponse(result);
   }
