@@ -6,7 +6,7 @@ import { Role } from './role.model';
 import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.model';
 import { Link } from './link.model';
-import { generateUniqueNDigitNumber } from '../../../../shared/utilities/password-util';
+import { generatePassword } from '../../../../shared/utilities/password-util';
 import { RoleAssignedEvent } from '../events/role-assigned.event';
 
 export enum UserStatus {
@@ -137,7 +137,7 @@ export class User extends AggregateRoot<string> {
   }
 
   private createPassword() {
-    this.#password = `Nabarun@${generateUniqueNDigitNumber(6)}#Default`;
+    this.#password = generatePassword({ length: 12 });
   }
 
 

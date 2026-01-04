@@ -1,3 +1,5 @@
+import { randomInt } from 'crypto';
+
 interface PasswordOptions {
   length: number;
   includeUppercase?: boolean;
@@ -15,23 +17,45 @@ export function generatePassword(options: PasswordOptions): string {
     includeSymbols = true,
   } = options;
 
-  let characterSet = '';
-  if (includeUppercase) characterSet += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  if (includeLowercase) characterSet += 'abcdefghijklmnopqrstuvwxyz';
-  if (includeNumbers) characterSet += '0123456789';
-  if (includeSymbols) characterSet += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const sets = [
+    { enabled: includeUppercase, chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+    { enabled: includeLowercase, chars: 'abcdefghijklmnopqrstuvwxyz' },
+    { enabled: includeNumbers, chars: '0123456789' },
+    { enabled: includeSymbols, chars: '!@#$%^&*()_+-=[]{}|;:,.<>?' },
+  ];
 
-  if (!characterSet) {
+  const activeSets = sets.filter(s => s.enabled);
+  if (activeSets.length === 0) {
     throw new Error('At least one character type must be included.');
   }
 
-  let password = '';
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characterSet.length);
-    password += characterSet[randomIndex];
+  if (length < activeSets.length) {
+    throw new Error(`Password length must be at least ${activeSets.length} to include all character types.`);
   }
 
-  return password;
+  let password = '';
+
+  // Guarantee at least one of each active set
+  activeSets.forEach(set => {
+    const randomIndex = randomInt(0, set.chars.length);
+    password += set.chars[randomIndex];
+  });
+
+  // Fill the rest of the length
+  const allChars = activeSets.map(s => s.chars).join('');
+  for (let i = password.length; i < length; i++) {
+    const randomIndex = randomInt(0, allChars.length);
+    password += allChars[randomIndex];
+  }
+
+  // Fisher-Yates shuffle for true randomness
+  const passwordArray = password.split('');
+  for (let i = passwordArray.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    [passwordArray[i], passwordArray[j]] = [passwordArray[j], passwordArray[i]];
+  }
+
+  return passwordArray.join('');
 }
 
 
@@ -42,29 +66,29 @@ export function generatePassword(options: PasswordOptions): string {
  * @throws Error if n is out of range
  */
 export function generateUniqueNDigitNumber(n: number): number {
-    // Validate input
-    if (!Number.isInteger(n) || n < 1 || n > 10) {
-        throw new Error("n must be an integer between 1 and 10 (inclusive).");
+  // Validate input
+  if (!Number.isInteger(n) || n < 1 || n > 10) {
+    throw new Error("n must be an integer between 1 and 10 (inclusive).");
+  }
+
+  // Digits pool
+  const digits: number[] = Array.from({ length: 10 }, (_, i) => i);
+
+  // Ensure first digit is not zero if n > 1
+  if (n > 1) {
+    const nonZeroIndex = Math.floor(Math.random() * 9) + 1; // index 1-9
+    const firstDigit = digits.splice(nonZeroIndex, 1)[0];
+    const resultDigits = [firstDigit];
+
+    // Pick remaining digits randomly
+    for (let i = 1; i < n; i++) {
+      const randomIndex = Math.floor(Math.random() * digits.length);
+      resultDigits.push(digits.splice(randomIndex, 1)[0]);
     }
 
-    // Digits pool
-    const digits: number[] = Array.from({ length: 10 }, (_, i) => i);
-
-    // Ensure first digit is not zero if n > 1
-    if (n > 1) {
-        const nonZeroIndex = Math.floor(Math.random() * 9) + 1; // index 1-9
-        const firstDigit = digits.splice(nonZeroIndex, 1)[0];
-        const resultDigits = [firstDigit];
-
-        // Pick remaining digits randomly
-        for (let i = 1; i < n; i++) {
-            const randomIndex = Math.floor(Math.random() * digits.length);
-            resultDigits.push(digits.splice(randomIndex, 1)[0]);
-        }
-
-        return parseInt(resultDigits.join(""), 10);
-    } else {
-        // n = 1 → can be 0-9
-        return digits[Math.floor(Math.random() * 10)];
-    }
+    return parseInt(resultDigits.join(""), 10);
+  } else {
+    // n = 1 → can be 0-9
+    return digits[Math.floor(Math.random() * 10)];
+  }
 }
