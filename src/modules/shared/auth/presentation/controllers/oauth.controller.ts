@@ -76,7 +76,7 @@ export class OAuthController {
 
   @Get('google/scopes')
   @ApiOperation({ summary: 'Get available Google OAuth scopes' })
-  @ApiAutoResponse(Array<String>, { description: 'OAuth scopes', wrapInSuccessResponse: true, isArray: true })
+  @ApiAutoResponse(String, { description: 'OAuth scopes', wrapInSuccessResponse: true, isArray: true })
   async getGoogleScopes(): Promise<SuccessResponse<string[]>> {
     return new SuccessResponse<string[]>(this.oAuthService.getOAuthScopes());
   }

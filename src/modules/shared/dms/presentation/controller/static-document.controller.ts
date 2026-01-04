@@ -1,9 +1,10 @@
-import { Controller, Get } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Controller, Get, Query } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { StaticDocsService } from "../../application/services/static-docs.service";
 import { StaticDocumentDto } from "../dto/static-docs.dto";
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
 import { SuccessResponse } from "src/shared/models/response-model";
+import { KeyValueDto } from "src/shared/dto/KeyValue.dto";
 
 @ApiTags(StaticDocsController.name)
 @ApiBearerAuth('jwt')
@@ -26,6 +27,19 @@ export class StaticDocsController {
     async getPolicies(): Promise<SuccessResponse<StaticDocumentDto[]>> {
         return new SuccessResponse(
             await this.statDocsService.getPolicyDocs()
+        );
+    }
+
+
+    @Get('app-links')
+    @ApiOperation({ summary: 'Get app links' })
+    @ApiAutoResponse(KeyValueDto, { status: 200, description: 'App links fetched successfully', isArray: true, wrapInSuccessResponse: true })
+    @ApiQuery({ name: 'linkType', required: true, description: 'Type of app links', type: String })
+    async getStaticLinks(
+        @Query('linkType') linkType: string
+    ): Promise<SuccessResponse<KeyValueDto[]>> {
+        return new SuccessResponse(
+            await this.statDocsService.getStaticLinks(linkType)
         );
     }
 }

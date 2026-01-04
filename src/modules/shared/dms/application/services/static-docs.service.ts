@@ -5,6 +5,7 @@ import { StaticDocumentDto } from "../../presentation/dto/static-docs.dto";
 
 @Injectable()
 export class StaticDocsService {
+
     constructor(private readonly firebaseConfig: RemoteConfigService,
     ) { }
 
@@ -31,7 +32,7 @@ export class StaticDocsService {
     async getPolicyDocs(): Promise<StaticDocumentDto[]> {
         const remoteConfig = await this.firebaseConfig.getAllKeyValues();
         const docLinks = parseKeyValueConfigs(remoteConfig['DOCUMENT_LINKS'].value);
-        ``
+
         return docLinks
             .filter(d => d.getAttribute('LINK_TYPE') === 'POLICY_LINKS')
             .reduce((acc, curr) => {
@@ -46,6 +47,15 @@ export class StaticDocsService {
 
                 return acc;
             }, [] as StaticDocumentDto[]);
+    }
+
+    async getStaticLinks(type?: string) {
+        const remoteConfig = await this.firebaseConfig.getAllKeyValues();
+        const docLinks = parseKeyValueConfigs(remoteConfig['APP_LINKS'].value);
+        if (type) {
+            return docLinks.filter(f => f.getAttribute('LINK_TYPE') === type).map(toKeyValueDto)
+        }
+        return docLinks.map(toKeyValueDto)
     }
 
 }
