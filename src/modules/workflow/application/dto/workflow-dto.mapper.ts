@@ -83,7 +83,7 @@ export class WorkflowDtoMapper {
       id: a.id,
       taskId: a.taskId,
       assignedToId: a.assignedTo.id,
-      assignedToName: a.assignedTo.fullName,
+      assignedToName: a.assignedTo.fullName!,
       roleName: a.roleName,
       status: a.status,
       acceptedAt: a.acceptedAt,

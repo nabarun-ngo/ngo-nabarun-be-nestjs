@@ -143,7 +143,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.touch();
   }
 
-  updateTask(taskId: string, status: WorkflowTaskStatus, user?: User, remarks?: string) {
+  updateTask(taskId: string, status: WorkflowTaskStatus, user?: Partial<User>, remarks?: string) {
     const step = this.steps.find(s => s.stepId === this.#currentStepId);
     const task = step?.tasks?.find(t => t.id === taskId);
 

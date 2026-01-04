@@ -115,7 +115,9 @@ export class WorkflowController {
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'completed', required: true, type: Boolean, description: 'Filter by completed (set true to get completed tasks, set false to get pending tasks)' })
   async listTasks(
+    @Query('completed') completed: boolean,
     @Query('page') page?: number,
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
@@ -126,7 +128,7 @@ export class WorkflowController {
         pageSize: size,
         props: {
           assignedTo: user?.profile_id,
-          status: [TaskAssignmentStatus.PENDING, TaskAssignmentStatus.ACCEPTED]
+          completed: completed,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);

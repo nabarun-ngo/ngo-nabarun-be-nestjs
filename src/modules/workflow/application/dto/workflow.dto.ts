@@ -312,6 +312,10 @@ export class WorkflowRefDataDto {
   workflowStatuses?: KeyValueDto[];
   @ApiProperty()
   workflowTaskStatuses?: KeyValueDto[];
+  @ApiProperty()
+  workflowTaskTypes?: KeyValueDto[];
+  @ApiProperty()
+  workflowStepStatuses?: KeyValueDto[];
 }
 
 export class FieldAttributeDto {

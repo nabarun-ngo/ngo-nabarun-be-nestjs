@@ -24,8 +24,8 @@ class UserRepository
           roles: true,
           socialMediaLinks: filter?.props?.includeLinks ?? false
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.userProfile.count({
         where: this.whereQuery(filter?.props),

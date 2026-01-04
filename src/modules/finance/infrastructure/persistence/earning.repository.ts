@@ -27,8 +27,8 @@ class EarningRepository implements IEarningRepository {
         include: {
           account: true,
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.earning.count({ where }),
     ]);
@@ -37,7 +37,7 @@ class EarningRepository implements IEarningRepository {
       data.map(m => EarningInfraMapper.toEarningDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
-      filter?.pageSize ?? 10,
+      filter?.pageSize ?? 1000,
     );
   }
 

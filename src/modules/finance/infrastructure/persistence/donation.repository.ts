@@ -40,8 +40,8 @@ class DonationRepository implements IDonationRepository {
           paidToAccount: true,
           confirmedBy: true,
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.donation.count({ where }),
     ]);
@@ -50,7 +50,7 @@ class DonationRepository implements IDonationRepository {
       data.map(m => DonationInfraMapper.toDonationDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
-      filter?.pageSize ?? 10,
+      filter?.pageSize ?? 1000,
     );
   }
 

@@ -65,7 +65,7 @@ export class WorkflowService {
       taskId: taskId,
       remarks: dto.remarks,
       status: dto.status,
-      completedBy: new User(authUser.profile_id!, '', '', ''),
+      completedBy: { id: authUser.profile_id },
     })
     return WorkflowDtoMapper.taskDomainToDto(instance);
   }
@@ -109,8 +109,11 @@ export class WorkflowService {
       workflowTypes: refData.workflowTypes.map(toKeyValueDto),
       visibleWorkflowTypes: refData.visibleWorkflowTypes.map(toKeyValueDto),
       additionalFields: refData.additionalFields.map(toKeyValueDto),
-      workflowStatuses: [],
-      workflowTaskStatuses: [],
+      workflowStatuses: refData.workflowStatus.map(toKeyValueDto),
+      workflowStepStatuses: refData.workflowStepStatus.map(toKeyValueDto),
+      workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),
+      workflowTaskTypes: refData.workflowTaskType.map(toKeyValueDto),
+
     }
   }
 

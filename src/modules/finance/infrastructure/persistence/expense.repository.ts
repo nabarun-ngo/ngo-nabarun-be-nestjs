@@ -43,8 +43,8 @@ class ExpenseRepository implements IExpenseRepository {
           submittedBy: true,
           paidBy: true,
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.expense.count({ where }),
     ]);
@@ -53,7 +53,7 @@ class ExpenseRepository implements IExpenseRepository {
       data.map(m => ExpenseInfraMapper.toExpenseDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
-      filter?.pageSize ?? 10,
+      filter?.pageSize ?? 1000,
     );
   }
 

@@ -24,10 +24,19 @@ export class WorkflowDefService {
         const keyValueConfigs = await this.remoteConfig.getAllKeyValues()
         const WORKFLOW_TYPES = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_TYPES'].value);
         const ADDITIONAL_FIELDS = parseKeyValueConfigs(keyValueConfigs['ADDITIONAL_FIELDS'].value);
+        const WORKFLOW_STATUS = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_STATUS'].value);
+
+        const WORKFLOW_STEP_STATUS = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_STEP_STATUS'].value);
+        const WORKFLOW_TASK_STATUS = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_TASK_STATUS'].value);
+        const WORKFLOW_TASK_TYPE = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_TASK_TYPE'].value);
         return {
             workflowTypes: WORKFLOW_TYPES,
             visibleWorkflowTypes: WORKFLOW_TYPES.filter(w => w.getAttribute<boolean>('IS_VISIBLE') === true),
             additionalFields: ADDITIONAL_FIELDS,
+            workflowStatus: WORKFLOW_STATUS,
+            workflowStepStatus: WORKFLOW_STEP_STATUS,
+            workflowTaskStatus: WORKFLOW_TASK_STATUS,
+            workflowTaskType: WORKFLOW_TASK_TYPE,
         }
     }
 

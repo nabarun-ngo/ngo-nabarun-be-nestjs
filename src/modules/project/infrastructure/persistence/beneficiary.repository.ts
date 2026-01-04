@@ -9,7 +9,7 @@ import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 class BeneficiaryRepository implements IBeneficiaryRepository {
-  constructor(private readonly prisma: PrismaPostgresService) {}
+  constructor(private readonly prisma: PrismaPostgresService) { }
 
   async findPaged(filter?: BaseFilter<BeneficiaryFilterProps>): Promise<PagedResult<Beneficiary>> {
     const where = this.whereQuery(filter?.props);
@@ -19,8 +19,8 @@ class BeneficiaryRepository implements IBeneficiaryRepository {
         where,
         orderBy: { enrollmentDate: 'desc' },
         include: { project: true },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.beneficiary.count({ where }),
     ]);
@@ -29,7 +29,7 @@ class BeneficiaryRepository implements IBeneficiaryRepository {
       data.map(m => ProjectInfraMapper.toBeneficiaryDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
-      filter?.pageSize ?? 10,
+      filter?.pageSize ?? 1000,
     );
   }
 
