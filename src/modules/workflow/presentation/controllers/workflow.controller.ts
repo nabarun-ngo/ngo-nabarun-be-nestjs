@@ -4,8 +4,6 @@ import {
   Get,
   Body,
   Param,
-  HttpCode,
-  HttpStatus,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -15,7 +13,6 @@ import { WorkflowService } from '../../application/services/workflow.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { WorkflowType } from '../../domain/model/workflow-instance.model';

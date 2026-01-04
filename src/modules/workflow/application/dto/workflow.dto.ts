@@ -179,7 +179,7 @@ export class WorkflowTaskDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  failureReason?: string;
+  remarks?: string;
 
   @ApiProperty({ type: [TaskAssignmentDto], required: true })
   @IsDefined()
@@ -221,7 +221,7 @@ export class WorkflowStepDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  failureReason?: string;
+  remarks?: string;
 
   @ApiProperty({ required: true })
   @IsDefined()
@@ -285,7 +285,7 @@ export class WorkflowInstanceDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  failureReason?: string;
+  remarks?: string;
 
   @ApiProperty({ required: true })
   @IsDefined()
@@ -316,6 +316,8 @@ export class WorkflowRefDataDto {
   workflowTaskTypes?: KeyValueDto[];
   @ApiProperty()
   workflowStepStatuses?: KeyValueDto[];
+  @ApiProperty()
+  visibleTaskStatuses?: KeyValueDto[];
 }
 
 export class FieldAttributeDto {

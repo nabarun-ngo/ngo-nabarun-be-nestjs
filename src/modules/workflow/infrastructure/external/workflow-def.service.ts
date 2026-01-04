@@ -37,6 +37,7 @@ export class WorkflowDefService {
             workflowStepStatus: WORKFLOW_STEP_STATUS,
             workflowTaskStatus: WORKFLOW_TASK_STATUS,
             workflowTaskType: WORKFLOW_TASK_TYPE,
+            visibleTaskStatus: WORKFLOW_TASK_STATUS.filter(w => w.getAttribute<boolean>('IS_VISIBLE') === true),
         }
     }
 

@@ -21,7 +21,7 @@ export class WorkflowStep extends BaseDomain<string> {
   #onFailureStepId?: string;
 
   #completedAt?: Date;
-  #failureReason?: string;
+  #remarks?: string;
   #startedAt?: Date;
 
   #tasks: WorkflowTask[] = [];
@@ -36,7 +36,7 @@ export class WorkflowStep extends BaseDomain<string> {
     onSuccessStepId?: string,
     onFailureStepId?: string,
     completedAt?: Date,
-    failureReason?: string,
+    remarks?: string,
     startedAt?: Date,
     createdAt?: Date,
     updatedAt?: Date,
@@ -52,7 +52,7 @@ export class WorkflowStep extends BaseDomain<string> {
     this.#onFailureStepId = onFailureStepId;
 
     this.#completedAt = completedAt;
-    this.#failureReason = failureReason;
+    this.#remarks = remarks;
     this.#startedAt = startedAt;
   }
 
@@ -114,7 +114,7 @@ export class WorkflowStep extends BaseDomain<string> {
 
   fail(reason: string): string | undefined {
     this.#status = WorkflowStepStatus.FAILED;
-    this.#failureReason = reason;
+    this.#remarks = reason;
     this.touch();
     return this.#onFailureStepId;
   }
@@ -151,8 +151,8 @@ export class WorkflowStep extends BaseDomain<string> {
     return this.#completedAt;
   }
 
-  get failureReason() {
-    return this.#failureReason;
+  get remarks() {
+    return this.#remarks;
   }
 
   get startedAt() {

@@ -43,7 +43,7 @@ export class WorkflowTask extends BaseDomain<string> {
   #autoCloseRefId?: string;
   #completedAt?: Date;
   #completedBy?: Partial<User>;
-  #failureReason?: string;
+  #remarks?: string;
 
   #assignments: TaskAssignment[] = [];
 
@@ -63,7 +63,7 @@ export class WorkflowTask extends BaseDomain<string> {
     autoCloseRefId?: string,
     completedAt?: Date,
     completedBy?: User,
-    failureReason?: string,
+    remarks?: string,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
@@ -83,7 +83,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#autoCloseRefId = autoCloseRefId;
     this.#completedAt = completedAt;
     this.#completedBy = completedBy;
-    this.#failureReason = failureReason;
+    this.#remarks = remarks;
   }
 
   static create(workflowId: string, step: WorkflowStep, task: TaskDef): WorkflowTask {
@@ -128,7 +128,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  complete(completedBy?: Partial<User>): void {
+  complete(completedBy?: Partial<User>, remarks?: string): void {
     if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
       throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
     }
@@ -139,6 +139,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#status = WorkflowTaskStatus.COMPLETED;
     this.#completedBy = completedBy;
     this.#completedAt = new Date();
+    this.#remarks = remarks;
     this.touch();
   }
 
@@ -148,7 +149,7 @@ export class WorkflowTask extends BaseDomain<string> {
       throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
     }
     this.#status = WorkflowTaskStatus.FAILED;
-    this.#failureReason = reason;
+    this.#remarks = reason;
     this.touch();
   }
 
@@ -235,7 +236,7 @@ export class WorkflowTask extends BaseDomain<string> {
     return this.#completedBy;
   }
 
-  get failureReason(): string | undefined {
-    return this.#failureReason;
+  get remarks(): string | undefined {
+    return this.#remarks;
   }
 }

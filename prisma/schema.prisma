@@ -232,7 +232,7 @@ model WorkflowStep {
   orderIndex      Int
   onSuccessStepId String?          @db.VarChar(50)
   onFailureStepId String?          @db.VarChar(50)
-  failureReason   String?          @db.Text
+  remarks         String?          @db.Text
   startedAt       DateTime? // When step was started
   completedAt     DateTime?
   createdAt       DateTime         @default(now())
@@ -263,7 +263,7 @@ model WorkflowTask {
   completedAt    DateTime?
   completedBy    UserProfile? @relation(name: "taskCompletedBy", fields: [completedById], references: [id])
   completedById  String?      @db.VarChar(255)
-  failureReason  String?      @db.Text
+  remarks        String?      @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

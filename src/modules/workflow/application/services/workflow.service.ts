@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { WorkflowFilter, WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
-import { TaskFilter } from '../../domain/model/workflow-task.model';
+import { TaskFilter, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
 import { WorkflowInstanceDto, WorkflowTaskDto, StartWorkflowDto, UpdateTaskDto, WorkflowRefDataDto } from '../dto/workflow.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
@@ -97,9 +97,15 @@ export class WorkflowService {
     if (!task.isAutomatic()) {
       throw new BusinessException(`Task is not automatic: ${taskId}`);
     }
-    await this.taskService.handleTask(task, workflow?.requestData);
 
-    task.complete();
+    try {
+      workflow?.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
+      await this.taskService.handleTask(task, workflow?.requestData);
+      workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
+    } catch (error) {
+      workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);
+    }
+
     await this.instanceRepository.update(workflow?.id!, workflow!);
   }
 
@@ -113,7 +119,7 @@ export class WorkflowService {
       workflowStepStatuses: refData.workflowStepStatus.map(toKeyValueDto),
       workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),
       workflowTaskTypes: refData.workflowTaskType.map(toKeyValueDto),
-
+      visibleTaskStatuses: refData.visibleTaskStatus.map(toKeyValueDto),
     }
   }
 

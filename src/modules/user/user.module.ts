@@ -15,7 +15,7 @@ import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case'
 
 @Module({
   controllers: [UserController],
-  imports: [FirebaseModule,CorrespondenceModule],
+  imports: [FirebaseModule, CorrespondenceModule],
   providers: [
     CreateUserUseCase,
     UpdateUserUseCase,
@@ -30,6 +30,6 @@ import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case'
     UserService,
     AssignRoleUseCase
   ],
-  exports: [USER_REPOSITORY,UserService],
+  exports: [USER_REPOSITORY, CreateUserUseCase],
 })
-export class UserModule {}
+export class UserModule { }

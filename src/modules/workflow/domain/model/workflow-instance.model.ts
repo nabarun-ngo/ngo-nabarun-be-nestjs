@@ -159,14 +159,16 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     switch (status) {
       case WorkflowTaskStatus.IN_PROGRESS:
-        task.start(user!);
+        task.start(user);
         break;
       case WorkflowTaskStatus.COMPLETED:
-        task.complete(user);
+        task.complete(user, remarks);
         break;
       case WorkflowTaskStatus.FAILED:
         task.fail(remarks!);
         break;
+      default:
+        throw new BusinessException(`Invalid task status: ${status}`);
     }
 
     if (step?.isAllTasksCompleted()) {
@@ -197,6 +199,11 @@ export class WorkflowInstance extends AggregateRoot<string> {
   public cancel(reason: string): void {
     this.#status = WorkflowInstanceStatus.CANCELLED;
     this.#remarks = reason;
+    this.touch();
+  }
+
+  public updateInitiatedFor(user: Partial<User>) {
+    this.#initiatedFor = user;
     this.touch();
   }
 

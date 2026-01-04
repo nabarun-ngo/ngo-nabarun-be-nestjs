@@ -5,13 +5,12 @@ import type { IWorkflowInstanceRepository } from '../../domain/repositories/work
 import { WorkflowInstance } from '../../domain/model/workflow-instance.model';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
-import { WorkflowTask, WorkflowTaskType } from '../../domain/model/workflow-task.model';
+import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
 import { TaskAssignment } from '../../domain/model/task-assignment.model';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { EmailTemplateName } from 'src/modules/shared/correspondence/dtos/email.dto';
-import { JobProcessingService } from 'src/modules/shared/job-processing/services/job-processing.service';
-import { JobName } from 'src/modules/shared/job-processing/decorators/process-job.decorator';
+import { AutomaticTaskService } from '../services/automatic-task.service';
 
 @Injectable()
 export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstance> {
@@ -21,7 +20,7 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         private readonly workflowDefService: WorkflowDefService,
         @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
         private readonly corrService: CorrespondenceService,
-        private readonly jobService: JobProcessingService,
+        private readonly automaticTaskService: AutomaticTaskService,
     ) { }
 
     async execute(instanceId: string): Promise<WorkflowInstance> {
@@ -45,11 +44,13 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
 
             for (const task of tasks) {
                 if (task.type === WorkflowTaskType.AUTOMATIC) {
-                    task.start();
-                    await this.jobService.addJob(JobName.TASK_AUTOMATIC, {
-                        instanceId: workflow.id,
-                        task: task.toJson(),
-                    });
+                    try {
+                        workflow.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
+                        await this.automaticTaskService.handleTask(task, workflow.requestData, definition);
+                        workflow.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
+                    } catch (error) {
+                        workflow.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);
+                    }
                 }
                 else {
                     var roleCodes = taskDefs.find(td => td.taskId == task.taskId)?.taskDetail?.assignedTo?.roleNames;
