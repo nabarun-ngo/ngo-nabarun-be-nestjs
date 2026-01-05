@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Activity } from '../../domain/model/activity.model';
+import { Activity, ActivityPriority, ActivityScale, ActivityType } from '../../domain/model/activity.model';
 import { ACTIVITY_REPOSITORY } from '../../domain/repositories/activity.repository.interface';
 import type { IActivityRepository } from '../../domain/repositories/activity.repository.interface';
 import { PROJECT_REPOSITORY } from '../../domain/repositories/project.repository.interface';
@@ -9,17 +9,38 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreateActivityDto } from '../dto/activity.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 
+export interface CreateActivity {
+  projectId: string;
+  name: string
+  description?: string;
+  scale: ActivityScale;
+  type: ActivityType;
+  priority: ActivityPriority;
+  startDate?: Date;
+  endDate?: Date;
+  location?: string;
+  venue?: string;
+  organizerId?: string;
+  parentActivityId?: string;
+  assignedTo?: string;
+  expectedParticipants?: number;
+  estimatedCost?: number;
+  currency?: string;
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
 @Injectable()
-export class CreateActivityUseCase implements IUseCase<CreateActivityDto, Activity> {
+export class CreateActivityUseCase implements IUseCase<CreateActivity, Activity> {
   constructor(
     @Inject(ACTIVITY_REPOSITORY)
     private readonly activityRepository: IActivityRepository,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: IProjectRepository,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
-  async execute(request: CreateActivityDto): Promise<Activity> {
+  async execute(request: CreateActivity): Promise<Activity> {
     // Verify project exists and is active
     const project = await this.projectRepository.findById(request.projectId);
     if (!project) {

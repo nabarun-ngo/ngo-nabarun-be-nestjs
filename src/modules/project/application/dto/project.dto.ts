@@ -148,69 +148,102 @@ export class UpdateProjectDto {
 
 export class ProjectDetailDto {
   @ApiProperty()
+  @IsString()
   id: string;
 
   @ApiProperty()
+  @IsString()
   name: string;
 
   @ApiProperty()
+  @IsString()
   description: string;
 
   @ApiProperty()
+  @IsString()
   code: string;
 
   @ApiProperty({ enum: ProjectCategory })
+  @IsEnum(ProjectCategory)
   category: ProjectCategory;
 
   @ApiProperty({ enum: ProjectStatus })
+  @IsEnum(ProjectStatus)
   status: ProjectStatus;
 
   @ApiProperty({ enum: ProjectPhase })
+  @IsEnum(ProjectPhase)
   phase: ProjectPhase;
 
   @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   startDate: Date;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   endDate?: Date;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   actualEndDate?: Date;
 
-  @ApiProperty()
-  budget: number;
+  @ApiPropertyOptional()
+  @IsNumber()
+  @Min(0.01)
+  @IsOptional()
+  budget?: number;
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  spentAmount?: number;
 
   @ApiProperty()
-  spentAmount: number;
-
-  @ApiProperty()
+  @IsString()
   currency: string;
 
   @ApiPropertyOptional()
+  @IsString()
   location?: string;
 
   @ApiPropertyOptional()
+  @IsNumber()
+  @Min(0)
   targetBeneficiaryCount?: number;
 
   @ApiPropertyOptional()
+  @IsNumber()
+  @Min(0)
   actualBeneficiaryCount?: number;
 
   @ApiProperty()
+  @IsString()
   managerId: string;
 
   @ApiPropertyOptional()
+  @IsString()
   sponsorId?: string;
 
   @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsString({ each: true })
   tags: string[];
 
   @ApiPropertyOptional()
   metadata?: Record<string, any>;
 
   @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   createdAt: Date;
 
   @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
   updatedAt: Date;
 }
 
