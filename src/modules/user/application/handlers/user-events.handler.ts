@@ -58,9 +58,8 @@ export class UserEventsHandler {
   async handleRoleAssignedEvent(event: RoleAssignedEvent) {
     this.logger.log(`Handling ${RoleAssignedEvent.name} event: for user ${event.user.email} `)
     const user = event.user;
-    let emailResult = {};
     if (user.getRoles().length > 0) {
-      emailResult = await this.corrService.sendTemplatedEmail({
+      await this.corrService.sendTemplatedEmail({
         templateName: EmailTemplateName.ROLE_ASSIGNED,
         data: {
           assigneeName: user.fullName,
