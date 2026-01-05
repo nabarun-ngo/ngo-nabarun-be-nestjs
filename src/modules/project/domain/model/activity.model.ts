@@ -74,13 +74,13 @@ export class ActivityProps {
 }
 
 export class Activity extends AggregateRoot<string> {
-  #projectId!: string;
-  #name!: string;
+  #projectId: string;
+  #name: string;
   #description?: string;
-  #scale!: ActivityScale;
-  #type!: ActivityType;
-  #status!: ActivityStatus;
-  #priority!: ActivityPriority;
+  #scale: ActivityScale;
+  #type: ActivityType;
+  #status: ActivityStatus;
+  #priority: ActivityPriority;
   #startDate?: Date;
   #endDate?: Date;
   #actualStartDate?: Date;
@@ -95,25 +95,61 @@ export class Activity extends AggregateRoot<string> {
   #estimatedCost?: number;
   #actualCost?: number;
   #currency?: string;
-  #tags!: string[];
+  #tags: string[];
   #metadata?: Record<string, any>;
 
-  private constructor(
+  constructor(
     id: string,
     projectId: string,
     name: string,
     scale: ActivityScale,
     type: ActivityType,
+    status: ActivityStatus,
     priority: ActivityPriority,
+    description?: string,
+    startDate?: Date,
+    endDate?: Date,
+    actualStartDate?: Date,
+    actualEndDate?: Date,
+    location?: string,
+    venue?: string,
+    assignedTo?: string,
+    organizerId?: string,
+    parentActivityId?: string,
+    expectedParticipants?: number,
+    actualParticipants?: number,
+    estimatedCost?: number,
+    actualCost?: number,
+    currency?: string,
+    tags?: string[],
+    metadata?: Record<string, any>,
+    createdAt?: Date,
+    updatedAt?: Date,
   ) {
-    super(id);
+    super(id, createdAt, updatedAt);
     this.#projectId = projectId;
     this.#name = name;
     this.#scale = scale;
     this.#type = type;
     this.#priority = priority;
-    this.#status = ActivityStatus.PLANNED;
-    this.#tags = [];
+    this.#status = status;
+    this.#description = description;
+    this.#startDate = startDate;
+    this.#endDate = endDate;
+    this.#actualStartDate = actualStartDate;
+    this.#actualEndDate = actualEndDate;
+    this.#location = location;
+    this.#venue = venue;
+    this.#assignedTo = assignedTo;
+    this.#organizerId = organizerId;
+    this.#parentActivityId = parentActivityId;
+    this.#expectedParticipants = expectedParticipants;
+    this.#actualParticipants = actualParticipants;
+    this.#estimatedCost = estimatedCost;
+    this.#actualCost = actualCost;
+    this.#currency = currency;
+    this.#tags = tags || [];
+    this.#metadata = metadata;
   }
 
   public static create(props: ActivityProps): Activity {
@@ -143,22 +179,30 @@ export class Activity extends AggregateRoot<string> {
       props.name,
       props.scale,
       props.type,
+      ActivityStatus.PLANNED,
       props.priority,
+      props.description,
+      props.startDate,
+      props.endDate,
+      undefined,
+      undefined,
+      props.location,
+      props.venue,
+      props.assignedTo,
+      props.organizerId,
+      props.parentActivityId,
+      props.expectedParticipants,
+      undefined,
+      props.estimatedCost,
+      undefined,
+      props.currency,
+      props.tags,
+      undefined,
+      undefined,
+      undefined
     );
 
-    activity.#description = props.description;
-    activity.#startDate = props.startDate;
-    activity.#endDate = props.endDate;
-    activity.#location = props.location;
-    activity.#venue = props.venue;
-    activity.#assignedTo = props.assignedTo;
-    activity.#organizerId = props.organizerId;
-    activity.#parentActivityId = props.parentActivityId;
-    activity.#expectedParticipants = props.expectedParticipants;
-    activity.#estimatedCost = props.estimatedCost;
-    activity.#currency = props.currency;
-    activity.#tags = props.tags || [];
-    activity.#metadata = props.metadata;
+
 
     return activity;
   }

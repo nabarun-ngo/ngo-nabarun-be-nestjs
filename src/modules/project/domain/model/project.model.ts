@@ -59,27 +59,27 @@ export class ProjectProps {
 }
 
 export class Project extends AggregateRoot<string> {
-  #name!: string;
-  #description!: string;
-  #code!: string;
-  #category!: ProjectCategory;
-  #status!: ProjectStatus;
-  #phase!: ProjectPhase;
-  #startDate!: Date;
+  #name: string;
+  #description: string;
+  #code: string;
+  #category: ProjectCategory;
+  #status: ProjectStatus;
+  #phase: ProjectPhase;
+  #managerId: string;
+  #startDate: Date;
   #endDate?: Date;
   #actualEndDate?: Date;
-  #budget!: number;
-  #spentAmount!: number;
-  #currency!: string;
+  #budget?: number;
+  #spentAmount?: number;
+  #currency: string;
   #location?: string;
   #targetBeneficiaryCount?: number;
   #actualBeneficiaryCount?: number;
-  #managerId!: string;
   #sponsorId?: string;
   #tags!: string[];
   #metadata?: Record<string, any>;
 
-  private constructor(
+  constructor(
     id: string,
     name: string,
     description: string,
@@ -87,12 +87,23 @@ export class Project extends AggregateRoot<string> {
     category: ProjectCategory,
     status: ProjectStatus,
     phase: ProjectPhase,
-    startDate: Date,
-    budget: number,
-    currency: string,
     managerId: string,
+    startDate: Date,
+    endDate?: Date,
+    actualEndDate?: Date,
+    budget?: number,
+    spentAmount?: number,
+    currency?: string,
+    location?: string,
+    targetBeneficiaryCount?: number,
+    actualBeneficiaryCount?: number,
+    sponsorId?: string,
+    tags?: string[],
+    metadata?: Record<string, any>,
+    createdAt?: Date,
+    updatedAt?: Date,
   ) {
-    super(id);
+    super(id, createdAt, updatedAt);
     this.#name = name;
     this.#description = description;
     this.#code = code;
@@ -100,11 +111,18 @@ export class Project extends AggregateRoot<string> {
     this.#status = status;
     this.#phase = phase;
     this.#startDate = startDate;
+    this.#endDate = endDate;
+    this.#actualEndDate = actualEndDate;
     this.#budget = budget;
-    this.#spentAmount = 0;
-    this.#currency = currency;
+    this.#spentAmount = spentAmount;
+    this.#location = location;
+    this.#targetBeneficiaryCount = targetBeneficiaryCount;
+    this.#actualBeneficiaryCount = actualBeneficiaryCount;
+    this.#currency = currency || 'INR';
     this.#managerId = managerId;
-    this.#tags = [];
+    this.#sponsorId = sponsorId;
+    this.#tags = tags || [];
+    this.#metadata = metadata;
   }
 
   public static create(props: ProjectProps): Project {
@@ -132,10 +150,19 @@ export class Project extends AggregateRoot<string> {
       props.category,
       props.status || ProjectStatus.PLANNING,
       props.phase || ProjectPhase.INITIATION,
-      props.startDate,
-      props.budget,
-      props.currency,
       props.managerId,
+      props.startDate,
+      props.endDate,
+      undefined,
+      props.budget,
+      undefined,
+      props.currency,
+      props.location,
+      props.targetBeneficiaryCount,
+      undefined,
+      props.sponsorId,
+      props.tags,
+      props.metadata,
     );
 
     project.#endDate = props.endDate;
@@ -153,17 +180,17 @@ export class Project extends AggregateRoot<string> {
       throw new BusinessException('Cannot modify budget for completed project');
     }
 
-    if (props.name) this.#name = props.name;
-    if (props.description) this.#description = props.description;
-    if (props.category) this.#category = props.category;
-    if (props.location !== undefined) this.#location = props.location;
-    if (props.targetBeneficiaryCount !== undefined) this.#targetBeneficiaryCount = props.targetBeneficiaryCount;
-    if (props.sponsorId !== undefined) this.#sponsorId = props.sponsorId;
-    if (props.tags) this.#tags = props.tags;
-    if (props.metadata) this.#metadata = props.metadata;
+    this.#name = props.name ?? this.#name;
+    this.#description = props.description ?? this.#description;
+    this.#category = props.category ?? this.#category;
+    this.#location = props.location ?? this.#location;
+    this.#targetBeneficiaryCount = props.targetBeneficiaryCount ?? this.#targetBeneficiaryCount;
+    this.#sponsorId = props.sponsorId ?? this.#sponsorId;
+    this.#tags = props.tags ?? this.#tags;
+    this.#metadata = props.metadata ?? this.#metadata;
 
     if (props.endDate) {
-      if (props.endDate <= this.#startDate) {
+      if (props.endDate <= this.#startDate!) {
         throw new BusinessException('End date must be after start date');
       }
       this.#endDate = props.endDate;
@@ -173,7 +200,7 @@ export class Project extends AggregateRoot<string> {
       if (props.budget <= 0) {
         throw new BusinessException('Budget must be positive');
       }
-      if (props.budget < this.#spentAmount) {
+      if (props.budget < this.#spentAmount!) {
         throw new BusinessException('Budget cannot be less than spent amount');
       }
       this.#budget = props.budget;
@@ -185,9 +212,9 @@ export class Project extends AggregateRoot<string> {
       throw new BusinessException('Cannot change status of completed project');
     }
 
-    if (newStatus === ProjectStatus.CANCELLED && 
-        this.#status !== ProjectStatus.PLANNING && 
-        this.#status !== ProjectStatus.ACTIVE) {
+    if (newStatus === ProjectStatus.CANCELLED &&
+      this.#status !== ProjectStatus.PLANNING &&
+      this.#status !== ProjectStatus.ACTIVE) {
       throw new BusinessException('Can only cancel projects in PLANNING or ACTIVE status');
     }
 
@@ -225,13 +252,7 @@ export class Project extends AggregateRoot<string> {
     if (amount <= 0) {
       throw new BusinessException('Amount must be positive');
     }
-
-    const newSpentAmount = this.#spentAmount + amount;
-    if (newSpentAmount > this.#budget) {
-      throw new BusinessException('Spent amount cannot exceed budget');
-    }
-
-    this.#spentAmount = newSpentAmount;
+    this.#spentAmount = amount;
   }
 
   public updateBeneficiaryCount(actualCount: number): void {
@@ -251,8 +272,8 @@ export class Project extends AggregateRoot<string> {
   get startDate(): Date { return this.#startDate; }
   get endDate(): Date | undefined { return this.#endDate; }
   get actualEndDate(): Date | undefined { return this.#actualEndDate; }
-  get budget(): number { return this.#budget; }
-  get spentAmount(): number { return this.#spentAmount; }
+  get budget(): number | undefined { return this.#budget; }
+  get spentAmount(): number | undefined { return this.#spentAmount; }
   get currency(): string { return this.#currency; }
   get location(): string | undefined { return this.#location; }
   get targetBeneficiaryCount(): number | undefined { return this.#targetBeneficiaryCount; }
@@ -275,7 +296,7 @@ export class Project extends AggregateRoot<string> {
   }
 
   public getBudgetUtilization(): number {
-    return this.#budget > 0 ? (this.#spentAmount / this.#budget) * 100 : 0;
+    return this.#budget! > 0 ? (this.#spentAmount! / this.#budget!) * 100 : 0;
   }
 }
 

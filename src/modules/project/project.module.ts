@@ -23,8 +23,6 @@ import { ACTIVITY_EXPENSE_REPOSITORY } from './domain/repositories/activity-expe
 // Use Cases
 import { CreateProjectUseCase } from './application/use-cases/create-project.use-case';
 import { UpdateProjectUseCase } from './application/use-cases/update-project.use-case';
-import { GetProjectUseCase } from './application/use-cases/get-project.use-case';
-import { ListProjectsUseCase } from './application/use-cases/list-projects.use-case';
 import { CreateGoalUseCase } from './application/use-cases/create-goal.use-case';
 import { CreateActivityUseCase } from './application/use-cases/create-activity.use-case';
 import { LinkExpenseToActivityUseCase } from './application/use-cases/link-expense-to-activity.use-case';
@@ -75,8 +73,6 @@ import { ProjectController } from './presentation/controllers/project.controller
     // Use Cases
     CreateProjectUseCase,
     UpdateProjectUseCase,
-    GetProjectUseCase,
-    ListProjectsUseCase,
     CreateGoalUseCase,
     CreateActivityUseCase,
     LinkExpenseToActivityUseCase,
@@ -85,5 +81,5 @@ import { ProjectController } from './presentation/controllers/project.controller
   ],
   exports: [ProjectService],
 })
-export class ProjectModule {}
+export class ProjectModule { }
 
