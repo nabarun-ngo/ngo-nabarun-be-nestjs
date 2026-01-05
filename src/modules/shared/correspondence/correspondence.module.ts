@@ -6,13 +6,14 @@ import helpers from 'handlebars-helpers';
 import Handlebars from "handlebars";
 import { NotificationHandler } from './handlers/notification.handler';
 import { HttpModule } from '@nestjs/axios';
+import { CorrespondenceController } from './controllers/correspondence.controller';
 
 // Register all helpers
 helpers({ handlebars: Handlebars });
 
 @Module({
   imports: [FirebaseModule, HttpModule],
-  controllers: [],
+  controllers: [CorrespondenceController],
   providers: [
     GmailService, CorrespondenceService, NotificationHandler],
   exports: [CorrespondenceService],
