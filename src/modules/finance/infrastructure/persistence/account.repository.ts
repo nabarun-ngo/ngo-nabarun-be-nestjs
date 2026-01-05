@@ -34,8 +34,8 @@ class AccountRepository implements IAccountRepository {
         include: {
           accountHolder: true,
         },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 10),
-        take: filter?.pageSize ?? 10,
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
       }),
       this.prisma.account.count({ where }),
     ]);
@@ -44,7 +44,7 @@ class AccountRepository implements IAccountRepository {
       data.map(m => AccountInfraMapper.toAccountDomain(m)!),
       total,
       filter?.pageIndex ?? 0,
-      filter?.pageSize ?? 10,
+      filter?.pageSize ?? 1000,
     );
   }
 

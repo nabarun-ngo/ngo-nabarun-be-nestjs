@@ -1,12 +1,13 @@
 import { User } from "src/modules/user/domain/model/user.model";
 import { TeamMember } from "./public.dto";
 import { LinkType } from "src/modules/user/domain/model/link.model";
-import { UserDto } from "src/modules/user/application/dto/user.dto";
+import { randomUUID } from "crypto";
 
-export function toTeamMemberDTO(user: UserDto): TeamMember{
+export function toTeamMemberDTO(user: User): TeamMember {
   return {
-    id: user.id,
-    fullName: user.fullName,
+    id: randomUUID(),
+    fullName: user.fullName!,
+    bio: user.about,
     picture: user.picture!,
     roleString: user.roles.map(r => r.roleName).join(', '),
     email: user.email,

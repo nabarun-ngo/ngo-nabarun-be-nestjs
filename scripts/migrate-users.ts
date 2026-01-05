@@ -1,13 +1,12 @@
 import { MongoClient, Db, ObjectId } from 'mongodb';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient({
     datasourceUrl: process.env.MIG_POSTGRES_URL,
 });
 
 // Configuration
-const MONGO_URI = process.env.MIG_MONGODB_URL || 'mongodb://localhost:27017/nabarun_stage';
+const MONGO_URI = process.env.MIG_MONGODB_URL;
 const MONGO_COLLECTION = 'user_profiles';
 const BATCH_SIZE = 100;
 
@@ -21,7 +20,7 @@ const getDatabase = (client: MongoClient): Db => {
 const parseId = (id: any): string => {
     if (typeof id === 'string') return id;
     if (id && typeof id === 'object' && id.$oid) return id.$oid;
-    return id?.toString() || uuidv4();
+    return id?.toString() || '';
 };
 
 // Interface for MongoDB User Document
@@ -120,7 +119,7 @@ const mapToRoles = (doc: MongoUserDoc, userId: string): Prisma.UserRoleCreateMan
     roleCodes.forEach((code, index) => {
         if (code) {
             roles.push({
-                id: uuidv4(),
+                id: `${userId}-${code}-${index}`,
                 roleCode: code,
                 roleName: roleNames[index] || code,
                 authRoleCode: code,
@@ -142,7 +141,7 @@ const mapToPhoneNumbers = (doc: MongoUserDoc, userId: string): Prisma.PhoneNumbe
 
     if (doc.phoneNumber || doc.contactNumber) {
         phones.push({
-            id: uuidv4(),
+            id: `${userId}-${doc.phoneNumber || doc.contactNumber}`,
             phoneCode: doc.dialCode || null,
             phoneNumber: doc.phoneNumber || doc.contactNumber || null,
             hidden: false,
@@ -154,7 +153,7 @@ const mapToPhoneNumbers = (doc: MongoUserDoc, userId: string): Prisma.PhoneNumbe
 
     if (doc.altPhoneNumber && doc.altPhoneNumber !== doc.phoneNumber) {
         phones.push({
-            id: uuidv4(),
+            id: `${userId}-${doc.altPhoneNumber}`,
             phoneCode: doc.dialCode || null,
             phoneNumber: doc.altPhoneNumber,
             hidden: false,
@@ -174,7 +173,7 @@ const mapToAddresses = (doc: MongoUserDoc, userId: string): Prisma.AddressCreate
     // Present address
     if (doc.addressLine1 || doc.hometown || doc.district) {
         addresses.push({
-            id: uuidv4(),
+            id: `${userId}-present`,
             addressLine1: doc.addressLine1 || null,
             addressLine2: doc.addressLine2 || null,
             addressLine3: doc.addressLine3 || null,
@@ -193,7 +192,7 @@ const mapToAddresses = (doc: MongoUserDoc, userId: string): Prisma.AddressCreate
     if (!doc.presentPermanentSame &&
         (doc.permanentAddressLine1 || doc.permanentHometown || doc.permanentDistrict)) {
         addresses.push({
-            id: uuidv4(),
+            id: `${userId}-permanent`,
             addressLine1: doc.permanentAddressLine1 || null,
             addressLine2: doc.permanentAddressLine2 || null,
             addressLine3: doc.permanentAddressLine3 || null,
@@ -225,7 +224,7 @@ const mapToLinks = (doc: MongoUserDoc, userId: string): Prisma.LinkCreateManyInp
     linkMappings.forEach(({ field, name, type }) => {
         if (doc[field]) {
             links.push({
-                id: uuidv4(),
+                id: `${userId}-${field}-${type}`,
                 linkName: name,
                 linkType: type,
                 linkValue: doc[field],
@@ -242,7 +241,7 @@ const mapToLinks = (doc: MongoUserDoc, userId: string): Prisma.LinkCreateManyInp
 
 // Main migration function
 export async function migrateUsers() {
-    const mongoClient = new MongoClient(MONGO_URI);
+    const mongoClient = new MongoClient(MONGO_URI!);
 
     try {
         console.log('Connecting to MongoDB...');
@@ -433,7 +432,7 @@ export async function migrateUsers() {
 
 // Verification function
 export async function verifyMigration() {
-    const mongoClient = new MongoClient(MONGO_URI);
+    const mongoClient = new MongoClient(MONGO_URI!);
 
     try {
         await mongoClient.connect();
@@ -478,28 +477,22 @@ export async function verifyMigration() {
     }
 }
 
-// Run migration if called directly
-if (require.main === module) {
+async function main() {
     const args = process.argv.slice(2);
     const verify = args.includes('--verify');
 
     if (verify) {
-        verifyMigration()
-            .then(() => process.exit(0))
-            .catch(err => {
-                console.error(err);
-                process.exit(1);
-            });
+        await verifyMigration();
     } else {
-        migrateUsers()
-            .then(() => {
-                console.log('\nRunning verification...');
-                return verifyMigration();
-            })
-            .then(() => process.exit(0))
-            .catch(err => {
-                console.error(err);
-                process.exit(1);
-            });
+        await migrateUsers();
+        console.log('\nRunning verification...');
+        await verifyMigration();
     }
 }
+
+main()
+    .then(() => process.exit(0))
+    .catch(err => {
+        console.error(err);
+        process.exit(1);
+    });

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { parsefromString } from "src/shared/utilities/kv-config.util";
+import { parsefromString, parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
 
 
@@ -13,8 +13,17 @@ export class ContentService {
 
 
     async getPublicContent(): Promise<any> {
-        const config = (await this.remoteConfig.getAllKeyValues())['PUBLIC_CONTENT'];
-        return parsefromString<any>(config.value);
+        const configs = await this.remoteConfig.getAllKeyValues();
+        let contentsStr = configs['PUBLIC_CONTENT'].value;
+        const doc_list = parseKeyValueConfigs(configs['DOCUMENT_LINKS'].value);
+
+        doc_list.forEach(doc => {
+            contentsStr = contentsStr.replace(new RegExp(`{{${doc.KEY}}}`, 'g'), doc.VALUE);
+        });
+
+        const contents = parsefromString<any>(contentsStr);
+        contents['COUNTRY_LIST'] = parsefromString<any>(configs['COUNTRY_LIST'].value);
+        return contents;
     }
 
 }

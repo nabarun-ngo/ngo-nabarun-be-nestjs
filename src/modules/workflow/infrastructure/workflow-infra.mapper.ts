@@ -38,7 +38,7 @@ export class WorkflowInfraMapper {
           s.onSuccessStepId ?? undefined,
           s.onFailureStepId ?? undefined,
           s.completedAt ?? undefined,
-          s.failureReason ?? undefined,
+          s.remarks ?? undefined,
           s.startedAt ?? undefined,
           s.createdAt,
           s.updatedAt,
@@ -86,7 +86,7 @@ export class WorkflowInfraMapper {
           s.onSuccessStepId ?? undefined,
           s.onFailureStepId ?? undefined,
           s.completedAt ?? undefined,
-          s.failureReason ?? undefined,
+          s.remarks ?? undefined,
           s.startedAt ?? undefined,
           s.createdAt,
           s.updatedAt,
@@ -113,6 +113,7 @@ export class WorkflowInfraMapper {
     const task = new WorkflowTask(
       prisma.id,
       { id: prisma.stepId } as WorkflowStep,
+      prisma.workflowId,
       prisma.taskId,
       prisma.name,
       prisma.description,
@@ -125,7 +126,7 @@ export class WorkflowInfraMapper {
       prisma.autoCloseRefId || undefined,
       prisma.completedAt || undefined,
       new User(prisma.completedBy?.id!, prisma.completedBy?.firstName!, prisma.completedBy?.lastName!, prisma.completedBy?.email!),
-      prisma.failureReason || undefined,
+      prisma.remarks || undefined,
       prisma.createdAt,
       prisma.updatedAt,
     );
@@ -227,7 +228,7 @@ export class WorkflowInfraMapper {
       orderIndex: domain.orderIndex,
       onSuccessStepId: domain.onSuccessStepId ?? null,
       onFailureStepId: domain.onFailureStepId ?? null,
-      failureReason: domain.failureReason ?? null,
+      remarks: domain.remarks ?? null,
       startedAt: domain.startedAt ?? null,
       completedAt: domain.completedAt ?? null,
       createdAt: domain.createdAt ?? new Date(),
@@ -240,6 +241,7 @@ export class WorkflowInfraMapper {
     return {
       id: domain.id,
       taskId: domain.taskId,
+      workflowId: domain.workflowId,
       step: { connect: { id: stepId } },
       name: domain.name,
       description: domain.description ?? null,
@@ -255,7 +257,7 @@ export class WorkflowInfraMapper {
       resultData: null, // if you later persist resultData
       completedAt: domain.completedAt ?? null,
       completedBy: domain.completedBy?.id ? { connect: { id: domain.completedBy?.id! } } : {},
-      failureReason: domain.failureReason ?? null,
+      remarks: domain.remarks ?? null,
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),
     };

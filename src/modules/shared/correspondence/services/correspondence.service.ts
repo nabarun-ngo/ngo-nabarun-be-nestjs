@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { SendEmailDto } from '../dtos/correspondence.dto';
 
 
 
@@ -55,6 +56,32 @@ export class CorrespondenceService {
     }
 
   }
+
+  async sendEmail(request: SendEmailDto): Promise<SendEmailResult> {
+    const from = this.configService.get<string>(Configkey.APP_NAME)!
+    const isProdMode = this.configService.get<string | boolean>(Configkey.ENABLE_PROD_MODE);
+    const isMockingEnabled = this.configService.get<string | boolean>(Configkey.ENABLE_EMAIL_MOCKING);
+    if (isProdMode === 'true' || isProdMode === true) {
+      return await this.gmailService.sendEmail(request.html, {
+        subject: request.subject,
+        recipients: { to: request.to }
+      }, request.from ?? from);
+    } else if (isMockingEnabled === 'true' || isMockingEnabled === true) {
+      const mockedEmail = this.configService.get<string>(Configkey.MOCKED_EMAIL_ADDRESS);
+      this.logger.log(`Sending mocked email to ${mockedEmail}`)
+      return await this.gmailService.sendEmail(request.html, {
+        subject: request.subject,
+        recipients: { to: mockedEmail }
+      }, request.from ?? from);
+    }
+    else {
+      return Promise.resolve({
+        success: false,
+        error: 'Email mocking is not enabled'
+      })
+    }
+  }
+
   private async buildEmailHtml(templateData: EmailTemplateData) {
     const template = loadTemplate('email');
     return template(templateData);

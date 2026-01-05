@@ -156,9 +156,9 @@ export class Expense extends AggregateRoot<string> {
     if (!props.name || props.name.trim().length === 0) {
       throw new BusinessException('Expense name is required');
     }
-    if (!props.description || props.description.trim().length === 0) {
-      throw new BusinessException('Expense description is required');
-    }
+    // if (!props.description || props.description.trim().length === 0) {
+    //   throw new BusinessException('Expense description is required');
+    // }
     const amount = props.expenseItems.reduce((sum, item) => sum + item.amount, 0);
     if (amount <= 0) {
       throw new BusinessException('Expense amount must be greater than zero');

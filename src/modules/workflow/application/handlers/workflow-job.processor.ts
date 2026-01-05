@@ -31,17 +31,5 @@ export class WorkflowJobProcessor {
     const data = job.data;
     await this.startWorkflowStep.execute(data.instanceId);
   }
-
-  @ProcessJob({
-    name: JobName.TASK_AUTOMATIC
-  })
-  async processAytomaticTask(job: Job<{
-    instanceId: string;
-    task: WorkflowTask,
-  }>): Promise<void> {
-    const data = job.data;
-    await this.workflowService.processAutomaticTask(data.instanceId, data.task.id);
-  }
-
 }
 

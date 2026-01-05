@@ -4,7 +4,6 @@ import { Donation, DonationType } from '../../domain/model/donation.model';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { UserService } from 'src/modules/user/application/services/user.service';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { formatDate } from 'src/shared/utilities/common.util';
 

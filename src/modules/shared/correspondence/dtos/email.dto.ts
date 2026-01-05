@@ -40,7 +40,7 @@ export interface SendNotificationRequest {
     html?: string;
 }
 
-export interface SendEmailResult {
+export class SendEmailResult {
     success: boolean;
     messageId?: string;
     error?: string;

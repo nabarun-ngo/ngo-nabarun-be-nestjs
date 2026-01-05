@@ -4,9 +4,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ActivityScale, ActivityType, ActivityStatus, ActivityPriority } from '../../domain/model/activity.model';
 
 export class CreateActivityDto {
-  @IsString()
-  @ApiProperty()
-  projectId: string;
 
   @IsString()
   @ApiProperty()
@@ -298,10 +295,6 @@ export class ActivityDetailDto {
 }
 
 export class ActivityDetailFilterDto {
-  @IsOptional()
-  @IsString()
-  @ApiPropertyOptional()
-  projectId?: string;
 
   @IsOptional()
   @IsEnum(ActivityScale)

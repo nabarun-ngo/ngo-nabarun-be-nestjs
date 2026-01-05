@@ -85,7 +85,7 @@ model UserProfile {
 }
 
 model UserRole {
-  id           String  @id
+  id           String  @id @default(uuid())
   roleCode     String  @db.VarChar(50)
   roleName     String  @db.VarChar(50)
   authRoleCode String  @db.VarChar(50)
@@ -195,7 +195,7 @@ model WorkflowInstance {
   name          String
   type          String  @db.VarChar(50)
   description   String  @db.Text
-  status        String  @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  status        String  @db.VarChar(50) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
   currentStepId String? @db.VarChar(100)
   data          String? @db.Text
 
@@ -206,7 +206,7 @@ model WorkflowInstance {
   initiatedForId String?      @db.VarChar(100)
 
   completedAt DateTime?
-  remarks     String?   @db.VarChar(255)
+  remarks     String?   @db.Text
   delegated   Boolean   @default(false)
 
   createdAt DateTime @default(now())
@@ -232,7 +232,7 @@ model WorkflowStep {
   orderIndex      Int
   onSuccessStepId String?          @db.VarChar(50)
   onFailureStepId String?          @db.VarChar(50)
-  failureReason   String?          @db.Text
+  remarks         String?          @db.Text
   startedAt       DateTime? // When step was started
   completedAt     DateTime?
   createdAt       DateTime         @default(now())
@@ -249,6 +249,7 @@ model WorkflowTask {
   stepId         String
   step           WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
   taskId         String       @db.VarChar(50) // Task ID from definition
+  workflowId     String       @db.VarChar(50) // Workflow ID 
   name           String       @db.VarChar(200)
   description    String?      @db.Text
   type           String       @db.VarChar(20) // VERIFICATION, APPROVAL, AUTOMATIC
@@ -262,7 +263,7 @@ model WorkflowTask {
   completedAt    DateTime?
   completedBy    UserProfile? @relation(name: "taskCompletedBy", fields: [completedById], references: [id])
   completedById  String?      @db.VarChar(255)
-  failureReason  String?      @db.Text
+  remarks        String?      @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -404,7 +405,7 @@ model Transaction {
   fromAccount   Account? @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount     Account? @relation(name: "ToAccount", fields: [toAccountId], references: [id])
 
-  fromAccountBalance   Decimal @db.Decimal(15, 2)
+  fromAccountBalance Decimal @db.Decimal(15, 2)
   toAccountBalance   Decimal @db.Decimal(15, 2)
 
   // Reference to source

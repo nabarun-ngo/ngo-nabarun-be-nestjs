@@ -12,6 +12,7 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiBody,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { ApiKeyService } from '../../application/services/api-key.service';
 import { ApiKeyDto, CreateApiKeyDto } from '../../application/dto/api-key.dto';
@@ -71,8 +72,8 @@ export class ApiKeyController {
 
   @Get('scopes')
   @ApiOperation({ summary: 'List all API scopes' })
-  @ApiAutoResponse(Array<String>, { description: 'List of API scopes', wrapInSuccessResponse: true, isArray: true })
-  async listApiScopes(): Promise<SuccessResponse<Array<string>>> {
+  @ApiAutoResponse(String, { description: 'List of API scopes', isArray: true, wrapInSuccessResponse: true })
+  async listApiScopes(): Promise<SuccessResponse<string[]>> {
     return new SuccessResponse(
       await this.apiKeyService.listApiScopes()
     );

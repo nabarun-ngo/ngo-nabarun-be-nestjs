@@ -33,7 +33,7 @@ export class CreateExpenseUseCase implements IUseCase<CreateExpense, Expense> {
       expenseItems = request.expenseItems.map(item =>
         new ExpenseItem(
           item.itemName,
-          item.description,
+          undefined,
           item.amount,
         )
       );

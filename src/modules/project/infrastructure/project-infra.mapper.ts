@@ -26,36 +26,30 @@ export class ProjectInfraMapper {
 
   static toProjectDomain(p: ProjectPersistence.Base | any): Project | null {
     if (!p) return null;
-
-    const project = Project.create({
-      name: p.name,
-      description: p.description,
-      code: p.code,
-      category: p.category as ProjectCategory,
-      status: p.status as ProjectStatus,
-      phase: p.phase as ProjectPhase,
-      startDate: p.startDate,
-      endDate: MapperUtils.nullToUndefined(p.endDate),
-      budget: Number(p.budget),
-      currency: p.currency,
-      location: MapperUtils.nullToUndefined(p.location),
-      targetBeneficiaryCount: MapperUtils.nullToUndefined(p.targetBeneficiaryCount),
-      managerId: p.managerId,
-      sponsorId: MapperUtils.nullToUndefined(p.sponsorId),
-      tags: p.tags || [],
-      metadata: p.metadata as Record<string, any> | undefined,
-    });
-
-    // Set private fields using reflection or direct assignment
-    (project as any)['#id'] = p.id;
-    (project as any)['#spentAmount'] = Number(p.spentAmount);
-    (project as any)['#actualBeneficiaryCount'] = MapperUtils.nullToUndefined(p.actualBeneficiaryCount);
-    (project as any)['#actualEndDate'] = MapperUtils.nullToUndefined(p.actualEndDate);
-    (project as any)['createdAt'] = p.createdAt;
-    (project as any)['updatedAt'] = p.updatedAt;
-    (project as any)['version'] = p.version;
-
-    return project;
+    return new Project(
+      p.id,
+      p.name,
+      p.description,
+      p.code,
+      p.category as ProjectCategory,
+      p.status as ProjectStatus,
+      p.phase as ProjectPhase,
+      p.managerId,
+      p.startDate,
+      MapperUtils.nullToUndefined(p.endDate),
+      MapperUtils.nullToUndefined(p.actualEndDate),
+      Number(p.budget),
+      Number(p.spentAmount),
+      p.currency,
+      MapperUtils.nullToUndefined(p.location),
+      MapperUtils.nullToUndefined(p.targetBeneficiaryCount),
+      MapperUtils.nullToUndefined(p.actualBeneficiaryCount),
+      MapperUtils.nullToUndefined(p.sponsorId),
+      p.tags,
+      p.metadata as Record<string, any>,
+      p.createdAt,
+      p.updatedAt,
+    );
   }
 
   static toProjectCreatePersistence(domain: Project): Prisma.ProjectUncheckedCreateInput {
@@ -70,8 +64,8 @@ export class ProjectInfraMapper {
       startDate: domain.startDate,
       endDate: MapperUtils.undefinedToNull(domain.endDate),
       actualEndDate: MapperUtils.undefinedToNull(domain.actualEndDate),
-      budget: domain.budget,
-      spentAmount: domain.spentAmount,
+      budget: domain.budget ?? 0,
+      spentAmount: domain.spentAmount ?? 0,
       currency: domain.currency,
       location: MapperUtils.undefinedToNull(domain.location),
       targetBeneficiaryCount: MapperUtils.undefinedToNull(domain.targetBeneficiaryCount),
@@ -175,36 +169,35 @@ export class ProjectInfraMapper {
   static toActivityDomain(p: ActivityPersistence.Base | any): Activity | null {
     if (!p) return null;
 
-    const activity = Activity.create({
-      projectId: p.projectId,
-      name: p.name,
-      description: MapperUtils.nullToUndefined(p.description),
-      scale: p.scale as ActivityScale,
-      type: p.type as ActivityType,
-      priority: p.priority as ActivityPriority,
-      startDate: MapperUtils.nullToUndefined(p.startDate),
-      endDate: MapperUtils.nullToUndefined(p.endDate),
-      location: MapperUtils.nullToUndefined(p.location),
-      venue: MapperUtils.nullToUndefined(p.venue),
-      assignedTo: MapperUtils.nullToUndefined(p.assignedTo),
-      organizerId: MapperUtils.nullToUndefined(p.organizerId),
-      parentActivityId: MapperUtils.nullToUndefined(p.parentActivityId),
-      expectedParticipants: MapperUtils.nullToUndefined(p.expectedParticipants),
-      estimatedCost: MapperUtils.nullToUndefined(Number(p.estimatedCost)),
-      currency: MapperUtils.nullToUndefined(p.currency),
-      tags: p.tags || [],
-      metadata: p.metadata as Record<string, any> | undefined,
-    });
+    const activity = new Activity(
+      p.id,
+      p.projectId,
+      p.name,
+      p.scale as ActivityScale,
+      p.type as ActivityType,
+      p.status as ActivityStatus,
+      p.priority as ActivityPriority,
+      MapperUtils.nullToUndefined(p.description),
+      MapperUtils.nullToUndefined(p.startDate),
+      MapperUtils.nullToUndefined(p.endDate),
+      MapperUtils.nullToUndefined(p.actualStartDate),
+      MapperUtils.nullToUndefined(p.actualEndDate),
+      MapperUtils.nullToUndefined(p.location),
+      MapperUtils.nullToUndefined(p.venue),
+      MapperUtils.nullToUndefined(p.assignedTo),
+      MapperUtils.nullToUndefined(p.organizerId),
+      MapperUtils.nullToUndefined(p.parentActivityId),
+      MapperUtils.nullToUndefined(p.expectedParticipants),
+      MapperUtils.nullToUndefined(p.actualParticipants),
 
-    (activity as any)['#id'] = p.id;
-    (activity as any)['#status'] = p.status as ActivityStatus;
-    (activity as any)['#actualStartDate'] = MapperUtils.nullToUndefined(p.actualStartDate);
-    (activity as any)['#actualEndDate'] = MapperUtils.nullToUndefined(p.actualEndDate);
-    (activity as any)['#actualParticipants'] = MapperUtils.nullToUndefined(p.actualParticipants);
-    (activity as any)['#actualCost'] = MapperUtils.nullToUndefined(Number(p.actualCost));
-    (activity as any)['createdAt'] = p.createdAt;
-    (activity as any)['updatedAt'] = p.updatedAt;
-    (activity as any)['version'] = p.version;
+      MapperUtils.nullToUndefined(Number(p.estimatedCost)),
+      MapperUtils.nullToUndefined(Number(p.actualCost)),
+      MapperUtils.nullToUndefined(p.currency),
+      MapperUtils.nullToUndefined(p.tags),
+      p.metadata as Record<string, any>,
+      p.createdAt,
+      p.updatedAt,
+    );
 
     return activity;
   }

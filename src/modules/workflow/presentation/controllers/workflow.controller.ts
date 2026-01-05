@@ -4,20 +4,18 @@ import {
   Get,
   Body,
   Param,
-  HttpCode,
-  HttpStatus,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
-import { StartWorkflowDto, UpdateTaskDto, WorkflowInstanceDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
+import { FieldAttributeDto, StartWorkflowDto, UpdateTaskDto, WorkflowInstanceDto, WorkflowRefDataDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { WorkflowType } from '../../domain/model/workflow-instance.model';
 
 @ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
@@ -89,6 +87,7 @@ export class WorkflowController {
   @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'delegated', required: false, type: Boolean, description: 'Filter by delegated (set true to get workflow created by me for others, set false to get only workflow created by me for me)' })
   async listInstancesByMe(
     @Query('page') page?: number,
     @Query('size') size?: number,
@@ -113,7 +112,9 @@ export class WorkflowController {
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'completed', required: true, type: Boolean, description: 'Filter by completed (set true to get completed tasks, set false to get pending tasks)' })
   async listTasks(
+    @Query('completed') completed: boolean,
     @Query('page') page?: number,
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
@@ -124,10 +125,31 @@ export class WorkflowController {
         pageSize: size,
         props: {
           assignedTo: user?.profile_id,
-          status: [TaskAssignmentStatus.PENDING, TaskAssignmentStatus.ACCEPTED]
+          completed: completed,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
+  }
+
+  @Get('static/referenceData')
+  @ApiOperation({ summary: 'Get static reference data' })
+  @ApiAutoResponse(WorkflowRefDataDto, { description: 'Static reference data retrieved successfully' })
+  async workflowReferenceData(): Promise<SuccessResponse<WorkflowRefDataDto>> {
+    return new SuccessResponse<WorkflowRefDataDto>(
+      await this.workflowService.getWorkflowRefData()
+    );
+  }
+
+  @Get('static/additionalFields')
+  @ApiOperation({ summary: 'Get additional fields for a workflow type' })
+  @ApiAutoResponse(FieldAttributeDto, { description: 'Additional fields retrieved successfully', wrapInSuccessResponse: true, isArray: true })
+  @ApiQuery({ name: 'workflowType', required: true, enum: WorkflowType, description: 'Workflow type' })
+  async additionalFields(
+    @Query('workflowType') type: WorkflowType,
+  ): Promise<SuccessResponse<FieldAttributeDto[]>> {
+    return new SuccessResponse<FieldAttributeDto[]>(
+      await this.workflowService.getAdditionalFields(type)
+    );
   }
 
 }

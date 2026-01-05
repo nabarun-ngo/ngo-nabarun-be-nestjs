@@ -6,7 +6,7 @@ import { Role } from './role.model';
 import { Address } from './address.model';
 import { PhoneNumber } from './phone-number.model';
 import { Link } from './link.model';
-import { generateUniqueNDigitNumber } from '../../../../shared/utilities/password-util';
+import { generatePassword } from '../../../../shared/utilities/password-util';
 import { RoleAssignedEvent } from '../events/role-assigned.event';
 
 export enum UserStatus {
@@ -59,10 +59,10 @@ export class User extends AggregateRoot<string> {
   #updateAuth: boolean = false;
   #password?: string;
 
-  #fullName!: string;
-  #initials!: string;
-  #firstName!: string;
-  #lastName!: string;
+  #fullName?: string;
+  #initials?: string;
+  #firstName?: string;
+  #lastName?: string;
   #email!: string;
   #primaryNumber?: PhoneNumber;
   #status!: UserStatus;
@@ -137,12 +137,13 @@ export class User extends AggregateRoot<string> {
   }
 
   private createPassword() {
-    this.#password = `Nabarun@${generateUniqueNDigitNumber(6)}#Default`;
+    this.#password = generatePassword({ length: 12 });
   }
 
 
   // ---- Domain behaviors (helpers) ----
-  private computeFullName(): string {
+  private computeFullName(): string | undefined {
+    if (!this.firstName || !this.lastName) return undefined;
     const f = this.firstName ?? '';
     const l = this.lastName ?? '';
     return (f + ' ' + l).trim();
@@ -414,19 +415,19 @@ export class User extends AggregateRoot<string> {
     this.#picture = picture ?? this.generatePictureUrl();
   }
 
-  get fullName(): string {
+  get fullName(): string | undefined {
     return this.#fullName;
   }
 
-  get initials(): string {
+  get initials(): string | undefined {
     return this.#initials;
   }
 
-  get firstName(): string {
+  get firstName(): string | undefined {
     return this.#firstName;
   }
 
-  get lastName(): string {
+  get lastName(): string | undefined {
     return this.#lastName;
   }
 
