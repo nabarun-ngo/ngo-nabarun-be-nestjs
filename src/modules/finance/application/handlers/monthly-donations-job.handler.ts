@@ -6,6 +6,8 @@ import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/r
 import { UserStatus } from 'src/modules/user/domain/model/user.model';
 import { DonationService } from '../services/donation.service';
 import { DonationType } from '../../domain/model/donation.model';
+import { ConfigService } from '@nestjs/config';
+import { Configkey } from 'src/shared/config-keys';
 
 /**
  * Monthly Donations Job Handler
@@ -18,6 +20,7 @@ export class MonthlyDonationsJobHandler {
     private readonly userRepository: IUserRepository,
     private readonly donationService: DonationService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) { }
 
 
@@ -26,7 +29,7 @@ export class MonthlyDonationsJobHandler {
    * Runs on 1st day of every month at 00:00
    * 
    */
-  @Cron('0 10 1-5 * *', {
+  @Cron('0 10 1-10/2 * *', {
     name: 'raise-monthly-donations',
     timeZone: 'UTC',
   })
@@ -46,7 +49,7 @@ export class MonthlyDonationsJobHandler {
 
         await this.donationService.create({
           type: DonationType.REGULAR,
-          amount: 150,
+          amount: user.donationAmount ?? Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT)),
           donorId: user.id,
           startDate: firstDate,
           endDate: lastDate,

@@ -46,6 +46,7 @@ export class UserProfileProps {
   isAddressSame?: boolean;
   isPublicProfile?: boolean;
   socialMediaLinks?: Link[];
+  donationAmount?: number;
 }
 
 export class UserAttributesProps {
@@ -88,6 +89,7 @@ export class User extends AggregateRoot<string> {
   #aadharNumber?: string;
   #isProfileCompleted!: boolean;
   #isDeleted?: boolean;
+  #donationAmount?: number;
 
 
   // ---- Factory
@@ -130,6 +132,8 @@ export class User extends AggregateRoot<string> {
       existingUser?.donationPauseEnd,
       existingUser?.panNumber,
       existingUser?.aadharNumber,
+      false,
+      existingUser?.donationAmount,
     );
     user.createPassword();
     user.addDomainEvent(new UserCreatedEvent(user.id, user));
@@ -171,6 +175,7 @@ export class User extends AggregateRoot<string> {
     this.#dateOfBirth = detail.dateOfBirth ?? this.#dateOfBirth;
     this.#gender = detail.gender ?? this.#gender;
     this.#about = detail.about ?? this.#about;
+    this.#donationAmount = detail.donationAmount ?? this.#donationAmount;
 
     if (detail.primaryNumber) {
       this.#primaryNumber =
@@ -382,6 +387,7 @@ export class User extends AggregateRoot<string> {
     panNumber?: string,
     aadharNumber?: string,
     deleted?: boolean,
+    donationAmount?: number,
   ) {
     super(id);
     this.#firstName = firstName;
@@ -413,6 +419,7 @@ export class User extends AggregateRoot<string> {
     this.#fullName = this.computeFullName();
     this.#initials = this.computeInitials();
     this.#picture = picture ?? this.generatePictureUrl();
+    this.#donationAmount = donationAmount;
   }
 
   get fullName(): string | undefined {
@@ -525,6 +532,10 @@ export class User extends AggregateRoot<string> {
 
   get isProfileCompleted(): boolean {
     return this.#isProfileCompleted;
+  }
+
+  get donationAmount(): number | undefined {
+    return this.#donationAmount;
   }
 
   get updateAuth(): boolean {

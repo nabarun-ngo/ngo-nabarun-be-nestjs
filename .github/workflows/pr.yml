@@ -41,7 +41,7 @@ jobs:
           {
             "be_deploy_v2": true ,
             "be_tag_name": "${{ needs.create_release.outputs.tag_name }}",
-            "target_env": "${{ github.base_ref == 'master' && 'prod' || 'stage' }}",
+            "target_env": "${{ github.base_ref == 'main' && 'prod' || 'stage' }}",
             "auth0_sync" : ${{ contains(join(fromJSON(toJSON(github.event.pull_request.labels)).name, ','),'auth0') }},
             "run_smoke_test" : true ,
             "pr_number": "PR#${{github.event.pull_request.number}}"
