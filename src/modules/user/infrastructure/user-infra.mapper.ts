@@ -108,6 +108,7 @@ export class UserInfraMapper {
       MapperUtils.nullToUndefined(model.panNumber),
       MapperUtils.nullToUndefined(model.aadharNumber),
       MapperUtils.nullToUndefined(model.deletedAt) == undefined ? undefined : true,
+      MapperUtils.nullToUndefined(Number(model.donationAmount)),
     );
   }
 

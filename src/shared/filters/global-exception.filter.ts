@@ -45,7 +45,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorResponse.messages = Array.isArray(exceptionResponse.message)
         ? exceptionResponse.message
         : [exceptionResponse.message || 'Business error occurred'];
-      
+
       // Set error code if available
       if (exceptionResponse.errorCode) {
         errorResponse.setErrorCode(exceptionResponse.errorCode);
@@ -66,7 +66,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const exceptionResponse = exception.getResponse();
 
       errorResponse = new ErrorResponse();
-      
+
       if (typeof exceptionResponse === 'string') {
         errorResponse.messages = [exceptionResponse];
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
@@ -78,7 +78,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         } else {
           errorResponse.messages = ['An error occurred'];
         }
-        
+
         // Set error code if available
         if (responseObj.errorCode) {
           errorResponse.setErrorCode(responseObj.errorCode);
@@ -116,11 +116,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         // Non-production: Detailed error information
         const error = exception as Error;
         errorResponse.messages = [error?.message || 'An unexpected error occurred'];
-        
+
         if (error?.name) {
           errorResponse.messages.push(`Error Type: ${error.name}`);
         }
-        
+
         if (error?.stack) {
           errorResponse.stackTrace = error.stack;
         }
@@ -134,20 +134,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // Set trace ID if available (from request headers or generate one)
-    errorResponse.traceId = request.headers['x-request-id'] as string || 
-                          request.headers['x-trace-id'] as string || 
-                          `trace-${Date.now()}`;
+    errorResponse.traceId = request.headers['x-request-id'] as string ||
+      request.headers['x-trace-id'] as string ||
+      `trace-${Date.now()}`;
 
     // Log error details for monitoring
     this.logger.error(
       `Exception caught: ${status} - ${errorResponse.messages.join(', ')}`,
-      {
-        path: request.url,
-        method: request.method,
-        statusCode: status,
-        traceId: errorResponse.traceId,
-        ...(config.app.isProd ? {} : { stack: errorResponse.stackTrace }),
-      },
+      `{
+        path: ${request.url},
+        method: ${request.method},
+        statusCode: ${status},
+        traceId: ${errorResponse.traceId},
+        stack: ${errorResponse.stackTrace},
+      }`,
     );
 
     response.status(status).json(errorResponse);
