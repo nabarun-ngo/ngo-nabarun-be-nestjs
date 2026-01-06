@@ -1,10 +1,12 @@
-import { INestApplication, NestInterceptor, RequestMethod, ValidationPipe } from "@nestjs/common";
+import { INestApplication, LogLevel, NestInterceptor, RequestMethod, ValidationPipe } from "@nestjs/common";
 import compression from "compression";
 import { configureSwagger } from "./swagger-config";
 import { Configkey } from "src/shared/config-keys";
 import { GlobalExceptionFilter } from "src/shared/filters/global-exception.filter";
 import * as bodyParser from 'body-parser';
 import { TimingInterceptor } from "src/shared/interceptors/timing.interceptor";
+import { resolveTraceId, traceStorage } from "src/shared/utils/trace-context.util";
+import { Request, Response, NextFunction } from "express";
 
 export const config = {
   app: {
@@ -12,7 +14,7 @@ export const config = {
     port: parseInt(process.env.PORT || '8080'),
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
-    logLevel: process.env[Configkey.LOG_LEVEL] || 'log',
+    logLevel: (process.env[Configkey.LOG_LEVEL] || 'log') as LogLevel,
     fileSize: '10mb',
   },
   database: {
@@ -36,6 +38,14 @@ export const config = {
 };
 
 export function applyConfig(app: INestApplication) {
+  // Trace context middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const traceId = resolveTraceId(req.headers);
+    // Set traceId in response header for convenience
+    res.setHeader('x-trace-id', traceId);
+    traceStorage.run({ traceId }, () => next());
+  });
+
   app.use(compression()); // Response compression
 
   // Global validation with transform and whitelist
