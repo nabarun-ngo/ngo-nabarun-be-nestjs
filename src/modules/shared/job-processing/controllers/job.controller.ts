@@ -5,6 +5,7 @@ import { JobMonitoringService } from '../services/job-monitoring.service';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { JobDetail } from '../interfaces/job.interface';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 @ApiTags(JobController.name)
 @Controller('jobs')
@@ -69,7 +70,7 @@ export class JobController {
         await this.jobProcessingService.resumeQueue();
         break;
       default:
-        throw new Error('Invalid operation');
+        throw new BusinessException('Invalid operation');
     }
     return new SuccessResponse({ message: 'Queue paused successfully' });
   }

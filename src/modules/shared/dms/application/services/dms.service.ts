@@ -6,6 +6,7 @@ import { DocumentMapping, DocumentMappingRefType } from "../../domain/mapping.mo
 import { DmsUploadDto } from "../../presentation/dto/dms-upload.dto";
 import { toDocumentDto } from "../../presentation/dms-sto-mapper";
 import { DocumentDto } from "../../presentation/dto/document.dto";
+import { BusinessException } from "src/shared/exceptions/business-exception";
 
 @Injectable()
 export class DmsService {
@@ -44,7 +45,7 @@ export class DmsService {
     async deleteFile(id: string): Promise<void> {
         const document = await this.documentRepository.findById(id);
         if (!document) {
-            throw new Error('Document not found');
+            throw new BusinessException('Document not found');
         }
         await this.firebaseStorage.deleteFile(document.remotePath);
         await this.documentRepository.delete(id);
@@ -53,7 +54,7 @@ export class DmsService {
     async getSignedUrl(id: string): Promise<string> {
         const document = await this.documentRepository.findById(id);
         if (!document) {
-            throw new Error('Document not found');
+            throw new BusinessException('Document not found');
         }
         return await this.firebaseStorage.getSignedUrl(document.remotePath);
     }
@@ -61,7 +62,7 @@ export class DmsService {
     async downloadFile(id: string): Promise<{ fileName: string, stream: NodeJS.ReadableStream }> {
         const document = await this.documentRepository.findById(id);
         if (!document) {
-            throw new Error('Document not found');
+            throw new BusinessException('Document not found');
         }
         return {
             fileName: document.fileName,

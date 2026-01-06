@@ -41,6 +41,11 @@ export class StartWorkflowDto {
   @IsOptional()
   @IsBoolean()
   forExternalUser?: boolean;
+
+  @ApiProperty({ description: 'External user email (use only when forExternalUser is true)', required: false })
+  @IsOptional()
+  @IsString()
+  externalUserEmail?: string;
 }
 
 export class UpdateTaskDto {

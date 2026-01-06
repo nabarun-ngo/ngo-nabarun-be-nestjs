@@ -15,6 +15,7 @@ export class StartWorkflowUseCase implements IUseCase<{
   requestedBy: string;
   requestedFor?: string;
   forExternalUser?: boolean;
+  externalUserEmail?: string;
 }, WorkflowInstance> {
   constructor(
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
@@ -31,6 +32,7 @@ export class StartWorkflowUseCase implements IUseCase<{
     requestedBy: string;
     requestedFor?: string;
     forExternalUser?: boolean;
+    externalUserEmail?: string;
   }): Promise<WorkflowInstance> {
     // Find workflow definition
     const definition = await this.definitionRepository.findWorkflowByType(request.type);
@@ -53,6 +55,7 @@ export class StartWorkflowUseCase implements IUseCase<{
       data: request.data,
       requestedFor: { id: request.requestedFor },
       forExternalUser: request.forExternalUser ?? false,
+      externalUserEmail: request.externalUserEmail,
     });
 
     // Save instance

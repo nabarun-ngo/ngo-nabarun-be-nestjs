@@ -61,6 +61,7 @@ export class WorkflowEventsHandler {
         recipients: {
           ...(workflow?.initiatedFor ? { to: workflow?.initiatedFor?.email } : {}),
           ...(workflow?.initiatedBy ? { cc: workflow?.initiatedBy?.email } : {}),
+          ...(workflow?.isExternalUser ? { to: workflow?.externalUserEmail } : {}),
         }
       }
     })

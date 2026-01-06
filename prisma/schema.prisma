@@ -210,6 +210,9 @@ model WorkflowInstance {
   remarks     String?   @db.Text
   delegated   Boolean   @default(false)
 
+  isExtUser    Boolean @default(false)
+  extUserEmail String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   version   Int      @default(0)

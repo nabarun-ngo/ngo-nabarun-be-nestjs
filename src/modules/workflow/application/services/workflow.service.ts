@@ -77,6 +77,7 @@ export class WorkflowService {
       requestedBy: requestedBy?.profile_id!,
       requestedFor: input.requestedFor,
       forExternalUser: input.forExternalUser,
+      externalUserEmail: input.forExternalUser ? input.externalUserEmail : undefined,
     });
     return WorkflowDtoMapper.toDto(workflow);
   }
