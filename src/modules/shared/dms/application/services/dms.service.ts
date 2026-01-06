@@ -6,13 +6,14 @@ import { DocumentMapping, DocumentMappingRefType } from "../../domain/mapping.mo
 import { DmsUploadDto } from "../../presentation/dto/dms-upload.dto";
 import { toDocumentDto } from "../../presentation/dms-sto-mapper";
 import { DocumentDto } from "../../presentation/dto/document.dto";
+import { AuthUser } from "src/modules/shared/auth/domain/models/api-user.model";
 @Injectable()
 export class DmsService {
     constructor(private readonly firebaseStorage: FirebaseStorageService,
-       @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: IDocumentRepository
+        @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: IDocumentRepository
     ) { }
 
-    async uploadFile(body: DmsUploadDto): Promise<DocumentDto> {
+    async uploadFile(body: DmsUploadDto, authUserId: string): Promise<DocumentDto> {
         const content = Buffer.from(body.fileBase64, 'base64');
         const mapped: DocumentMapping[] = body.documentMapping.map(mapping => DocumentMapping.create(
             {
@@ -27,17 +28,17 @@ export class DmsService {
             fileSize: content.length,
             isPublic: false,
             mappedTo: mapped,
+            uploadedBy: { id: authUserId }
         })
         const url = await this.firebaseStorage.uploadFile(document.remotePath, document.contentType, document.publicToken, content);
         await this.documentRepository.create(document);
-        document.fileUrl = url;
-        return toDocumentDto(document);
+        return { ...toDocumentDto(document), fileUrl: url };
     }
 
-    
+
     async getDocuments(type: DocumentMappingRefType, id: string) {
-        const documents =await this.documentRepository.findAll({refType: type, refId: id});
-        return documents.map(doc=>toDocumentDto(doc));
+        const documents = await this.documentRepository.findAll({ refType: type, refId: id });
+        return documents.map(doc => toDocumentDto(doc));
     }
 
     async deleteFile(id: string): Promise<void> {
@@ -57,7 +58,7 @@ export class DmsService {
         return await this.firebaseStorage.getSignedUrl(document.remotePath);
     }
 
-     async downloadFile(id: string): Promise<{fileName:string, stream:NodeJS.ReadableStream}> {
+    async downloadFile(id: string): Promise<{ fileName: string, stream: NodeJS.ReadableStream }> {
         const document = await this.documentRepository.findById(id);
         if (!document) {
             throw new Error('Document not found');
