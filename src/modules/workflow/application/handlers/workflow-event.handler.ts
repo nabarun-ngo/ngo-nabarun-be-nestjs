@@ -33,7 +33,7 @@ export class WorkflowEventsHandler {
   @OnEvent(StepCompletedEvent.name, { async: true })
   async handleStepCompletedEvent(event: StepCompletedEvent) {
     const workflow = await this.workflowRepository.findById(event.aggregateId);
-    if (workflow?.initiatedBy || workflow?.initiatedFor) {
+    if (workflow?.initiatedBy || workflow?.initiatedFor || workflow?.isExternalUser) {
       await this.sendWorkflowUpdateEmail(workflow, 'Request Updated');
     }
   }
@@ -41,7 +41,7 @@ export class WorkflowEventsHandler {
   @OnEvent(WorkflowCreatedEvent.name, { async: true })
   async handleWorkflowCreatedEvent(event: WorkflowCreatedEvent) {
     const workflow = await this.workflowRepository.findById(event.aggregateId);
-    if (workflow?.initiatedBy || workflow?.initiatedFor) {
+    if (workflow?.initiatedBy || workflow?.initiatedFor || workflow?.isExternalUser) {
       await this.sendWorkflowUpdateEmail(workflow, 'Request Created');
     }
   }
@@ -59,9 +59,9 @@ export class WorkflowEventsHandler {
       templateData: emailData,
       options: {
         recipients: {
-          ...(workflow?.initiatedFor ? { to: workflow?.initiatedFor?.email } : {}),
           ...(workflow?.initiatedBy ? { cc: workflow?.initiatedBy?.email } : {}),
           ...(workflow?.isExternalUser ? { to: workflow?.externalUserEmail } : {}),
+          ...(workflow?.initiatedFor ? { to: workflow?.initiatedFor?.email } : {}),
         }
       }
     })
