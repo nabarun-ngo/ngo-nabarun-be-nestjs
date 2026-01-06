@@ -97,15 +97,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           `HTTP ${status} Error: ${errorResponse.messages.join(', ')}`,
           exception.stack,
         );
-      } else {
+      } else if (status === HttpStatus.BAD_REQUEST) {
         this.logger.warn(
           `HTTP ${status} Error: ${errorResponse.messages.join(', ')}`,
+          exception.stack,
         );
       }
     } else {
       // Handle unknown errors (500)
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       errorResponse = new ErrorResponse();
+      const error = exception as Error;
 
       if (config.app.isProd) {
         // Production: Generic error message
@@ -114,7 +116,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ];
       } else {
         // Non-production: Detailed error information
-        const error = exception as Error;
         errorResponse.messages = [error?.message || 'An unexpected error occurred'];
 
         if (error?.name) {
@@ -124,13 +125,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         if (error?.stack) {
           errorResponse.stackTrace = error.stack;
         }
-
-        // Log the full error
-        this.logger.error(
-          `Unhandled Exception: ${error?.message || 'Unknown error'}`,
-          error?.stack,
-        );
       }
+
+      // ALWAYS log the full unhandled exception for all environments
+      this.logger.error(
+        `Unhandled Exception: ${error?.message || 'Unknown error'}`,
+        error?.stack,
+      );
     }
 
     // Set trace ID if available (from request headers or generate one)
@@ -139,16 +140,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       `trace-${Date.now()}`;
 
     // Log error details for monitoring
-    this.logger.error(
-      `Exception caught: ${status} - ${errorResponse.messages.join(', ')}`,
-      `{
-        path: ${request.url},
-        method: ${request.method},
-        statusCode: ${status},
-        traceId: ${errorResponse.traceId},
-        stack: ${errorResponse.stackTrace},
-      }`,
-    );
+    const logDetails = {
+      path: request.url,
+      method: request.method,
+      statusCode: status,
+      traceId: errorResponse.traceId,
+      stack: exception instanceof Error ? exception.stack : (exception as any)?.stack,
+    };
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        `Exception caught: ${status} - ${errorResponse.messages.join(', ')}`,
+        JSON.stringify(logDetails, null, 2),
+      );
+    } else if (status === HttpStatus.BAD_REQUEST) {
+      this.logger.warn(
+        `Exception caught: ${status} - ${errorResponse.messages.join(', ')}`,
+        JSON.stringify(logDetails, null, 2),
+      );
+    }
 
     response.status(status).json(errorResponse);
   }
