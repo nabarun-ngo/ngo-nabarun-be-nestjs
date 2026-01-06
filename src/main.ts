@@ -1,13 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { applyConfig, config } from './config/config';
+import { AppLogger } from './shared/utils/trace-context.util';
 
 async function bootstrap() {
 
 
   console.time('BOOT');
   const app = await NestFactory.create(AppModule, {
-    logger: [config.app.logLevel as any]
+    logger: new AppLogger(config.app.logLevel),
+    bufferLogs: true
   });
   console.timeEnd('BOOT');
   console.time('CONFIG');

@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 import { BusinessException } from '../exceptions/business-exception';
 import { ErrorResponse } from '../models/response-model';
 import { config } from '../../config/config';
+import { getTraceId, resolveTraceId } from '../utils/trace-context.util';
 
 /**
  * Global exception filter that handles all exceptions in the application.
@@ -134,10 +135,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
     }
 
-    // Set trace ID if available (from request headers or generate one)
-    errorResponse.traceId = request.headers['x-request-id'] as string ||
-      request.headers['x-trace-id'] as string ||
-      `trace-${Date.now()}`;
+    // Set trace ID if available (retrieve from context or request headers)
+    errorResponse.traceId = getTraceId() || resolveTraceId(request.headers);
 
     // Log error details for monitoring
     const logDetails = {
