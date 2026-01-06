@@ -48,6 +48,8 @@ export class CorrespondenceService {
       html,
       subject: request.options.subject ?? data.subject ?? '',
       to: request.options.recipients?.to!,
+      cc: request.options.recipients?.cc,
+      bcc: request.options.recipients?.bcc,
       from
     });
   }
@@ -57,6 +59,8 @@ export class CorrespondenceService {
       html: request.html,
       subject: request.subject,
       to: request.to,
+      cc: request.cc,
+      bcc: request.bcc,
       from: request.from
     });
   }
@@ -135,20 +139,24 @@ export class CorrespondenceService {
   private isTrue(value?: string | boolean): boolean {
     return value === true || value === 'true';
   }
-  private resolveRecipients(
-    realTo: string | string[]
-  ): { to: string | string[] } {
-    const isProd = this.isTrue(
+  private resolveRecipients(to?: string | string[], cc?: string | string[], bcc?: string | string[]): {
+    to?: string | string[];
+    cc?: string | string[];
+    bcc?: string | string[];
+  } {
+    const isProdEnv = this.configService.get(Configkey.ENVIRONMENT) == 'prod';
+
+    const isProdMode = this.isTrue(
       this.configService.get(Configkey.ENABLE_PROD_MODE)
     );
+
+    if (isProdEnv || isProdMode) {
+      return { to, cc, bcc };
+    }
 
     const isMockingEnabled = this.isTrue(
       this.configService.get(Configkey.ENABLE_EMAIL_MOCKING)
     );
-
-    if (isProd) {
-      return { to: realTo };
-    }
 
     if (!isMockingEnabled) {
       throw new Error('Email mocking is not enabled');
@@ -166,14 +174,16 @@ export class CorrespondenceService {
   private async sendInternalEmail(params: {
     html: string;
     subject: string;
-    to: string | string[];
+    to?: string | string[];
+    cc?: string | string[];
+    bcc?: string | string[];
     from?: string;
   }): Promise<SendEmailResult> {
     const from =
       params.from ??
       this.configService.get<string>(Configkey.APP_NAME)!;
 
-    const recipients = this.resolveRecipients(params.to);
+    const recipients = this.resolveRecipients(params.to, params.cc, params.bcc);
 
     return this.gmailService.sendEmail(
       params.html,
