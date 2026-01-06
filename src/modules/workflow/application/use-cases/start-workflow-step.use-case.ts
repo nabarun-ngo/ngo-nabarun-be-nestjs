@@ -9,8 +9,8 @@ import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
 import { TaskAssignment } from '../../domain/model/task-assignment.model';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
-import { EmailTemplateName } from 'src/modules/shared/correspondence/dtos/email.dto';
 import { AutomaticTaskService } from '../services/automatic-task.service';
+import { EmailTemplateName } from 'src/shared/email-keys';
 
 @Injectable()
 export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstance> {

@@ -19,9 +19,6 @@ export class WorkflowJobProcessor {
 
   constructor(
     private readonly startWorkflowStep: StartWorkflowStepUseCase,
-    private readonly workflowService: WorkflowService,
-
-
   ) { }
 
   @ProcessJob({

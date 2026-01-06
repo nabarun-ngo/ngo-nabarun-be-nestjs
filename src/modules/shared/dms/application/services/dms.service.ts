@@ -6,7 +6,7 @@ import { DocumentMapping, DocumentMappingRefType } from "../../domain/mapping.mo
 import { DmsUploadDto } from "../../presentation/dto/dms-upload.dto";
 import { toDocumentDto } from "../../presentation/dms-sto-mapper";
 import { DocumentDto } from "../../presentation/dto/document.dto";
-import { AuthUser } from "src/modules/shared/auth/domain/models/api-user.model";
+
 @Injectable()
 export class DmsService {
     constructor(private readonly firebaseStorage: FirebaseStorageService,

@@ -9,6 +9,7 @@ import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { WorkflowTaskStatus } from './workflow-task.model';
 import { TaskCompletedEvent } from '../events/task-completed.event';
+import { StepCompletedEvent } from '../events/step-completed.event';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -101,7 +102,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
       instance.addSteps(WorkflowStep.create(step));
     });
 
-    instance.addDomainEvent(new WorkflowCreatedEvent(instance.id));
+    instance.addDomainEvent(new WorkflowCreatedEvent(instance));
     return instance;
   }
 
@@ -174,6 +175,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     if (step?.isAllTasksCompleted()) {
       step.complete();
       this.moveToNextStep();
+      this.addDomainEvent(new StepCompletedEvent(this.id, step?.id!));
+      return task;
     }
 
     this.touch();
