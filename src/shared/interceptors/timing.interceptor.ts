@@ -1,5 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
 import { tap } from "rxjs";
+import { getTraceId } from "../utils/trace-context.util";
 
 @Injectable()
 export class TimingInterceptor implements NestInterceptor {
@@ -9,7 +10,7 @@ export class TimingInterceptor implements NestInterceptor {
             tap(() => {
                 const req = ctx.switchToHttp().getRequest();
                 console.log(
-                    `[TimingInterceptor] ${req.method} ${req.url} ${Date.now() - start}ms`
+                    `[TimingInterceptor] [${getTraceId() || 'no-trace'}] ${req.method} ${req.url} ${Date.now() - start}ms`
                 );
             }),
         );
