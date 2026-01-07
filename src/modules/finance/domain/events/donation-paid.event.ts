@@ -1,11 +1,10 @@
 import { DomainEvent } from 'src/shared/models/domain-event';
+import { Donation } from '../model/donation.model';
 
 export class DonationPaidEvent extends DomainEvent {
   constructor(
-    public readonly donationId: string,
-    public readonly amount: number,
-    public readonly donorId: string | undefined,
+    public readonly donation: Donation,
   ) {
-    super(donationId);
+    super(donation.id);
   }
 }

@@ -14,6 +14,7 @@ import { DMSModule } from './modules/shared/dms/dms.module';
 import { PublicModule } from './modules/public/public.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ProjectModule } from './modules/project/project.module';
+import { CorrespondenceModule } from './modules/shared/correspondence/correspondence.module';
 
 @Module({
   controllers: [],
@@ -55,7 +56,8 @@ import { ProjectModule } from './modules/project/project.module';
     FinanceModule,
     DMSModule,
     PublicModule,
-    ProjectModule
+    ProjectModule,
+    CorrespondenceModule
   ],
 })
 export class AppModule { }
