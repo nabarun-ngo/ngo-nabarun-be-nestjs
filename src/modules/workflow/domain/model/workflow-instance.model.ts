@@ -261,9 +261,15 @@ export class WorkflowInstance extends AggregateRoot<string> {
     var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
     this.#steps.forEach(step => {
       if (step.isCompleted()) {
-        steps.push(this.#steps.find(s => s.stepId == step.onSuccessStepId)!);
+        const completedStep = this.#steps.find(s => s.stepId == step.onSuccessStepId)
+        if (completedStep) {
+          steps.push(completedStep);
+        }
       } else if (step.isFailed()) {
-        steps.push(this.#steps.find(s => s.stepId == step.onFailureStepId)!);
+        const failedStep = this.#steps.find(s => s.stepId == step.onFailureStepId);
+        if (failedStep) {
+          steps.push(failedStep);
+        }
       }
     });
     return steps;
