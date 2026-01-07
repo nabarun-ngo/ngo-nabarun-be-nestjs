@@ -1,6 +1,7 @@
 import { User } from 'src/modules/user/domain/model/user.model';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 import { randomUUID } from 'crypto';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 export enum TaskAssignmentStatus {
   PENDING = 'PENDING',
@@ -103,16 +104,16 @@ export class TaskAssignment extends BaseDomain<string> {
 
   public accept(): void {
     if (this.#status !== TaskAssignmentStatus.PENDING) {
-      throw new Error(`Cannot accept assignment in status: ${this.#status}`);
+      throw new BusinessException(`Cannot accept assignment in status: ${this.#status}`);
     }
     this.#status = TaskAssignmentStatus.ACCEPTED;
     this.#acceptedAt = new Date();
     this.touch();
   }
 
-  remove(){
+  remove() {
     if (this.#status !== TaskAssignmentStatus.PENDING) {
-      throw new Error(`Cannot reject assignment in status: ${this.#status}`);
+      throw new BusinessException(`Cannot reject assignment in status: ${this.#status}`);
     }
     this.#status = TaskAssignmentStatus.REMOVED;
     this.touch();
@@ -120,7 +121,7 @@ export class TaskAssignment extends BaseDomain<string> {
 
   public reject(notes?: string): void {
     if (this.#status !== TaskAssignmentStatus.PENDING) {
-      throw new Error(`Cannot reject assignment in status: ${this.#status}`);
+      throw new BusinessException(`Cannot reject assignment in status: ${this.#status}`);
     }
     this.#status = TaskAssignmentStatus.REJECTED;
     this.#notes = notes;
@@ -132,9 +133,9 @@ export class TaskAssignment extends BaseDomain<string> {
       this.#status !== TaskAssignmentStatus.ACCEPTED &&
       this.#status !== TaskAssignmentStatus.PENDING
     ) {
-      throw new Error(`Cannot complete assignment in status: ${this.#status}`);
+      throw new BusinessException(`Cannot complete assignment in status: ${this.#status}`);
     }
-   // this.#status = TaskAssignmentStatus.COMPLETED;
+    // this.#status = TaskAssignmentStatus.COMPLETED;
     this.#notes = notes;
     this.#completedAt = new Date();
     this.touch();

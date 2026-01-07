@@ -10,20 +10,38 @@ export interface DocumentProps {
 
 export class Document extends AggregateRoot<string> {
 
+    #id: string;
+    #fileName: string;
+    #remotePath: string;
+    #publicToken: string;
+    #contentType: string;
+    #fileSize: number;
+    #mappings: DocumentMapping[];
+    #isPublic: boolean;
+    #uploadedBy?: Partial<User>;
+
     constructor(
-        _id: string,
-        private _fileName: string,
-        private _remotePath: string,
-        private _publicToken: string,
-        private _contentType: string,
-        private _fileSize: number,
-        private _mappings: DocumentMapping[],
-        private _isPublic: boolean,
-        private _uploadedBy?: User,
-        _createdAt?: Date,
-        private _fileUrl?: string,
+        id: string,
+        fileName: string,
+        remotePath: string,
+        publicToken: string,
+        contentType: string,
+        fileSize: number,
+        mappings: DocumentMapping[],
+        isPublic: boolean,
+        uploadedBy?: Partial<User>,
+        createdAt?: Date,
     ) {
-        super(_id, _createdAt);
+        super(id, createdAt);
+        this.#id = id;
+        this.#fileName = fileName;
+        this.#remotePath = remotePath;
+        this.#publicToken = publicToken;
+        this.#contentType = contentType;
+        this.#fileSize = fileSize;
+        this.#mappings = mappings;
+        this.#isPublic = isPublic;
+        this.#uploadedBy = uploadedBy;
     }
 
 
@@ -33,7 +51,7 @@ export class Document extends AggregateRoot<string> {
         fileSize: number;
         isPublic: boolean;
         mappedTo: DocumentMapping[];
-        uploadedBy?: User;
+        uploadedBy?: Partial<User>;
     }) {
         return new Document(
             randomUUID(),
@@ -49,43 +67,35 @@ export class Document extends AggregateRoot<string> {
     }
 
     addMapping(mapping: DocumentMapping) {
-        this._mappings.push(mapping);
+        this.#mappings.push(mapping);
         return mapping;
     }
 
-    
+
     get fileName() {
-        return this._fileName;
+        return this.#fileName;
     }
     get remotePath() {
-        return this._remotePath;
+        return this.#remotePath;
     }
     get publicToken() {
-        return this._publicToken;
+        return this.#publicToken;
     }
     get contentType() {
-        return this._contentType;
+        return this.#contentType;
     }
     get fileSize() {
-        return this._fileSize;
+        return this.#fileSize;
     }
-  
+
     get isPublic() {
-        return this._isPublic;
+        return this.#isPublic;
     }
     get uploadedBy() {
-        return this._uploadedBy;
+        return this.#uploadedBy;
     }
 
-    get fileUrl(): string | undefined {
-        return this._fileUrl;
-    }
-
-    set fileUrl(url: string) {
-        this._fileUrl = url;
-    }
-
-    getMappings(): ReadonlyArray<DocumentMapping> {
-        return this._mappings;
+    get mappings(): ReadonlyArray<DocumentMapping> {
+        return this.#mappings;
     }
 }

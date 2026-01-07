@@ -15,6 +15,7 @@ import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
 import { UserMetadataService } from "../../infrastructure/external/user-metadata.service";
 import { UserDtoMapper } from "../dto/user-dto.mapper";
+import { BusinessException } from "src/shared/exceptions/business-exception";
 
 
 @Injectable()
@@ -53,7 +54,7 @@ export class UserService {
     async getById(id: string): Promise<UserDto> {
         const user = await this.userRepository.findById(id);
         if (!user) {
-            throw new Error('User not found with id ' + id);
+            throw new BusinessException('User not found with id ' + id);
         }
         return UserDtoMapper.toUserDTO(user);
     }

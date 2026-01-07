@@ -47,6 +47,7 @@ export class PublicService {
             type: WorkflowType.JOIN_REQUEST,
             data: dtoToRecord(dto),
             forExternalUser: true,
+            externalUserEmail: dto.email
         })
         return workflow.id;
     }

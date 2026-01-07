@@ -6,6 +6,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Auth0UserService } from '../../infrastructure/external/auth0-user.service';
 import { Role } from '../../domain/model/role.model';
 import { UserMetadataService } from '../../infrastructure/external/user-metadata.service';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 class AssignUserRolesProps {
     userId: string;
@@ -26,7 +27,7 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
 
         const user = await this.userRepository.findById(request.userId);
         if (!user) {
-            throw new Error(`User with id ${request.userId} not found`);
+            throw new BusinessException(`User with id ${request.userId} not found`);
         }
         const allRoleList = await this.metadataService.getAllRoles();
         const defaultRole = allRoleList.filter(f => f.isDefault);

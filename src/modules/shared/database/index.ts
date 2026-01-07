@@ -7,7 +7,6 @@
 export { PrismaPostgresService } from './prisma-postgres.service';
 
 // Base repository pattern
-export { PrismaBaseRepository } from './base-repository';
 export { RepositoryHelpers } from './repository-helpers';
 
 // Mappers and utilities

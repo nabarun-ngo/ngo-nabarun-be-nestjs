@@ -4,7 +4,7 @@ import { JobName, ProcessJob } from "src/modules/shared/job-processing/decorator
 import { Role } from "../../domain/model/role.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
-import { EmailTemplateName } from "src/modules/shared/correspondence/dtos/email.dto";
+import { EmailTemplateName } from "src/shared/email-keys";
 import { Logger } from "@nestjs/common";
 
 @Injectable()

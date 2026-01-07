@@ -10,7 +10,6 @@ export function toDocumentDto(document: Document): DocumentDto {
         fileName: document.fileName,
         contentType: document.contentType,
         fileSize: document.fileSize,
-        fileUrl: document.fileUrl,
         isPublic: document.isPublic,
         uploadedAt: document.createdAt,
     };

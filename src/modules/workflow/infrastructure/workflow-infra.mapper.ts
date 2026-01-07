@@ -5,6 +5,7 @@ import { TaskAssignment, TaskAssignmentStatus } from '../domain/model/task-assig
 import { Prisma } from '@prisma/client';
 import { PrismaWorkflowInstanceWithSteps, PrismaWorkflowInstanceWithTasks, PrismaWorkflowTasks } from './persistence/workflow-instance.repository';
 import { User } from 'src/modules/user/domain/model/user.model';
+import { MapperUtils } from 'src/modules/shared/database';
 
 export class WorkflowInfraMapper {
   static toDomainWithSteps(prisma: PrismaWorkflowInstanceWithSteps) {
@@ -17,6 +18,8 @@ export class WorkflowInfraMapper {
       new User(prisma.initiatedBy?.id!, prisma.initiatedBy?.firstName!, prisma.initiatedBy?.lastName!, prisma.initiatedBy?.email!),
       new User(prisma.initiatedFor?.id!, prisma.initiatedFor?.firstName!, prisma.initiatedFor?.lastName!, prisma.initiatedFor?.email!),
       prisma.data ? JSON.parse(prisma.data) : undefined,
+      MapperUtils.nullToUndefined(prisma.isExtUser),
+      MapperUtils.nullToUndefined(prisma.extUserEmail),
       prisma.currentStepId ?? undefined,
       prisma.completedAt ?? undefined,
       prisma.remarks ?? undefined,
@@ -65,6 +68,8 @@ export class WorkflowInfraMapper {
       new User(prisma.initiatedBy?.id!, prisma.initiatedBy?.firstName!, prisma.initiatedBy?.lastName!, prisma.initiatedBy?.email!),
       new User(prisma.initiatedFor?.id!, prisma.initiatedFor?.firstName!, prisma.initiatedFor?.lastName!, prisma.initiatedFor?.email!),
       prisma.data ? JSON.parse(prisma.data) : undefined,
+      MapperUtils.nullToUndefined(prisma.isExtUser),
+      MapperUtils.nullToUndefined(prisma.extUserEmail),
       prisma.currentStepId ?? undefined,
       prisma.completedAt ?? undefined,
       prisma.remarks ?? undefined,
@@ -189,6 +194,8 @@ export class WorkflowInfraMapper {
       //version: BigInt(0),
       initiatedBy: domain.initiatedBy?.id ? { connect: { id: domain.initiatedBy?.id! } } : undefined,
       initiatedFor: domain.initiatedFor?.id ? { connect: { id: domain.initiatedFor?.id! } } : undefined,
+      isExtUser: domain.isExternalUser,
+      extUserEmail: domain.externalUserEmail,
       // steps: handled separately via nested create/update
     };
   }
@@ -209,6 +216,8 @@ export class WorkflowInfraMapper {
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
       updatedAt: new Date(),
+      isExtUser: domain.isExternalUser,
+      extUserEmail: domain.externalUserEmail,
       // steps: handled separately via nested create/update
     };
   }
