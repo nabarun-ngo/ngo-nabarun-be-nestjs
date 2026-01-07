@@ -7,9 +7,10 @@ import { FirebaseModule } from "../shared/firebase/firebase.module";
 import { ContentService } from "./application/services/content.service";
 import { CallbackController } from "./presentation/controller/callback.controller";
 import { HealthController } from "./presentation/controller/health.controller";
+import { AuthModule } from "../shared/auth/auth.module";
 
 @Module({
-  imports: [FirebaseModule, UserModule, WorkflowModule],
+  imports: [FirebaseModule, UserModule, WorkflowModule, AuthModule],
   controllers: [PublicController, CallbackController, HealthController],
   providers: [PublicService, ContentService],
   exports: [],

@@ -210,10 +210,7 @@ export class Donation extends AggregateRoot<string> {
     );
 
     donation.addDomainEvent(new DonationRaisedEvent(
-      donation.id,
-      donation.#type,
-      donation.#amount,
-      props.donorId || props.donorEmail!,
+      donation,
     ));
 
     return donation;
@@ -273,9 +270,7 @@ export class Donation extends AggregateRoot<string> {
     this.touch();
 
     this.addDomainEvent(new DonationPaidEvent(
-      this.id,
-      this.#amount,
-      this.#donorId,
+      this,
     ));
   }
 

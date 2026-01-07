@@ -46,6 +46,7 @@ import { UserModule } from '../user/user.module';
 import { MetadataService } from './infrastructure/external/metadata.service';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { ReverseTransactionUseCase } from './application/use-cases/reverse-transaction.use-case';
+import { DonationsEventHandler } from './application/handlers/donation-event.handler';
 
 /**
  * Finance Module
@@ -125,6 +126,7 @@ import { ReverseTransactionUseCase } from './application/use-cases/reverse-trans
     // ===== HANDLERS =====
     MonthlyDonationsJobHandler,
     MetadataService,
+    DonationsEventHandler
   ],
   exports: [
     DONATION_REPOSITORY,
