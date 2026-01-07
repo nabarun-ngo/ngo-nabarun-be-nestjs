@@ -36,7 +36,9 @@ export class PublicService {
     async contactUs(dto: ContactFormDto) {
         const workflow = await this.workflowService.createWorkflow({
             type: WorkflowType.CONTACT_REQUEST,
-            data: dtoToRecord(dto)
+            data: dtoToRecord(dto),
+            forExternalUser: true,
+            externalUserEmail: dto.email
         })
         return workflow.id;
     }
@@ -56,7 +58,9 @@ export class PublicService {
     async donate(dto: DonationFormDto) {
         const workflow = await this.workflowService.createWorkflow({
             type: WorkflowType.DONATION_REQUEST,
-            data: dtoToRecord(dto)
+            data: dtoToRecord(dto),
+            forExternalUser: true,
+            externalUserEmail: dto.email
         })
 
         return workflow.id;

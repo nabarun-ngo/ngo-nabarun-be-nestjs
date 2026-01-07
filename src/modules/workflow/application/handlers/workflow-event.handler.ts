@@ -53,7 +53,7 @@ export class WorkflowEventsHandler {
       currentStepName: workflow?.steps?.find(step => step.stepId === workflow?.currentStepId)?.name ?? ''
     })
 
-    emailData.body.content.table[0].data = workflow?.steps.map(m => [m.name, m.status])
+    emailData.body.content.table[0].data = workflow?.actualSteps.map(m => [m.name, m.status])
 
     await this.corrService.sendTemplatedEmail({
       templateData: emailData,

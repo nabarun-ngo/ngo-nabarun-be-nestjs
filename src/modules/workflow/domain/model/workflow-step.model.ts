@@ -9,6 +9,7 @@ export enum WorkflowStepStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED'
 }
 
 export class WorkflowStep extends BaseDomain<string> {
@@ -120,6 +121,10 @@ export class WorkflowStep extends BaseDomain<string> {
     return this.#onFailureStepId;
   }
 
+  skip() {
+    this.#status = WorkflowStepStatus.SKIPPED;
+    this.touch();
+  }
   // -----------------------------------
   //        Read-only API
   // -----------------------------------

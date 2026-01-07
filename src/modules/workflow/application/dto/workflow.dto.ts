@@ -303,6 +303,14 @@ export class WorkflowInstanceDto {
   @ApiProperty({ type: [WorkflowStepDto], required: true })
   @IsDefined()
   steps: WorkflowStepDto[];
+
+  @ApiProperty({ type: [WorkflowStepDto], required: true })
+  @IsDefined()
+  expectedSteps: WorkflowStepDto[];
+
+  @ApiProperty({ type: [WorkflowStepDto], required: true })
+  @IsDefined()
+  actualSteps: WorkflowStepDto[];
 }
 
 
