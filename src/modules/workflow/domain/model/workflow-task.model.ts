@@ -143,7 +143,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  fail(reason: string, completedBy?: User): void {
+  fail(reason: string, completedBy?: Partial<User>): void {
     const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
     if (this.requiresManualAction() && !assignee) {
       throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);

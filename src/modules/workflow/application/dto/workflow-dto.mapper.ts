@@ -31,6 +31,8 @@ export class WorkflowDtoMapper {
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
       steps: domain.steps.map(s => this.stepDomainToDto(s)),
+      expectedSteps: domain.expectedSteps.map(s => this.stepDomainToDto(s)),
+      actualSteps: domain.actualSteps.map(s => this.stepDomainToDto(s)),
     };
   }
 

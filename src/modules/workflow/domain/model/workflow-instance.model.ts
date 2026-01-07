@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../../shared/models/aggregate-root';
 import { WorkflowStep } from './workflow-step.model';
 import { WorkflowDefinition } from '../vo/workflow-def.vo';
@@ -146,8 +145,10 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     if (current?.isCompleted()) {
       this.#currentStepId = current.onSuccessStepId;
+      //this.steps.find(s => s.stepId === current.onFailureStepId)?.skip();
     } else if (current?.isFailed()) {
       this.#currentStepId = current.onFailureStepId;
+      //this.steps.find(s => s.stepId === current.onSuccessStepId)?.skip();
     }
 
     const step = this.steps.find(s => s.stepId === this.#currentStepId);
@@ -179,7 +180,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
         task.complete(user, remarks);
         break;
       case WorkflowTaskStatus.FAILED:
-        task.fail(remarks!);
+        task.fail(remarks!, user);
         break;
       default:
         throw new BusinessException(`Invalid task status: ${status}`);
@@ -203,6 +204,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     }
     this.#status = WorkflowInstanceStatus.COMPLETED;
     this.#completedAt = new Date();
+    this.#currentStepId = undefined;
     this.touch();
   }
 
@@ -244,6 +246,29 @@ export class WorkflowInstance extends AggregateRoot<string> {
   get currentStepId(): string | undefined { return this.#currentStepId; }
 
   get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
+
+  get expectedSteps(): ReadonlyArray<WorkflowStep> {
+    var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
+    this.#steps.forEach(step => {
+      if (step.onSuccessStepId) {
+        steps.push(this.#steps.find(s => s.stepId == step.onSuccessStepId)!);
+      }
+    });
+    return steps;
+  }
+
+  get actualSteps(): ReadonlyArray<WorkflowStep> {
+    var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
+    this.#steps.forEach(step => {
+      if (step.isCompleted()) {
+        steps.push(this.#steps.find(s => s.stepId == step.onSuccessStepId)!);
+      } else if (step.isFailed()) {
+        steps.push(this.#steps.find(s => s.stepId == step.onFailureStepId)!);
+      }
+    });
+    return steps;
+  }
+
 
   get initiatedBy(): Partial<User> | undefined { return this.#initiatedBy; }
 
