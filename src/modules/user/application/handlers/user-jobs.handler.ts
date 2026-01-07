@@ -6,6 +6,10 @@ import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Configkey } from "src/shared/config-keys";
+
+import { StaticDocsService } from "src/modules/shared/dms/application/services/static-docs.service";
 
 @Injectable()
 export class UserJobsHandler {
@@ -14,8 +18,11 @@ export class UserJobsHandler {
   constructor(
     private readonly assignRoleUseCase: AssignRoleUseCase,
     private readonly corrService: CorrespondenceService,
-
+    private readonly configService: ConfigService,
+    private readonly staticDocs: StaticDocsService
   ) { }
+
+
 
 
   @ProcessJob({
@@ -32,22 +39,28 @@ export class UserJobsHandler {
   @ProcessJob({
     name: JobName.SEND_ONBOARDING_EMAIL
   })
-  async sendOnboardingEmail(job: Job<{ fullName: string; email: string; password: string; }>) {
+  async sendOnboardingEmail(job: Job<{ fullName: string; email: string; password: string; attachmentUrl?: string }>) {
+    const policyLink = await this.staticDocs.getStaticLink('POLICY_RULES_AND_REGULATIONS');
+
     await this.corrService.sendTemplatedEmail({
       templateName: EmailTemplateName.USER_ONBOARDED,
       data: {
         name: job.data.fullName,
         email: job.data.email,
         password: job.data.password,
+        portalUrl: this.configService.get(Configkey.APP_FE_URL),
+        rulesDocLink: policyLink?.VALUE
       },
       options: {
         recipients: {
           to: job.data.email,
-        }
+        },
       }
     });
     this.logger.log(`Onboarding Email sent successfully!!`);
   }
+
+
 
 
 

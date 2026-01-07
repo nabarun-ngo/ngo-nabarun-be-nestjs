@@ -50,7 +50,8 @@ export class CorrespondenceService {
       to: request.options.recipients?.to!,
       cc: request.options.recipients?.cc,
       bcc: request.options.recipients?.bcc,
-      from
+      from,
+      attachments: request.options.attachments
     });
   }
 
@@ -178,6 +179,11 @@ export class CorrespondenceService {
     cc?: string | string[];
     bcc?: string | string[];
     from?: string;
+    attachments?: Array<{
+      filename: string;
+      content: Buffer | string;
+      contentType?: string;
+    }>;
   }): Promise<SendEmailResult> {
     const from =
       params.from ??
@@ -189,7 +195,9 @@ export class CorrespondenceService {
       params.html,
       {
         subject: params.subject,
-        recipients
+
+        recipients,
+        attachments: params.attachments
       },
       from
     );

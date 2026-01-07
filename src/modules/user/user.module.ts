@@ -12,10 +12,11 @@ import { CorrespondenceModule } from '../shared/correspondence/correspondence.mo
 import { UserService } from './application/services/user.service';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
 import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
+import { DMSModule } from '../shared/dms/dms.module';
 
 @Module({
   controllers: [UserController],
-  imports: [FirebaseModule, CorrespondenceModule],
+  imports: [FirebaseModule, CorrespondenceModule, DMSModule],
   providers: [
     CreateUserUseCase,
     UpdateUserUseCase,

@@ -7,11 +7,14 @@ import { DmsUploadDto } from "../../presentation/dto/dms-upload.dto";
 import { toDocumentDto } from "../../presentation/dms-sto-mapper";
 import { DocumentDto } from "../../presentation/dto/document.dto";
 import { BusinessException } from "src/shared/exceptions/business-exception";
+import { firstValueFrom } from "rxjs";
+import { HttpService } from "@nestjs/axios";
 
 @Injectable()
 export class DmsService {
     constructor(private readonly firebaseStorage: FirebaseStorageService,
-        @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: IDocumentRepository
+        @Inject(DOCUMENT_REPOSITORY) private readonly documentRepository: IDocumentRepository,
+        private readonly httpService: HttpService
     ) { }
 
     async uploadFile(body: DmsUploadDto, authUserId: string): Promise<DocumentDto> {
@@ -68,5 +71,17 @@ export class DmsService {
             fileName: document.fileName,
             stream: await this.firebaseStorage.downloadFile(document.remotePath)
         };
+    }
+
+    async getFileBuffer(id: string): Promise<{ fileName: string, buffer: Buffer, contentType: string }> {
+        const document = await this.documentRepository.findById(id);
+        if (!document) {
+            throw new BusinessException('Document not found');
+        }
+        const url = await this.firebaseStorage.getSignedUrl(document.remotePath);
+        const response = await firstValueFrom(
+            this.httpService.get(url, { responseType: 'arraybuffer' })
+        );
+        return { fileName: document.fileName, buffer: Buffer.from(response.data), contentType: document.contentType };
     }
 }
