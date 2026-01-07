@@ -3,7 +3,8 @@ import { ModuleRef, Reflector } from '@nestjs/core';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Worker, Job as BullJob } from 'bullmq';
 import { JobProcessor, Job, JobResult } from '../interfaces/job.interface';
-import { ProcessJobOptions, PROCESS_JOB_KEY, JobName } from '../decorators/process-job.decorator';
+import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.decorator';
+import { JobName } from 'src/shared/job-names';
 
 @Injectable()
 export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBootstrap {

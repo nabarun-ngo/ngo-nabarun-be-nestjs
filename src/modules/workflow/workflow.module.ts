@@ -15,6 +15,7 @@ import { WorkflowDefService } from './infrastructure/external/workflow-def.servi
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
 import { AutomaticTaskService } from './application/services/automatic-task.service';
+import { WorkflowCronJobHandler } from './application/handlers/workflow-cron-job.handler';
 
 @Module({
   imports: [JobProcessingModule, UserModule, FirebaseModule],
@@ -31,7 +32,8 @@ import { AutomaticTaskService } from './application/services/automatic-task.serv
     WorkflowDefService,
     WorkflowEventsHandler,
     StartWorkflowStepUseCase,
-    AutomaticTaskService
+    AutomaticTaskService,
+    WorkflowCronJobHandler
   ],
   exports: [
     WorkflowService,

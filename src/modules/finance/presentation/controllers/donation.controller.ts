@@ -27,6 +27,7 @@ import { DonationService } from '../../application/services/donation.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { DonationsCronJobHandler } from '../../application/handlers/donations-cron-job.handler';
 
 /**
  * Donation Controller - matches legacy endpoints
@@ -38,6 +39,7 @@ import { RequirePermissions } from 'src/modules/shared/auth/application/decorato
 export class DonationController {
   constructor(
     private readonly donationService: DonationService,
+    private readonly donationsCronJobHandler: DonationsCronJobHandler,
   ) { }
 
   @Post('create')
@@ -178,5 +180,29 @@ export class DonationController {
     return new SuccessResponse<DonationRefDataDto>(
       await this.donationService.getReferenceData()
     );
+  }
+
+  @Post('trigger-job')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Manually trigger  donations job' })
+  @ApiQuery({ name: 'operation', required: true, description: 'Operation to trigger', enum: ['create_donations', 'remind_donations', 'mark_pending'] })
+  async triggerMonthlyDonations(
+    @Query('operation') operation: 'create_donations' | 'remind_donations' | 'mark_pending',
+  ): Promise<SuccessResponse<any>> {
+    var result: any;
+    switch (operation) {
+      case 'create_donations':
+        result = await this.donationsCronJobHandler.triggerMonthlyDonations();
+        break;
+      case 'remind_donations':
+        result = await this.donationsCronJobHandler.remindPendingDonations();
+        break;
+      case 'mark_pending':
+        result = await this.donationsCronJobHandler.markPendingDonations();
+        break;
+      default:
+        throw new Error('Invalid operation');
+    }
+    return new SuccessResponse(result);
   }
 }

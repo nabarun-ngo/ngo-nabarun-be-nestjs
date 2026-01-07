@@ -1,12 +1,8 @@
 import { SetMetadata } from '@nestjs/common';
+import { JobName } from 'src/shared/job-names';
 
 export const PROCESS_JOB_KEY = 'process_job';
 
-export enum JobName {
-  SEND_ONBOARDING_EMAIL = 'send-onboarding-email',
-  UPDATE_USER_ROLE = 'update-user-role',
-  START_WORKFLOW_STEP = "START_WORKFLOW_STEP",
-}
 
 export enum JobPriority {
   CRITICAL = 1,

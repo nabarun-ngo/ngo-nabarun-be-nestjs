@@ -5,7 +5,8 @@ import { TaskFilter, WorkflowTask } from '../model/workflow-task.model';
 import { PagedResult } from 'src/shared/models/paged-result';
 
 
-export interface IWorkflowInstanceRepository extends IRepository<WorkflowInstance, string,WorkflowFilter> {
+export interface IWorkflowInstanceRepository extends IRepository<WorkflowInstance, string, WorkflowFilter> {
+  findAllTasks(filter: TaskFilter): Promise<WorkflowTask[]>;
   findTasksPaged(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTask>>;
   findById(id: string, includeSteps?: boolean): Promise<WorkflowInstance | null>;
   create(instance: WorkflowInstance): Promise<WorkflowInstance>;

@@ -2,18 +2,18 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
 import { StepStartedEvent } from "../../domain/events/step-started.event";
 import { OnEvent } from "@nestjs/event-emitter";
-import { JobName } from "src/modules/shared/job-processing/decorators/process-job.decorator";
-import { TaskCompletedEvent } from "../../domain/events/task-completed.event";
-import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { WORKFLOW_INSTANCE_REPOSITORY, type IWorkflowInstanceRepository } from "../../domain/repositories/workflow-instance.repository.interface";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { WorkflowInstance } from "../../domain/model/workflow-instance.model";
 import { StepCompletedEvent } from "../../domain/events/step-completed.event";
+import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
+import { JobName } from "src/shared/job-names";
+import { CronLogger } from "src/shared/utils/trace-context.util";
 
 @Injectable()
 export class WorkflowEventsHandler {
-  private readonly logger = new Logger(WorkflowEventsHandler.name);
+  private readonly logger = new CronLogger(WorkflowEventsHandler.name);
 
   constructor(
     private readonly jobProcessingService: JobProcessingService,

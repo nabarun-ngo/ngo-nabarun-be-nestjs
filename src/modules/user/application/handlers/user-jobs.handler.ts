@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Job } from "bullmq";
-import { JobName, ProcessJob } from "src/modules/shared/job-processing/decorators/process-job.decorator";
+import { ProcessJob } from "src/modules/shared/job-processing/decorators/process-job.decorator";
 import { Role } from "../../domain/model/role.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
@@ -10,6 +10,7 @@ import { ConfigService } from "@nestjs/config";
 import { Configkey } from "src/shared/config-keys";
 
 import { StaticDocsService } from "src/modules/shared/dms/application/services/static-docs.service";
+import { JobName } from "src/shared/job-names";
 
 @Injectable()
 export class UserJobsHandler {
