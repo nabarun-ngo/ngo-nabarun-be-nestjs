@@ -10,13 +10,20 @@ export enum DocumentMappingRefType {
 }
 
 export class DocumentMapping extends BaseDomain<string> {
+    #id: string;
+    #refId: string;
+    #refType: DocumentMappingRefType;
+
     constructor(
-        _id: string,
-        private _refId: string,
-        private _refType: DocumentMappingRefType,
-        _createdAt?: Date,
+        id: string,
+        refId: string,
+        refType: DocumentMappingRefType,
+        createdAt?: Date,
     ) {
-        super(_id, _createdAt);
+        super(id, createdAt);
+        this.#id = id;
+        this.#refId = refId;
+        this.#refType = refType;
     }
 
     static create(params: {
@@ -32,9 +39,9 @@ export class DocumentMapping extends BaseDomain<string> {
     }
 
     get refId() {
-        return this._refId;
+        return this.#refId;
     }
     get refType() {
-        return this._refType;
+        return this.#refType;
     }
 }

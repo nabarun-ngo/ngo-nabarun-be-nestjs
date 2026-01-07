@@ -8,6 +8,8 @@ import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { DocumentDto } from '../dto/document.dto';
 import type { Response } from 'express';
+import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
+import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 @ApiTags(DmsController.name)
 @ApiBearerAuth('jwt')
@@ -18,8 +20,11 @@ export class DmsController {
     @Post('upload')
     @ApiOperation({ summary: 'Upload a document' })
     @ApiAutoResponse(DocumentDto, { status: 201, description: 'Document uploaded successfully' })
-    async uploadFile(@Body() body: DmsUploadDto): Promise<SuccessResponse<DocumentDto>> {
-        const result = await this.dmsService.uploadFile(body);
+    async uploadFile(
+        @Body() body: DmsUploadDto,
+        @CurrentUser() authUser: AuthUser
+    ): Promise<SuccessResponse<DocumentDto>> {
+        const result = await this.dmsService.uploadFile(body, authUser.profile_id!);
         return new SuccessResponse<DocumentDto>(result);
     }
 

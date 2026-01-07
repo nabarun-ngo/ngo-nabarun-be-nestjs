@@ -44,15 +44,28 @@ class WorkflowInstanceRepository
 
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async findAllTasks(filter: TaskFilter): Promise<WorkflowTask[]> {
+    const tasks: PrismaWorkflowTasks[] = await this.prisma.workflowTask.findMany({
+      where: this.whereQueryTasks(filter),
+      orderBy: { createdAt: 'desc' },
+      include: {
+        completedBy: true,
+        assignments: {
+          include: {
+            assignedTo: true,
+          },
+        },
+      },
+    });
+    return tasks.map(w => WorkflowInfraMapper.toWorkflowTask(w));
+  }
+
+
   async findTasksPaged(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTask>> {
-    const where: Prisma.WorkflowTaskWhereInput = {
-      ...(filter.props?.assignedTo ? { assignments: { some: { assignedToId: filter.props.assignedTo } } } : {}),
-      ...(filter.props?.status ? { status: { in: filter.props.status } } : {}),
-      ...(filter.props?.completed ? { completedAt: { not: null } } : { completedAt: null }),
-    };
+
     const [data, total] = await Promise.all([
       this.prisma.workflowTask.findMany({
-        where,
+        where: this.whereQueryTasks(filter.props),
         orderBy: { createdAt: 'desc' },
         include: {
           completedBy: true,
@@ -66,7 +79,7 @@ class WorkflowInstanceRepository
         take: filter?.pageSize ?? 1000,
       }),
       this.prisma.workflowTask.count({
-        where
+        where: this.whereQueryTasks(filter.props)
       })
     ]);
 
@@ -76,6 +89,15 @@ class WorkflowInstanceRepository
       filter?.pageIndex ?? 0,
       filter?.pageSize ?? 0
     );
+  }
+
+  private whereQueryTasks(filter: TaskFilter | undefined): Prisma.WorkflowTaskWhereInput {
+    const where: Prisma.WorkflowTaskWhereInput = {
+      ...(filter?.assignedTo ? { assignments: { some: { assignedToId: filter.assignedTo } } } : {}),
+      ...(filter?.status ? { status: { in: filter.status } } : {}),
+      ...(filter?.completed ? { completedAt: { not: null } } : { completedAt: null }),
+    };
+    return where;
   }
 
   async findAll(filter?: WorkflowFilter): Promise<WorkflowInstance[]> {
@@ -130,6 +152,8 @@ class WorkflowInstanceRepository
     }
     return where;
   }
+
+
 
   async findById(id: string, includeTask: boolean = false): Promise<WorkflowInstance | null> {
     if (includeTask) {

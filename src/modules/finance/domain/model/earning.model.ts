@@ -1,3 +1,4 @@
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
@@ -86,7 +87,7 @@ export class Earning extends AggregateRoot<string> {
    */
   markAsReceived(accountId: string, transactionId: string): void {
     if (this.status !== EarningStatus.PENDING) {
-      throw new Error('Can only mark pending earnings as received');
+      throw new BusinessException('Can only mark pending earnings as received');
     }
 
     this.status = EarningStatus.RECEIVED;
@@ -100,7 +101,7 @@ export class Earning extends AggregateRoot<string> {
    */
   cancel(): void {
     if (this.status === EarningStatus.RECEIVED) {
-      throw new Error('Cannot cancel received earning');
+      throw new BusinessException('Cannot cancel received earning');
     }
 
     this.status = EarningStatus.CANCELLED;

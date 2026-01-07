@@ -62,3 +62,36 @@ export class AppLogger extends ConsoleLogger {
         );
     }
 }
+
+export class CronLogger extends ConsoleLogger {
+    constructor(context: string) {
+        super(context, {
+            logLevels: ['log', 'error', 'warn'],
+            timestamp: true,
+        });
+    }
+
+    protected override formatMessage(
+        logLevel: any,
+        message: unknown,
+        context: string,
+        stack?: string,
+        ms?: string,
+        timestamp?: string,
+    ): string {
+        const traceId = getTraceId();
+        const tracePrefix = traceId ? `[${traceId}] ` : '';
+        const formattedMessage = typeof message === 'object'
+            ? JSON.stringify(message)
+            : message;
+
+        return super.formatMessage(
+            logLevel,
+            `${tracePrefix}${formattedMessage}`,
+            context,
+            stack as any,
+            ms as any,
+            timestamp as any,
+        );
+    }
+}

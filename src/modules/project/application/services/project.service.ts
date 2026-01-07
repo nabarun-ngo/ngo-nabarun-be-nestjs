@@ -9,6 +9,7 @@ import { ACTIVITY_REPOSITORY, type IActivityRepository } from '../../domain/repo
 import { PROJECT_REPOSITORY, type IProjectRepository } from '../../domain/repositories/project.repository.interface';
 import { ActivityDetailDto, ActivityDetailFilterDto, CreateActivityDto } from '../dto/activity.dto';
 import { CreateActivityUseCase } from '../use-cases/create-activity.use-case';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 @Injectable()
 export class ProjectService {
@@ -41,7 +42,7 @@ export class ProjectService {
   async getById(id: string): Promise<ProjectDetailDto> {
     const project = await this.projectRepository.findById(id);
     if (!project) {
-      throw new Error('Project not found with id ' + id);
+      throw new BusinessException('Project not found with id ' + id);
     }
     return ProjectDtoMapper.toDto(project);
   }

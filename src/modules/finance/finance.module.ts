@@ -41,11 +41,13 @@ import ExpenseRepository from './infrastructure/persistence/expense.repository';
 import EarningRepository from './infrastructure/persistence/earning.repository';
 
 // Handlers
-import { MonthlyDonationsJobHandler } from './application/handlers/monthly-donations-job.handler';
 import { UserModule } from '../user/user.module';
 import { MetadataService } from './infrastructure/external/metadata.service';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { ReverseTransactionUseCase } from './application/use-cases/reverse-transaction.use-case';
+import { DonationsEventHandler } from './application/handlers/donation-event.handler';
+import { DonationsCronJobHandler } from './application/handlers/donations-cron-job.handler';
+import { DonationJobsHandler } from './application/handlers/donation-jobs.handler';
 
 /**
  * Finance Module
@@ -123,8 +125,10 @@ import { ReverseTransactionUseCase } from './application/use-cases/reverse-trans
     },
 
     // ===== HANDLERS =====
-    MonthlyDonationsJobHandler,
+    DonationsCronJobHandler,
     MetadataService,
+    DonationsEventHandler,
+    DonationJobsHandler
   ],
   exports: [
     DONATION_REPOSITORY,

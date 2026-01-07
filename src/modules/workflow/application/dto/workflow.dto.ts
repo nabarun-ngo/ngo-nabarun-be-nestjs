@@ -41,6 +41,11 @@ export class StartWorkflowDto {
   @IsOptional()
   @IsBoolean()
   forExternalUser?: boolean;
+
+  @ApiProperty({ description: 'External user email (use only when forExternalUser is true)', required: false })
+  @IsOptional()
+  @IsString()
+  externalUserEmail?: string;
 }
 
 export class UpdateTaskDto {
@@ -298,6 +303,14 @@ export class WorkflowInstanceDto {
   @ApiProperty({ type: [WorkflowStepDto], required: true })
   @IsDefined()
   steps: WorkflowStepDto[];
+
+  @ApiProperty({ type: [WorkflowStepDto], required: true })
+  @IsDefined()
+  expectedSteps: WorkflowStepDto[];
+
+  @ApiProperty({ type: [WorkflowStepDto], required: true })
+  @IsDefined()
+  actualSteps: WorkflowStepDto[];
 }
 
 

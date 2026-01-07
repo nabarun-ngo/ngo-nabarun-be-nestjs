@@ -16,7 +16,6 @@ import { HttpModule } from '@nestjs/axios';
 import { RecaptchaService } from './application/services/google-recaptcha.service';
 import { Auth0ResourceServerService } from './infrastructure/external/auth0-resource-server.service';
 
-@Global()
 @Module({
   imports: [
     HttpModule

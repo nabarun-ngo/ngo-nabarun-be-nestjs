@@ -15,4 +15,12 @@ export class SendEmailDto {
     @ApiProperty()
     @IsString()
     html: string;
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    cc?: string | string[];
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    bcc?: string | string[];
 }

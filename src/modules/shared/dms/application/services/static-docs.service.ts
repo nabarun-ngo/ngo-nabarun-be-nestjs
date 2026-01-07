@@ -58,4 +58,11 @@ export class StaticDocsService {
         return docLinks.map(toKeyValueDto)
     }
 
+    async getStaticLink(id: string) {
+        const remoteConfig = await this.firebaseConfig.getAllKeyValues();
+        const docLinks = parseKeyValueConfigs(remoteConfig['DOCUMENT_LINKS'].value);
+        return docLinks.find(f => f.KEY === id)
+    }
+
+
 }

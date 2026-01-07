@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { JobState, Queue } from 'bullmq';
+import { JobState, JobType, Queue } from 'bullmq';
 import { jobFailureResponse2 } from 'src/shared/utilities/common.util';
 import { JobDetail } from '../interfaces/job.interface';
 import { stat } from 'fs';
@@ -137,7 +137,7 @@ export class JobMonitoringService {
   /**
    * Get failed jobs with error details
    */
-  async getJobs(status: JobState, limit: number = 50) {
+  async getJobs(status?: JobType, limit: number = 50) {
     try {
       const jobs = await this.defaultQueue.getJobs(status, 0, limit - 1);;
 

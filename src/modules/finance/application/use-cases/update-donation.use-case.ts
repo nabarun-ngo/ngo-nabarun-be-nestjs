@@ -7,6 +7,7 @@ import { BusinessException } from '../../../../shared/exceptions/business-except
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { ReverseTransactionUseCase } from './reverse-transaction.use-case';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 interface UpdateDonation {
   paidOn: Date | undefined;
@@ -29,6 +30,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
     private readonly donationRepository: IDonationRepository,
     private readonly transactionUseCase: CreateTransactionUseCase,
     private readonly reverseTransactionUseCase: ReverseTransactionUseCase,
+    private readonly eventEmitter: EventEmitter2,
 
   ) { }
 
@@ -93,7 +95,12 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
       }
 
     }
-    return await this.donationRepository.update(request.id, donation);
+    const updatedDonation = await this.donationRepository.update(request.id, donation);
+    for (const event of donation.domainEvents) {
+      this.eventEmitter.emit(event.constructor.name, event);
+    }
+    donation.clearEvents();
+    return updatedDonation;
   }
 }
 

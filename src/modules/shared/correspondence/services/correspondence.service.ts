@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GmailService } from './gmail.service';
-import { EmailTemplateName, SendEmailRequest, SendEmailResult, SendNotificationRequest } from '../dtos/email.dto';
+import { SendEmailRequest, SendEmailResult } from '../dtos/email.dto';
 import { RemoteConfigService } from '../../firebase/remote-config/remote-config.service';
 import { loadTemplate, renderJsonTemplateFromString } from '../utilities/email-template.utility';
 import { EmailTemplateData } from '../dtos/email-template.dto';
@@ -10,6 +10,7 @@ import { Configkey } from 'src/shared/config-keys';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { SendEmailDto } from '../dtos/correspondence.dto';
+import { EmailTemplateName } from 'src/shared/email-keys';
 
 
 
@@ -30,61 +31,39 @@ export class CorrespondenceService {
    * Automatically uses the authenticated Gmail account for the user
    */
   async sendTemplatedEmail(request: SendEmailRequest): Promise<SendEmailResult> {
-    const from = request.fromName ?? this.configService.get<string>(Configkey.APP_NAME)!;
-    const data = request.templateData ?? await this.getEmailTemplateData(request.templateName!, request.data!);
-    const html = await this.buildEmailHtml(data);
-    const isProdMode = this.configService.get<string | boolean>(Configkey.ENABLE_PROD_MODE);
-    const isMockingEnabled = this.configService.get<string | boolean>(Configkey.ENABLE_EMAIL_MOCKING);
-    if (isProdMode === 'true' || isProdMode === true) {
-      return await this.gmailService.sendEmail(html, {
-        ...request.options,
-        subject: request.options.subject ?? data.subject
-      }, from);
-    } else if (isMockingEnabled === 'true' || isMockingEnabled === true) {
-      const mockedEmail = this.configService.get<string>(Configkey.MOCKED_EMAIL_ADDRESS);
-      this.logger.log(`Sending mocked email to ${mockedEmail}`)
-      return await this.gmailService.sendEmail(html, {
-        ...request.options,
-        subject: request.options.subject ?? data.subject,
-        recipients: { to: mockedEmail }
-      }, from);
-    } else {
-      return Promise.resolve({
-        success: false,
-        error: 'Email mocking is not enabled'
-      })
-    }
+    const from =
+      request.fromName ??
+      this.configService.get<string>(Configkey.APP_NAME)!;
 
+    const data =
+      request.templateData ??
+      await this.getEmailTemplateData(
+        request.templateName!,
+        request.data!
+      );
+
+    const html = await this.buildEmailHtml(data);
+
+    return this.sendInternalEmail({
+      html,
+      subject: request.options.subject ?? data.subject ?? '',
+      to: request.options.recipients?.to!,
+      cc: request.options.recipients?.cc,
+      bcc: request.options.recipients?.bcc,
+      from,
+      attachments: request.options.attachments
+    });
   }
 
   async sendEmail(request: SendEmailDto): Promise<SendEmailResult> {
-    const from = this.configService.get<string>(Configkey.APP_NAME)!
-    const isProdMode = this.configService.get<string | boolean>(Configkey.ENABLE_PROD_MODE);
-    const isMockingEnabled = this.configService.get<string | boolean>(Configkey.ENABLE_EMAIL_MOCKING);
-    if (isProdMode === 'true' || isProdMode === true) {
-      return await this.gmailService.sendEmail(request.html, {
-        subject: request.subject,
-        recipients: { to: request.to }
-      }, request.from ?? from);
-    } else if (isMockingEnabled === 'true' || isMockingEnabled === true) {
-      const mockedEmail = this.configService.get<string>(Configkey.MOCKED_EMAIL_ADDRESS);
-      this.logger.log(`Sending mocked email to ${mockedEmail}`)
-      return await this.gmailService.sendEmail(request.html, {
-        subject: request.subject,
-        recipients: { to: mockedEmail }
-      }, request.from ?? from);
-    }
-    else {
-      return Promise.resolve({
-        success: false,
-        error: 'Email mocking is not enabled'
-      })
-    }
-  }
-
-  private async buildEmailHtml(templateData: EmailTemplateData) {
-    const template = loadTemplate('email');
-    return template(templateData);
+    return this.sendInternalEmail({
+      html: request.html,
+      subject: request.subject,
+      to: request.to,
+      cc: request.cc,
+      bcc: request.bcc,
+      from: request.from
+    });
   }
 
   async getEmailTemplateData(templateName: EmailTemplateName, data: Record<string, any>): Promise<EmailTemplateData> {
@@ -92,41 +71,141 @@ export class CorrespondenceService {
     return renderJsonTemplateFromString<EmailTemplateData>(configStr, data);
   }
 
+  async sendSlackAlert(
+    message: string,
+    type: 'error' | 'warning' | 'info' = 'error'
+  ): Promise<{ success: boolean; response?: any; error?: string }> {
 
-  async sendSlackAlert(message: string, type: string = 'error') {
-    this.logger.log(`Sending slack notification`);
+    this.logger.log('Sending Slack notification');
+
     try {
-      const webhookUrl = this.configService.get<string>(Configkey.SLACK_WEBHOOK_URL);
+      const webhookUrl = this.configService.get<string>(
+        Configkey.SLACK_WEBHOOK_URL
+      );
+
       if (!webhookUrl) {
         return { success: false, error: 'Slack webhook URL not configured' };
       }
-      const response$ = this.httpService.post(webhookUrl, {
+
+      const env = this.configService.get<string>(Configkey.NODE_ENV) ?? 'unknown';
+
+      const mention =
+        env === 'production' ? '<!here>' : ''; // avoid noise in dev
+
+      const payload = {
         text: `
-        <!channel> 🚨 *${type} Notification*
-        *Environment:* \`${this.configService.get<string>(Configkey.NODE_ENV)}\`
+        ${mention} 🚨 *${type.toUpperCase()} ALERT*
+
+        *Environment:* \`${env}\`
         *Type:* *${type}*
+
         *Message:*
-        ${message}
-        `
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const response = await firstValueFrom(response$)
-      this.logger.log(`Slack notification sent successfully`);
-      return {
-        success: true,
-        response: response,
+        >${message.replace(/\n/g, '\n>')}`
       };
-    }
-    catch (error) {
-      this.logger.error(`Failed to send slack notification: ${error}`);
-      return {
-        success: false,
-        error: error.message,
-      };
+
+      const response = await firstValueFrom(
+        this.httpService.post(webhookUrl, payload, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+
+      this.logger.log('Slack notification sent successfully');
+
+      return { success: true, response };
+
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.error ||
+        err?.message ||
+        'Unknown error';
+
+      this.logger.error(
+        `Failed to send Slack notification: ${errorMessage}`
+      );
+
+      return { success: false, error: errorMessage };
     }
   }
+
+
+  /**
+   * PRIVATE METHODS 
+   */
+
+  private async buildEmailHtml(templateData: EmailTemplateData) {
+    const template = loadTemplate('email');
+    return template(templateData);
+  }
+
+  private isTrue(value?: string | boolean): boolean {
+    return value === true || value === 'true';
+  }
+  private resolveRecipients(to?: string | string[], cc?: string | string[], bcc?: string | string[]): {
+    to?: string | string[];
+    cc?: string | string[];
+    bcc?: string | string[];
+  } {
+    const isProdEnv = this.configService.get(Configkey.ENVIRONMENT) == 'prod';
+
+    const isProdMode = this.isTrue(
+      this.configService.get(Configkey.ENABLE_PROD_MODE)
+    );
+
+    if (isProdEnv || isProdMode) {
+      return { to, cc, bcc };
+    }
+
+    const isMockingEnabled = this.isTrue(
+      this.configService.get(Configkey.ENABLE_EMAIL_MOCKING)
+    );
+
+    if (!isMockingEnabled) {
+      throw new Error('Email mocking is not enabled');
+    }
+
+    const mockedEmail = this.configService.get<string>(
+      Configkey.MOCKED_EMAIL_ADDRESS
+    );
+
+    this.logger.warn(`📧 Mocking email. Redirecting to ${mockedEmail}`);
+
+    return { to: mockedEmail! };
+  }
+
+  private async sendInternalEmail(params: {
+    html: string;
+    subject: string;
+    to?: string | string[];
+    cc?: string | string[];
+    bcc?: string | string[];
+    from?: string;
+    attachments?: Array<{
+      filename: string;
+      content: Buffer | string;
+      contentType?: string;
+    }>;
+  }): Promise<SendEmailResult> {
+    const from =
+      params.from ??
+      this.configService.get<string>(Configkey.APP_NAME)!;
+
+    const recipients = this.resolveRecipients(params.to, params.cc, params.bcc);
+
+    return this.gmailService.sendEmail(
+      params.html,
+      {
+        subject: params.subject,
+
+        recipients,
+        attachments: params.attachments
+      },
+      from
+    );
+  }
+
+
+
+
+
 }
 

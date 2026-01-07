@@ -2,12 +2,14 @@ import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 import { WorkflowTask } from './workflow-task.model';
 import { StepDef, StepTransitionsDef } from '../vo/workflow-def.vo';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 export enum WorkflowStepStatus {
   PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED'
 }
 
 export class WorkflowStep extends BaseDomain<string> {
@@ -95,7 +97,7 @@ export class WorkflowStep extends BaseDomain<string> {
 
   start() {
     if (this.#status === WorkflowStepStatus.COMPLETED || this.#status === WorkflowStepStatus.FAILED) {
-      throw new Error(`Cannot start step in status: ${this.#status}`);
+      throw new BusinessException(`Cannot start step in status: ${this.#status}`);
     }
     this.#status = WorkflowStepStatus.IN_PROGRESS;
     this.#startedAt = new Date();
@@ -104,7 +106,7 @@ export class WorkflowStep extends BaseDomain<string> {
 
   complete(): string | undefined {
     if (this.#status !== WorkflowStepStatus.IN_PROGRESS) {
-      throw new Error(`Cannot complete step in status: ${this.#status}`);
+      throw new BusinessException(`Cannot complete step in status: ${this.#status}`);
     }
     this.#status = WorkflowStepStatus.COMPLETED;
     this.#completedAt = new Date();
@@ -119,6 +121,10 @@ export class WorkflowStep extends BaseDomain<string> {
     return this.#onFailureStepId;
   }
 
+  skip() {
+    this.#status = WorkflowStepStatus.SKIPPED;
+    this.touch();
+  }
   // -----------------------------------
   //        Read-only API
   // -----------------------------------

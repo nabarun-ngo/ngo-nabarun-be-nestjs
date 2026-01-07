@@ -116,7 +116,7 @@ export class GmailService {
         lines.push(
           `Content-Type: ${attachment.contentType || 'application/octet-stream'}`,
         );
-        lines.push('Content-Disposition: attachment');
+        lines.push(`Content-Disposition: attachment; filename="${attachment.filename}"`);
         lines.push(
           `Content-Transfer-Encoding: base64`,
         );

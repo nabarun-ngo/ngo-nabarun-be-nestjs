@@ -14,11 +14,11 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { WorkflowDefService } from './infrastructure/external/workflow-def.service';
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
-import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 import { AutomaticTaskService } from './application/services/automatic-task.service';
+import { WorkflowCronJobHandler } from './application/handlers/workflow-cron-job.handler';
 
 @Module({
-  imports: [JobProcessingModule, UserModule,FirebaseModule,CorrespondenceModule],
+  imports: [JobProcessingModule, UserModule, FirebaseModule],
   controllers: [WorkflowController],
   providers: [
     StartWorkflowUseCase,
@@ -32,12 +32,13 @@ import { AutomaticTaskService } from './application/services/automatic-task.serv
     WorkflowDefService,
     WorkflowEventsHandler,
     StartWorkflowStepUseCase,
-    AutomaticTaskService
+    AutomaticTaskService,
+    WorkflowCronJobHandler
   ],
   exports: [
     WorkflowService,
     WORKFLOW_INSTANCE_REPOSITORY,
   ],
 })
-export class WorkflowModule {}
+export class WorkflowModule { }
 

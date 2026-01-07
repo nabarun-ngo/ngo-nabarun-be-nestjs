@@ -3,9 +3,9 @@ import { JobProcessingService } from "src/modules/shared/job-processing/services
 import { UserCreatedEvent } from "../../domain/events/user-created.event";
 import { Injectable, Logger } from "@nestjs/common";
 import { RoleAssignedEvent } from "../../domain/events/role-assigned.event";
-import { EmailTemplateName } from "src/modules/shared/correspondence/dtos/email.dto";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
-import { JobName } from "src/modules/shared/job-processing/decorators/process-job.decorator";
+import { EmailTemplateName } from "src/shared/email-keys";
+import { JobName } from "src/shared/job-names";
 
 @Injectable()
 export class UserEventsHandler {

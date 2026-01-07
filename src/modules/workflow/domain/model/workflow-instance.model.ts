@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { AggregateRoot } from '../../../../shared/models/aggregate-root';
 import { WorkflowStep } from './workflow-step.model';
 import { WorkflowDefinition } from '../vo/workflow-def.vo';
@@ -9,6 +8,7 @@ import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { WorkflowTaskStatus } from './workflow-task.model';
 import { TaskCompletedEvent } from '../events/task-completed.event';
+import { StepCompletedEvent } from '../events/step-completed.event';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -47,6 +47,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
   #completedAt?: Date;
   #remarks?: string;
   #steps: WorkflowStep[] = [];
+  #isExternalUser: boolean | undefined;
+  #externalUserEmail: string | undefined;
 
   constructor(
     protected _id: string,
@@ -57,6 +59,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     initiatedBy?: Partial<User>,
     initiatedFor?: Partial<User>,
     requestData?: Record<string, string>,
+    isExternalUser?: boolean,
+    externalUserEmail?: string,
     currentStepId?: string,
     completedAt?: Date,
     remarks?: string,
@@ -72,6 +76,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#initiatedBy = initiatedBy;
     this.#initiatedFor = initiatedFor;
     this.#requestData = requestData;
+    this.#isExternalUser = isExternalUser;
+    this.#externalUserEmail = externalUserEmail;
     this.#currentStepId = currentStepId;
     this.#completedAt = completedAt;
     this.#remarks = remarks;
@@ -84,7 +90,12 @@ export class WorkflowInstance extends AggregateRoot<string> {
     data?: Record<string, any>
     requestedFor?: Partial<User>;
     forExternalUser?: boolean;
+    externalUserEmail?: string;
   }) {
+
+    if (data.forExternalUser && !data.externalUserEmail) {
+      throw new BusinessException('External user email is required');
+    }
     const instance = new WorkflowInstance(
       `NW${generateUniqueNDigitNumber(6)}`,
       data.type,
@@ -95,13 +106,15 @@ export class WorkflowInstance extends AggregateRoot<string> {
       data.requestedFor ?? (data.forExternalUser ? undefined : data.requestedBy),
       // If external user, then requestedFor will be undefined, need to be updated later if required
       data.data,
+      data.forExternalUser,
+      data.externalUserEmail,
     );
 
     data.definition.steps.forEach(step => {
       instance.addSteps(WorkflowStep.create(step));
     });
 
-    instance.addDomainEvent(new WorkflowCreatedEvent(instance.id));
+    instance.addDomainEvent(new WorkflowCreatedEvent(instance));
     return instance;
   }
 
@@ -132,8 +145,10 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     if (current?.isCompleted()) {
       this.#currentStepId = current.onSuccessStepId;
+      //this.steps.find(s => s.stepId === current.onFailureStepId)?.skip();
     } else if (current?.isFailed()) {
       this.#currentStepId = current.onFailureStepId;
+      //this.steps.find(s => s.stepId === current.onSuccessStepId)?.skip();
     }
 
     const step = this.steps.find(s => s.stepId === this.#currentStepId);
@@ -165,7 +180,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
         task.complete(user, remarks);
         break;
       case WorkflowTaskStatus.FAILED:
-        task.fail(remarks!);
+        task.fail(remarks!, user);
         break;
       default:
         throw new BusinessException(`Invalid task status: ${status}`);
@@ -174,6 +189,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     if (step?.isAllTasksCompleted()) {
       step.complete();
       this.moveToNextStep();
+      this.addDomainEvent(new StepCompletedEvent(this.id, step?.id!));
+      return task;
     }
 
     this.touch();
@@ -183,10 +200,11 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   public complete(): void {
     if (this.#status === WorkflowInstanceStatus.COMPLETED) {
-      throw new Error(`Cannot complete workflow in status: ${this.#status}`);
+      throw new BusinessException(`Cannot complete workflow in status: ${this.#status}`);
     }
     this.#status = WorkflowInstanceStatus.COMPLETED;
     this.#completedAt = new Date();
+    this.#currentStepId = undefined;
     this.touch();
   }
 
@@ -229,6 +247,35 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
 
+  get expectedSteps(): ReadonlyArray<WorkflowStep> {
+    var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
+    this.#steps.forEach(step => {
+      if (step.onSuccessStepId) {
+        steps.push(this.#steps.find(s => s.stepId == step.onSuccessStepId)!);
+      }
+    });
+    return steps;
+  }
+
+  get actualSteps(): ReadonlyArray<WorkflowStep> {
+    var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
+    this.#steps.forEach(step => {
+      if (step.isCompleted()) {
+        const completedStep = this.#steps.find(s => s.stepId == step.onSuccessStepId)
+        if (completedStep) {
+          steps.push(completedStep);
+        }
+      } else if (step.isFailed()) {
+        const failedStep = this.#steps.find(s => s.stepId == step.onFailureStepId);
+        if (failedStep) {
+          steps.push(failedStep);
+        }
+      }
+    });
+    return steps;
+  }
+
+
   get initiatedBy(): Partial<User> | undefined { return this.#initiatedBy; }
 
   get initiatedFor(): Partial<User> | undefined { return this.#initiatedFor; }
@@ -238,5 +285,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
   get remarks(): string | undefined { return this.#remarks; }
 
   get isDelegated(): boolean { return this.#initiatedBy?.id !== this.#initiatedFor?.id; }
+  get isExternalUser(): boolean | undefined { return this.#isExternalUser; }
+  get externalUserEmail(): string | undefined { return this.#externalUserEmail; }
 }
 

@@ -5,6 +5,7 @@ import { JobMonitoringService } from '../services/job-monitoring.service';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { JobDetail } from '../interfaces/job.interface';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 @ApiTags(JobController.name)
 @Controller('jobs')
@@ -18,10 +19,13 @@ export class JobController {
   @Get()
   @ApiOperation({ summary: 'Get failed jobs' })
   @ApiQuery({ name: 'limit', required: false, description: 'Number of failed jobs to return' })
-  @ApiQuery({ name: 'status', required: true, description: 'Status of the failed jobs to return' })
+  @ApiQuery({
+    name: 'status', required: false, description: 'Status of the failed jobs to return',
+    enum: ['completed', 'failed', 'paused', 'delayed', 'paused', 'active']
+  })
   @ApiAutoResponse(JobDetail, { status: 200, description: 'Failed jobs retrieved successfully', isArray: true, wrapInSuccessResponse: true })
   async getJobs(
-    @Query('status') status: 'completed' | 'failed',
+    @Query('status') status?: 'completed' | 'failed' | 'paused' | 'delayed' | 'paused' | 'active',
     @Query('limit') limit?: number) {
     return new SuccessResponse(
       await this.jobMonitoringService.getJobs(status, limit)
@@ -60,7 +64,9 @@ export class JobController {
   @Post('queue/:operation')
   @ApiOperation({ summary: 'Pause the queue' })
   @ApiResponse({ status: 200, description: 'Options : pause, resume' })
+  @ApiParam({ name: 'operation', required: true, description: 'Operation to trigger', enum: ['pause', 'resume'] })
   async pauseQueue(@Param('operation') operation: string) {
+    console.log(operation)
     switch (operation) {
       case 'pause':
         await this.jobProcessingService.pauseQueue();
@@ -69,7 +75,7 @@ export class JobController {
         await this.jobProcessingService.resumeQueue();
         break;
       default:
-        throw new Error('Invalid operation');
+        throw new BusinessException('Invalid operation');
     }
     return new SuccessResponse({ message: 'Queue paused successfully' });
   }

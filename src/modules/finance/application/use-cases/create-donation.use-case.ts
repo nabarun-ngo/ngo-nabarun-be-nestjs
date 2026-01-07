@@ -62,12 +62,11 @@ export class CreateDonationUseCase implements IUseCase<CreateDonation, Donation>
 
     // Save to repository
     const savedDonation = await this.donationRepository.create(donation);
-
     // Emit domain events
-    for (const event of savedDonation.domainEvents) {
+    for (const event of donation.domainEvents) {
       this.eventEmitter.emit(event.constructor.name, event);
     }
-    savedDonation.clearEvents();
+    donation.clearEvents();
 
     return savedDonation;
   }

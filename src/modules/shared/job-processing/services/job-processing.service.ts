@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JobData, JobOptions, JobResult, Job } from '../interfaces/job.interface';
-import { JobName } from '../decorators/process-job.decorator';
+import { JobName } from 'src/shared/job-names';
 
 @Injectable()
 export class JobProcessingService {
