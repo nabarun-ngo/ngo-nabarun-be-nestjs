@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { applyConfig, config } from './config/config';
+import { applyConfig, config } from './config/app.config';
 import { AppLogger } from './shared/utils/trace-context.util';
 
 async function bootstrap() {

@@ -6,6 +6,18 @@ import { DONATION_REPOSITORY, type IDonationRepository } from "../../domain/repo
 import { EmailTemplateName } from "src/shared/email-keys";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { CronLogger } from "src/shared/utils/trace-context.util";
+import { JobName } from "src/shared/job-names";
+import { UserStatus } from "src/modules/user/domain/model/user.model";
+import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
+import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
+import { ConfigService } from "@nestjs/config";
+import { Configkey } from "src/shared/config-keys";
+import { DonationStatus } from "../../domain/model/donation.model";
+import { groupBy } from "lodash";
+
+export class TriggerMonthlyDonationEvent { }
+export class TriggerMarkDonationAsPendingEvent { }
+export class TriggerRemindPendingDonationsEvent { }
 
 @Injectable()
 export class DonationsEventHandler {
@@ -15,6 +27,11 @@ export class DonationsEventHandler {
         @Inject(DONATION_REPOSITORY)
         private readonly donationRepository: IDonationRepository,
         private readonly correspondenceService: CorrespondenceService,
+        @Inject(USER_REPOSITORY)
+        private readonly userRepository: IUserRepository,
+        private readonly jobProcessingService: JobProcessingService,
+        private readonly configService: ConfigService,
+
 
     ) { }
 
@@ -83,5 +100,72 @@ export class DonationsEventHandler {
             throw error;
         }
         this.logger.log(`Donation paid event end: ${event.donation.id}`);
+    }
+
+    @OnEvent(TriggerMonthlyDonationEvent.name)
+    async handleTriggerMonthlyDonationEvent(event: TriggerMonthlyDonationEvent) {
+        this.logger.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
+        const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
+        const defaultAmount = Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT));
+        for (const user of users) {
+            const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
+            console.log(amount)
+            await this.jobProcessingService.addJob(
+                JobName.CREATE_DONATION,
+                {
+                    userId: user.id,
+                    amount: amount,
+                },
+                {
+                    attempts: 3,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 2000,
+                    },
+                    removeOnComplete: false,
+                    removeOnFail: false,
+                    delay: 20000,
+                }
+            );
+        }
+    }
+
+    @OnEvent(TriggerMarkDonationAsPendingEvent.name, { async: true })
+    async markPendingDonations(): Promise<void> {
+        this.logger.log('[PendingDonationsJob] Starting mark pending donations process...');
+        const raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] })
+        for (const donation of raisedDonations) {
+            donation.markAsPending();
+            await this.donationRepository.update(donation.id, donation);
+            this.logger.log(`[PendingDonationsJob] Donation ${donation.id} marked as pending...`);
+        }
+        this.logger.log('[PendingDonationsJob] Completed mark pending donations process...');
+    }
+
+    @OnEvent(TriggerRemindPendingDonationsEvent.name, { async: true })
+    async remindPendingDonations(): Promise<void> {
+        this.logger.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
+        const donations = await this.donationRepository.findAll({ status: [DonationStatus.PENDING], isGuest: false });
+        const userDonations = groupBy(donations, (donation) => donation.donorId);
+        for (const [userId, donations] of Object.entries(userDonations)) {
+            await this.jobProcessingService.addJob(
+                JobName.SEND_DONATION_REMINDER_EMAIL,
+                {
+                    donorId: userId,
+                    donorEmail: donations[0].donorEmail,
+                    donorName: donations[0].donorName,
+                },
+                {
+                    attempts: 1,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 2000,
+                    },
+                    removeOnComplete: true,
+                    removeOnFail: false,
+                    delay: 2000
+                }
+            );
+        }
     }
 }

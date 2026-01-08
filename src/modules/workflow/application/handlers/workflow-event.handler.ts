@@ -11,6 +11,8 @@ import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event
 import { JobName } from "src/shared/job-names";
 import { CronLogger } from "src/shared/utils/trace-context.util";
 
+export class TriggerRemindPendingTasksEvent { }
+
 @Injectable()
 export class WorkflowEventsHandler {
   private readonly logger = new CronLogger(WorkflowEventsHandler.name);
@@ -20,7 +22,8 @@ export class WorkflowEventsHandler {
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly workflowRepository: IWorkflowInstanceRepository,
     private readonly corrService: CorrespondenceService,
-  ) { }
+    @Inject(WORKFLOW_INSTANCE_REPOSITORY)
+    private readonly workflowInstanceRepository: IWorkflowInstanceRepository) { }
 
   @OnEvent(StepStartedEvent.name, { async: true })
   async handleStepStartedEvent(event: StepStartedEvent) {
@@ -65,6 +68,62 @@ export class WorkflowEventsHandler {
         }
       }
     })
+  }
+
+
+  @OnEvent(TriggerRemindPendingTasksEvent.name, { async: true })
+  async remindPendingTasks(): Promise<void> {
+    const startedAt = Date.now();
+    this.logger.log('[Cron] Remind pending tasks started');
+
+    try {
+      const tasks =
+        await this.workflowInstanceRepository.findAllTasks({
+          completed: false,
+        });
+
+      this.logger.log(
+        `[Cron] Found ${tasks.length} pending tasks`,
+      );
+
+      const assignees = new Map(
+        tasks
+          .flatMap(t => t.assignments)
+          .map(a => [a.assignedTo.id, a.assignedTo]),
+      );
+
+      this.logger.log(
+        `[Cron] Unique assignees count: ${assignees.size}`,
+      );
+
+      let successCount = 0;
+
+      for (const user of assignees.values()) {
+        this.logger.debug(
+          `[Cron] Queueing reminder | userId=${user.id} | email=${user.email}`,
+        );
+
+        await this.jobProcessingService.addJob(
+          JobName.SEND_TASK_REMINDER_EMAIL,
+          {
+            assigneeId: user.id,
+            assigneeName: user.fullName,
+            assigneeEmail: user.email,
+          },
+        );
+
+        successCount++;
+      }
+
+      this.logger.log(
+        `[Cron] Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
+      );
+    } catch (error) {
+      this.logger.error(
+        '[Cron] Failed to process pending task reminders',
+        error?.stack ?? error,
+      );
+    }
   }
 
 }
