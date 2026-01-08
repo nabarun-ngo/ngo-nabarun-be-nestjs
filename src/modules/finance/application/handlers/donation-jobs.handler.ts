@@ -24,6 +24,7 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.CREATE_DONATION,
+        concurrency: 4
     })
     async createDonationForUser(job: Job<{ userId: string; amount: number }>) {
         this.logger.log(`Processing ${JobName.CREATE_DONATION} for user ${job.data.userId}`);
@@ -44,7 +45,7 @@ export class DonationJobsHandler {
             this.logger.log(`[MonthlyDonationsJob] Monthly donation ${donation.id} raised successfully for user: ${job.data.userId}`);
         } catch (error) {
             if (error instanceof BusinessException) {
-                this.logger.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: Donation already exists.`);
+                this.logger.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: ${error.message}.`);
             } else {
                 this.logger.error(`[MonthlyDonationsJob] Error raising monthly donation for user: ${job.data.userId} Error : ${error}`);
                 throw error;

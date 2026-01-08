@@ -9,12 +9,12 @@ import { CacheModule } from '@nestjs/cache-manager';
 import KeyvRedis from '@keyv/redis';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { FinanceModule } from './modules/finance/finance.module';
-import { config } from './config/config';
+import { config } from './config/app.config';
 import { DMSModule } from './modules/shared/dms/dms.module';
 import { PublicModule } from './modules/public/public.module';
-import { ScheduleModule } from '@nestjs/schedule';
 import { ProjectModule } from './modules/project/project.module';
 import { CorrespondenceModule } from './modules/shared/correspondence/correspondence.module';
+import { CronModule } from './modules/shared/cron/cron.module';
 
 @Module({
   controllers: [],
@@ -44,9 +44,6 @@ import { CorrespondenceModule } from './modules/shared/correspondence/correspond
         };
       },
     }),
-    ScheduleModule.forRoot({
-
-    }),
     DatabaseModule.forRoot({
       postgresUrl: config.database.postgresUrl,
     }),
@@ -57,7 +54,8 @@ import { CorrespondenceModule } from './modules/shared/correspondence/correspond
     DMSModule,
     PublicModule,
     ProjectModule,
-    CorrespondenceModule
+    CorrespondenceModule,
+    CronModule
   ],
 })
 export class AppModule { }

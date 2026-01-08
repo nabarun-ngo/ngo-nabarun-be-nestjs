@@ -9,7 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { BusinessException } from '../exceptions/business-exception';
 import { ErrorResponse } from '../models/response-model';
-import { config } from '../../config/config';
+import { config } from '../../config/app.config';
 import { getTraceId, resolveTraceId } from '../utils/trace-context.util';
 
 /**
