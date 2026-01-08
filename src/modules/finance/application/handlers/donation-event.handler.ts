@@ -109,7 +109,6 @@ export class DonationsEventHandler {
         const defaultAmount = Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT));
         for (const user of users) {
             const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
-            console.log(amount)
             await this.jobProcessingService.addJob(
                 JobName.CREATE_DONATION,
                 {
@@ -124,10 +123,12 @@ export class DonationsEventHandler {
                     },
                     removeOnComplete: false,
                     removeOnFail: false,
-                    delay: 20000,
+                    delay: 2000, // All jobs will become ready after 2 seconds
                 }
             );
         }
+
+        this.logger.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs (concurrency: 4 will process them)`);
     }
 
     @OnEvent(TriggerMarkDonationAsPendingEvent.name, { async: true })
@@ -147,13 +148,16 @@ export class DonationsEventHandler {
         this.logger.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
         const donations = await this.donationRepository.findAll({ status: [DonationStatus.PENDING], isGuest: false });
         const userDonations = groupBy(donations, (donation) => donation.donorId);
-        for (const [userId, donations] of Object.entries(userDonations)) {
+
+        // Add jobs - concurrency will handle processing rate
+        // All jobs with same delay will become ready at same time, but concurrency limits simultaneous processing
+        for (const [userId, userDonationsList] of Object.entries(userDonations)) {
             await this.jobProcessingService.addJob(
                 JobName.SEND_DONATION_REMINDER_EMAIL,
                 {
                     donorId: userId,
-                    donorEmail: donations[0].donorEmail,
-                    donorName: donations[0].donorName,
+                    donorEmail: userDonationsList[0].donorEmail,
+                    donorName: userDonationsList[0].donorName,
                 },
                 {
                     attempts: 1,
@@ -163,9 +167,11 @@ export class DonationsEventHandler {
                     },
                     removeOnComplete: true,
                     removeOnFail: false,
-                    delay: 2000
+                    delay: 2000, // All jobs will become ready after 2 seconds
                 }
             );
         }
+
+        this.logger.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs (concurrency will process them)`);
     }
 }
