@@ -9,6 +9,7 @@ import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
 import { DonationStatus, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CronLogger } from 'src/shared/utils/trace-context.util';
+import { formatDate } from 'src/shared/utilities/common.util';
 
 @Injectable()
 export class DonationJobsHandler {
@@ -85,7 +86,7 @@ export class DonationJobsHandler {
                 ...pendingDonations.map((donation) => {
                     return [
                         donation?.id,
-                        `${donation?.startDate?.toLocaleDateString()} - ${donation?.endDate?.toLocaleDateString()}`,
+                        `${formatDate(donation?.startDate!)} - ${formatDate(donation?.endDate!)}`,
                         `₹ ${donation?.amount}`,
                     ];
                 })];

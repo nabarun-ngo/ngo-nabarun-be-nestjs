@@ -8,6 +8,7 @@ import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '
 import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { EmailTemplateName } from 'src/shared/email-keys';
+import { formatDate } from 'src/shared/utilities/common.util';
 
 export interface WorkflowAutomaticTaskJobData {
   instanceId: string;
@@ -66,7 +67,7 @@ export class WorkflowJobProcessor {
           return [
             task?.id,
             task.name,
-            task?.createdAt?.toLocaleDateString(),
+            formatDate(task?.createdAt),
           ];
         })];
 

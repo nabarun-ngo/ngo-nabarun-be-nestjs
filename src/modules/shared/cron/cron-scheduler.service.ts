@@ -1,21 +1,28 @@
 // src/cron/cron-scheduler.service.ts
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CRON_JOBS } from 'src/config/cron.config';
 import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { CronExpressionParser } from 'cron-parser';
 import { CronJobDto } from './cron-job.dto';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { CronJob } from './cron-job.model';
+import { RemoteConfigService } from '../firebase/remote-config/remote-config.service';
+import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
 
 @Injectable()
 export class CronSchedulerService {
     private readonly logger = new CronLogger(CronSchedulerService.name);
 
-    constructor(private eventEmitter: EventEmitter2) { }
+    constructor(private eventEmitter: EventEmitter2,
+        private readonly firebasRC: RemoteConfigService,
+    ) { }
 
     async triggerScheduledJobs(timestamp?: string): Promise<{ executed: string[], skipped: string[] }> {
+        this.logger.log(`[CRON] Triggering scheduled jobs at ${timestamp}`);
         const now = timestamp ? new Date(timestamp) : new Date();
         const executed: string[] = [];
         const skipped: string[] = [];
+        const CRON_JOBS = await this.fetchCronJobs();
 
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
@@ -31,8 +38,23 @@ export class CronSchedulerService {
         return { executed, skipped };
     }
 
+    async fetchCronJobs(): Promise<CronJob[]> {
+        const config = await this.firebasRC.getAllKeyValues();
+        const cronJobs = parseKeyValueConfigs(config['CRON_JOBS'].value);
+
+        return cronJobs.map(m => {
+            return {
+                name: m.KEY,
+                expression: m.VALUE,
+                description: m.DESCRIPTION,
+                handler: m.getAttribute('EVENT_NAME'),
+                enabled: m.ACTIVE,
+            } as CronJob;
+        });
+    }
+
     async getScheduledJobs() {
-        return CRON_JOBS.filter(f => f.enabled).map(m => {
+        return (await this.fetchCronJobs()).filter(f => f.enabled).map(m => {
             return {
                 name: m.name,
                 description: m.description,
@@ -44,9 +66,9 @@ export class CronSchedulerService {
     }
 
     async runScheduledJob(name: string) {
-        const job = CRON_JOBS.find(f => f.name === name);
+        const job = (await this.getScheduledJobs()).find(f => f.name === name);
         if (!job) {
-            throw new Error(`Job ${name} not found`);
+            throw new BusinessException(`Job ${name} not found OR Not in active state`);
         }
         return await this.eventEmitter.emitAsync(job.handler);
     }

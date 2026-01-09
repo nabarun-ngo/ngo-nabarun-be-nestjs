@@ -4,6 +4,8 @@ import { CronSchedulerService } from './cron-scheduler.service';
 import { ApiBearerAuth, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { UseApiKey } from '../auth/application/decorators/use-api-key.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
+import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { CronJobDto } from './cron-job.dto';
 
 @ApiTags(CronController.name)
 @Controller('cron')
@@ -23,13 +25,14 @@ export class CronController {
     }
 
     @Post('run/:name')
+    @ApiAutoResponse(SuccessResponse, { description: 'OK', wrapInSuccessResponse: true })
     async runScheduledJob(@Param('name') name: string) {
-        return new SuccessResponse(
-            await this.schedulerService.runScheduledJob(name)
-        );
+        await this.schedulerService.runScheduledJob(name)
+        return new SuccessResponse();
     }
 
     @Get('jobs')
+    @ApiAutoResponse(CronJobDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
     async getScheduledJobs() {
         return new SuccessResponse(
             await this.schedulerService.getScheduledJobs()

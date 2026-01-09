@@ -49,14 +49,14 @@ export class FirebaseStorageService {
         }
     }
 
-    async getSignedUrl(fileName: string): Promise<string> {
+    async getSignedUrl(fileName: string, expireAfter: number = 15 * 60 * 1000): Promise<string> {
         const bucket = this.app.storage().bucket();
         const file = bucket.file(fileName);
 
         try {
             const [url] = await file.getSignedUrl({
                 action: 'read',
-                expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+                expires: new Date(Date.now() + expireAfter), // 15 minutes
             });
             return url;
         } catch (error) {
@@ -73,7 +73,14 @@ export class FirebaseStorageService {
             throw new Error('File not found');
         }
 
-        return file.createReadStream(); // readable stream
+        const stream = file.createReadStream();
+
+        stream.on('error', (error) => {
+            console.error('Firebase stream error:', error);
+            throw error;
+        });
+
+        return stream;
     }
 
 }

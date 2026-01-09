@@ -14,6 +14,7 @@ import { ConfigService } from "@nestjs/config";
 import { Configkey } from "src/shared/config-keys";
 import { DonationStatus } from "../../domain/model/donation.model";
 import { groupBy } from "lodash";
+import { formatDate } from "src/shared/utilities/common.util";
 
 export class TriggerMonthlyDonationEvent { }
 export class TriggerMarkDonationAsPendingEvent { }
@@ -56,7 +57,7 @@ export class DonationsEventHandler {
                 data: {
                     donation: donation.toJson(),
                     donationPeriod: donation.startDate && donation.endDate
-                        ? `${donation.startDate.toLocaleDateString()} to ${donation.endDate?.toLocaleDateString()}`
+                        ? `${formatDate(donation.startDate)} - ${formatDate(donation.endDate)}`
                         : 'Not Applicable',
                 },
             });
@@ -86,11 +87,11 @@ export class DonationsEventHandler {
                     },
                 },
                 data: {
-                    paidOn: donation?.paidOn?.toLocaleDateString(),
+                    paidOn: donation?.paidOn ? formatDate(donation?.paidOn) : 'Not Applicable',
                     confirmedByName: donation?.confirmedBy?.fullName,
                     donation: donation.toJson(),
                     donationPeriod: donation?.startDate && donation?.endDate
-                        ? `${donation.startDate.toLocaleDateString()} to ${donation.endDate?.toLocaleDateString()}`
+                        ? `${formatDate(donation.startDate)} - ${formatDate(donation.endDate)}`
                         : 'Not Applicable',
                 },
             });

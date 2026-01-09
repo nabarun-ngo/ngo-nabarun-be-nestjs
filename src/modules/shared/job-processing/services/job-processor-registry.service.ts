@@ -136,6 +136,10 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
           age: 3600 * 24 * 7, // 7 Days
           count: 500,
         },
+        limiter: {
+          max: 1,
+          duration: 2000
+        }
       },
     );
 
