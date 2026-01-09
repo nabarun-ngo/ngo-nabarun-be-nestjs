@@ -46,7 +46,6 @@ import { MetadataService } from './infrastructure/external/metadata.service';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { ReverseTransactionUseCase } from './application/use-cases/reverse-transaction.use-case';
 import { DonationsEventHandler } from './application/handlers/donation-event.handler';
-import { DonationsCronJobHandler } from './application/handlers/donations-cron-job.handler';
 import { DonationJobsHandler } from './application/handlers/donation-jobs.handler';
 
 /**
@@ -125,7 +124,6 @@ import { DonationJobsHandler } from './application/handlers/donation-jobs.handle
     },
 
     // ===== HANDLERS =====
-    DonationsCronJobHandler,
     MetadataService,
     DonationsEventHandler,
     DonationJobsHandler

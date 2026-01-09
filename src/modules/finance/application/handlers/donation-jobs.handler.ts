@@ -9,6 +9,7 @@ import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
 import { DonationStatus, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CronLogger } from 'src/shared/utils/trace-context.util';
+import { formatDate } from 'src/shared/utilities/common.util';
 
 @Injectable()
 export class DonationJobsHandler {
@@ -24,6 +25,7 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.CREATE_DONATION,
+        concurrency: 4
     })
     async createDonationForUser(job: Job<{ userId: string; amount: number }>) {
         this.logger.log(`Processing ${JobName.CREATE_DONATION} for user ${job.data.userId}`);
@@ -44,7 +46,7 @@ export class DonationJobsHandler {
             this.logger.log(`[MonthlyDonationsJob] Monthly donation ${donation.id} raised successfully for user: ${job.data.userId}`);
         } catch (error) {
             if (error instanceof BusinessException) {
-                this.logger.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: Donation already exists.`);
+                this.logger.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: ${error.message}.`);
             } else {
                 this.logger.error(`[MonthlyDonationsJob] Error raising monthly donation for user: ${job.data.userId} Error : ${error}`);
                 throw error;
@@ -84,7 +86,7 @@ export class DonationJobsHandler {
                 ...pendingDonations.map((donation) => {
                     return [
                         donation?.id,
-                        `${donation?.startDate?.toLocaleDateString()} - ${donation?.endDate?.toLocaleDateString()}`,
+                        `${formatDate(donation?.startDate!)} - ${formatDate(donation?.endDate!)}`,
                         `₹ ${donation?.amount}`,
                     ];
                 })];

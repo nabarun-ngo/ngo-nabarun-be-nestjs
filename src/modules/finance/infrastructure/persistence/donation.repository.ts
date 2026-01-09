@@ -34,7 +34,9 @@ class DonationRepository implements IDonationRepository {
     const [data, total] = await Promise.all([
       this.prisma.donation.findMany({
         where,
-        orderBy: { raisedOn: 'desc' },
+        orderBy: {
+          ...filter?.props?.isGuest ? { raisedOn: 'desc' } : { startDate: 'desc' }
+        },
         include: {
           donor: true,
           paidToAccount: true,
@@ -57,7 +59,9 @@ class DonationRepository implements IDonationRepository {
   async findAll(filter?: DonationDetailFilterDto): Promise<Donation[]> {
     const donations = await this.prisma.donation.findMany({
       where: this.whereQuery(filter),
-      orderBy: { raisedOn: 'desc' },
+      orderBy: {
+        ...filter?.isGuest ? { raisedOn: 'desc' } : { startDate: 'desc' }
+      },
       include: {
         donor: true,
         paidToAccount: true,

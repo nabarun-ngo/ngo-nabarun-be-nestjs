@@ -6,6 +6,8 @@ import { RoleAssignedEvent } from "../../domain/events/role-assigned.event";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { JobName } from "src/shared/job-names";
+import { formatDate } from "src/shared/utilities/common.util";
+import { StaticDocsService } from "src/modules/shared/dms/application/services/static-docs.service";
 
 @Injectable()
 export class UserEventsHandler {
@@ -14,6 +16,7 @@ export class UserEventsHandler {
   constructor(
     private readonly corrService: CorrespondenceService,
     private readonly jobProcessingService: JobProcessingService,
+    private readonly staticDocs: StaticDocsService
 
   ) { }
 
@@ -57,6 +60,8 @@ export class UserEventsHandler {
   @OnEvent(RoleAssignedEvent.name, { async: true })
   async handleRoleAssignedEvent(event: RoleAssignedEvent) {
     this.logger.log(`Handling ${RoleAssignedEvent.name} event: for user ${event.user.email} `)
+    const policyLink = await this.staticDocs.getStaticLink('POLICY_RULES_AND_REGULATIONS');
+
     const user = event.user;
     if (user.getRoles().length > 0) {
       await this.corrService.sendTemplatedEmail({
@@ -64,8 +69,8 @@ export class UserEventsHandler {
         data: {
           assigneeName: user.fullName,
           roleNames: user.getRoles().map(role => role.roleName).join(', '),
-          assignedBy: '',
-          effectiveDate: user.getRoles()[0].createdAt.toISOString()
+          effectiveDate: user.getRoles().length > 0 ? formatDate(user.getRoles()[0].createdAt) : 'Not Applicable',
+          rulesDoc: policyLink?.VALUE
         },
         options: {
           recipients: {

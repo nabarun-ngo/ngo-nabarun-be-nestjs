@@ -12,6 +12,8 @@ import { Donation, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { MetadataService } from '../../infrastructure/external/metadata.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
+import { format } from 'path';
+import { formatDate } from 'src/shared/utilities/common.util';
 
 @Injectable()
 export class DonationService {
@@ -117,7 +119,9 @@ export class DonationService {
       hasOutstanding: donations.length > 0,
       outstandingMonths: donations
         .filter(d => d.startDate)
-        .map(d => d.startDate!.toLocaleString('en-US', { month: 'long', year: 'numeric' })),
+        .map(d => formatDate(d.startDate!, {
+          format: 'MMMM yyyy'
+        })),
     };
   }
 

@@ -62,14 +62,15 @@ export class DmsService {
         return await this.firebaseStorage.getSignedUrl(document.remotePath);
     }
 
-    async downloadFile(id: string): Promise<{ fileName: string, stream: NodeJS.ReadableStream }> {
+    async downloadFile(id: string): Promise<{ fileName: string, contentType: string, stream: NodeJS.ReadableStream }> {
         const document = await this.documentRepository.findById(id);
         if (!document) {
             throw new BusinessException('Document not found');
         }
         return {
             fileName: document.fileName,
-            stream: await this.firebaseStorage.downloadFile(document.remotePath)
+            stream: await this.firebaseStorage.downloadFile(document.remotePath),
+            contentType: document.contentType
         };
     }
 

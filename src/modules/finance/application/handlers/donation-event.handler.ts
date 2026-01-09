@@ -6,6 +6,19 @@ import { DONATION_REPOSITORY, type IDonationRepository } from "../../domain/repo
 import { EmailTemplateName } from "src/shared/email-keys";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { CronLogger } from "src/shared/utils/trace-context.util";
+import { JobName } from "src/shared/job-names";
+import { UserStatus } from "src/modules/user/domain/model/user.model";
+import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
+import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
+import { ConfigService } from "@nestjs/config";
+import { Configkey } from "src/shared/config-keys";
+import { DonationStatus } from "../../domain/model/donation.model";
+import { groupBy } from "lodash";
+import { formatDate } from "src/shared/utilities/common.util";
+
+export class TriggerMonthlyDonationEvent { }
+export class TriggerMarkDonationAsPendingEvent { }
+export class TriggerRemindPendingDonationsEvent { }
 
 @Injectable()
 export class DonationsEventHandler {
@@ -15,6 +28,11 @@ export class DonationsEventHandler {
         @Inject(DONATION_REPOSITORY)
         private readonly donationRepository: IDonationRepository,
         private readonly correspondenceService: CorrespondenceService,
+        @Inject(USER_REPOSITORY)
+        private readonly userRepository: IUserRepository,
+        private readonly jobProcessingService: JobProcessingService,
+        private readonly configService: ConfigService,
+
 
     ) { }
 
@@ -39,7 +57,7 @@ export class DonationsEventHandler {
                 data: {
                     donation: donation.toJson(),
                     donationPeriod: donation.startDate && donation.endDate
-                        ? `${donation.startDate.toLocaleDateString()} to ${donation.endDate?.toLocaleDateString()}`
+                        ? `${formatDate(donation.startDate)} - ${formatDate(donation.endDate)}`
                         : 'Not Applicable',
                 },
             });
@@ -69,11 +87,11 @@ export class DonationsEventHandler {
                     },
                 },
                 data: {
-                    paidOn: donation?.paidOn?.toLocaleDateString(),
+                    paidOn: donation?.paidOn ? formatDate(donation?.paidOn) : 'Not Applicable',
                     confirmedByName: donation?.confirmedBy?.fullName,
                     donation: donation.toJson(),
                     donationPeriod: donation?.startDate && donation?.endDate
-                        ? `${donation.startDate.toLocaleDateString()} to ${donation.endDate?.toLocaleDateString()}`
+                        ? `${formatDate(donation.startDate)} - ${formatDate(donation.endDate)}`
                         : 'Not Applicable',
                 },
             });
@@ -83,5 +101,78 @@ export class DonationsEventHandler {
             throw error;
         }
         this.logger.log(`Donation paid event end: ${event.donation.id}`);
+    }
+
+    @OnEvent(TriggerMonthlyDonationEvent.name)
+    async handleTriggerMonthlyDonationEvent(event: TriggerMonthlyDonationEvent) {
+        this.logger.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
+        const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
+        const defaultAmount = Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT));
+        for (const user of users) {
+            const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
+            await this.jobProcessingService.addJob(
+                JobName.CREATE_DONATION,
+                {
+                    userId: user.id,
+                    amount: amount,
+                },
+                {
+                    attempts: 3,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 2000,
+                    },
+                    removeOnComplete: false,
+                    removeOnFail: false,
+                    delay: 2000, // All jobs will become ready after 2 seconds
+                }
+            );
+        }
+
+        this.logger.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs (concurrency: 4 will process them)`);
+    }
+
+    @OnEvent(TriggerMarkDonationAsPendingEvent.name, { async: true })
+    async markPendingDonations(): Promise<void> {
+        this.logger.log('[PendingDonationsJob] Starting mark pending donations process...');
+        const raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] })
+        for (const donation of raisedDonations) {
+            donation.markAsPending();
+            await this.donationRepository.update(donation.id, donation);
+            this.logger.log(`[PendingDonationsJob] Donation ${donation.id} marked as pending...`);
+        }
+        this.logger.log('[PendingDonationsJob] Completed mark pending donations process...');
+    }
+
+    @OnEvent(TriggerRemindPendingDonationsEvent.name, { async: true })
+    async remindPendingDonations(): Promise<void> {
+        this.logger.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
+        const donations = await this.donationRepository.findAll({ status: [DonationStatus.PENDING], isGuest: false });
+        const userDonations = groupBy(donations, (donation) => donation.donorId);
+
+        // Add jobs - concurrency will handle processing rate
+        // All jobs with same delay will become ready at same time, but concurrency limits simultaneous processing
+        for (const [userId, userDonationsList] of Object.entries(userDonations)) {
+            await this.jobProcessingService.addJob(
+                JobName.SEND_DONATION_REMINDER_EMAIL,
+                {
+                    donorId: userId,
+                    donorEmail: userDonationsList[0].donorEmail,
+                    donorName: userDonationsList[0].donorName,
+                },
+                {
+                    attempts: 1,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 2000,
+                    },
+                    removeOnComplete: true,
+                    removeOnFail: false,
+                    delay: 2000, // All jobs will become ready after 2 seconds
+                }
+            );
+        }
+
+        this.logger.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs (concurrency will process them)`);
     }
 }
