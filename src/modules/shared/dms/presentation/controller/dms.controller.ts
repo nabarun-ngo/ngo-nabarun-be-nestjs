@@ -1,8 +1,8 @@
 // dms.controller.ts
-import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post, Res } from '@nestjs/common';
 import { DmsService } from '../../application/services/dms.service';
 import { DmsUploadDto } from '../dto/dms-upload.dto';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiProduces, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DocumentMappingRefType } from '../../domain/mapping.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
@@ -10,6 +10,7 @@ import { DocumentDto } from '../dto/document.dto';
 import type { Response } from 'express';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
+import { StreamableFile } from '@nestjs/common';
 
 @ApiTags(DmsController.name)
 @ApiBearerAuth('jwt')
@@ -49,19 +50,36 @@ export class DmsController {
         return new SuccessResponse<string>(result);
     }
 
+
     @Get('document/:id/download')
     @ApiOperation({ summary: 'Download a document file' })
-    // Note: This endpoint returns a stream, so Swagger response model is not applicable
+    @ApiParam({ name: 'id', description: 'Document ID', type: String })
+    @ApiProduces('application/octet-stream')
+    @ApiResponse({
+        status: 200,
+        description: 'File downloaded successfully',
+        content: {
+            'application/octet-stream': {
+                schema: {
+                    type: 'string',
+                    format: 'binary',
+                },
+            },
+        },
+    })
+    @ApiResponse({ status: 404, description: 'Document not found' })
+    @ApiResponse({ status: 500, description: 'Internal server error' })
+    @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
     async downloadDocument(
         @Param('id') id: string,
-        @Res() res: Response) {
-        const { fileName: filename, stream: result } = await this.dmsService.downloadFile(id);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${filename}"`,
-        );
-        result.pipe(res);
-    }
+        @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+        const { fileName: filename, stream: result, contentType } = await this.dmsService.downloadFile(id);
 
+        res.set({
+            'Content-Type': contentType,
+            'Content-Disposition': `attachment; filename="${filename}"`,
+        });
+
+        return new StreamableFile(result as any);
+    }
 }

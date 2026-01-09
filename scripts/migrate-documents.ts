@@ -70,7 +70,7 @@ const mapToDocumentReference = (doc: MongoDocumentRefDoc): Prisma.DocumentRefere
     return {
         id: parseId(doc._id),
         fileName: doc.originalFileName || 'unknown',
-        remotePath: doc.downloadUrl || '',
+        remotePath: doc.remoteFileName || '',
         publicToken: extractToken(doc.downloadUrl),
         contentType: doc.fileType || 'application/octet-stream',
         fileSize: 0, // Not available in MongoDB
