@@ -18,19 +18,20 @@ export class CronSchedulerService {
     ) { }
 
     async triggerScheduledJobs(timestamp?: string): Promise<{ executed: string[], skipped: string[] }> {
-        this.logger.log(`[CRON] Triggering scheduled jobs at ${timestamp}`);
         const now = timestamp ? new Date(timestamp) : new Date();
+        const istTime = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        this.logger.log(`[CRON] Triggering scheduled jobs. Trigger DateTime: ${timestamp} -> Server DateTime: ${now.toISOString()} -> IST (interpreted): ${istTime}`);
         const executed: string[] = [];
         const skipped: string[] = [];
         const CRON_JOBS = await this.fetchCronJobs();
 
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
-                this.logger.log(`Triggered job: ${job.name}`);
+                this.logger.log(`[CRON] Triggered job: ${job.name}`);
                 this.eventEmitter.emit(job.handler);
                 executed.push(job.name);
             } else {
-                this.logger.log(`Skipped job: ${job.name}`);
+                this.logger.log(`[CRON] Skipped job: ${job.name}`);
                 skipped.push(job.name);
             }
         }
@@ -60,7 +61,7 @@ export class CronSchedulerService {
                 description: m.description,
                 handler: m.handler,
                 enabled: m.enabled,
-                nextRun: CronExpressionParser.parse(m.expression).next().toDate()
+                nextRun: CronExpressionParser.parse(m.expression, { tz: 'Asia/Kolkata' }).next().toDate()
             } as CronJobDto;
         });
     }
@@ -78,21 +79,27 @@ export class CronSchedulerService {
    */
     private shouldExecute(expression: string, intendedTime: Date): boolean {
         try {
+            // We shift the current date back by 1 minute to make the check inclusive
+            // of the intendedTime itself, as CronExpressionParser.next() returns the next occurrence STRICTLY AFTER currentDate.
+            const searchStart = new Date(intendedTime.getTime() - 60000);
             const interval = CronExpressionParser.parse(expression, {
-                //currentDate: new Date(intendedTime.getTime() - 60000), // Start from 1 min before
-                //endDate: new Date(intendedTime.getTime() + 60000), // End 1 min after,
+                currentDate: searchStart,
                 tz: 'Asia/Kolkata'
             });
-            // Check if intended time falls within the next execution window
             const nextRun = interval.next().toDate();
-            console.log(expression, nextRun);
-            const diffMs = Math.abs(nextRun.getTime() - intendedTime.getTime());
 
-            // If within 30 seconds, consider it a match
-            if (diffMs < 30000) {
-                return true;
-            }
-            return false;
+            // Allow a small window (60s) for matching to handle Cloud Scheduler jitter
+            const diffSeconds = Math.abs(nextRun.getTime() - intendedTime.getTime()) / 1000;
+            const match = diffSeconds < 60;
+
+            this.logger.log(
+                `[CRON] Evaluating: "${expression}". ` +
+                `Next scheduled: ${nextRun.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} IST. ` +
+                `Trigger time: ${intendedTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} IST. ` +
+                `Diff: ${diffSeconds.toFixed(1)}s. Match: ${match}`
+            );
+
+            return match;
         } catch (error) {
             this.logger.error(`Invalid cron expression: ${expression} ${error.stack}`);
             return false;
