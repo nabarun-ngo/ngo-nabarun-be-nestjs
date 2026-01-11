@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 
 
@@ -73,6 +74,9 @@ export class Meeting extends AggregateRoot<string> {
         location: string;
         attendees: Participant[]
     }) {
+        if (op.endTime && op.startTime && op.endTime.getTime() < op.startTime.getTime()) {
+            throw new BusinessException('End time must be after start time');
+        }
         return new Meeting(
             randomUUID(),
             op.summary,
@@ -98,6 +102,9 @@ export class Meeting extends AggregateRoot<string> {
         attendees?: Participant[],
         outcomes?: string
     }) {
+        if (op.endTime && op.startTime && op.endTime.getTime() < op.startTime.getTime()) {
+            throw new BusinessException('End time must be after start time');
+        }
         this.#summary = op.summary ?? this.#summary;
         this.#agenda = op.agenda ?? this.#agenda;
         this.#description = op.description ?? this.#description;
