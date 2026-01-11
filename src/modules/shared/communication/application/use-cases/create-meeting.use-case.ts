@@ -21,7 +21,7 @@ export class CreateMeetingUseCase implements IUseCase<CreateMeetingDto, Meeting>
         // 1. Create in Google Calendar
         const googleEvent = await this.googleCalendarService.createEvent({
             summary: request.summary,
-            description: `${request.description}\nAgenda: ${request.agenda}`,
+            description: `${request.description ?? ''}\nAgenda: ${request.agenda ?? 'Not Available'}`,
             startTime: DateTime.fromISO(request.startTime, { zone: "Asia/Kolkata" }).toJSDate(),
             endTime: DateTime.fromISO(request.endTime, { zone: "Asia/Kolkata" }).toJSDate(),
             attendees: request.attendees.map((attendee) => attendee.email),

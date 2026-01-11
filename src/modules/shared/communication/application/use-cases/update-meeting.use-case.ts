@@ -34,7 +34,7 @@ export class UpdateMeetingUseCase implements IUseCase<UpdateMeetingRequest, Meet
         // 1. Update in Google Calendar
         const googleEvent = await this.googleCalendarService.updateEvent(existingMeeting.extMeetingId!, {
             summary: updateData.summary,
-            description: `${updateData.description ?? ''}\nAgenda: ${updateData.agenda ?? 'Not Available'}`,
+            description: `${updateData.description ?? existingMeeting.description ?? ''}\nAgenda: ${updateData.agenda ?? existingMeeting.agenda ?? 'Not Available'}`,
             startTime: updateData.startTime ? DateTime.fromISO(updateData.startTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
             endTime: updateData.endTime ? DateTime.fromISO(updateData.endTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
             location: updateData.location,
