@@ -14,10 +14,10 @@ export class PrismaPostgresService
   private readonly logger = new Logger(PrismaPostgresService.name);
 
   constructor(@Inject('POSTGRES_URL') dbUrl: string) {
-     super({
+    super({
       datasources: {
         db: {
-          url: dbUrl!, 
+          url: dbUrl!,
         },
       },
       log: ['error', 'warn'],

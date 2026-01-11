@@ -14,6 +14,7 @@ import { DMSModule } from './modules/shared/dms/dms.module';
 import { PublicModule } from './modules/public/public.module';
 import { ProjectModule } from './modules/project/project.module';
 import { CorrespondenceModule } from './modules/shared/correspondence/correspondence.module';
+import { CommunicationModule } from './modules/shared/communication/communication.module';
 import { CronModule } from './modules/shared/cron/cron.module';
 
 @Module({
@@ -55,6 +56,7 @@ import { CronModule } from './modules/shared/cron/cron.module';
     PublicModule,
     ProjectModule,
     CorrespondenceModule,
+    CommunicationModule,
     CronModule
   ],
 })

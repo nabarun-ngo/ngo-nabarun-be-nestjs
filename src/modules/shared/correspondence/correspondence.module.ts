@@ -17,8 +17,8 @@ helpers({ handlebars: Handlebars });
   imports: [FirebaseModule, HttpModule, AuthModule],
   controllers: [CorrespondenceController],
   providers: [
-    GmailService, CorrespondenceService, NotificationHandler],
+    GmailService, CorrespondenceService, NotificationHandler
+  ],
   exports: [CorrespondenceService],
 })
 export class CorrespondenceModule { }
-
