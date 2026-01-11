@@ -87,10 +87,10 @@ export class CreateActivityUseCase implements IUseCase<CreateActivity, Activity>
     const savedActivity = await this.activityRepository.create(activity);
 
     // Emit domain events
-    for (const event of savedActivity.domainEvents) {
+    for (const event of activity.domainEvents) {
       this.eventEmitter.emit(event.constructor.name, event);
     }
-    savedActivity.clearEvents();
+    activity.clearEvents();
 
     return savedActivity;
   }

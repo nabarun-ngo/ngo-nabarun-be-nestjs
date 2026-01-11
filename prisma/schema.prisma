@@ -55,7 +55,6 @@ model UserProfile {
   taskAssignments    TaskAssignment[]    @relation("taskAssignments")
   taskCompleted      WorkflowTask[]      @relation("taskCompletedBy")
   noticesCreated     Notice[]            @relation("NoticeCreator")
-  meetingAttendances MeetingAttendee[]   @relation("MeetingAttendees")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -596,10 +595,6 @@ model Notice {
   creator         UserProfile? @relation("NoticeCreator", fields: [creatorId], references: [id])
   creatorRoleCode String?      @db.VarChar(50)
 
-  // Meeting relation
-  meetingId String?  @unique @db.VarChar(255)
-  meeting   Meeting? @relation(fields: [meetingId], references: [id])
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   version   Int       @default(0)
@@ -612,28 +607,25 @@ model Notice {
 }
 
 model Meeting {
-  id                     String   @id @default(uuid())
-  extMeetingId           String?  @db.VarChar(255) // Google Calendar event ID
-  meetingSummary         String   @db.VarChar(500)
-  meetingDescription     String?  @db.Text
-  meetingLocation        String?  @db.VarChar(500)
-  meetingDate            DateTime
-  meetingStartTime       String?  @db.VarChar(20) // Format: "HH:mm" or "HH:mm:ss"
-  meetingEndTime         String?  @db.VarChar(20) // Format: "HH:mm" or "HH:mm:ss"
-  meetingRefId           String?  @db.VarChar(255) // Reference to Notice or Event
-  meetingType            String   @db.VarChar(20) // OFFLINE, ONLINE_VIDEO, ONLINE_AUDIO
-  status                 String   @db.VarChar(20) // CREATED_L, CREATED_G, FAILED_L, FAILED_G, UPDATED_L, UPDATED_G
-  meetingRemarks         String?  @db.Text
-  meetingRefType         String?  @db.VarChar(20) // NOTICE, EVENT
-  extAudioConferenceLink String?  @db.VarChar(1000) // Google Meet phone link
-  extVideoConferenceLink String?  @db.VarChar(1000) // Google Meet video link
-  extHtmlLink            String?  @db.VarChar(1000) // Google Calendar event link
-  creatorEmail           String?  @db.VarChar(255)
-  extConferenceStatus    String?  @db.VarChar(100)
-
-  // Relations
-  notices   Notice[] // Notices that reference this meeting
-  attendees MeetingAttendee[]
+  id                     String    @id @default(uuid())
+  extMeetingId           String?   @unique @db.VarChar(255) // Google Calendar event ID
+  meetingSummary         String    @db.VarChar(500)
+  meetingDescription     String?   @db.Text
+  meetingLocation        String?   @db.VarChar(500)
+  meetingStartTime       DateTime?
+  meetingEndTime         DateTime?
+  meetingRefId           String?   @db.VarChar(255) // Reference to Notice or Event
+  meetingType            String    @db.VarChar(20) // OFFLINE, ONLINE
+  status                 String    @db.VarChar(20) // 
+  meetingRemarks         String?   @db.Text
+  meetingRefType         String?   @db.VarChar(20) // NOTICE, EVENT
+  extVideoConferenceLink String?   @db.VarChar(1000) // Google Meet video link
+  extHtmlLink            String?   @db.VarChar(1000) // Google Calendar event link
+  creatorEmail           String?   @db.VarChar(255)
+  extConferenceStatus    String?   @db.VarChar(100)
+  meetingAgenda          String?   @db.Text
+  meetingOutcomes        String?   @db.Text
+  attendees              String?   @db.Text
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -642,24 +634,8 @@ model Meeting {
 
   @@index([meetingType, status])
   @@index([meetingRefId, meetingRefType])
-  @@index([meetingDate])
   @@index([extMeetingId])
   @@map("meetings")
-}
-
-model MeetingAttendee {
-  id        String       @id @default(uuid())
-  meetingId String       @db.VarChar(255)
-  meeting   Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  userId    String       @db.VarChar(255) // User ID
-  user      UserProfile? @relation("MeetingAttendees", fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([meetingId, userId])
-  @@index([meetingId])
-  @@index([userId])
-  @@map("meeting_attendees")
 }
 
 // ====================================
