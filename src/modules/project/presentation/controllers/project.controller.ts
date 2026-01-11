@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ProjectService } from '../../application/services/project.service';
-import { CreateProjectDto, UpdateProjectDto, ProjectDetailDto, ProjectDetailFilterDto } from '../../application/dto/project.dto';
+import { CreateProjectDto, UpdateProjectDto, ProjectDetailDto, ProjectDetailFilterDto, ProjectRefDataDto } from '../../application/dto/project.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
-import { ActivityDetailDto, CreateActivityDto } from '../../application/dto/activity.dto';
+import { ActivityDetailDto, CreateActivityDto, UpdateActivityDto } from '../../application/dto/activity.dto';
 import { ActivityFilterProps } from '../../domain/model/activity.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
@@ -90,5 +90,29 @@ export class ProjectController {
       await this.projectService.createActivity(id, dto)
     );
   }
+
+  @Patch(':id/activity/:activityId')
+  @ApiOperation({ summary: 'Update project activity' })
+  @ApiAutoResponse(ActivityDetailDto, { description: 'Project activity updated successfully', wrapInSuccessResponse: true })
+  async updateActivity(
+    @Param('id') id: string,
+    @Param('activityId') activityId: string,
+    @Body() dto: UpdateActivityDto,
+  ): Promise<SuccessResponse<ActivityDetailDto>> {
+    return new SuccessResponse(
+      await this.projectService.updateActivity(id, activityId, dto)
+    );
+  }
+
+  @Get('static/referenceData')
+  @ApiOperation({ summary: 'Get project reference data' })
+  @ApiAutoResponse(ProjectRefDataDto, { wrapInSuccessResponse: true, description: 'Project reference data retrieved successfully' })
+  async getReferenceData(): Promise<SuccessResponse<ProjectRefDataDto>> {
+    return new SuccessResponse<ProjectRefDataDto>(
+      await this.projectService.getReferenceData()
+    );
+  }
+
+
 }
 

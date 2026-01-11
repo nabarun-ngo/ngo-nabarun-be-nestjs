@@ -26,15 +26,17 @@ import { UpdateProjectUseCase } from './application/use-cases/update-project.use
 import { CreateGoalUseCase } from './application/use-cases/create-goal.use-case';
 import { CreateActivityUseCase } from './application/use-cases/create-activity.use-case';
 import { LinkExpenseToActivityUseCase } from './application/use-cases/link-expense-to-activity.use-case';
+import { UpdateActivityUseCase } from './application/use-cases/update-activity.use-case';
 
 // Services
 import { ProjectService } from './application/services/project.service';
 
 // Controllers
 import { ProjectController } from './presentation/controllers/project.controller';
+import { FirebaseModule } from '../shared/firebase/firebase.module';
 
 @Module({
-  imports: [DatabaseModule, EventEmitterModule],
+  imports: [FirebaseModule],
   controllers: [ProjectController],
   providers: [
     // Repositories
@@ -76,6 +78,7 @@ import { ProjectController } from './presentation/controllers/project.controller
     CreateGoalUseCase,
     CreateActivityUseCase,
     LinkExpenseToActivityUseCase,
+    UpdateActivityUseCase,
     // Services
     ProjectService,
   ],

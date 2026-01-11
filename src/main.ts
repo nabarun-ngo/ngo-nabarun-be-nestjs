@@ -18,7 +18,7 @@ async function bootstrap() {
   console.time('LISTEN');
   await app.listen(config.app.port, '0.0.0.0');
   console.timeEnd('LISTEN');
-  console.log(`Application is running on: ${await app.getUrl()} - Environment: ${config.app.environment} Port: ${config.app.port}`);
+  console.log(`Application is running on: ${await app.getUrl()} - Environment: ${config.app.environment} - Port: ${config.app.port}`);
   if (!config.app.isProd) {
     console.log(`Swagger documentation (UI): ${await app.getUrl()}/swagger-ui`);
     console.log(`Swagger documentation (API): ${await app.getUrl()}/api/docs`);

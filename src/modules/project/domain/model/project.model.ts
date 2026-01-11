@@ -188,6 +188,7 @@ export class Project extends AggregateRoot<string> {
     this.#sponsorId = props.sponsorId ?? this.#sponsorId;
     this.#tags = props.tags ?? this.#tags;
     this.#metadata = props.metadata ?? this.#metadata;
+    this.#startDate = props.startDate ?? this.#startDate;
 
     if (props.endDate) {
       if (props.endDate <= this.#startDate!) {
