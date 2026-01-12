@@ -156,8 +156,7 @@ export class Activity extends AggregateRoot<string> {
     if (!props.projectId || !props.name) {
       throw new BusinessException('Project ID and name are required');
     }
-
-    if (props.endDate && props.startDate && props.endDate <= props.startDate) {
+    if (props.endDate && props.startDate && props.endDate.getTime() < props.startDate.getTime()) {
       throw new BusinessException('End date must be after start date');
     }
 

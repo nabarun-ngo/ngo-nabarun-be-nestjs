@@ -103,9 +103,19 @@ export class UpdateActivityDto {
   description?: string;
 
   @IsOptional()
+  @IsEnum(ActivityScale)
+  @ApiPropertyOptional({ enum: ActivityScale })
+  scale?: ActivityScale;
+
+  @IsOptional()
   @IsEnum(ActivityType)
   @ApiPropertyOptional({ enum: ActivityType })
   type?: ActivityType;
+
+  @IsOptional()
+  @IsEnum(ActivityStatus)
+  @ApiPropertyOptional({ enum: ActivityStatus })
+  status?: ActivityStatus;
 
   @IsOptional()
   @IsEnum(ActivityPriority)

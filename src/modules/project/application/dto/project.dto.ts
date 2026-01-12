@@ -2,6 +2,8 @@ import { IsString, IsOptional, IsNumber, IsDate, IsArray, IsEnum, Min, IsBoolean
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectCategory, ProjectStatus, ProjectPhase } from '../../domain/model/project.model';
+import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
+import { UpdateActivityDto } from './activity.dto';
 
 export class CreateProjectDto {
   @IsString()
@@ -81,6 +83,12 @@ export class CreateProjectDto {
   metadata?: Record<string, any>;
 }
 
+export class UpdateProjectActivityDto extends UpdateActivityDto {
+  @IsString()
+  @ApiProperty()
+  id: string;
+}
+
 export class UpdateProjectDto {
   @IsOptional()
   @IsString()
@@ -144,6 +152,7 @@ export class UpdateProjectDto {
   @IsOptional()
   @ApiPropertyOptional()
   metadata?: Record<string, any>;
+
 }
 
 export class ProjectDetailDto {
@@ -283,5 +292,30 @@ export class ProjectDetailFilterDto {
   @IsString({ each: true })
   @ApiPropertyOptional({ type: [String] })
   tags?: string[];
+}
+
+
+export class ProjectRefDataDto {
+  @ApiProperty({ isArray: true })
+  projectCategories: KeyValueDto[];
+
+  @ApiProperty({ isArray: true })
+  projectStatuses: KeyValueDto[];
+
+  @ApiProperty({ isArray: true })
+  projectPhases: KeyValueDto[];
+
+  @ApiProperty({ isArray: true })
+  activityScales: KeyValueDto[];
+
+  @ApiProperty({ isArray: true })
+  activityTypes: KeyValueDto[];
+
+  @ApiProperty({ isArray: true })
+  activityStatuses: KeyValueDto[];
+
+  @ApiProperty({ isArray: true })
+  activityPriorities: KeyValueDto[];
+
 }
 
