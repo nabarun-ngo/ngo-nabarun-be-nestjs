@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ThirdPartyException } from '../../../../shared/exceptions/third-party-exception';
 import { LoginMethod, User, UserStatus } from '../../domain/model/user.model';
-import { ManagementClient } from 'auth0';
+import { AuthenticationClient, ManagementClient } from 'auth0';
 import { UserInfraMapper } from '../user-infra.mapper';
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
@@ -13,6 +13,7 @@ export type Auth0Role = Awaited<ReturnType<ManagementClient['roles']['get']>>;
 
 @Injectable()
 export class Auth0UserService {
+
 
   private readonly logger = new Logger(Auth0UserService.name);
   private readonly managementClient: ManagementClient;
@@ -163,6 +164,23 @@ export class Auth0UserService {
       return response.data;
     } catch (e) {
       this.logger.error(`Failed to update user ${id}: ${e.message}`, e.stack);
+      throw new ThirdPartyException('auth0', e);
+    }
+  }
+
+  async sendPasswordChangeEmail(email: string) {
+    try {
+      const authClient = new AuthenticationClient({
+        domain: this.configService.get(Configkey.AUTH0_DOMAIN)!,
+        clientId: this.configService.get(Configkey.AUTH0_MANAGEMENT_CLIENT_ID)!,
+      });
+      await authClient.database.changePassword({
+        connection: 'Username-Password-Authentication',
+        email: email,
+      });
+
+    } catch (e) {
+      this.logger.error(`Failed to send password change email to user ${email}: ${e.message}`, e.stack);
       throw new ThirdPartyException('auth0', e);
     }
   }
