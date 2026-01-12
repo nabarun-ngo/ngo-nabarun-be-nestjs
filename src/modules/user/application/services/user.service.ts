@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { USER_REPOSITORY } from "../../domain/repositories/user.repository.interface";
 import type { IUserRepository } from "../../domain/repositories/user.repository.interface";
-import { CreateUserDto, UserDto, UserFilterDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from "../dto/user.dto";
+import { CreateUserDto, UserDto, UserFilterDto, UserMetricsDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from "../dto/user.dto";
 import { CreateUserUseCase } from "../use-cases/create-user.use-case";
 import { PagedResult } from "src/shared/models/paged-result";
 import { BaseFilter } from "src/shared/models/base-filter-props";
@@ -16,6 +16,7 @@ import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
 import { UserMetadataService } from "../../infrastructure/external/user-metadata.service";
 import { UserDtoMapper } from "../dto/user-dto.mapper";
 import { BusinessException } from "src/shared/exceptions/business-exception";
+import { ChangePasswordUseCase } from "../use-cases/change-password.use-case";
 
 
 @Injectable()
@@ -25,6 +26,7 @@ export class UserService {
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
         private readonly createUseCase: CreateUserUseCase,
+        private readonly changePasswordUseCase: ChangePasswordUseCase,
         private readonly updateUseCase: UpdateUserUseCase,
         private readonly assignRoleUseCase: AssignRoleUseCase,
         private readonly metadataService: UserMetadataService
@@ -141,6 +143,14 @@ export class UserService {
         for (const userId of userIds) {
             await this.assignRole(userId, [roleCode]);
         }
+    }
+
+    async getUserMetrics(id: string): Promise<UserMetricsDto> {
+        return await this.userRepository.findUserMetrics(id);
+    }
+
+    async initPasswordChange(id: string): Promise<void> {
+        await this.changePasswordUseCase.execute({ id });
     }
 
     async getReferenceData(filter?: UserRefDataFilterDto): Promise<UserRefDataDto> {

@@ -171,6 +171,10 @@ export class WorkflowTask extends BaseDomain<string> {
     return this.#type !== WorkflowTaskType.AUTOMATIC;
   }
 
+  static get pendingTaskStatus(): WorkflowTaskStatus[] {
+    return [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS];
+  }
+
   // 🔓 Getters (Public Read-Only API)
   get stepId(): string {
     return this.#step.stepId;
