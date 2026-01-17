@@ -209,19 +209,9 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsString()
   remarks?: string;
-}
 
-export class AllocateFundDto {
-
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  fromAccountId: string;
-
-  @ApiProperty()
-  @IsNumber()
-  amount: number;
-
-  @ApiProperty()
-  @IsString()
-  toAccountId: string;
+  payerId?: string;
 }

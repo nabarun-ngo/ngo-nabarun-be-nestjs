@@ -82,9 +82,5 @@ export class ExpenseService {
     const expense = await this.finalizeExpenseUseCase.execute({ id, finalizedById });
     return ExpenseDtoMapper.toDto(expense);
   }
-
-  async allocateFund(id: string, dto: UpdateExpenseDto, arg2: string) {
-    throw new Error('Method not implemented.');
-  }
 }
 
