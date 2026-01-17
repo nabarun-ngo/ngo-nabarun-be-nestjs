@@ -409,5 +409,15 @@ export class UserRefDataFilterDto {
   stateCode?: string;
 }
 
+export class UserMetricsDto {
+  @ApiProperty()
+  pendingDonations: number;
+  @ApiProperty()
+  unsettledExpense: number;
+  @ApiProperty()
+  pendingTask: number;
+  @ApiProperty()
+  walletBalance: number;
+}
 
 

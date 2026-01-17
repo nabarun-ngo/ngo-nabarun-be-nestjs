@@ -293,6 +293,7 @@ export class Expense extends AggregateRoot<string> {
     expenseDate?: Date;
     expenseItems?: ExpenseItem[];
     remarks?: string;
+    payerId?: string;
   }): void {
     const allowedStatus = [ExpenseStatus.DRAFT, ExpenseStatus.SUBMITTED];
     if (!allowedStatus.includes(this.#status)) {
@@ -323,6 +324,9 @@ export class Expense extends AggregateRoot<string> {
     }
     if (props.remarks !== undefined) {
       this.#remarks = props.remarks;
+    }
+    if (props.payerId !== undefined) {
+      this.#paidBy = { id: props.payerId };
     }
     this.touch();
   }

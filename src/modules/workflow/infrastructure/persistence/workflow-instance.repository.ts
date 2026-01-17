@@ -95,7 +95,7 @@ class WorkflowInstanceRepository
     const where: Prisma.WorkflowTaskWhereInput = {
       ...(filter?.assignedTo ? { assignments: { some: { assignedToId: filter.assignedTo } } } : {}),
       ...(filter?.status ? { status: { in: filter.status } } : {}),
-      ...(filter?.completed ? { completedAt: { not: null } } : { completedAt: null }),
+      ...(filter?.completed ? { status: { notIn: WorkflowTask.pendingTaskStatus } } : { status: { in: WorkflowTask.pendingTaskStatus } }),
     };
     return where;
   }

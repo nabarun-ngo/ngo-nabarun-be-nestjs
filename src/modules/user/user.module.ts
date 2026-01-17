@@ -12,7 +12,7 @@ import { UserService } from './application/services/user.service';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
 import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
 import { DMSModule } from '../shared/dms/dms.module';
-import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
+import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
 
 @Module({
   controllers: [UserController],
@@ -29,7 +29,8 @@ import { CorrespondenceModule } from '../shared/correspondence/correspondence.mo
     UserJobsHandler,
     UserMetadataService,
     UserService,
-    AssignRoleUseCase
+    AssignRoleUseCase,
+    ChangePasswordUseCase
   ],
   exports: [USER_REPOSITORY, CreateUserUseCase],
 })

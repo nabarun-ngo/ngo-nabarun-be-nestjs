@@ -81,7 +81,7 @@ class ExpenseRepository implements IExpenseRepository {
       ...(props?.expenseStatus ? { status: { in: props.expenseStatus } } : {}),
       ...(props?.expenseId ? { id: props.expenseId } : {}),
       ...(props?.payerId ? { paidById: props.payerId } : {}),
-      ...(props?.expenseRefId ? { expenseRefId: props.expenseRefId } : {}),
+      ...(props?.expenseRefId ? { referenceId: props.expenseRefId } : {}),
       ...(props?.startDate || props?.endDate
         ? {
           expenseDate: {

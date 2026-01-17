@@ -7,7 +7,7 @@ import {
   Query,
   Put,
 } from '@nestjs/common';
-import { CreateUserDto, UserDto, UserFilterDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
+import { CreateUserDto, UserDto, UserFilterDto, UserMetricsDto, UserRefDataDto, UserRefDataFilterDto, UserUpdateAdminDto, UserUpdateDto } from '../../application/dto/user.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
 import { UserService } from '../../application/services/user.service';
@@ -92,6 +92,17 @@ export class UserController {
     );
   }
 
+  @Get('profile/metrics')
+  @ApiOperation({ summary: 'Get user metrics' })
+  @ApiAutoResponse(UserMetricsDto, { wrapInSuccessResponse: true, description: 'User metrics retrieved successfully' })
+  async getUserMetrics(
+    @CurrentUser() authUser: AuthUser,
+  ): Promise<SuccessResponse<UserMetricsDto>> {
+    return new SuccessResponse<UserMetricsDto>(
+      await this.userService.getUserMetrics(authUser.profile_id!)
+    );
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update user (admin update)' })
   @RequirePermissions('update:user')
@@ -131,21 +142,14 @@ export class UserController {
     return new SuccessResponse<void>();
   }
 
-
-
-
-  //   @Get('states')
-  //   @ApiOperation({ summary: 'Get states' })
-  //   @ApiAutoResponse(KeyValue, { description: 'States retrieved successfully', isArray: true, wrapInSuccessResponse: false })
-  //   async getStates(@Query('countryCode') countryCode: string): Promise<KeyValue[]> {
-  //       return await this.publicService.getStates(countryCode);
-  //   }
-
-  //   @Get('districts')
-  //   @ApiOperation({ summary: 'Get districts' })
-  //   @ApiAutoResponse(KeyValue, { description: 'Districts retrieved successfully', isArray: true, wrapInSuccessResponse: false })
-  //   async getDistricts(@Query('countryCode') countryCode: string, @Query('stateCode') stateCode: string): Promise<KeyValue[]> {
-  //       return await this.publicService.getDistricts(countryCode, stateCode);
-  //   }
+  @Post('profile/init-password-change')
+  @ApiOperation({ summary: 'Initiate password change for user' })
+  @ApiAutoVoidResponse({ description: 'Password change initiated successfully' })
+  async initPasswordChange(
+    @CurrentUser() authUser: AuthUser,
+  ): Promise<SuccessResponse<void>> {
+    await this.userService.initPasswordChange(authUser.profile_id!);
+    return new SuccessResponse<void>();
+  }
 
 }

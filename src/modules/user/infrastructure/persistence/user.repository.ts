@@ -7,12 +7,15 @@ import { Role } from '../../domain/model/role.model';
 import { UserInfraMapper } from '../user-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { DonationStatus } from 'src/modules/finance/domain/model/donation.model';
+import { ExpenseStatus } from 'src/modules/finance/domain/model/expense.model';
+import { WorkflowTask, WorkflowTaskStatus } from 'src/modules/workflow/domain/model/workflow-task.model';
+import { AccountType } from 'src/modules/finance/domain/model/account.model';
 
 @Injectable()
 class UserRepository
   implements IUserRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
-
 
   async findPaged(filter?: BaseFilter<UserFilterProps> | undefined): Promise<PagedResult<User>> {
 
@@ -294,6 +297,51 @@ class UserRepository
         deletedAt: null
       }
     });
+  }
+
+
+  async findUserMetrics(id: string): Promise<{ pendingDonations: number; unsettledExpense: number; pendingTask: number; walletBalance: number; }> {
+    const [donations, expenses, account, pendingTask] = await Promise.all([
+      this.prisma.donation.aggregate({
+        where: {
+          donorId: id,
+          status: { in: [DonationStatus.PENDING] }
+        },
+        _sum: { amount: true }
+      }),
+      this.prisma.expense.aggregate({
+        where: {
+          paidById: id,
+          status: {
+            notIn: [ExpenseStatus.SETTLED, ExpenseStatus.REJECTED]
+          }
+        },
+        _sum: { amount: true }
+      }),
+      this.prisma.account.aggregate({
+        where: { accountHolderId: id, type: AccountType.WALLET },
+        _sum: { balance: true }
+      }),
+      this.prisma.workflowTask.count({
+        where: {
+          status: {
+            in: WorkflowTask.pendingTaskStatus
+          },
+          assignments: {
+            some: {
+              assignedToId: id,
+            }
+          }
+        }
+      })
+    ]);
+
+    return {
+      pendingDonations: Number(donations._sum.amount ?? 0),
+      unsettledExpense: Number(expenses._sum.amount ?? 0),
+      pendingTask,
+      walletBalance: Number(account._sum.balance ?? 0)
+    };
   }
 }
 
