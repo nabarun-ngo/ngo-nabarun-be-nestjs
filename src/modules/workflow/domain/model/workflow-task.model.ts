@@ -22,8 +22,10 @@ export enum WorkflowTaskStatus {
 
 export class TaskFilter {
   readonly assignedTo?: string;
-  readonly status?: string[];
-  readonly type?: WorkflowTaskType;
+  readonly status?: WorkflowTaskStatus[];
+  readonly type?: WorkflowTaskType[];
+  readonly workflowId?: string;
+  readonly taskId?: string;
 }
 
 export class WorkflowTask extends BaseDomain<string> {

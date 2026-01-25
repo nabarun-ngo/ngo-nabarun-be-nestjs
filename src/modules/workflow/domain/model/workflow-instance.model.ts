@@ -28,9 +28,10 @@ export enum WorkflowType {
 export interface WorkflowFilter {
   readonly initiatedBy?: string;
   readonly initiatedFor?: string;
-  readonly status?: string;
-  readonly type?: string;
+  readonly status?: WorkflowInstanceStatus[];
+  readonly type?: WorkflowType[];
   readonly delegated?: boolean;
+  readonly workflowId?: string;
 }
 
 

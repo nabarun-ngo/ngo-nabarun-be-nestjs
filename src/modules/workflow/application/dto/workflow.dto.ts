@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsDefined,
   IsBoolean,
+  IsEnum,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -18,6 +20,7 @@ import {
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
 import { TaskAssignmentStatus as TaskAssignmentStatusEnum } from '../../domain/model/task-assignment.model';
 import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
+import { Transform, Type } from 'class-transformer';
 
 export class StartWorkflowDto {
   @ApiProperty({ description: 'Workflow type (e.g., JOIN_REQUEST)', required: true })
@@ -331,6 +334,12 @@ export class WorkflowRefDataDto {
   workflowStepStatuses?: KeyValueDto[];
   @ApiProperty()
   visibleTaskStatuses?: KeyValueDto[];
+
+  @ApiProperty()
+  outstandingTaskStatuses?: KeyValueDto[];
+
+  @ApiProperty()
+  completedTaskStatuses?: KeyValueDto[];
 }
 
 export class FieldAttributeDto {
@@ -350,4 +359,53 @@ export class FieldAttributeDto {
   isHidden: boolean;
   @ApiProperty()
   isEncrypted: boolean;
+}
+
+export class WorkflowFilterDto {
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  readonly workflowId?: string;
+
+  @ApiPropertyOptional({ enum: WorkflowInstanceStatus })
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  ) readonly status?: WorkflowInstanceStatus[];
+
+  @ApiPropertyOptional({ enum: WorkflowType })
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  ) readonly type?: WorkflowType[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  readonly delegated?: boolean;
+}
+
+export class TaskFilterDto {
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  readonly taskId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  readonly workflowId?: string;
+
+  @ApiPropertyOptional({ enum: WorkflowTaskType })
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
+  readonly type?: WorkflowTaskType[];
+
+  @ApiPropertyOptional({ description: 'Options Y/N' })
+  @IsOptional()
+  @IsString()
+  readonly completed?: string;
 }

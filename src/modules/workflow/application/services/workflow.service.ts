@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { WorkflowFilter, WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
-import { TaskFilter, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
+import { TaskFilter, WorkflowTask, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
 import { WorkflowInstanceDto, WorkflowTaskDto, StartWorkflowDto, UpdateTaskDto, WorkflowRefDataDto } from '../dto/workflow.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
@@ -122,6 +122,8 @@ export class WorkflowService {
       workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),
       workflowTaskTypes: refData.workflowTaskType.map(toKeyValueDto),
       visibleTaskStatuses: refData.visibleTaskStatus.map(toKeyValueDto),
+      outstandingTaskStatuses: refData.workflowTaskStatus.filter(s => !WorkflowTask.completedTaskStatus.includes(s.KEY as any)).map(toKeyValueDto),
+      completedTaskStatuses: refData.workflowTaskStatus.filter(s => WorkflowTask.completedTaskStatus.includes(s.KEY as any)).map(toKeyValueDto),
     }
   }
 

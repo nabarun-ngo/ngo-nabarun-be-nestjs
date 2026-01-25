@@ -476,7 +476,7 @@ export class Donation extends AggregateRoot<string> {
       case DonationStatus.CANCELLED:
         return [];
       case DonationStatus.UPDATE_MISTAKE:
-        return [DonationStatus.PENDING, DonationStatus.RAISED];
+        return [DonationStatus.PENDING];
       default:
         throw new BusinessException('Invalid donation status');
     }
