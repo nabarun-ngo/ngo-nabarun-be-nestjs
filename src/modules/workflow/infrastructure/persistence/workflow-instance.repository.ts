@@ -93,9 +93,9 @@ class WorkflowInstanceRepository
 
   private whereQueryTasks(filter: TaskFilter | undefined): Prisma.WorkflowTaskWhereInput {
     const where: Prisma.WorkflowTaskWhereInput = {
+      ...(filter?.type ? { type: filter.type } : {}),
       ...(filter?.assignedTo ? { assignments: { some: { assignedToId: filter.assignedTo } } } : {}),
       ...(filter?.status ? { status: { in: filter.status } } : {}),
-      ...(filter?.completed ? { status: { notIn: WorkflowTask.pendingTaskStatus } } : { status: { in: WorkflowTask.pendingTaskStatus } }),
     };
     return where;
   }

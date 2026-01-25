@@ -10,6 +10,7 @@ import { StepCompletedEvent } from "../../domain/events/step-completed.event";
 import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
 import { JobName } from "src/shared/job-names";
 import { CronLogger } from "src/shared/utils/trace-context.util";
+import { WorkflowTask } from "../../domain/model/workflow-task.model";
 
 export class TriggerRemindPendingTasksEvent { }
 
@@ -79,7 +80,7 @@ export class WorkflowEventsHandler {
     try {
       const tasks =
         await this.workflowInstanceRepository.findAllTasks({
-          completed: false,
+          status: WorkflowTask.pendingTaskStatus,
         });
 
       this.logger.log(

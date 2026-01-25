@@ -296,9 +296,9 @@ export class Transaction extends BaseDomain<string> {
     this.#fromAccBalance = balance;
   }
 
-  isEligibleForReverse(accountId: string) {
+  isEligibleForReverse(accountId?: string) {
     return this.#txnStatus === TransactionStatus.SUCCESS
-      && this.getTxnTypeForAccount(accountId) === 'DEBIT'
+      //&& this.getTxnTypeForAccount(accountId) === 'DEBIT'//TODO: Check this later why it has been added earlier
       && this.txnDate >= new Date(new Date().setDate(new Date().getDate() - 10));
   }
 

@@ -9,6 +9,7 @@ import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { randomBytes } from 'crypto';
 import { OauthMapper } from '../dto/mapper/oauth.mapper';
 import { SlackNotificationRequestEvent } from 'src/modules/shared/correspondence/events/slack-notification-request.event';
+import { GOOGLE_SCOPES } from '../../scopes';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -23,10 +24,9 @@ export class GoogleOAuthService {
   private readonly RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per user
 
   // Whitelist of allowed OAuth scopes to prevent privilege escalation
-  private readonly allowedScopes: string[] = [
+  private readonly defaultScopes: string[] = [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/gmail.send',
     'openid',
     'email',
     'profile',
@@ -74,7 +74,7 @@ export class GoogleOAuthService {
    * Validate scopes against whitelist to prevent privilege escalation
    */
   private validateScopes(scopes: string[]): void {
-    const invalidScopes = scopes.filter(scope => !this.allowedScopes.includes(scope));
+    const invalidScopes = scopes.filter(scope => !this.getOAuthScopes().includes(scope));
     if (invalidScopes.length > 0) {
       throw new BadRequestException(
         `Invalid scopes requested: ${invalidScopes.join(', ')}. Only whitelisted scopes are allowed.`
@@ -171,11 +171,7 @@ export class GoogleOAuthService {
   ): Promise<{ url: string; state: string; }> {
     // Validate requested scopes against whitelist
     // Always include userinfo scopes and openid scopes
-    const defaultScopes = [
-      'https://www.googleapis.com/auth/userinfo.email',
-      'https://www.googleapis.com/auth/userinfo.profile',
-    ];
-    const requestedScopes = [...new Set([...defaultScopes, ...scopes, 'openid', 'email', 'profile'])];
+    const requestedScopes = [...new Set([...this.defaultScopes, ...scopes, 'openid', 'email', 'profile'])];
     this.validateScopes(requestedScopes);
 
     // Generate secure state server-side if not provided
@@ -198,7 +194,12 @@ export class GoogleOAuthService {
   }
 
   getOAuthScopes() {
-    return this.allowedScopes;
+    return [
+      ...this.defaultScopes,
+      GOOGLE_SCOPES.gmail,
+      GOOGLE_SCOPES.calendar,
+      GOOGLE_SCOPES.drive,
+    ];
   }
 
   /**

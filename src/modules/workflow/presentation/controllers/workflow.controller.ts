@@ -14,8 +14,9 @@ import { CurrentUser } from 'src/modules/shared/auth/application/decorators/curr
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
-import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { WorkflowType } from '../../domain/model/workflow-instance.model';
+import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 
 @ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
@@ -125,10 +126,41 @@ export class WorkflowController {
         pageSize: size,
         props: {
           assignedTo: user?.profile_id,
-          completed: completed,
+          status: completed ? WorkflowTask.completedTaskStatus : WorkflowTask.pendingTaskStatus,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
+  }
+
+  @RequireAllPermissions('read:work')
+  @Get('tasks/automatic')
+  @ApiOperation({ summary: 'List automatic workflow tasks' })
+  @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  async listAutomaticTasks(
+    @Query('page') page?: number,
+    @Query('size') size?: number,
+  ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
+    const instances =
+      await this.workflowService.getWorkflowTasks({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          type: WorkflowTaskType.AUTOMATIC,
+        }
+      })
+    return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
+  }
+
+  @Post(':id/tasks/:taskId/processTask')
+  @ApiOperation({ summary: 'Process a workflow task' })
+  @ApiAutoPrimitiveResponse('string', { description: 'Task processed successfully' })
+  async processTask(@Param('id') id: string,
+    @Param('taskId') taskId: string): Promise<SuccessResponse<WorkflowTaskDto>> {
+    return new SuccessResponse<WorkflowTaskDto>(
+      await this.workflowService.processAutomaticTask(id, taskId)
+    );
   }
 
   @Get('static/referenceData')

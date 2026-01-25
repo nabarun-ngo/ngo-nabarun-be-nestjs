@@ -23,7 +23,7 @@ export enum WorkflowTaskStatus {
 export class TaskFilter {
   readonly assignedTo?: string;
   readonly status?: string[];
-  readonly completed?: boolean;
+  readonly type?: WorkflowTaskType;
 }
 
 export class WorkflowTask extends BaseDomain<string> {
@@ -114,7 +114,9 @@ export class WorkflowTask extends BaseDomain<string> {
   }
 
   start(starter?: Partial<User>): void {
-    if (this.#status !== WorkflowTaskStatus.PENDING) {
+    if (this.#status !== WorkflowTaskStatus.PENDING
+      && this.#status !== WorkflowTaskStatus.FAILED
+    ) {
       throw new BusinessException(`Cannot start task in status: ${this.#status}`);
     }
     const assignment = this.assignments.find((a) => a.assignedTo.id == starter?.id);
@@ -173,6 +175,10 @@ export class WorkflowTask extends BaseDomain<string> {
 
   static get pendingTaskStatus(): WorkflowTaskStatus[] {
     return [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS];
+  }
+
+  static get completedTaskStatus(): WorkflowTaskStatus[] {
+    return [WorkflowTaskStatus.COMPLETED, WorkflowTaskStatus.FAILED];
   }
 
   // 🔓 Getters (Public Read-Only API)

@@ -85,7 +85,7 @@ export class WorkflowService {
   async processAutomaticTask(
     instance: string | WorkflowInstance,
     taskId: string,
-  ): Promise<void> {
+  ): Promise<WorkflowTaskDto> {
     const workflow: WorkflowInstance | null = instance instanceof WorkflowInstance ? instance :
       await this.instanceRepository.findById(instance, true);
     const step = workflow?.steps.find(s => s.stepId === workflow.currentStepId);
@@ -108,6 +108,7 @@ export class WorkflowService {
     }
 
     await this.instanceRepository.update(workflow?.id!, workflow!);
+    return WorkflowDtoMapper.taskDomainToDto(task);
   }
 
   async getWorkflowRefData(): Promise<WorkflowRefDataDto> {

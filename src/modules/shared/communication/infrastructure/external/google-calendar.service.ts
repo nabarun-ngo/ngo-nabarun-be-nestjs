@@ -2,6 +2,7 @@ import { calendar_v3 } from '@googleapis/calendar';
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleOAuthService } from '../../../auth/application/services/google-oauth.service';
 import { MeetingMapper } from '../mapper/meeting-infra.mapper';
+import { GOOGLE_SCOPES } from 'src/modules/shared/auth/scopes';
 
 export interface EventData {
     summary?: string;
@@ -28,7 +29,7 @@ export interface EventData {
 @Injectable()
 export class GoogleCalendarService {
     private readonly logger = new Logger(GoogleCalendarService.name);
-    public static readonly scope = 'https://www.googleapis.com/auth/calendar';
+    private readonly scope = GOOGLE_SCOPES.calendar;
 
     constructor(private readonly googleOAuthService: GoogleOAuthService) { }
 
@@ -40,7 +41,7 @@ export class GoogleCalendarService {
         calendarId: string = 'primary'
     ): Promise<EventData> {
         try {
-            const auth = await this.googleOAuthService.getAuthenticatedClient(GoogleCalendarService.scope);
+            const auth = await this.googleOAuthService.getAuthenticatedClient(this.scope);
             if (!auth) {
                 throw new Error('Failed to get authenticated client');
             }
@@ -103,7 +104,7 @@ export class GoogleCalendarService {
         calendarId: string = 'primary'
     ): Promise<EventData> {
         try {
-            const auth = await this.googleOAuthService.getAuthenticatedClient(GoogleCalendarService.scope);
+            const auth = await this.googleOAuthService.getAuthenticatedClient(this.scope);
             if (!auth) {
                 throw new Error('Failed to get authenticated client');
             }
@@ -168,7 +169,7 @@ export class GoogleCalendarService {
         notifyAttendees: boolean = true
     ): Promise<void> {
         try {
-            const auth = await this.googleOAuthService.getAuthenticatedClient(GoogleCalendarService.scope);
+            const auth = await this.googleOAuthService.getAuthenticatedClient(this.scope);
             if (!auth) {
                 throw new Error('Failed to get authenticated client');
             }
@@ -195,7 +196,7 @@ export class GoogleCalendarService {
         calendarId: string = 'primary'
     ): Promise<EventData> {
         try {
-            const auth = await this.googleOAuthService.getAuthenticatedClient(GoogleCalendarService.scope);
+            const auth = await this.googleOAuthService.getAuthenticatedClient(this.scope);
             if (!auth) {
                 throw new Error('Failed to get authenticated client');
             }
@@ -221,7 +222,7 @@ export class GoogleCalendarService {
         maxResults: number = 10
     ): Promise<EventData[]> {
         try {
-            const auth = await this.googleOAuthService.getAuthenticatedClient(GoogleCalendarService.scope);
+            const auth = await this.googleOAuthService.getAuthenticatedClient(this.scope);
             if (!auth) {
                 throw new Error('Failed to get authenticated client');
             }
