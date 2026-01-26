@@ -19,6 +19,7 @@ import { formatDate } from "src/shared/utilities/common.util";
 export class TriggerMonthlyDonationEvent { }
 export class TriggerMarkDonationAsPendingEvent { }
 export class TriggerRemindPendingDonationsEvent { }
+export class GenerateDonationSummaryReportEvent { }
 
 @Injectable()
 export class DonationsEventHandler {
@@ -174,5 +175,13 @@ export class DonationsEventHandler {
         }
 
         this.logger.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs (concurrency will process them)`);
+    }
+
+    @OnEvent(GenerateDonationSummaryReportEvent.name, { async: true })
+    async generateDonationSummaryReport(): Promise<void> {
+        this.logger.log('[GenerateDonationSummaryReportJob] Triggering donation summary report generation...');
+        const donations = await this.donationRepository.findAll({ status: [DonationStatus.PAID] });
+        const userDonations = groupBy(donations, (donation) => donation.donorId);
+        this.logger.log('[GenerateDonationSummaryReportJob] Completed donation summary report generation...');
     }
 }
