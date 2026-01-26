@@ -388,8 +388,10 @@ export class User extends AggregateRoot<string> {
     aadharNumber?: string,
     deleted?: boolean,
     donationAmount?: number,
+    createdAt?: Date,
+    updatedAt?: Date,
   ) {
-    super(id);
+    super(id, createdAt, updatedAt);
     this.#firstName = firstName;
     this.#lastName = lastName;
     this.#email = email;

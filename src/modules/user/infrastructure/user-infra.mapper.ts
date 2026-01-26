@@ -109,6 +109,8 @@ export class UserInfraMapper {
       MapperUtils.nullToUndefined(model.aadharNumber),
       MapperUtils.nullToUndefined(model.deletedAt) == undefined ? undefined : true,
       MapperUtils.nullToUndefined(Number(model.donationAmount)),
+      model.createdAt,
+      model.updatedAt,
     );
   }
 
