@@ -42,8 +42,12 @@ export class DonationFilter {
   status?: DonationStatus[];
   type?: DonationType[];
   isGuest?: boolean;
-  startDate?: Date;
-  endDate?: Date;
+  startDate_raisedOn?: Date;
+  endDate_raisedOn?: Date;
+  startDate_paidOn?: Date;
+  endDate_paidOn?: Date;
+  startDate_confirmedOn?: Date;
+  endDate_confirmedOn?: Date;
   startDate_lte?: Date;
   endDate_gte?: Date;
 }
@@ -476,7 +480,7 @@ export class Donation extends AggregateRoot<string> {
       case DonationStatus.CANCELLED:
         return [];
       case DonationStatus.UPDATE_MISTAKE:
-        return [DonationStatus.RAISED];
+        return [DonationStatus.PENDING];
       default:
         throw new BusinessException('Invalid donation status');
     }

@@ -26,11 +26,15 @@ export function jobFailureResponse2(error: Error, data?: any): JobResult {
     };
 }
 
-export function formatDate(date: Date, options?: {
+export function formatDate(date: Date | string, options?: {
     timezone?: string;
     format?: string
 }): string {
-    return DateTime.fromJSDate(date)
+    const dt = typeof date === 'string'
+        ? DateTime.fromISO(date)
+        : DateTime.fromJSDate(date);
+
+    return dt
         .setZone(options?.timezone || 'Asia/Kolkata')
         .toFormat(options?.format || 'dd/MM/yyyy');
 };

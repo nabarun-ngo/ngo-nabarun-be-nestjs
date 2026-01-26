@@ -89,12 +89,9 @@ export class CorrespondenceService {
 
       const env = this.configService.get<string>(Configkey.NODE_ENV) ?? 'unknown';
 
-      const mention =
-        env === 'production' ? '<!here>' : ''; // avoid noise in dev
-
       const payload = {
         text: `
-        ${mention} 🚨 *${type.toUpperCase()} ALERT*
+        <!channel> 🚨 *${type.toUpperCase()} ALERT*
 
         *Environment:* \`${env}\`
         *Type:* *${type}*

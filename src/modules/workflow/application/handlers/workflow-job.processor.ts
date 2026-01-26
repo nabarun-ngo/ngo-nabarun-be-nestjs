@@ -9,6 +9,7 @@ import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { formatDate } from 'src/shared/utilities/common.util';
+import { WorkflowTask } from '../../domain/model/workflow-task.model';
 
 export interface WorkflowAutomaticTaskJobData {
   instanceId: string;
@@ -47,7 +48,7 @@ export class WorkflowJobProcessor {
     this.logger.log(`Processing ${JobName.SEND_TASK_REMINDER_EMAIL} for user ${job.data.assigneeEmail}`);
     try {
       const allPendingTasks = await this.workflowInstanceRepository.findAllTasks({
-        completed: false,
+        status: WorkflowTask.pendingTaskStatus,
         assignedTo: job.data.assigneeId
       });
 

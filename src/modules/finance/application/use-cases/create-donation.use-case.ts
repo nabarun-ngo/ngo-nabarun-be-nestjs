@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Donation, DonationType } from '../../domain/model/donation.model';
+import { Donation, DonationStatus, DonationType } from '../../domain/model/donation.model';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -51,9 +51,9 @@ export class CreateDonationUseCase implements IUseCase<CreateDonation, Donation>
       const donations = await this.donationRepository.findAll({
         type: [DonationType.REGULAR],
         donorId: request.donorId,
-        // Check for overlapping date ranges: existing.startDate <= request.endDate && existing.endDate >= request.startDate
         startDate_lte: request.endDate,
         endDate_gte: request.startDate,
+        status: [...Donation.outstandingStatus, DonationStatus.PAID],
       });
       if (donations.length > 0) {
         throw new BusinessException(`Donation already exists for this donor between ${formatDate(request.startDate!)} and ${formatDate(request.endDate!)} `);

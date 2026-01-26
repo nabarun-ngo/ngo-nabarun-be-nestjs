@@ -49,12 +49,11 @@ model UserProfile {
   version   Int       @default(0)
   deletedAt DateTime?
 
-  initiatedWorkflows WorkflowInstance[]  @relation("InitiatedBy")
-  receivedWorkflows  WorkflowInstance[]  @relation("InitiatedFor")
-  documentsUploaded  DocumentReference[] @relation("uploadedBy")
-  taskAssignments    TaskAssignment[]    @relation("taskAssignments")
-  taskCompleted      WorkflowTask[]      @relation("taskCompletedBy")
-  noticesCreated     Notice[]            @relation("NoticeCreator")
+  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
+  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
+  taskAssignments    TaskAssignment[]   @relation("taskAssignments")
+  taskCompleted      WorkflowTask[]     @relation("taskCompletedBy")
+  noticesCreated     Notice[]           @relation("NoticeCreator")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -558,7 +557,6 @@ model DocumentReference {
   createdAt DateTime @default(now())
 
   mappings     DocumentMapping[]
-  uploadedBy   UserProfile?      @relation(name: "uploadedBy", fields: [uploadedById], references: [id])
   uploadedById String?
 
   @@map("document_references")

@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { WorkflowFilter, WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
-import { TaskFilter, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
+import { TaskFilter, WorkflowTask, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
 import { WorkflowInstanceDto, WorkflowTaskDto, StartWorkflowDto, UpdateTaskDto, WorkflowRefDataDto } from '../dto/workflow.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
@@ -85,7 +85,7 @@ export class WorkflowService {
   async processAutomaticTask(
     instance: string | WorkflowInstance,
     taskId: string,
-  ): Promise<void> {
+  ): Promise<WorkflowTaskDto> {
     const workflow: WorkflowInstance | null = instance instanceof WorkflowInstance ? instance :
       await this.instanceRepository.findById(instance, true);
     const step = workflow?.steps.find(s => s.stepId === workflow.currentStepId);
@@ -108,6 +108,7 @@ export class WorkflowService {
     }
 
     await this.instanceRepository.update(workflow?.id!, workflow!);
+    return WorkflowDtoMapper.taskDomainToDto(task);
   }
 
   async getWorkflowRefData(): Promise<WorkflowRefDataDto> {
@@ -121,6 +122,8 @@ export class WorkflowService {
       workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),
       workflowTaskTypes: refData.workflowTaskType.map(toKeyValueDto),
       visibleTaskStatuses: refData.visibleTaskStatus.map(toKeyValueDto),
+      outstandingTaskStatuses: refData.workflowTaskStatus.filter(s => !WorkflowTask.completedTaskStatus.includes(s.KEY as any)).map(toKeyValueDto),
+      completedTaskStatuses: refData.workflowTaskStatus.filter(s => WorkflowTask.completedTaskStatus.includes(s.KEY as any)).map(toKeyValueDto),
     }
   }
 

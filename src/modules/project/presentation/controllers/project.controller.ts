@@ -107,7 +107,7 @@ export class ProjectController {
   @Get('static/referenceData')
   @ApiOperation({ summary: 'Get project reference data' })
   @ApiAutoResponse(ProjectRefDataDto, { wrapInSuccessResponse: true, description: 'Project reference data retrieved successfully' })
-  async getReferenceData(): Promise<SuccessResponse<ProjectRefDataDto>> {
+  async getProjectReferenceData(): Promise<SuccessResponse<ProjectRefDataDto>> {
     return new SuccessResponse<ProjectRefDataDto>(
       await this.projectService.getReferenceData()
     );

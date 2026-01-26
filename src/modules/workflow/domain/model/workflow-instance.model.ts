@@ -28,9 +28,10 @@ export enum WorkflowType {
 export interface WorkflowFilter {
   readonly initiatedBy?: string;
   readonly initiatedFor?: string;
-  readonly status?: string;
-  readonly type?: string;
+  readonly status?: WorkflowInstanceStatus[];
+  readonly type?: WorkflowType[];
   readonly delegated?: boolean;
+  readonly workflowId?: string;
 }
 
 
@@ -167,9 +168,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
     }
 
     // Check if task can be completed
-    if (task.status !== WorkflowTaskStatus.PENDING &&
-      task.status !== WorkflowTaskStatus.IN_PROGRESS) {
-      throw new BusinessException(`Task cannot be completed in status: ${task.status}`);
+    if (task.status === WorkflowTaskStatus.COMPLETED) {
+      throw new BusinessException(`Task is already completed: ${task.id}`);
     }
 
     switch (status) {

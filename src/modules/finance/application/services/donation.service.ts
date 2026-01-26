@@ -1,13 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
-import { DonationDto, DonationDetailFilterDto, CreateDonationDto, UpdateDonationDto, DonationSummaryDto, DonationRefDataDto, CreateGuestDonationDto } from '../dto/donation.dto';
+import { DonationDto, DonationDetailFilterDto, CreateDonationDto, UpdateDonationDto, DonationSummaryDto, DonationRefDataDto, CreateGuestDonationDto, DownloadDonationSummaryDto } from '../dto/donation.dto';
 import { DonationDtoMapper } from '../dto/mapper/donation-dto.mapper';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
 import { UpdateDonationUseCase } from '../use-cases/update-donation.use-case';
 import { ProcessDonationPaymentUseCase } from '../use-cases/process-donation-payment.use-case';
+import { GenerateDonationSummaryReportUseCase } from '../use-cases/generate-donation-summary.use-case';
 import { Donation, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { MetadataService } from '../../infrastructure/external/metadata.service';
@@ -38,8 +39,8 @@ export class DonationService {
         status: filter.props?.status,
         type: filter.props?.type,
         isGuest: filter.props?.isGuest,
-        startDate: filter.props?.startDate,
-        endDate: filter.props?.endDate,
+        startDate_raisedOn: filter.props?.startDate,
+        endDate_raisedOn: filter.props?.endDate,
       }
     });
     return new PagedResult(
@@ -134,6 +135,8 @@ export class DonationService {
       upiOptions: data.upiOption.map(toKeyValueDto),
     };
   }
+
+
 }
 
 

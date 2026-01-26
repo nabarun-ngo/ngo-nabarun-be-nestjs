@@ -8,14 +8,15 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SuccessResponse } from '../../../../shared/models/response-model';
-import { FieldAttributeDto, StartWorkflowDto, UpdateTaskDto, WorkflowInstanceDto, WorkflowRefDataDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
+import { FieldAttributeDto, StartWorkflowDto, TaskFilterDto, UpdateTaskDto, WorkflowFilterDto, WorkflowInstanceDto, WorkflowRefDataDto, WorkflowTaskDto } from '../../application/dto/workflow.dto';
 import { WorkflowService } from '../../application/services/workflow.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
-import { ApiAutoResponse, ApiAutoPagedResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { WorkflowType } from '../../domain/model/workflow-instance.model';
+import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 
 @ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
@@ -69,6 +70,7 @@ export class WorkflowController {
     @Query('page') page?: number,
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
+    @Query() filter?: WorkflowFilterDto,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
     const instances =
       await this.workflowService.getWorkflows({
@@ -76,6 +78,7 @@ export class WorkflowController {
         pageSize: size,
         props: {
           initiatedFor: user?.profile_id,
+          ...filter,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
@@ -87,11 +90,10 @@ export class WorkflowController {
   @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
-  @ApiQuery({ name: 'delegated', required: false, type: Boolean, description: 'Filter by delegated (set true to get workflow created by me for others, set false to get only workflow created by me for me)' })
   async listInstancesByMe(
     @Query('page') page?: number,
     @Query('size') size?: number,
-    @Query('delegated') delegated?: boolean,
+    @Query() filter?: WorkflowFilterDto,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
     const instances =
@@ -100,7 +102,7 @@ export class WorkflowController {
         pageSize: size,
         props: {
           initiatedBy: user?.profile_id,
-          delegated: delegated,
+          ...filter,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
@@ -108,27 +110,61 @@ export class WorkflowController {
 
   @RequireAllPermissions('read:work')
   @Get('tasks/forMe')
-  @ApiOperation({ summary: 'List workflow tasks' })
+  @ApiOperation({ summary: 'List workflow tasks', description: 'Filter by completed (set true to get completed tasks, set false to get pending tasks)' })
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
-  @ApiQuery({ name: 'completed', required: true, type: Boolean, description: 'Filter by completed (set true to get completed tasks, set false to get pending tasks)' })
   async listTasks(
-    @Query('completed') completed: boolean,
+    @Query() filter: TaskFilterDto,
     @Query('page') page?: number,
     @Query('size') size?: number,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
+
     const instances =
       await this.workflowService.getWorkflowTasks({
         pageIndex: page,
         pageSize: size,
         props: {
           assignedTo: user?.profile_id,
-          completed: completed,
+          status: filter.completed === 'Y' ? WorkflowTask.completedTaskStatus : WorkflowTask.pendingTaskStatus,
+          type: filter.type,
+          workflowId: filter.workflowId,
+          taskId: filter.taskId,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
+  }
+
+  @RequireAllPermissions('read:work')
+  @Get('tasks/automatic')
+  @ApiOperation({ summary: 'List automatic workflow tasks' })
+  @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  async listAutomaticTasks(
+    @Query('page') page?: number,
+    @Query('size') size?: number,
+  ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
+    const instances =
+      await this.workflowService.getWorkflowTasks({
+        pageIndex: page,
+        pageSize: size,
+        props: {
+          type: [WorkflowTaskType.AUTOMATIC],
+        }
+      })
+    return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
+  }
+
+  @Post(':id/tasks/:taskId/processTask')
+  @ApiOperation({ summary: 'Process a workflow task' })
+  @ApiAutoPrimitiveResponse('string', { description: 'Task processed successfully' })
+  async processTask(@Param('id') id: string,
+    @Param('taskId') taskId: string): Promise<SuccessResponse<WorkflowTaskDto>> {
+    return new SuccessResponse<WorkflowTaskDto>(
+      await this.workflowService.processAutomaticTask(id, taskId)
+    );
   }
 
   @Get('static/referenceData')
