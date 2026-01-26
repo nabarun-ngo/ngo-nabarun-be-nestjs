@@ -56,7 +56,7 @@ class DonationRepository implements IDonationRepository {
     );
   }
 
-  async findAll(filter?: DonationDetailFilterDto): Promise<Donation[]> {
+  async findAll(filter?: DonationFilter): Promise<Donation[]> {
     const donations = await this.prisma.donation.findMany({
       where: this.whereQuery(filter),
       orderBy: {
@@ -79,11 +79,19 @@ class DonationRepository implements IDonationRepository {
       ...(props?.donorId ? { donorId: props.donorId } : {}),
       ...(props?.donationId ? { id: props.donationId } : {}),
       ...(props?.isGuest ? { isGuest: props.isGuest } : {}),
-      ...(props?.startDate || props?.endDate
+      ...(props?.startDate_raisedOn || props?.endDate_raisedOn
         ? {
           raisedOn: {
-            ...(props.startDate ? { gte: props.startDate } : {}),
-            ...(props.endDate ? { lte: props.endDate } : {}),
+            ...(props.startDate_raisedOn ? { gte: props.startDate_raisedOn } : {}),
+            ...(props.endDate_raisedOn ? { lte: props.endDate_raisedOn } : {}),
+          },
+        }
+        : {}),
+      ...(props?.startDate_paidOn || props?.endDate_paidOn
+        ? {
+          paidOn: {
+            ...(props.startDate_paidOn ? { gte: props.startDate_paidOn } : {}),
+            ...(props.endDate_paidOn ? { lte: props.endDate_paidOn } : {}),
           },
         }
         : {}),

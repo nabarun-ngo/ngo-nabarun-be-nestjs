@@ -18,6 +18,7 @@ export class DocumentRepository
 
     async findAll(filter: DocumentProps): Promise<Document[]> {
         const documents = await this.prisma.documentReference.findMany({
+            orderBy: { createdAt: 'desc' },
             where: this.whereQuery(filter),
             include: {
                 mappings: true,
@@ -56,7 +57,7 @@ export class DocumentRepository
                 fileSize: entity.fileSize,
                 isPublic: entity.isPublic,
                 createdAt: entity.createdAt,
-                uploadedBy: { connect: { id: entity.uploadedBy?.id } },
+                uploadedById: entity.uploadedBy?.id,
                 id: entity.id,
                 mappings: {
                     create: entity.mappings.map(m => ({

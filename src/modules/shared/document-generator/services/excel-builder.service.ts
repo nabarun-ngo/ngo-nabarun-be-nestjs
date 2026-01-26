@@ -25,8 +25,8 @@ class ExcelSheetBuilder implements IExcelSheetBuilder {
         private readonly options: IExcelSheetOptions,
     ) {
         this.worksheet = workbook.addWorksheet(options.name);
-        this.headerStyle = options.headerStyle;
-        this.defaultRowStyle = options.defaultRowStyle;
+        this.headerStyle = options.headerStyle || ExcelStyles.header;
+        this.defaultRowStyle = options.defaultRowStyle || ExcelStyles.dataRows;
         this.initializeSheet();
     }
 
@@ -62,6 +62,28 @@ class ExcelSheetBuilder implements IExcelSheetBuilder {
                 autoFilter: false,
                 pivotTables: false,
             });
+        }
+
+        // Apply watermark if enabled (default to true if global setting exists)
+        if (this.options.watermark !== undefined || true) { // Always check for default watermark
+            this.applyWatermark();
+        }
+    }
+
+    private applyWatermark(): void {
+        try {
+            const path = require('path');
+            const watermarkPath = path.join(process.cwd(), 'src/assets/watermark.png');
+            if (require('fs').existsSync(watermarkPath)) {
+                const imageBuffer = require('fs').readFileSync(watermarkPath);
+                const imageId = this.workbook.addImage({
+                    buffer: imageBuffer,
+                    extension: 'png',
+                });
+                //this.worksheet.addBackgroundImage(imageId);
+            }
+        } catch (error) {
+            console.error('Failed to add watermark:', error);
         }
     }
 
@@ -108,7 +130,38 @@ class ExcelSheetBuilder implements IExcelSheetBuilder {
 
     addRows(data: IExcelRowData[]): IExcelSheetBuilder {
         data.forEach((rowData) => this.addRow(rowData));
+
+        if (this.options.autoSizeColumns !== false) {
+            this.autoSizeColumns();
+        }
         return this;
+    }
+
+    private autoSizeColumns(): void {
+        // Iterate over definitions to check who needs auto-sizing
+        const definitions = this.options.columns || [];
+
+        this.worksheet.columns.forEach((column, index) => {
+            const definition = definitions[index];
+            // If explicit width is provided in definition, don't auto-size
+            if (definition && definition.width) {
+                return;
+            }
+
+            let maxLength = 0;
+            if (column.header) {
+                maxLength = Math.max(maxLength, column.header.toString().length);
+            }
+
+            column.eachCell?.({ includeEmpty: true }, (cell) => {
+                const columnLength = cell.value ? cell.value.toString().length : 0;
+                if (columnLength > maxLength) {
+                    maxLength = columnLength;
+                }
+            });
+
+            column.width = maxLength < 10 ? 12 : maxLength + 2;
+        });
     }
 
     setCell(row: number, col: number | string, value: any, style?: IExcelCellStyle): IExcelSheetBuilder {
@@ -221,26 +274,35 @@ class ExcelSheetBuilder implements IExcelSheetBuilder {
     private applyCellStyle(cell: ExcelJS.Cell, style: IExcelCellStyle): void {
         const excelStyle = this.convertStyle(style);
 
-        if (excelStyle.font) cell.font = excelStyle.font;
-        if (excelStyle.fill) cell.fill = excelStyle.fill;
-        if (excelStyle.alignment) cell.alignment = excelStyle.alignment;
-        if (excelStyle.border) cell.border = excelStyle.border;
-        if (excelStyle.numFmt) cell.numFmt = excelStyle.numFmt;
+        if (excelStyle.font) {
+            cell.font = { ...cell.font, ...excelStyle.font };
+        }
+        if (excelStyle.fill) {
+            cell.fill = excelStyle.fill;
+        }
+        if (excelStyle.alignment) {
+            cell.alignment = { ...cell.alignment, ...excelStyle.alignment };
+        }
+        if (excelStyle.border) {
+            cell.border = { ...cell.border, ...excelStyle.border };
+        }
+        if (excelStyle.numFmt) {
+            cell.numFmt = excelStyle.numFmt;
+        }
     }
 
     private convertStyle(style: IExcelCellStyle): Partial<ExcelJS.Style> {
         const excelStyle: Partial<ExcelJS.Style> = {};
 
         if (style.font) {
-            excelStyle.font = {
-                name: style.font.name,
-                size: style.font.size,
-                bold: style.font.bold,
-                italic: style.font.italic,
-                underline: style.font.underline,
-                strike: style.font.strike,
-                color: style.font.color ? { argb: this.colorToArgb(style.font.color) } : undefined,
-            };
+            excelStyle.font = {};
+            if (style.font.name !== undefined) excelStyle.font.name = style.font.name;
+            if (style.font.size !== undefined) excelStyle.font.size = style.font.size;
+            if (style.font.bold !== undefined) excelStyle.font.bold = style.font.bold;
+            if (style.font.italic !== undefined) excelStyle.font.italic = style.font.italic;
+            if (style.font.underline !== undefined) excelStyle.font.underline = style.font.underline;
+            if (style.font.strike !== undefined) excelStyle.font.strike = style.font.strike;
+            if (style.font.color !== undefined) excelStyle.font.color = { argb: this.colorToArgb(style.font.color) };
         }
 
         if (style.fill) {
@@ -253,14 +315,13 @@ class ExcelSheetBuilder implements IExcelSheetBuilder {
         }
 
         if (style.alignment) {
-            excelStyle.alignment = {
-                horizontal: style.alignment.horizontal,
-                vertical: style.alignment.vertical,
-                wrapText: style.alignment.wrapText,
-                shrinkToFit: style.alignment.shrinkToFit,
-                indent: style.alignment.indent,
-                textRotation: style.alignment.textRotation,
-            };
+            excelStyle.alignment = {};
+            if (style.alignment.horizontal !== undefined) excelStyle.alignment.horizontal = style.alignment.horizontal;
+            if (style.alignment.vertical !== undefined) excelStyle.alignment.vertical = style.alignment.vertical;
+            if (style.alignment.wrapText !== undefined) excelStyle.alignment.wrapText = style.alignment.wrapText;
+            if (style.alignment.shrinkToFit !== undefined) excelStyle.alignment.shrinkToFit = style.alignment.shrinkToFit;
+            if (style.alignment.indent !== undefined) excelStyle.alignment.indent = style.alignment.indent;
+            if (style.alignment.textRotation !== undefined) excelStyle.alignment.textRotation = style.alignment.textRotation;
         }
 
         if (style.border) {
@@ -427,9 +488,19 @@ export class ExcelBuilderService implements IExcelBuilder {
  */
 export const ExcelStyles = {
     header: {
-        font: { bold: true, size: 12, color: '#FFFFFF' },
-        fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: '#4472C4' },
+        font: { bold: true, size: 12, color: '#000000' },
+        fill: { type: 'pattern' as const, pattern: 'solid' as const, fgColor: '#FFCC99' },
         alignment: { horizontal: 'center' as const, vertical: 'middle' as const },
+        border: {
+            top: { style: 'thin' as const, color: '#000000' },
+            bottom: { style: 'thin' as const, color: '#000000' },
+            left: { style: 'thin' as const, color: '#000000' },
+            right: { style: 'thin' as const, color: '#000000' },
+        },
+    } as IExcelCellStyle,
+
+    dataRows: {
+        alignment: { vertical: 'middle' as const },
         border: {
             top: { style: 'thin' as const, color: '#000000' },
             bottom: { style: 'thin' as const, color: '#000000' },

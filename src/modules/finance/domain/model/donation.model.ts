@@ -42,8 +42,10 @@ export class DonationFilter {
   status?: DonationStatus[];
   type?: DonationType[];
   isGuest?: boolean;
-  startDate?: Date;
-  endDate?: Date;
+  startDate_raisedOn?: Date;
+  endDate_raisedOn?: Date;
+  startDate_paidOn?: Date;
+  endDate_paidOn?: Date;
   startDate_lte?: Date;
   endDate_gte?: Date;
 }

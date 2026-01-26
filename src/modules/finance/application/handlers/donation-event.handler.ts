@@ -15,6 +15,7 @@ import { Configkey } from "src/shared/config-keys";
 import { DonationStatus } from "../../domain/model/donation.model";
 import { groupBy } from "lodash";
 import { formatDate } from "src/shared/utilities/common.util";
+import { ReportParamsDto } from "../dto/report.dto";
 
 export class TriggerMonthlyDonationEvent { }
 export class TriggerMarkDonationAsPendingEvent { }
@@ -33,7 +34,6 @@ export class DonationsEventHandler {
         private readonly userRepository: IUserRepository,
         private readonly jobProcessingService: JobProcessingService,
         private readonly configService: ConfigService,
-
 
     ) { }
 
@@ -180,8 +180,34 @@ export class DonationsEventHandler {
     @OnEvent(GenerateDonationSummaryReportEvent.name, { async: true })
     async generateDonationSummaryReport(): Promise<void> {
         this.logger.log('[GenerateDonationSummaryReportJob] Triggering donation summary report generation...');
-        const donations = await this.donationRepository.findAll({ status: [DonationStatus.PAID] });
-        const userDonations = groupBy(donations, (donation) => donation.donorId);
-        this.logger.log('[GenerateDonationSummaryReportJob] Completed donation summary report generation...');
+        const now = new Date();
+        // First date: set day to 1 (of previous month)
+        const firstDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        // Last date: set month to current month, day to 0 (last day of previous month)
+        const lastDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        await this.jobProcessingService.addJob<{ reportName: string; reportParams: ReportParamsDto }>(
+            JobName.GENERATE_REPORT,
+            {
+                reportName: 'DONATION_SUMMARY_REPORT',
+                reportParams: {
+                    startDate: firstDate,
+                    endDate: lastDate,
+                    uploadFile: 'Y',
+                    sendEmail: 'Y'
+                }
+            },
+            {
+                attempts: 3,
+                backoff: {
+                    type: 'exponential',
+                    delay: 2000,
+                },
+                removeOnComplete: false,
+                removeOnFail: false,
+                delay: 2000, // All jobs will become ready after 2 seconds
+            }
+        );
+
+        this.logger.log('[GenerateDonationSummaryReportJob] Jon Scheduled for donation summary report generation ...');
     }
 }

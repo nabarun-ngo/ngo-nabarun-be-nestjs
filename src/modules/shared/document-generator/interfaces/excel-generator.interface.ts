@@ -65,6 +65,8 @@ export interface IExcelSheetOptions {
         column?: number;
     };
     autoFilter?: boolean;
+    autoSizeColumns?: boolean;
+    watermark?: string;
     protection?: {
         password?: string;
         sheet?: boolean;

@@ -10,6 +10,8 @@ import { DonationStatus, DonationType } from '../../domain/model/donation.model'
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { formatDate } from 'src/shared/utilities/common.util';
+import { ReportParamsDto } from '../dto/report.dto';
+import { FinanceReportService } from '../services/report.service';
 
 @Injectable()
 export class DonationJobsHandler {
@@ -20,6 +22,7 @@ export class DonationJobsHandler {
         @Inject(DONATION_REPOSITORY)
         private readonly donationRepository: IDonationRepository,
         private readonly createDonationUseCase: CreateDonationUseCase,
+        private readonly financeReportService: FinanceReportService
 
     ) { }
 
@@ -103,6 +106,29 @@ export class DonationJobsHandler {
             this.logger.log(`Reminder email SENT to user ${job.data.donorEmail} for ${pendingDonations.length} donations`);
         } catch (error) {
             this.logger.error(`Failed to send reminder email for user ${job.data.donorEmail}`, error);
+            throw error;
+        }
+    }
+
+
+    @ProcessJob({
+        name: JobName.GENERATE_REPORT,
+    })
+    async generateReport(job: Job<{
+        reportName: string;
+        reportParams: ReportParamsDto;
+    }>) {
+        this.logger.log(`Processing ${JobName.GENERATE_REPORT} for report ${job.data.reportName}`);
+        try {
+            const report = await this.financeReportService.generateReport(
+                job.data.reportName,
+                job.data.reportParams,
+                'System'
+            );
+
+            this.logger.log(`Report ${job.data.reportName} generated successfully`);
+        } catch (error) {
+            this.logger.error(`Failed to generate report ${job.data.reportName}`, error);
             throw error;
         }
     }

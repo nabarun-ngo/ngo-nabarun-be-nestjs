@@ -165,6 +165,18 @@ export class DonationDetailFilterDto {
 
 }
 
+export class DownloadDonationSummaryDto {
+  @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
+  startDate: Date;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  @IsDate()
+  @Type(() => Date)
+  endDate: Date;
+}
+
 export class DonationDto {
   @ApiProperty()
   id: string;

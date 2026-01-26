@@ -43,6 +43,7 @@
     "compression": "^1.8.1",
     "cron-parser": "^5.4.0",
     "exceljs": "^4.4.0",
+    "file-type": "^21.3.0",
     "firebase-admin": "^13.5.0",
     "google-auth-library": "^10.5.0",
     "handlebars": "^4.7.8",
