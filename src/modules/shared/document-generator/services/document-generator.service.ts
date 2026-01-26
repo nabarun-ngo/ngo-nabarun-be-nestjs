@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import {
-    IDocumentGeneratorService,
-    IPdfBuilder,
-    IExcelBuilder,
-} from '../interfaces/document-generator.interface';
+
 import { PdfBuilderService } from './pdf-builder.service';
 import { ExcelBuilderService } from './excel-builder.service';
+import { PuppeteerPdfBuilderService } from './puppeteer-pdf-builder.service';
+import { IPdfBuilder } from '../interfaces/pdf-generator.interface';
 
 /**
  * Document Generator Service
@@ -51,48 +49,19 @@ import { ExcelBuilderService } from './excel-builder.service';
  *     .endSheet()
  *     .build();
  *   
- *   return excelBuffer;
- * }
- * ```
  */
 @Injectable()
-export class DocumentGeneratorService implements IDocumentGeneratorService {
+export class DocumentGeneratorService {
     /**
      * Create a new PDF builder instance
      * 
-     * @returns A new PdfBuilderService instance with fluent API
-     * 
-     * @example
-     * ```typescript
-     * const pdf = await documentGenerator
-     *   .createPdfBuilder()
-     *   .setOptions({
-     *     pageSize: 'A4',
-     *     orientation: 'portrait',
-     *     metadata: {
-     *       title: 'Invoice',
-     *       author: 'Company Name'
-     *     }
-     *   })
-     *   .addSection('Header')
-     *     .addHeading('INVOICE', 1, { align: 'center' })
-     *     .addText('Invoice #12345')
-     *   .endSection()
-     *   .addSection('Items')
-     *     .addTable(items, {
-     *       columns: [
-     *         { header: 'Description', width: 200 },
-     *         { header: 'Qty', width: 50, align: 'center' },
-     *         { header: 'Price', width: 80, align: 'right' }
-     *       ],
-     *       headerBackground: '#4472C4',
-     *       headerTextColor: '#FFFFFF'
-     *     })
-     *   .endSection()
-     *   .build();
-     * ```
+     * @param engine The engine to use: 'pdfkit' (fast, lightweight) or 'puppeteer' (stunning HTML/CSS support)
+     * @returns A new IPdfBuilder instance
      */
-    createPdfBuilder(): IPdfBuilder {
+    createPdfBuilder(engine: 'pdfkit' | 'puppeteer' = 'pdfkit'): IPdfBuilder {
+        if (engine === 'puppeteer') {
+            return new PuppeteerPdfBuilderService();
+        }
         return new PdfBuilderService();
     }
 
@@ -124,7 +93,7 @@ export class DocumentGeneratorService implements IDocumentGeneratorService {
      *   .build();
      * ```
      */
-    createExcelBuilder(): IExcelBuilder {
+    createExcelBuilder() {
         return new ExcelBuilderService();
     }
 }

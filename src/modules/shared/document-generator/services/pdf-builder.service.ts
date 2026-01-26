@@ -9,7 +9,7 @@ import {
     IPdfTableColumn,
     IPdfSectionContent,
     PdfPageSize,
-} from '../interfaces/document-generator.interface';
+} from '../interfaces/pdf-generator.interface';
 
 /**
  * PDF Section Builder - Fluent API for building PDF sections
@@ -109,6 +109,24 @@ class PdfSectionBuilder implements IPdfSectionBuilder {
         return this;
     }
 
+    addSignatureSection(options?: { label?: string; dateLabel?: string; space?: number }): IPdfSectionBuilder {
+        this.contents.push({
+            type: 'signature',
+            data: null,
+            options,
+        });
+        return this;
+    }
+
+    addTOCEntry(title: string, page: string | number, options?: IPdfTextOptions): IPdfSectionBuilder {
+        this.contents.push({
+            type: 'text',
+            data: { title, page },
+            options: { ...options, isTOC: true },
+        });
+        return this;
+    }
+
     endSection(): IPdfBuilder {
         this.parentBuilder.registerSection({
             title: this.sectionTitle,
@@ -124,18 +142,28 @@ class PdfSectionBuilder implements IPdfSectionBuilder {
 
 /**
  * PDF Builder Service - Main service for building PDF documents with a fluent API
+ * Now includes support for watermarks, headers, and footers
  * 
  * @example
  * ```typescript
  * const pdf = await pdfBuilder
- *   .setOptions({ pageSize: 'A4', orientation: 'portrait' })
+ *   .setOptions({
+ *     pageSize: 'A4',
+ *     orientation: 'portrait',
+ *     watermark: {
+ *       text: 'NABARUN NGO',
+ *       opacity: 0.1,
+ *       angle: -45
+ *     },
+ *     header: {
+ *       title: 'Disclaimer',
+ *       subtitle: 'NABARUN NGO\nWorking Together for a Better Tomorrow',
+ *       date: '09-JAN-2026'
+ *     }
+ *   })
  *   .addSection('Introduction')
  *     .addHeading('Welcome to Our Report', 1)
  *     .addParagraph('This is an introductory paragraph...')
- *     .addDivider()
- *   .endSection()
- *   .addSection('Data')
- *     .addTable(tableData, { columns: [...] })
  *   .endSection()
  *   .build();
  * ```
@@ -144,6 +172,8 @@ export class PdfBuilderService implements IPdfBuilder {
     private options: IPdfDocumentOptions = {};
     private sections: { title?: string; contents: IPdfSectionContent[] }[] = [];
     private pageBreaks: number[] = [];
+    private currentPage: number = 1;
+    private totalPages: number = 0;
 
     private static readonly PAGE_SIZES: Record<PdfPageSize, [number, number]> = {
         'A4': [595.28, 841.89],
@@ -162,6 +192,11 @@ export class PdfBuilderService implements IPdfBuilder {
 
     setOptions(options: IPdfDocumentOptions): IPdfBuilder {
         this.options = { ...this.options, ...options };
+        return this;
+    }
+
+    setTemplate(templateName: string, data: any): IPdfBuilder {
+        console.warn('setTemplate is not natively supported by PDFKit engine. Use Puppeteer engine for HTML templates.');
         return this;
     }
 
@@ -204,12 +239,25 @@ export class PdfBuilderService implements IPdfBuilder {
         const orientation = this.options.orientation || 'portrait';
         const margins = { ...PdfBuilderService.DEFAULT_MARGINS, ...this.options.margins };
 
+        // Adjust top margin if header is present
+        if (this.options.header) {
+            // Calculate dynamic margin based on whether centered logo exists
+            const hasLogo = !!this.options.header.logoCentered;
+            const logoHeight = this.options.header.logoHeight || 80;
+            // Provide more breathing room for headers
+            margins.top = hasLogo ? 140 + logoHeight : 130;
+        }
+
+        // Adjust bottom margin if footer is present
+        if (this.options.footer) {
+            margins.bottom = 80;
+        }
+
         let size = PdfBuilderService.PAGE_SIZES[pageSize];
         if (orientation === 'landscape') {
             size = [size[1], size[0]];
         }
 
-        // Build info object, filtering out undefined values
         const info: PDFKit.PDFDocumentOptions['info'] = {
             CreationDate: new Date(),
         };
@@ -225,34 +273,278 @@ export class PdfBuilderService implements IPdfBuilder {
             compress: this.options.compress ?? true,
             autoFirstPage: this.options.autoFirstPage ?? true,
             info,
+            bufferPages: true, // Enable buffering for page count
         });
+
+        // Register custom fonts
+        if (this.options.customFonts) {
+            this.options.customFonts.forEach(font => {
+                try {
+                    doc.registerFont(font.name, font.path);
+                } catch (e) {
+                    console.error(`Error registering custom font ${font.name}:`, e);
+                }
+            });
+        }
 
         return doc;
     }
 
     private renderDocument(doc: PDFKit.PDFDocument): void {
+        // First pass: render all content to calculate total pages
+        this.currentPage = 1;
+
+        // Add header to first page if configured
+        if (this.options.header) {
+            this.renderHeader(doc);
+        }
+
+        // Add watermark to first page if configured
+        if (this.options.watermark) {
+            this.renderWatermark(doc);
+        }
+
+        // Add border to first page if configured
+        if (this.options.showBorder) {
+            this.renderBorder(doc);
+        }
+
+        // Render all sections
         this.sections.forEach((section, sectionIndex) => {
-            // Check for page break before this section
             if (this.pageBreaks.includes(sectionIndex) && sectionIndex > 0) {
                 doc.addPage();
+                this.currentPage++;
+                if (this.options.header) this.renderHeader(doc);
+                if (this.options.watermark) this.renderWatermark(doc);
+                if (this.options.showBorder) this.renderBorder(doc);
             }
 
-            // Render section title if present
             if (section.title) {
                 this.renderHeading(doc, section.title, { size: 18, style: 'bold' });
                 doc.moveDown(0.5);
             }
 
-            // Render section contents
             section.contents.forEach((content) => {
                 this.renderContent(doc, content);
             });
 
-            // Add spacing between sections
             if (sectionIndex < this.sections.length - 1) {
                 doc.moveDown(1);
             }
         });
+
+        // Get total page count
+        this.totalPages = (doc as any).bufferedPageRange().count;
+
+        // Second pass: add footers with page numbers
+        if (this.options.footer) {
+            const range = (doc as any).bufferedPageRange();
+            for (let i = 0; i < range.count; i++) {
+                doc.switchToPage(i);
+                this.renderFooter(doc, i + 1);
+            }
+        }
+    }
+
+    private renderHeader(doc: PDFKit.PDFDocument): void {
+        const header = this.options.header!;
+        const pageWidth = doc.page.width;
+        const margins = doc.page.margins;
+        const contentWidth = pageWidth - margins.left - margins.right;
+        let startY = 40;
+
+        // Save current state
+        doc.save();
+
+        // Accent bar on the left
+        if (this.options.accentColor) {
+            doc.rect(0, 0, 5, doc.page.height)
+                .fill(this.options.accentColor);
+        }
+
+        // Background color if specified
+        if (header.backgroundColor) {
+            doc.rect(0, 0, pageWidth, 110)
+                .fill(header.backgroundColor);
+        }
+
+        // Set text color
+        const textColor = header.textColor || '#000000';
+        doc.fillColor(textColor);
+
+        // Centered logo at the top
+        if (header.logoCentered) {
+            try {
+                const logoWidth = header.logoWidth || 100;
+                const logoHeight = header.logoHeight || 80;
+                const logoX = (pageWidth - logoWidth) / 2;
+
+                doc.image(header.logoCentered, logoX, startY, {
+                    width: logoWidth,
+                    height: logoHeight
+                });
+
+                // Adjust startY to position title below logo
+                startY = startY + logoHeight + 15;
+            } catch (e) {
+                console.error('Error loading centered logo:', e);
+            }
+        }
+
+        // Left logo
+        if (header.logoLeft) {
+            try {
+                doc.image(header.logoLeft, 40, startY, { width: 50, height: 50 });
+            } catch (e) {
+                console.error('Error loading left logo:', e);
+            }
+        }
+
+        // Center title and subtitle
+        if (header.title) {
+            doc.font('Helvetica-Bold')
+                .fontSize(22)
+                .text(header.title, margins.left, startY, {
+                    width: contentWidth,
+                    align: 'center'
+                });
+        }
+
+        if (header.subtitle) {
+            doc.font('Helvetica')
+                .fontSize(11)
+                .text(header.subtitle, margins.left, startY + 28, {
+                    width: contentWidth,
+                    align: 'center',
+                    lineGap: 3
+                });
+        }
+
+        // Date
+        if (header.date) {
+            doc.font('Helvetica')
+                .fontSize(9)
+                .fillColor('#666666')
+                .text(header.date, margins.left, startY + 70, {
+                    width: contentWidth,
+                    align: 'center'
+                });
+        }
+
+        // Right logo
+        if (header.logoRight) {
+            try {
+                doc.image(header.logoRight, pageWidth - 90, startY, { width: 50, height: 50 });
+            } catch (e) {
+                console.error('Error loading right logo:', e);
+            }
+        }
+
+        // Calculate divider position based on whether centered logo exists
+        const dividerY = header.logoCentered ? startY + 75 : 105;
+
+        // Divider line
+        doc.strokeColor('#dddddd')
+            .lineWidth(0.5)
+            .moveTo(margins.left, dividerY)
+            .lineTo(pageWidth - margins.right, dividerY)
+            .stroke();
+
+        // Restore state
+        doc.restore();
+    }
+
+    private renderFooter(doc: PDFKit.PDFDocument, pageNum: number): void {
+        const footer = this.options.footer!;
+        const pageHeight = doc.page.height;
+        const pageWidth = doc.page.width;
+        const margins = doc.page.margins;
+        const contentWidth = pageWidth - margins.left - margins.right;
+        const footerY = pageHeight - 40;
+
+        doc.save();
+
+        doc.font('Helvetica')
+            .fontSize(10)
+            .fillColor('#666666');
+
+        // Footer text
+        if (footer.text) {
+            const align = footer.alignment || 'left';
+            const x = align === 'center' ? 0 : (align === 'right' ? pageWidth - 100 : 50);
+            doc.text(footer.text, x, footerY, {
+                width: align === 'center' ? pageWidth : 200,
+                align: align
+            });
+        }
+
+        // Page numbers
+        if (footer.pageNumbers) {
+            const pageText = `Page ${pageNum} of ${this.totalPages}`;
+            doc.text(pageText, margins.left, footerY, {
+                width: contentWidth,
+                align: 'right'
+            });
+        }
+
+        doc.restore();
+    }
+
+    private renderWatermark(doc: PDFKit.PDFDocument): void {
+        const watermark = this.options.watermark!;
+        const pageWidth = doc.page.width;
+        const pageHeight = doc.page.height;
+
+        doc.save();
+
+        if (watermark.image) {
+            // Image watermark
+            try {
+                const opacity = watermark.opacity || 0.1;
+                doc.opacity(opacity);
+
+                const imgWidth = pageWidth * 0.6;
+                const imgHeight = pageHeight * 0.6;
+                const x = (pageWidth - imgWidth) / 2;
+                const y = (pageHeight - imgHeight) / 2;
+
+                doc.image(watermark.image, x, y, {
+                    width: imgWidth,
+                    height: imgHeight,
+                    align: 'center',
+                    valign: 'center'
+                });
+            } catch (e) {
+                console.error('Error loading watermark image:', e);
+            }
+        } else if (watermark.text) {
+            // Text watermark
+            const opacity = watermark.opacity || 0.1;
+            const fontSize = watermark.fontSize || 60;
+            const color = watermark.color || '#000000';
+            const angle = watermark.angle || -45;
+            const position = watermark.position || 'diagonal';
+
+            doc.opacity(opacity);
+            doc.fillColor(color);
+            doc.font('Helvetica-Bold').fontSize(fontSize);
+
+            if (position === 'center') {
+                doc.text(watermark.text, 0, pageHeight / 2 - fontSize / 2, {
+                    width: pageWidth,
+                    align: 'center'
+                });
+            } else {
+                // Diagonal watermark
+                doc.rotate(angle, { origin: [pageWidth / 2, pageHeight / 2] });
+                doc.text(watermark.text, 0, pageHeight / 2 - fontSize / 2, {
+                    width: pageWidth,
+                    align: 'center'
+                });
+            }
+        }
+
+        doc.restore();
     }
 
     private renderContent(doc: PDFKit.PDFDocument, content: IPdfSectionContent): void {
@@ -283,6 +575,13 @@ export class PdfBuilderService implements IPdfBuilder {
                 break;
             case 'pageBreak':
                 doc.addPage();
+                this.currentPage++;
+                if (this.options.header) this.renderHeader(doc);
+                if (this.options.watermark) this.renderWatermark(doc);
+                if (this.options.showBorder) this.renderBorder(doc);
+                break;
+            case 'signature':
+                this.renderSignature(doc, content.options);
                 break;
         }
     }
@@ -310,15 +609,47 @@ export class PdfBuilderService implements IPdfBuilder {
         });
     }
 
-    private renderText(doc: PDFKit.PDFDocument, text: string, options?: IPdfTextOptions): void {
+    private renderText(doc: PDFKit.PDFDocument, text: any, options?: IPdfTextOptions & { isTOC?: boolean }): void {
         this.applyFontOptions(doc, options);
-        doc.text(text, {
-            align: options?.align || 'left',
-            continued: false,
-            underline: options?.underline,
-            strike: options?.strike,
-            link: options?.link,
-        });
+
+        if (options?.isTOC && typeof text === 'object') {
+            const { title, page } = text;
+            const margins = doc.page.margins;
+            const pageWidth = doc.page.width - margins.left - margins.right;
+            const pageStr = page.toString();
+            const y = doc.y;
+
+            // 1. Draw Title
+            doc.text(title, margins.left, y);
+
+            // 2. Draw Page Number (Right Aligned)
+            const pageNumWidth = doc.widthOfString(pageStr);
+            const pageNumX = doc.page.width - margins.right - pageNumWidth;
+            doc.text(pageStr, pageNumX, y);
+
+            // 3. Render Dots in Between
+            const titleWidth = doc.widthOfString(title);
+            const startDots = margins.left + titleWidth + 8;
+            const endDots = pageNumX - 8;
+
+            if (endDots > startDots) {
+                const dot = '.';
+                const dotW = doc.widthOfString(dot);
+                const dotsCount = Math.floor((endDots - startDots) / dotW);
+                doc.text(dot.repeat(dotsCount), startDots, y, { lineBreak: false });
+            }
+
+            // Reset to next line correctly
+            doc.y = y + doc.currentLineHeight() + 2;
+        } else {
+            doc.text(text.toString(), {
+                align: options?.align || 'left',
+                continued: false,
+                underline: options?.underline,
+                strike: options?.strike,
+                link: options?.link,
+            });
+        }
     }
 
     private renderImage(doc: PDFKit.PDFDocument, source: string | Buffer, options?: IPdfImageOptions): void {
@@ -347,7 +678,6 @@ export class PdfBuilderService implements IPdfBuilder {
         const borderWidth = options?.borderWidth || 0.5;
         const borderColor = options?.borderColor || '#000000';
 
-        // Calculate column widths
         const columns: IPdfTableColumn[] = options?.columns || data[0].map((_, i) => ({ header: `Column ${i + 1}` }));
         const numColumns = columns.length;
         const columnWidths = this.calculateColumnWidths(columns, pageWidth, numColumns);
@@ -358,13 +688,11 @@ export class PdfBuilderService implements IPdfBuilder {
         if (columns.length > 0) {
             const headerHeight = this.calculateRowHeight(doc, columns.map(c => c.header), columnWidths, cellPadding, options?.headerFontSize || 10);
 
-            // Header background
             if (options?.headerBackground) {
                 doc.rect(startX, currentY, pageWidth, headerHeight)
                     .fill(options.headerBackground);
             }
 
-            // Header text
             doc.fillColor(options?.headerTextColor || '#000000');
             doc.font('Helvetica-Bold').fontSize(options?.headerFontSize || 10);
 
@@ -377,7 +705,6 @@ export class PdfBuilderService implements IPdfBuilder {
                 cellX += columnWidths[i];
             });
 
-            // Header border
             doc.strokeColor(borderColor).lineWidth(borderWidth);
             doc.rect(startX, currentY, pageWidth, headerHeight).stroke();
 
@@ -394,17 +721,18 @@ export class PdfBuilderService implements IPdfBuilder {
             // Check for page break
             if (currentY + rowHeight > doc.page.height - doc.page.margins.bottom) {
                 doc.addPage();
+                this.currentPage++;
+                if (this.options.header) this.renderHeader(doc);
+                if (this.options.watermark) this.renderWatermark(doc);
                 currentY = doc.page.margins.top;
             }
 
-            // Alternate row background
             if (options?.alternateRowColor && rowIndex % 2 === 1) {
                 doc.rect(startX, currentY, pageWidth, rowHeight)
                     .fill(options.alternateRowColor);
                 doc.fillColor('#000000');
             }
 
-            // Row cells
             let cellX = startX;
             row.forEach((cell, cellIndex) => {
                 const cellValue = cell?.toString() || '';
@@ -416,7 +744,6 @@ export class PdfBuilderService implements IPdfBuilder {
                 cellX += columnWidths[cellIndex];
             });
 
-            // Row border
             doc.strokeColor(borderColor).lineWidth(borderWidth);
             doc.rect(startX, currentY, pageWidth, rowHeight).stroke();
 
@@ -490,22 +817,86 @@ export class PdfBuilderService implements IPdfBuilder {
         doc.y = y + 10;
     }
 
+    private renderBorder(doc: PDFKit.PDFDocument): void {
+        const borderOptions = this.options.borderOptions || {};
+        const color = borderOptions.color || '#2B5FA6';
+        const thickness = borderOptions.thickness || 1;
+        const padding = borderOptions.padding || 30;
+
+        const pageWidth = doc.page.width;
+        const pageHeight = doc.page.height;
+
+        doc.save();
+        doc.strokeColor(color)
+            .lineWidth(thickness)
+            .rect(padding, padding, pageWidth - padding * 2, pageHeight - padding * 2)
+            .stroke();
+        doc.restore();
+    }
+
+    private renderSignature(doc: PDFKit.PDFDocument, options?: { label?: string; dateLabel?: string; space?: number }): void {
+        const label = options?.label || 'Authorized Signature';
+        const dateLabel = options?.dateLabel || 'Date';
+        const space = options?.space || 60;
+        const lineLength = 200;
+
+        doc.moveDown(2);
+        const startY = doc.y;
+        const margins = doc.page.margins;
+        const pageWidth = doc.page.width;
+
+        doc.save();
+        doc.strokeColor('#333333').lineWidth(0.8);
+
+        // Left Line
+        doc.moveTo(margins.left, startY + space)
+            .lineTo(margins.left + lineLength, startY + space)
+            .stroke();
+
+        doc.fontSize(9).fillColor('#333333');
+        doc.text(label, margins.left, startY + space + 8, {
+            width: lineLength,
+            align: 'center'
+        });
+
+        // Right Line
+        const rightX = pageWidth - margins.right - lineLength;
+        doc.moveTo(rightX, startY + space)
+            .lineTo(pageWidth - margins.right, startY + space)
+            .stroke();
+
+        doc.text(dateLabel, rightX, startY + space + 8, {
+            width: lineLength,
+            align: 'center'
+        });
+
+        doc.restore();
+        doc.moveDown(4);
+    }
+
     private applyFontOptions(doc: PDFKit.PDFDocument, options?: IPdfTextOptions): void {
-        const fontFamily = options?.family || 'Helvetica';
+        const fontFamily = options?.family || this.options.fontFamily || 'Helvetica';
         const fontSize = options?.size || 12;
         const fontStyle = options?.style || 'normal';
 
-        const fontMap: Record<string, string> = {
-            'normal': fontFamily,
-            'bold': `${fontFamily}-Bold`,
-            'italic': `${fontFamily}-Oblique`,
-            'bolditalic': `${fontFamily}-BoldOblique`,
-        };
+        // Check if the requested font is a custom registered one
+        const isCustom = this.options.customFonts?.some(f => f.name === fontFamily);
 
-        try {
-            doc.font(fontMap[fontStyle] || fontFamily);
-        } catch {
+        if (isCustom) {
             doc.font(fontFamily);
+        } else {
+            const fontMap: Record<string, string> = {
+                'normal': fontFamily,
+                'bold': `${fontFamily}-Bold`,
+                'italic': `${fontFamily}-Oblique`,
+                'bolditalic': `${fontFamily}-BoldOblique`,
+            };
+
+            try {
+                doc.font(fontMap[fontStyle] || fontFamily);
+            } catch {
+                doc.font(fontFamily);
+            }
         }
 
         doc.fontSize(fontSize);
@@ -517,13 +908,12 @@ export class PdfBuilderService implements IPdfBuilder {
         }
     }
 
-    /**
-     * Reset the builder for reuse
-     */
     reset(): PdfBuilderService {
         this.options = {};
         this.sections = [];
         this.pageBreaks = [];
+        this.currentPage = 1;
+        this.totalPages = 0;
         return this;
     }
 }

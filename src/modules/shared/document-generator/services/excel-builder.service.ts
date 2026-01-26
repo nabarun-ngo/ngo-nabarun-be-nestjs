@@ -8,7 +8,7 @@ import {
     IExcelRowData,
     IExcelCellStyle,
     IExcelColumnDefinition,
-} from '../interfaces/document-generator.interface';
+} from '../interfaces/excel-generator.interface';
 
 /**
  * Excel Sheet Builder - Fluent API for building individual Excel sheets

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { DocumentGeneratorService } from './services/document-generator.service';
-import { DOCUMENT_GENERATOR_SERVICE } from './interfaces/document-generator.interface';
 
 /**
  * Document Generator Module
@@ -12,13 +11,9 @@ import { DOCUMENT_GENERATOR_SERVICE } from './interfaces/document-generator.inte
     controllers: [],
     providers: [
         DocumentGeneratorService,
-        {
-            provide: DOCUMENT_GENERATOR_SERVICE,
-            useClass: DocumentGeneratorService,
-        },
     ],
     exports: [
-        DOCUMENT_GENERATOR_SERVICE,
+        DocumentGeneratorService,
     ],
 })
 export class DocumentGeneratorModule { }
