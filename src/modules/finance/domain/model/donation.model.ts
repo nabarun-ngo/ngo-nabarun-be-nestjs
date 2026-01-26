@@ -46,6 +46,8 @@ export class DonationFilter {
   endDate_raisedOn?: Date;
   startDate_paidOn?: Date;
   endDate_paidOn?: Date;
+  startDate_confirmedOn?: Date;
+  endDate_confirmedOn?: Date;
   startDate_lte?: Date;
   endDate_gte?: Date;
 }

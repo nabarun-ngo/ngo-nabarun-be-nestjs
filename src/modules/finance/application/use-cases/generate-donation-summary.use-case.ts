@@ -29,8 +29,8 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
     const password = this.configService.get(Configkey.APP_SECRET);
 
     const paidDonations = await this.donationRepository.findAll({
-      startDate_paidOn: request.startDate,
-      endDate_paidOn: request.endDate,
+      startDate_confirmedOn: request.startDate,
+      endDate_confirmedOn: request.endDate,
       status: [DonationStatus.PAID]
     });
 

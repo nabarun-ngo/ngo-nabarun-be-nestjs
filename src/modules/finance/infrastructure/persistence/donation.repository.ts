@@ -87,6 +87,14 @@ class DonationRepository implements IDonationRepository {
           },
         }
         : {}),
+      ...(props?.startDate_confirmedOn || props?.endDate_confirmedOn
+        ? {
+          confirmedOn: {
+            ...(props.startDate_confirmedOn ? { gte: props.startDate_confirmedOn } : {}),
+            ...(props.endDate_confirmedOn ? { lte: props.endDate_confirmedOn } : {}),
+          },
+        }
+        : {}),
       ...(props?.startDate_paidOn || props?.endDate_paidOn
         ? {
           paidOn: {
