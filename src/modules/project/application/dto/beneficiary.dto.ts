@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsDate, IsArray, IsEnum, Min, IsEmail, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsDate, IsArray, IsEnum, Min, IsEmail, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BeneficiaryType, BeneficiaryGender, BeneficiaryStatus } from '../../domain/model/beneficiary.model';

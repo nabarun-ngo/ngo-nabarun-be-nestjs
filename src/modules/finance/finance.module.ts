@@ -5,7 +5,6 @@ import { Module } from '@nestjs/common';
 import { DonationController } from './presentation/controllers/donation.controller';
 import { AccountController } from './presentation/controllers/account.controller';
 import { ExpenseController } from './presentation/controllers/expense.controller';
-import { EarningController } from './presentation/controllers/earning.controller';
 
 // Use Cases
 import { CreateDonationUseCase } from './application/use-cases/create-donation.use-case';

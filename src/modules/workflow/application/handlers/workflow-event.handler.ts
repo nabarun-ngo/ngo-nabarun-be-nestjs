@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
 import { StepStartedEvent } from "../../domain/events/step-started.event";
 import { OnEvent } from "@nestjs/event-emitter";

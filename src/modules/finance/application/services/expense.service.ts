@@ -13,9 +13,6 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { AccountStatus, AccountType } from '../../domain/model/account.model';
-import { AccountDtoMapper } from '../dto/mapper/account-dto.mapper';
-import { ExpenseStatus } from '../../domain/model/expense.model';
 
 @Injectable()
 export class ExpenseService {

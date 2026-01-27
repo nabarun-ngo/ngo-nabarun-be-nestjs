@@ -10,7 +10,6 @@ import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { CompleteTaskUseCase } from '../use-cases/complete-task.use-case';
-import { User } from 'src/modules/user/domain/model/user.model';
 import { AutomaticTaskService } from './automatic-task.service';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';

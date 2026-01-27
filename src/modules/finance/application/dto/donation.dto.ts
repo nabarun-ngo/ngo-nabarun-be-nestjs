@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsOptional, Min, IsEmail, IsBoolean, IsDate, IsArray, ValidateNested, IsEnum } from 'class-validator';
+import { IsNumber, IsString, IsOptional, Min, IsEmail, IsBoolean, IsDate, IsArray, IsEnum } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DonationType, DonationStatus, PaymentMethod, UPIPaymentType } from '../../domain/model/donation.model';

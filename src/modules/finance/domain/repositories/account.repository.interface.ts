@@ -1,5 +1,5 @@
 import { IRepository } from 'src/shared/interfaces/repository.interface';
-import { Account, AccountFilter, AccountType } from '../model/account.model';
+import { Account, AccountFilter } from '../model/account.model';
 
 export interface IAccountRepository extends IRepository<Account, string, AccountFilter> {
 }

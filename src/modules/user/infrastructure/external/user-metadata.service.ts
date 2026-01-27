@@ -4,8 +4,6 @@ import { Role } from "../../domain/model/role.model";
 import { parsefromString, parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 import { KeyValueConfig } from "src/shared/models/key-value-config.model";
 import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
-import * as path from 'path';
-import fs from "fs";
 
 @Injectable()
 export class UserMetadataService {

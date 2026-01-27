@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsDate, IsArray, IsEnum, Min, IsBoolean, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsDate, IsArray, IsEnum, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectCategory, ProjectStatus, ProjectPhase } from '../../domain/model/project.model';

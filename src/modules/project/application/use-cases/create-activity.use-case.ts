@@ -6,7 +6,6 @@ import type { IActivityRepository } from '../../domain/repositories/activity.rep
 import { PROJECT_REPOSITORY } from '../../domain/repositories/project.repository.interface';
 import type { IProjectRepository } from '../../domain/repositories/project.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CreateActivityDto } from '../dto/activity.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 
 export interface CreateActivity {

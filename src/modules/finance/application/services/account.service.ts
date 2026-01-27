@@ -16,7 +16,7 @@ import { AccountStatus, AccountType } from '../../domain/model/account.model';
 import { AccountRefDataDto } from '../dto/donation.dto';
 import { MetadataService } from '../../infrastructure/external/metadata.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
-import { TransactionRefType, TransactionStatus, TransactionType } from '../../domain/model/transaction.model';
+import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { ReverseTransactionUseCase } from '../use-cases/reverse-transaction.use-case';
 
 @Injectable()

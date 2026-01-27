@@ -16,7 +16,7 @@ import { PagedResult } from 'src/shared/models/paged-result';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { WorkflowType } from '../../domain/model/workflow-instance.model';
-import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
+import { WorkflowTask, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 
 @ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')

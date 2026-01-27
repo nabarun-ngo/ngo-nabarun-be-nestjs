@@ -1,5 +1,5 @@
 import { IRepository } from 'src/shared/interfaces/repository.interface';
-import { Expense, ExpenseFilter, ExpenseStatus } from '../model/expense.model';
+import { Expense, ExpenseFilter } from '../model/expense.model';
 
 export interface IExpenseRepository extends IRepository<Expense, string, ExpenseFilter> {
 }
