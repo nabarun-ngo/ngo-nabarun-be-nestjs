@@ -8,7 +8,6 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
-  Res,
 } from '@nestjs/common';
 import {
   DonationDto,
@@ -19,17 +18,15 @@ import {
   DonationSummaryDto,
   DonationRefDataDto,
   CreateGuestDonationDto,
-  DownloadDonationSummaryDto,
 } from '../../application/dto/donation.dto';
 import { DonationService } from '../../application/services/donation.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { PagedResult } from 'src/shared/models/paged-result';
-import type { Response as ExpressResponse } from 'express';
 
 /**
  * Donation Controller - matches legacy endpoints

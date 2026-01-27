@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { DatabaseModule } from '../shared/database/database.module';
 
 // Repositories
 import { ProjectRepository } from './infrastructure/persistence/project.repository';

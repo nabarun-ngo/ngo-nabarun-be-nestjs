@@ -9,7 +9,7 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { DonationStatus } from 'src/modules/finance/domain/model/donation.model';
 import { ExpenseStatus } from 'src/modules/finance/domain/model/expense.model';
-import { WorkflowTask, WorkflowTaskStatus } from 'src/modules/workflow/domain/model/workflow-task.model';
+import { WorkflowTask } from 'src/modules/workflow/domain/model/workflow-task.model';
 import { AccountType } from 'src/modules/finance/domain/model/account.model';
 
 @Injectable()

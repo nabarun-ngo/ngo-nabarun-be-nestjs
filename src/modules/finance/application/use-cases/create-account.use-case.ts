@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Account, AccountType, BankDetail, UPIDetail } from '../../domain/model/account.model';
+import { Account, AccountType } from '../../domain/model/account.model';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { User, UserAttributesProps, UserProfileProps, UserStatus } from '../../domain/model/user.model';
+import { User, UserAttributesProps, UserProfileProps } from '../../domain/model/user.model';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
@@ -30,11 +30,11 @@ export class UpdateUserUseCase implements IUseCase<CreateUserProps, User> {
         if (!existingUser) {
             throw new BusinessException('User not exists with id ' + request.id);
         }
-        
+
         if (request.mode === 'admin') {
             existingUser.updateAdmin(request.detail!);
             const toAdd = existingUser.addLoginMethod(request.detail?.loginMethods);
-            if(toAdd.length > 0){
+            if (toAdd.length > 0) {
                 await this.auth0User.addLoginMethods(existingUser, toAdd);
             }
         } else if (request.mode === 'self') {

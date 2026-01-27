@@ -5,7 +5,6 @@ import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DonationDetailFilterDto } from '../../application/dto/donation.dto';
 import { DonationInfraMapper } from '../mapper/donation-infra.mapper';
 
 export type FullDonation = Prisma.DonationGetPayload<{

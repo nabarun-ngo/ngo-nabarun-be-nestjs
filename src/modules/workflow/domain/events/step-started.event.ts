@@ -1,5 +1,4 @@
 import { DomainEvent } from '../../../../shared/models/domain-event';
-import { WorkflowStep } from '../model/workflow-step.model';
 
 export class StepStartedEvent extends DomainEvent {
   constructor(

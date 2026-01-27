@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
-import { Transaction, TransactionFilter, TransactionType } from '../../domain/model/transaction.model';
+import { Transaction, TransactionFilter } from '../../domain/model/transaction.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
 import { TransactionInfraMapper } from '../mapper/transaction-infra.mapper';
 
 export type TransactionPersistence = Prisma.TransactionGetPayload<{

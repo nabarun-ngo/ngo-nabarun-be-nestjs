@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsDefined,
   IsBoolean,
-  IsEnum,
   IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -20,7 +19,7 @@ import {
 import { WorkflowStepStatus } from '../../domain/model/workflow-step.model';
 import { TaskAssignmentStatus as TaskAssignmentStatusEnum } from '../../domain/model/task-assignment.model';
 import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 
 export class StartWorkflowDto {
   @ApiProperty({ description: 'Workflow type (e.g., JOIN_REQUEST)', required: true })
