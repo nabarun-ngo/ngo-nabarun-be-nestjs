@@ -2,13 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { GoogleOAuthService } from '../../auth/application/services/google-oauth.service';
 import { gmail as googleMail } from '@googleapis/gmail';
 import { EmailOptions, SendEmailResult } from '../dtos/email.dto';
+import { GOOGLE_SCOPES } from '../../auth/scopes';
 
 
 
 @Injectable()
 export class GmailService {
   private readonly logger = new Logger(GmailService.name);
-  public static readonly scope = 'https://www.googleapis.com/auth/gmail.send';
+  private readonly scope = GOOGLE_SCOPES.gmail;
 
   constructor(private readonly googleOAuthService: GoogleOAuthService) { }
 
@@ -20,7 +21,7 @@ export class GmailService {
     options: EmailOptions,
     fromName: string,
   ): Promise<SendEmailResult> {
-    const oauth2Client = await this.googleOAuthService.getAuthenticatedClient(GmailService.scope);
+    const oauth2Client = await this.googleOAuthService.getAuthenticatedClient(this.scope);
     if (!oauth2Client) {
       return {
         success: false,

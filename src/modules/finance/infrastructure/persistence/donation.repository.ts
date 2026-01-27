@@ -5,7 +5,6 @@ import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { DonationDetailFilterDto } from '../../application/dto/donation.dto';
 import { DonationInfraMapper } from '../mapper/donation-infra.mapper';
 
 export type FullDonation = Prisma.DonationGetPayload<{
@@ -56,7 +55,7 @@ class DonationRepository implements IDonationRepository {
     );
   }
 
-  async findAll(filter?: DonationDetailFilterDto): Promise<Donation[]> {
+  async findAll(filter?: DonationFilter): Promise<Donation[]> {
     const donations = await this.prisma.donation.findMany({
       where: this.whereQuery(filter),
       orderBy: {
@@ -79,11 +78,27 @@ class DonationRepository implements IDonationRepository {
       ...(props?.donorId ? { donorId: props.donorId } : {}),
       ...(props?.donationId ? { id: props.donationId } : {}),
       ...(props?.isGuest ? { isGuest: props.isGuest } : {}),
-      ...(props?.startDate || props?.endDate
+      ...(props?.startDate_raisedOn || props?.endDate_raisedOn
         ? {
           raisedOn: {
-            ...(props.startDate ? { gte: props.startDate } : {}),
-            ...(props.endDate ? { lte: props.endDate } : {}),
+            ...(props.startDate_raisedOn ? { gte: props.startDate_raisedOn } : {}),
+            ...(props.endDate_raisedOn ? { lte: props.endDate_raisedOn } : {}),
+          },
+        }
+        : {}),
+      ...(props?.startDate_confirmedOn || props?.endDate_confirmedOn
+        ? {
+          confirmedOn: {
+            ...(props.startDate_confirmedOn ? { gte: props.startDate_confirmedOn } : {}),
+            ...(props.endDate_confirmedOn ? { lte: props.endDate_confirmedOn } : {}),
+          },
+        }
+        : {}),
+      ...(props?.startDate_paidOn || props?.endDate_paidOn
+        ? {
+          paidOn: {
+            ...(props.startDate_paidOn ? { gte: props.startDate_paidOn } : {}),
+            ...(props.endDate_paidOn ? { lte: props.endDate_paidOn } : {}),
           },
         }
         : {}),

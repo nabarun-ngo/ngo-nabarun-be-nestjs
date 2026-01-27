@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ValidateNested, IsDate, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { AccountDetailDto } from './account.dto';
 import { ExpenseRefType, ExpenseStatus } from '../../domain/model/expense.model';
 import { UserDto } from 'src/modules/user/application/dto/user.dto';
 

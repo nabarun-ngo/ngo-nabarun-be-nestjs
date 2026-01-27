@@ -93,9 +93,11 @@ class WorkflowInstanceRepository
 
   private whereQueryTasks(filter: TaskFilter | undefined): Prisma.WorkflowTaskWhereInput {
     const where: Prisma.WorkflowTaskWhereInput = {
+      ...(filter?.type ? { type: { in: filter.type } } : {}),
       ...(filter?.assignedTo ? { assignments: { some: { assignedToId: filter.assignedTo } } } : {}),
       ...(filter?.status ? { status: { in: filter.status } } : {}),
-      ...(filter?.completed ? { status: { notIn: WorkflowTask.pendingTaskStatus } } : { status: { in: WorkflowTask.pendingTaskStatus } }),
+      ...(filter?.workflowId ? { workflowId: filter.workflowId } : {}),
+      ...(filter?.taskId ? { id: filter.taskId } : {}),
     };
     return where;
   }
@@ -144,11 +146,12 @@ class WorkflowInstanceRepository
 
   private whereQuery(props?: WorkflowFilter): Prisma.WorkflowInstanceWhereInput {
     const where: Prisma.WorkflowInstanceWhereInput = {
-      ...(props?.type ? { type: props.type } : {}),
-      ...(props?.status ? { status: props.status } : {}),
+      ...(props?.type ? { type: { in: props.type } } : {}),
+      ...(props?.status ? { status: { in: props.status } } : {}),
       ...(props?.initiatedBy ? { initiatedById: props.initiatedBy } : {}),
       ...(props?.initiatedFor ? { initiatedForId: props.initiatedFor } : {}),
       ...(props?.delegated ? { delegated: props.delegated } : {}),
+      ...(props?.workflowId ? { id: props.workflowId } : {}),
     }
     return where;
   }

@@ -5,7 +5,6 @@ import { Module } from '@nestjs/common';
 import { DonationController } from './presentation/controllers/donation.controller';
 import { AccountController } from './presentation/controllers/account.controller';
 import { ExpenseController } from './presentation/controllers/expense.controller';
-import { EarningController } from './presentation/controllers/earning.controller';
 
 // Use Cases
 import { CreateDonationUseCase } from './application/use-cases/create-donation.use-case';
@@ -20,6 +19,7 @@ import { FinalizeExpenseUseCase } from './application/use-cases/finalize-expense
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { CreateEarningUseCase } from './application/use-cases/create-earning.use-case';
 import { UpdateEarningUseCase } from './application/use-cases/update-earning.use-case';
+import { GenerateDonationSummaryReportUseCase } from './application/use-cases/generate-donation-summary.use-case';
 
 // Services
 import { DonationService } from './application/services/donation.service';
@@ -47,6 +47,11 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { ReverseTransactionUseCase } from './application/use-cases/reverse-transaction.use-case';
 import { DonationsEventHandler } from './application/handlers/donation-event.handler';
 import { DonationJobsHandler } from './application/handlers/donation-jobs.handler';
+import { DocumentGeneratorModule } from '../shared/document-generator/document-generator.module';
+import { FinanceReportService } from './application/services/report.service';
+import { DMSModule } from '../shared/dms/dms.module';
+import { FinanceReportController } from './presentation/controllers/finance-report.controller';
+
 
 /**
  * Finance Module
@@ -66,17 +71,21 @@ import { DonationJobsHandler } from './application/handlers/donation-jobs.handle
     DonationController,
     AccountController,
     ExpenseController,
-    EarningController,
+    //EarningController,
+    FinanceReportController,
   ],
   imports: [
     UserModule,
     FirebaseModule,
+    DocumentGeneratorModule,
+    DMSModule,
   ],
   providers: [
     // ===== DONATION =====
     CreateDonationUseCase,
     UpdateDonationUseCase,
     ProcessDonationPaymentUseCase,
+    GenerateDonationSummaryReportUseCase,
     DonationService,
     {
       provide: DONATION_REPOSITORY,
@@ -111,8 +120,6 @@ import { DonationJobsHandler } from './application/handlers/donation-jobs.handle
       useClass: TransactionRepository,
     },
 
-    // ===== EXPENSE =====
-    ExpenseService,
 
     // ===== EARNING =====
     CreateEarningUseCase,
@@ -126,7 +133,8 @@ import { DonationJobsHandler } from './application/handlers/donation-jobs.handle
     // ===== HANDLERS =====
     MetadataService,
     DonationsEventHandler,
-    DonationJobsHandler
+    DonationJobsHandler,
+    FinanceReportService
   ],
   exports: [
     DONATION_REPOSITORY,

@@ -1,7 +1,7 @@
 import { IRepository } from 'src/shared/interfaces/repository.interface';
-import { Transaction, TransactionFilter, TransactionType } from '../model/transaction.model';
+import { Transaction, TransactionFilter } from '../model/transaction.model';
 
-export interface ITransactionRepository extends IRepository<Transaction, string,TransactionFilter> {
+export interface ITransactionRepository extends IRepository<Transaction, string, TransactionFilter> {
 
 }
 

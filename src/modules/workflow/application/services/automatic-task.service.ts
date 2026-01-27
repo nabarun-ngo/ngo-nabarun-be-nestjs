@@ -1,5 +1,4 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { UserService } from "src/modules/user/application/services/user.service";
 import { BusinessException } from "src/shared/exceptions/business-exception";
 import { WorkflowTask } from "../../domain/model/workflow-task.model";
 import { TaskDef, WorkflowDefinition } from "../../domain/vo/workflow-def.vo";

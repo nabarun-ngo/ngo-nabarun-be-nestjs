@@ -5,7 +5,6 @@ import { EXPENSE_REPOSITORY } from '../../domain/repositories/expense.repository
 import type { IExpenseRepository } from '../../domain/repositories/expense.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { UpdateExpenseDto } from '../dto/expense.dto';
-import { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 
 @Injectable()
 export class UpdateExpenseUseCase implements IUseCase<{ id: string; dto: UpdateExpenseDto, updatedById: string }, Expense> {

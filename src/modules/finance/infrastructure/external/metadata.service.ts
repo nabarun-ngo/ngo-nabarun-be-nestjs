@@ -1,11 +1,10 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
 import { parsefromString } from "src/shared/utilities/kv-config.util";
 import { KeyValueConfig } from "src/shared/models/key-value-config.model";
 
 @Injectable()
 export class MetadataService {
-    private readonly logger = new Logger(MetadataService.name);
     constructor(private readonly configService: RemoteConfigService,
     ) { }
 
@@ -20,6 +19,7 @@ export class MetadataService {
             acc_type: parsefromString<KeyValueConfig[]>(keyValueConfigs['ACCOUNT_TYPES'].value),
             txn_types: parsefromString<KeyValueConfig[]>(keyValueConfigs['TRANSACTION_TYPES'].value),
             exp_status: parsefromString<KeyValueConfig[]>(keyValueConfigs['EXPENSE_STATUSES'].value),
+            finance_reports: parsefromString<KeyValueConfig[]>(keyValueConfigs['FINANCE_REPORTS'].value),
         }
     }
 

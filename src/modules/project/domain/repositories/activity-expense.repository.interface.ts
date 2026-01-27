@@ -1,4 +1,3 @@
-import { IRepository } from 'src/shared/interfaces/repository.interface';
 
 export interface ActivityExpenseProps {
   activityId: string;

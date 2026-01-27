@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEnum, IsObject, ValidateNested, IsDate } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, ValidateNested, IsDate } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { AccountStatus, AccountType } from '../../domain/model/account.model';
 

@@ -1,9 +1,8 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
 import { parsefromString, parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 import { WorkflowDefinition } from "../../domain/vo/workflow-def.vo";
 import { WorkflowType } from "../../domain/model/workflow-instance.model";
-import { KeyValueConfig } from "src/shared/models/key-value-config.model";
 
 @Injectable()
 export class WorkflowDefService {

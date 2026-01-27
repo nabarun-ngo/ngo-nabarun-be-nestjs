@@ -1,4 +1,4 @@
-import { Controller, Get, Res } from "@nestjs/common";
+import { Controller, Get } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Public } from "../../../shared/auth/application/decorators/public.decorator";
 import { IgnoreCaptchaValidation } from "../../../shared/auth/application/decorators/ignore-captcha.decorator";

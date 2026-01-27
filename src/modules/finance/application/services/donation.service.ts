@@ -12,7 +12,6 @@ import { Donation, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { MetadataService } from '../../infrastructure/external/metadata.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
-import { format } from 'path';
 import { formatDate } from 'src/shared/utilities/common.util';
 
 @Injectable()
@@ -38,8 +37,8 @@ export class DonationService {
         status: filter.props?.status,
         type: filter.props?.type,
         isGuest: filter.props?.isGuest,
-        startDate: filter.props?.startDate,
-        endDate: filter.props?.endDate,
+        startDate_raisedOn: filter.props?.startDate,
+        endDate_raisedOn: filter.props?.endDate,
       }
     });
     return new PagedResult(
@@ -134,6 +133,8 @@ export class DonationService {
       upiOptions: data.upiOption.map(toKeyValueDto),
     };
   }
+
+
 }
 
 

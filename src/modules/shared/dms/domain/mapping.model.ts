@@ -6,7 +6,8 @@ export enum DocumentMappingRefType {
     PROFILE = 'PROFILE',
     TRANSACTION = 'TRANSACTION',
     EXPENSE = 'EXPENSE',
-    EARNING = 'EARNING'
+    EARNING = 'EARNING',
+    REPORT = 'REPORT'
 }
 
 export class DocumentMapping extends BaseDomain<string> {

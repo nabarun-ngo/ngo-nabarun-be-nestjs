@@ -16,7 +16,7 @@ import { ProjectModule } from './modules/project/project.module';
 import { CorrespondenceModule } from './modules/shared/correspondence/correspondence.module';
 import { CommunicationModule } from './modules/shared/communication/communication.module';
 import { CronModule } from './modules/shared/cron/cron.module';
-
+import { DocumentGeneratorModule } from './modules/shared/document-generator/document-generator.module';
 @Module({
   controllers: [],
   imports: [
@@ -53,6 +53,7 @@ import { CronModule } from './modules/shared/cron/cron.module';
     WorkflowModule,
     FinanceModule,
     DMSModule,
+    DocumentGeneratorModule,
     PublicModule,
     ProjectModule,
     CorrespondenceModule,

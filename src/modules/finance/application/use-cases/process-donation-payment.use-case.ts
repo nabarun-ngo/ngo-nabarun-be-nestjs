@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Donation, PaymentMethod } from '../../domain/model/donation.model';
+import { Donation } from '../../domain/model/donation.model';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
@@ -8,10 +8,8 @@ import type { IAccountRepository } from '../../domain/repositories/account.repos
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ProcessDonationPaymentDto } from '../dto/donation.dto';
-import { Transaction, TransactionType } from '../../domain/model/transaction.model';
 import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
 import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
-import { Account } from '../../domain/model/account.model';
 
 @Injectable()
 export class ProcessDonationPaymentUseCase implements IUseCase<ProcessDonationPaymentDto, Donation> {
