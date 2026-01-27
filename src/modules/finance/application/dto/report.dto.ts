@@ -1,6 +1,6 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsBoolean, IsDate, IsEnum, IsOptional } from "class-validator";
+import { IsDate, IsEnum, IsOptional } from "class-validator";
 
 export class ReportParamsDto {
     @ApiPropertyOptional()
