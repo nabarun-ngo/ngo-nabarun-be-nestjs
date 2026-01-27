@@ -72,7 +72,7 @@ import { FinanceReportController } from './presentation/controllers/finance-repo
     DonationController,
     AccountController,
     ExpenseController,
-    EarningController,
+    //EarningController,
     FinanceReportController,
   ],
   imports: [

@@ -11,6 +11,7 @@ import { ReportName } from "../../report-names";
 import { MetadataService } from "../../infrastructure/external/metadata.service";
 import { SuccessResponse } from "src/shared/models/response-model";
 import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
+import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
 
 @ApiTags(FinanceReportController.name)
 @Controller('finance-report')
@@ -22,6 +23,8 @@ export class FinanceReportController {
     ) { }
 
     @Get('list')
+    @ApiOperation({ summary: 'Get list of reports' })
+    @ApiAutoResponse(KeyValueDto, { description: 'Get list of reports', isArray: true, wrapInSuccessResponse: true })
     async getReportList(): Promise<SuccessResponse<KeyValueDto[]>> {
         return new SuccessResponse(
             (await this.metadataService.getReferenceData()).finance_reports.map(toKeyValueDto)

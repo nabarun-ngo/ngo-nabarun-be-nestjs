@@ -8,7 +8,6 @@ import { ReportParamsDto } from "../dto/report.dto";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
-import { Role } from "src/modules/user/domain/model/role.model";
 
 
 @Injectable()
@@ -31,8 +30,9 @@ export class FinanceReportService {
             startDate: params.startDate!,
             endDate: params.endDate!
         });
-        const period = `${formatDate(params.startDate!, { format: 'dd-MM-yyyy' })} to ${formatDate(params.endDate!, { format: 'dd-MM-yyyy' })}`
-        const fileName = `Donation_Summary_Report_${period}_${formatDate(new Date(), { format: 'yyyyMMddHHmmss' })}.xlsx`;
+        const startDate = formatDate(params.startDate!, { format: 'dd-MM-yyyy' });
+        const endDate = formatDate(params.endDate!, { format: 'dd-MM-yyyy' });
+        const fileName = `Donation_Summary_Report_${startDate}_${endDate}.xlsx`;
         const fileType = (await fileTypeFromBuffer(buffer))?.mime ?? 'application/octet-stream';
         if (params.uploadFile === 'Y') {
             await this.dmsService.uploadFile({
@@ -66,7 +66,7 @@ export class FinanceReportService {
                         }]
                     },
                     data: {
-                        reportPeriod: period,
+                        reportPeriod: `${startDate} to ${endDate}`,
                     },
 
                 });
