@@ -69,7 +69,7 @@ export class AccountService {
 
   async payableAccount(isTransfer: boolean): Promise<AccountDetailDto[]> {
     const account = await this.accountRepository.findAll({
-      type: isTransfer === true ? [] : [AccountType.PRINCIPAL],
+      type: isTransfer === true ? [] : [AccountType.PRINCIPAL, AccountType.DONATION, AccountType.PUBLIC_DONATION],
       status: [AccountStatus.ACTIVE]
     });
     return account.map(a => AccountDtoMapper.toDto(a, {

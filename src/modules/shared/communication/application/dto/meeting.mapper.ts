@@ -15,6 +15,7 @@ export function toMeetingDto(model: Meeting): MeetingDto {
         meetLink: model.meetLink,
         calendarLink: model.calendarLink!,
         status: model.status,
-        type: model.type
+        type: model.type,
+        hostEmail: model.hostEmail
     };
 }

@@ -1,4 +1,4 @@
-import { WorkflowInstance, WorkflowInstanceStatus, WorkflowType } from '../domain/model/workflow-instance.model';
+import { WorkflowInstance, WorkflowInstanceStatus } from '../domain/model/workflow-instance.model';
 import { WorkflowStep, WorkflowStepStatus } from '../domain/model/workflow-step.model';
 import { WorkflowTask, WorkflowTaskType, WorkflowTaskStatus } from '../domain/model/workflow-task.model';
 import { TaskAssignment, TaskAssignmentStatus } from '../domain/model/task-assignment.model';
@@ -11,7 +11,7 @@ export class WorkflowInfraMapper {
   static toDomainWithSteps(prisma: PrismaWorkflowInstanceWithSteps) {
     const instance = new WorkflowInstance(
       prisma.id,
-      prisma.type as WorkflowType,
+      prisma.type,
       prisma.name,
       prisma.description,
       prisma.status as WorkflowInstanceStatus,
@@ -61,7 +61,7 @@ export class WorkflowInfraMapper {
   static toDomainWithTasks(prisma: PrismaWorkflowInstanceWithTasks): WorkflowInstance {
     const instance = new WorkflowInstance(
       prisma.id,
-      prisma.type as WorkflowType,
+      prisma.type,
       prisma.name,
       prisma.description,
       prisma.status as WorkflowInstanceStatus,

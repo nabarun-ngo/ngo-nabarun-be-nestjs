@@ -1,7 +1,8 @@
 import { calendar_v3 } from "@googleapis/calendar";
 import { Meeting as MeetingEntity } from "@prisma/client";
-import { Meeting, MeetingType, Participant } from "../../domain/model/meeting.model";
+import { AgendaItem, Meeting, MeetingType, Participant } from "../../domain/model/meeting.model";
 import { EventData } from "../external/google-calendar.service";
+import { MapperUtils } from "src/modules/shared/database";
 
 export class MeetingMapper {
     static fromGoogleEventToDto(event: calendar_v3.Schema$Event): EventData {
@@ -18,6 +19,8 @@ export class MeetingMapper {
             meetLink: meetLink ?? undefined,
             calendarLink: event.htmlLink ?? '',
             status: event.status ?? 'unknown',
+            timeZone: event.start?.timeZone ?? 'UTC',
+            hostEmail: event.creator?.email,
         };
     }
 
@@ -29,10 +32,12 @@ export class MeetingMapper {
             entity.meetingDescription ?? '',
             new Date(entity.meetingStartTime!),
             new Date(entity.meetingEndTime!),
-            entity.meetingAgenda ?? '',
+            entity.meetingAgenda?.startsWith('[') ? JSON.parse(entity.meetingAgenda ?? '[]') as AgendaItem[] : [],
             entity.status,
             entity.meetingLocation ?? '',
             JSON.parse(entity.attendees ?? '[]') as Participant[],//Attendees fix later
+            MapperUtils.nullToUndefined(entity.creatorEmail),
+            { id: MapperUtils.nullToUndefined(entity.createdById) },
             entity.extHtmlLink ?? '',
             entity.extMeetingId ?? '',
             entity.meetingOutcomes ?? '',

@@ -1,0 +1,177 @@
+{
+  "name": "User Onboarding Workflow",
+  "description": "Onboard {{requestData.firstName}} {{requestData.lastName}} to NABARUN.",
+  "version": 1,
+  "requiredFields": [
+    "firstName",
+    "lastName",
+    "email",
+    "dialCode",
+    "contactNumber",
+    "policyAccepted"
+  ],
+  "optionalFields": [
+    "middleName",
+    "dateOfBirth",
+    "notes"
+  ],
+  "preCreationTasks": [
+    {
+      "taskId": "check-duplicate-user",
+      "name": "Check duplicate user",
+      "description": "Ensure user is not already registered",
+      "type": "AUTOMATIC",
+      "handler": "UserNotRegisteredTaskHandler"
+    },
+    {
+      "taskId": "validate-inputs",
+      "name": "Validate required inputs",
+      "description": "Validate required fields before creating workflow",
+      "type": "AUTOMATIC",
+      "handler": "ValidateInputs"
+    }
+  ],
+  "steps": [
+    {
+      "stepId": "verification",
+      "name": "Verification",
+      "description": "Verify applicant details and policy acceptance",
+      "orderIndex": 0,
+      "tasks": [
+        {
+          "taskId": "verify-info",
+          "name": "Verify information",
+          "description": "Verify {{requestData.firstName}} {{requestData.lastName}} details and that policy was accepted",
+          "type": "MANUAL",
+          "requireAcceptance": true,
+          "dueInDays": 1,
+          "taskDetail": {
+            "assignedTo": {
+              "userId": "",
+              "roleNames": [
+                "GROUP_COORDINATOR"
+              ],
+              "roleGroup": ""
+            },
+            "isAutoCloseable": false,
+            "checklist": [
+              "Confirm identity document",
+              "Confirm contact details",
+              "Confirm policy acceptance"
+            ]
+          },
+          "outputKey": "verificationResult"
+        }
+      ],
+      "transitions": {
+        "onSuccess": "approval",
+        "onFailure": null,
+        "conditions": [
+          {
+            "expression": "context.verificationResult?.needsReview === true",
+            "nextStepId": "extra-review"
+          }
+        ]
+      }
+    },
+    {
+      "stepId": "approval",
+      "name": "Approval",
+      "description": "Leadership approval for onboarding",
+      "orderIndex": 1,
+      "tasks": [
+        {
+          "taskId": "approve-onboarding",
+          "name": "Approve onboarding",
+          "description": "Approve onboarding request for {{requestData.email}}",
+          "type": "MANUAL",
+          "requireAcceptance": true,
+          "etaHours": 48,
+          "taskDetail": {
+            "assignedTo": {
+              "userId": "",
+              "roleNames": [
+                "LEADERSHIP",
+                "ADMIN"
+              ],
+              "roleGroup": ""
+            },
+            "isAutoCloseable": false,
+            "checklist": [
+              "Review verification outcome",
+              "Confirm approval or rejection"
+            ]
+          },
+          "outputKey": "approvalResult"
+        }
+      ],
+      "transitions": {
+        "onSuccess": "account-creation",
+        "onFailure": null,
+        "conditions": []
+      }
+    },
+    {
+      "stepId": "extra-review",
+      "name": "Extra review",
+      "description": "Additional review when verification flagged needs_review",
+      "orderIndex": 2,
+      "tasks": [
+        {
+          "taskId": "extra-review-task",
+          "name": "Complete extra review",
+          "description": "Review flagged items for {{requestData.firstName}}",
+          "type": "MANUAL",
+          "requireAcceptance": false,
+          "dueInDays": 2,
+          "taskDetail": {
+            "assignedTo": {
+              "userId": "",
+              "roleNames": [
+                "GROUP_COORDINATOR",
+                "ADMIN"
+              ],
+              "roleGroup": ""
+            },
+            "checklist": [
+              "Address verification notes",
+              "Re-verify if needed"
+            ]
+          },
+          "outputKey": "extraReviewResult"
+        }
+      ],
+      "transitions": {
+        "onSuccess": "approval",
+        "onFailure": null
+      }
+    },
+    {
+      "stepId": "account-creation",
+      "name": "Account creation",
+      "description": "Create Auth0 user account",
+      "orderIndex": 3,
+      "tasks": [
+        {
+          "taskId": "create-auth0-user",
+          "name": "Create Auth0 user",
+          "description": "Create user account in Auth0 for {{requestData.email}}",
+          "type": "AUTOMATIC",
+          "handler": "Auth0UserCreationHandler",
+          "inputMapping": {
+            "email": "requestData.email",
+            "firstName": "requestData.firstName",
+            "lastName": "requestData.lastName",
+            "dialCode": "requestData.dialCode",
+            "contactNumber": "requestData.contactNumber"
+          },
+          "outputKey": "createdUser"
+        }
+      ],
+      "transitions": {
+        "onSuccess": null,
+        "onFailure": null
+      }
+    }
+  ]
+}

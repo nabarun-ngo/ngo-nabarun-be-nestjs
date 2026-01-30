@@ -1,17 +1,34 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDate, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsBoolean, IsDate, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import { MeetingType } from "../../domain/model/meeting.model";
 
 export class MeetingParticipantDto {
-    @ApiProperty()
+    @ApiPropertyOptional()
     @IsString()
-    @IsNotEmpty()
-    name: string;
+    @IsOptional()
+    name?: string;
     @ApiProperty()
     @IsString()
     @IsNotEmpty()
     email: string;
+
+    @ApiPropertyOptional()
+    @IsBoolean()
+    @IsOptional()
+    attended?: boolean;
+
+}
+
+export class AgendaItemDto {
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    agenda: string;
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    outcomes?: string;
 }
 
 export class CreateMeetingDto {
@@ -32,9 +49,10 @@ export class CreateMeetingDto {
     description?: string;
 
     @ApiPropertyOptional()
-    @IsString()
+    @ValidateNested({ each: true })
+    @Type(() => AgendaItemDto)
     @IsOptional()
-    agenda?: string;
+    agenda?: AgendaItemDto[];
 
     @ApiProperty()
     @IsString()
@@ -69,9 +87,10 @@ export class UpdateEventDto {
     description?: string;
 
     @ApiPropertyOptional()
-    @IsString()
+    @ValidateNested({ each: true })
+    @Type(() => AgendaItemDto)
     @IsOptional()
-    agenda?: string;
+    agenda?: AgendaItemDto[];
 
     @ApiPropertyOptional()
     @IsString()
@@ -97,6 +116,11 @@ export class UpdateEventDto {
     @IsString()
     @IsOptional()
     location?: string;
+
+    @ApiPropertyOptional({ default: false })
+    @IsBoolean()
+    @IsOptional()
+    cancelEvent?: boolean = false;
 }
 
 export class MeetingDto {
@@ -113,7 +137,7 @@ export class MeetingDto {
     description?: string;
 
     @ApiPropertyOptional()
-    agenda?: string;
+    agenda?: AgendaItemDto[];
 
     @ApiPropertyOptional()
     outcomes?: string;
@@ -138,4 +162,7 @@ export class MeetingDto {
 
     @ApiProperty()
     status: string;
+
+    @ApiPropertyOptional()
+    hostEmail?: string;
 }

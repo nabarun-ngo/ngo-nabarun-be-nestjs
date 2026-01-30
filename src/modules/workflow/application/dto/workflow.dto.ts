@@ -10,7 +10,6 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   WorkflowInstanceStatus,
-  WorkflowType,
 } from '../../domain/model/workflow-instance.model';
 import {
   WorkflowTaskType,
@@ -26,7 +25,7 @@ export class StartWorkflowDto {
   @IsDefined()
   @IsString()
   @IsNotEmpty()
-  type: WorkflowType;
+  type: string;
 
   @ApiProperty({ description: 'Request data for the workflow', required: true })
   @IsDefined()
@@ -373,12 +372,12 @@ export class WorkflowFilterDto {
     Array.isArray(value) ? value : value ? [value] : undefined
   ) readonly status?: WorkflowInstanceStatus[];
 
-  @ApiPropertyOptional({ enum: WorkflowType })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsArray()
   @Transform(({ value }) =>
     Array.isArray(value) ? value : value ? [value] : undefined
-  ) readonly type?: WorkflowType[];
+  ) readonly type?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
