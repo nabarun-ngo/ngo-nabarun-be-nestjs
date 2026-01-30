@@ -16,8 +16,8 @@ export class MeetingService {
         private readonly updateMeetingUseCase: UpdateMeetingUseCase
     ) { }
 
-    async createMeeting(request: CreateMeetingDto): Promise<MeetingDto> {
-        return toMeetingDto(await this.createMeetingUseCase.execute(request));
+    async createMeeting(request: CreateMeetingDto, creatorId?: string): Promise<MeetingDto> {
+        return toMeetingDto(await this.createMeetingUseCase.execute({ request, creatorId }));
     }
 
     async updateMeeting(id: string, request: UpdateEventDto): Promise<MeetingDto> {

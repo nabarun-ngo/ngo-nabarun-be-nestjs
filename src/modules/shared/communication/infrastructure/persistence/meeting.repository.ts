@@ -35,7 +35,7 @@ export default class MeetingRepository implements IMeetingRepository {
                 extMeetingId: meeting.extMeetingId,
                 meetingSummary: meeting.summary,
                 meetingDescription: meeting.description,
-                meetingAgenda: meeting.agenda,
+                meetingAgenda: JSON.stringify(meeting.agenda),
                 meetingLocation: meeting.location,
                 meetingStartTime: meeting.startTime,
                 meetingEndTime: meeting.endTime,
@@ -44,6 +44,8 @@ export default class MeetingRepository implements IMeetingRepository {
                 extVideoConferenceLink: meeting.meetLink,
                 extHtmlLink: meeting.calendarLink,
                 createdAt: meeting.createdAt,
+                creatorEmail: meeting.hostEmail,
+                createdById: meeting.creator?.id,
             }
         });
         return MeetingMapper.fromEntityToModel(entity);
@@ -56,7 +58,7 @@ export default class MeetingRepository implements IMeetingRepository {
                 attendees: JSON.stringify(meeting.attendees),
                 meetingSummary: meeting.summary,
                 meetingDescription: meeting.description,
-                meetingAgenda: meeting.agenda,
+                meetingAgenda: JSON.stringify(meeting.agenda),
                 meetingOutcomes: meeting.outcomes,
                 meetingLocation: meeting.location,
                 meetingStartTime: meeting.startTime,

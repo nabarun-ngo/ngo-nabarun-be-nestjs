@@ -58,6 +58,7 @@ model UserProfile {
   engineTaskCompleted      EngineWorkflowTask[]     @relation("EngineTaskCompletedBy")
   engineTaskAssignments    EngineTaskAssignment[]   @relation("EngineTaskAssignments")
   noticesCreated           Notice[]                 @relation("NoticeCreator")
+  meetingsCreated          Meeting[]                @relation("MeetingCreator")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -75,6 +76,7 @@ model UserProfile {
   expenseSettledBy    Expense[]           @relation("ExpenseSettledBy")
   expenseRejectedBy   Expense[]           @relation("ExpenseRejectedBy")
   expenseUpdatedBy    Expense[]           @relation("ExpenseUpdatedBy")
+
   //workflowTasks      WorkflowTask[]
 
   accountCreator     Account[]         @relation("AccountCreator")
@@ -628,6 +630,9 @@ model Meeting {
   meetingAgenda          String?   @db.Text
   meetingOutcomes        String?   @db.Text
   attendees              String?   @db.Text
+
+  createdById String?      @db.VarChar(255)
+  createdBy   UserProfile? @relation("MeetingCreator", fields: [createdById], references: [id])
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

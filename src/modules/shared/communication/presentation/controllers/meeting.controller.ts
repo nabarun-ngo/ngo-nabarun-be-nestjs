@@ -4,6 +4,9 @@ import { UpdateEventDto, MeetingDto, CreateMeetingDto } from "../../application/
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
 import { SuccessResponse } from "src/shared/models/response-model";
 import { MeetingService } from "../../application/service/meeting.service";
+import { type AuthUser } from "src/modules/shared/auth/domain/models/api-user.model";
+import { CurrentUser } from "src/modules/shared/auth/application/decorators/current-user.decorator";
+
 
 @ApiTags(MeetingController.name)
 @ApiBearerAuth('jwt')
@@ -15,9 +18,10 @@ export class MeetingController {
 
     @Post('create')
     @ApiAutoResponse(MeetingDto, { description: 'Meeting created successfully', wrapInSuccessResponse: true })
-    async createMeeting(@Body() eventData: CreateMeetingDto) {
+    async createMeeting(@Body() eventData: CreateMeetingDto,
+        @CurrentUser() user: AuthUser) {
         return new SuccessResponse(
-            await this.meetingService.createMeeting(eventData)
+            await this.meetingService.createMeeting(eventData, user.profile_id!)
         );
     }
 

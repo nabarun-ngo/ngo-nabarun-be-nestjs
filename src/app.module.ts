@@ -61,7 +61,6 @@ import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.
     CorrespondenceModule,
     CommunicationModule,
     CronModule,
-    WorkflowEngineModule
   ],
 })
 export class AppModule { }

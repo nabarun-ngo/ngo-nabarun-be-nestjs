@@ -42,7 +42,8 @@ export interface StepDef {
 export interface WorkflowDefinition {
   name: string;
   description: string;
-  fields: string[];
+  requiredFields: string[];
+  optionalFields: string[];
   preCreationTasks: TaskDef[];
   steps: StepDef[];
 }

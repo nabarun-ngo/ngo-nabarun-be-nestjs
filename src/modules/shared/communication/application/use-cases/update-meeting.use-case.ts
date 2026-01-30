@@ -31,17 +31,10 @@ export class UpdateMeetingUseCase implements IUseCase<UpdateMeetingRequest, Meet
         if (!existingMeeting) {
             throw new BusinessException('Meeting not found locally');
         }
-        // 1. Update in Google Calendar
-        const googleEvent = await this.googleCalendarService.updateEvent(existingMeeting.extMeetingId!, {
-            summary: updateData.summary,
-            description: `${updateData.description ?? existingMeeting.description ?? ''}\nAgenda: ${updateData.agenda ?? existingMeeting.agenda ?? 'Not Available'}`,
-            startTime: updateData.startTime ? DateTime.fromISO(updateData.startTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
-            endTime: updateData.endTime ? DateTime.fromISO(updateData.endTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
-            location: updateData.location,
-            attendees: updateData.attendees?.map((attendee) => attendee.email),
-        });
 
-        existingMeeting.update({
+        console.log(`updateData.cancelEvent: ${updateData.cancelEvent}`);
+
+        const needUpdate = existingMeeting.update({
             summary: updateData.summary,
             agenda: updateData.agenda,
             attendees: updateData.attendees,
@@ -49,9 +42,30 @@ export class UpdateMeetingUseCase implements IUseCase<UpdateMeetingRequest, Meet
             startTime: updateData.startTime ? DateTime.fromISO(updateData.startTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
             endTime: updateData.endTime ? DateTime.fromISO(updateData.endTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
             location: updateData.location,
-            status: googleEvent.status,
             outcomes: updateData.outcomes,
         });
+
+        if (needUpdate && !updateData.cancelEvent) {
+            // 1. Update in Google Calendar
+            const googleEvent = await this.googleCalendarService.updateEvent(existingMeeting.extMeetingId!, {
+                summary: updateData.summary,
+                description: `${updateData.description ?? existingMeeting.description}\n\n` + 'Agenda: ' + updateData.agenda?.map((agenda, index) => `\n${index + 1}. ${agenda.agenda}`).join('\n'),
+                startTime: updateData.startTime ? DateTime.fromISO(updateData.startTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
+                endTime: updateData.endTime ? DateTime.fromISO(updateData.endTime, { zone: "Asia/Kolkata" }).toJSDate() : undefined,
+                location: updateData.location,
+                attendees: updateData.attendees?.map((attendee) => attendee.email),
+            });
+
+
+            existingMeeting.update({
+                status: googleEvent.status,
+            });
+        } else if (updateData.cancelEvent) {
+            await this.googleCalendarService.deleteEvent(existingMeeting.extMeetingId!);
+            existingMeeting.update({
+                status: 'cancelled',
+            });
+        }
 
         // 4. Save to Repository
         const savedMeeting = await this.meetingRepository.update(existingMeeting.id, existingMeeting);
