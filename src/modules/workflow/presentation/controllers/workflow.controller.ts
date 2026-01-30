@@ -15,7 +15,6 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
 import { PagedResult } from 'src/shared/models/paged-result';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { WorkflowType } from '../../domain/model/workflow-instance.model';
 import { WorkflowTask, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 
 @ApiTags(WorkflowController.name)
@@ -179,9 +178,9 @@ export class WorkflowController {
   @Get('static/additionalFields')
   @ApiOperation({ summary: 'Get additional fields for a workflow type' })
   @ApiAutoResponse(FieldAttributeDto, { description: 'Additional fields retrieved successfully', wrapInSuccessResponse: true, isArray: true })
-  @ApiQuery({ name: 'workflowType', required: true, enum: WorkflowType, description: 'Workflow type' })
+  @ApiQuery({ name: 'workflowType', required: true, description: 'Workflow type' })
   async additionalFields(
-    @Query('workflowType') type: WorkflowType,
+    @Query('workflowType') type: string,
   ): Promise<SuccessResponse<FieldAttributeDto[]>> {
     return new SuccessResponse<FieldAttributeDto[]>(
       await this.workflowService.getAdditionalFields(type)

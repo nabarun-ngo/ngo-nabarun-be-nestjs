@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
-import { WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
+import { WorkflowInstance } from '../../domain/model/workflow-instance.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
@@ -10,7 +10,7 @@ import { AutomaticTaskService } from '../services/automatic-task.service';
 
 @Injectable()
 export class StartWorkflowUseCase implements IUseCase<{
-  type: WorkflowType;
+  type: string;
   data: Record<string, string>;
   requestedBy: string;
   requestedFor?: string;
@@ -27,15 +27,18 @@ export class StartWorkflowUseCase implements IUseCase<{
   ) { }
 
   async execute(request: {
-    type: WorkflowType;
+    type: string;
     data: Record<string, string>;
     requestedBy: string;
     requestedFor?: string;
     forExternalUser?: boolean;
     externalUserEmail?: string;
   }): Promise<WorkflowInstance> {
+    const data = {
+      requestData: request.data
+    };
     // Find workflow definition
-    const definition = await this.definitionRepository.findWorkflowByType(request.type);
+    const definition = await this.definitionRepository.findWorkflowByType(request.type, data);
     if (!definition) {
       throw new BusinessException(`Workflow definition not found for type: ${request.type}`);
     }

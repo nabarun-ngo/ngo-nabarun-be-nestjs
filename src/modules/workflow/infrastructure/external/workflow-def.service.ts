@@ -2,31 +2,18 @@ import { Injectable } from "@nestjs/common";
 import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/remote-config.service";
 import { parsefromString, parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 import { WorkflowDefinition } from "../../domain/vo/workflow-def.vo";
-import { WorkflowType } from "../../domain/model/workflow-instance.model";
-import * as fs from 'fs';
-import * as path from 'path';
-
-const workflowDir = path.join(__dirname, './../templates');
+import Handlebars from "handlebars";
 
 @Injectable()
 export class WorkflowDefService {
     constructor(private readonly remoteConfig: RemoteConfigService) { }
 
-    async findWorkflowByType(type: WorkflowType, context?: Record<string, unknown>) {
-        let value: string;
-        if (process.env.LOCAL_WORKFLOW_DATA) {
-            value = fs.readFileSync(path.join(workflowDir, `${type}.json`), 'utf-8');
-            if (value == null) {
-                throw new Error(`Workflow definition not found for type: ${type}`);
-            }
-        } else {
-            const config = (await this.remoteConfig.getAllKeyValues())[type];
-            value = config.value;
-            if (value == null) {
-                throw new Error(`Workflow definition not found for type: ${type}`);
-            }
+    async findWorkflowByType(type: string, context?: Record<string, unknown>) {
+        const config = (await this.remoteConfig.getAllKeyValues())[type];
+        let value = config.value;
+        if (value == null) {
+            throw new Error(`Workflow definition not found for type: ${type}`);
         }
-
         if (context) {
             const template = Handlebars.compile(value);
             value = template(context);
@@ -34,7 +21,7 @@ export class WorkflowDefService {
         return parsefromString<WorkflowDefinition>(value);
     }
 
-    async getAdditionalFields(type: WorkflowType) {
+    async getAdditionalFields(type: string) {
         const def = await this.findWorkflowByType(type);
         const additionalFields = (await this.getWorkflowRefData()).additionalFields.filter(f => f.ACTIVE);
         const requiredFields = additionalFields

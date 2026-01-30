@@ -1,5 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { WorkflowFilter, WorkflowInstance, WorkflowType } from '../../domain/model/workflow-instance.model';
+import { WorkflowFilter, WorkflowInstance } from '../../domain/model/workflow-instance.model';
 import { TaskFilter, WorkflowTask, WorkflowTaskStatus } from '../../domain/model/workflow-task.model';
 import { WorkflowInstanceDto, WorkflowTaskDto, StartWorkflowDto, UpdateTaskDto, WorkflowRefDataDto } from '../dto/workflow.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
@@ -126,7 +126,7 @@ export class WorkflowService {
     }
   }
 
-  async getAdditionalFields(type: WorkflowType) {
+  async getAdditionalFields(type: string) {
     const additionalFields = await this.workflowDefService.getAdditionalFields(type);
     return additionalFields.map(WorkflowDtoMapper.fieldAttributeDomainToDto);
   }

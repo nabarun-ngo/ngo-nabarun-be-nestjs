@@ -11,7 +11,8 @@ export interface TaskDetailDef {
   assignedTo?: AssignedToDef;
   isAutoCloseable?: boolean;
   checklist?: string[];
-  data?: Record<string, any>;
+  requiredFields: string[];
+  optionalFields: string[];
 }
 
 
@@ -21,7 +22,7 @@ export interface TaskDef {
   description: string;
   type: WorkflowTaskType;
   handler?: string; // only for AUTOMATIC tasks
-  taskDetail?: TaskDetailDef; // only for VERIFICATION/APPROVAL tasks
+  taskDetail?: TaskDetailDef; // only for MANUAL tasks
 }
 
 export interface StepTransitionsDef {

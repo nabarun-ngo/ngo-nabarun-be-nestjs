@@ -28,7 +28,10 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         if (!workflow) {
             throw new BusinessException(`Workflow instance not found: ${instanceId}`);
         }
-        const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!);
+        const data = {
+            requestData: workflow?.requestData
+        };
+        const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!, data);
         if (!definition) {
             throw new BusinessException(`Workflow definition not found for type: ${workflow?.type}`);
         }

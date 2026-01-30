@@ -3,7 +3,6 @@ import { UserStatus } from "src/modules/user/domain/model/user.model";
 import { dtoToRecord, toTeamMemberDTO } from "../dto/public-dto.mapper";
 import { WorkflowService } from "src/modules/workflow/application/services/workflow.service";
 import { ContactFormDto, DonationFormDto, SignUpDto, TeamMember } from "../dto/public.dto";
-import { WorkflowType } from "src/modules/workflow/domain/model/workflow-instance.model";
 import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
 import { USER_REPOSITORY, type IUserRepository } from "src/modules/user/domain/repositories/user.repository.interface";
 
@@ -35,7 +34,7 @@ export class PublicService {
 
     async contactUs(dto: ContactFormDto) {
         const workflow = await this.workflowService.createWorkflow({
-            type: WorkflowType.CONTACT_REQUEST,
+            type: "CONTACT_REQUEST",
             data: dtoToRecord(dto),
             forExternalUser: true,
             externalUserEmail: dto.email
@@ -46,7 +45,7 @@ export class PublicService {
 
     async signUp(dto: SignUpDto) {
         const workflow = await this.workflowService.createWorkflow({
-            type: WorkflowType.JOIN_REQUEST,
+            type: "JOIN_REQUEST",
             data: dtoToRecord(dto),
             forExternalUser: true,
             externalUserEmail: dto.email
@@ -57,7 +56,7 @@ export class PublicService {
 
     async donate(dto: DonationFormDto) {
         const workflow = await this.workflowService.createWorkflow({
-            type: WorkflowType.DONATION_REQUEST,
+            type: "DONATION_REQUEST",
             data: dtoToRecord(dto),
             forExternalUser: true,
             externalUserEmail: dto.email
