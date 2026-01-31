@@ -7,8 +7,7 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { TaskDef } from '../vo/workflow-def.vo';
 
 export enum WorkflowTaskType {
-  VERIFICATION = 'VERIFICATION',
-  APPROVAL = 'APPROVAL',
+  MANUAL = 'MANUAL',
   AUTOMATIC = 'AUTOMATIC',
 }
 

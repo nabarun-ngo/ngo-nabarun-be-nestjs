@@ -19,6 +19,7 @@ export class AutomaticTaskService {
         private readonly userRepository: IUserRepository
     ) { }
 
+    //TODO to be replaced with task handler
     async handleTask(task: WorkflowTask | TaskDef, requestData?: Record<string, any>, definition?: WorkflowDefinition): Promise<void> {
         switch (task.handler) {
             case 'Auth0UserCreationHandler':
@@ -28,7 +29,7 @@ export class AutomaticTaskService {
                 await this.checkIfAlreadyRegistered(requestData)
                 break;
             case 'ValidateInputs':
-                this.validateRequiredKeys(requestData, definition?.fields!)
+                this.validateRequiredKeys(requestData, definition?.requiredFields!)
                 break;
             default:
                 throw new BusinessException(`Task handler not found: ${task.handler}`);

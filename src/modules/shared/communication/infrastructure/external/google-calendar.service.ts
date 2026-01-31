@@ -22,7 +22,8 @@ export interface EventData {
         guestsCanModify?: boolean;
         guestsCanInviteOthers?: boolean;
         anyoneCanAddSelf?: boolean;
-    }
+    };
+    hostEmail?: string;
 }
 
 
@@ -52,10 +53,10 @@ export class GoogleCalendarService {
                 description: eventData.description,
                 location: eventData.location,
                 attendees: eventData.attendees?.map(email => ({ email })),
-                anyoneCanAddSelf: eventData.meetingOptions?.anyoneCanAddSelf,
-                guestsCanInviteOthers: eventData.meetingOptions?.guestsCanInviteOthers,
-                guestsCanModify: eventData.meetingOptions?.guestsCanModify,
-                guestsCanSeeOtherGuests: eventData.meetingOptions?.guestsCanSeeOtherGuests,
+                anyoneCanAddSelf: eventData.meetingOptions?.anyoneCanAddSelf ?? true,
+                guestsCanInviteOthers: eventData.meetingOptions?.guestsCanInviteOthers ?? true,
+                guestsCanModify: eventData.meetingOptions?.guestsCanModify ?? true,
+                guestsCanSeeOtherGuests: eventData.meetingOptions?.guestsCanSeeOtherGuests ?? true,
                 start: {
                     dateTime: eventData?.startTime?.toISOString(),
                     timeZone: eventData?.timeZone || 'Asia/Kolkata',
@@ -86,7 +87,6 @@ export class GoogleCalendarService {
                 sendUpdates: 'all', // Send email notifications to attendees
                 auth: auth,
             });
-
             this.logger.log(`Event created: ${response.data.id}`);
             return MeetingMapper.fromGoogleEventToDto(response.data);
         } catch (error) {

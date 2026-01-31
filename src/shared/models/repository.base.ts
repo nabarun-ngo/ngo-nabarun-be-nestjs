@@ -9,4 +9,5 @@ export abstract class BaseRepository<T, ID> implements IRepository<T, ID> {
   abstract delete(id: ID): Promise<void>;
   abstract create(entity: T): Promise<T>;
   abstract update(id: ID, entity: T): Promise<T>;
+  count<F>(filter: F): Promise<number> { return Promise.resolve(0); }
 }

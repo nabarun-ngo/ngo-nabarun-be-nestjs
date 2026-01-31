@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { User } from 'src/modules/user/domain/model/user.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 
@@ -10,8 +11,14 @@ export enum MeetingType {
 
 
 export class Participant {
-    name: string;
+    name?: string;
     email: string;
+    attended?: boolean;
+}
+
+export class AgendaItem {
+    agenda: string;
+    outcomes?: string;
 }
 
 export class Meeting extends AggregateRoot<string> {
@@ -19,7 +26,7 @@ export class Meeting extends AggregateRoot<string> {
     #summary: string;
     #type: MeetingType;
     #description?: string;
-    #agenda?: string;
+    #agenda?: AgendaItem[];
     #outcomes?: string;
     #location?: string;
     #startTime: Date;
@@ -28,6 +35,8 @@ export class Meeting extends AggregateRoot<string> {
     #meetLink?: string;
     #calendarLink?: string;
     #status: string;
+    #hostEmail: string | undefined;
+    #creator: Partial<User> | undefined;
 
     constructor(
         id: string,
@@ -36,10 +45,12 @@ export class Meeting extends AggregateRoot<string> {
         description: string,
         startTime: Date,
         endTime: Date,
-        agenda: string,
+        agenda: AgendaItem[],
         status: string,
         location?: string,
         attendees?: Participant[],
+        hostEmail?: string,
+        creator?: Partial<User>,
         calendarLink?: string,
         extMeetingId?: string,
         outcomes?: string,
@@ -61,6 +72,8 @@ export class Meeting extends AggregateRoot<string> {
         this.#location = location;
         this.#attendees = attendees || [];
         this.#meetLink = meetLink;
+        this.#hostEmail = hostEmail;
+        this.#creator = creator;
     }
 
     static create(op: {
@@ -69,10 +82,12 @@ export class Meeting extends AggregateRoot<string> {
         type: MeetingType;
         startTime: Date;
         endTime: Date;
-        agenda: string;
+        agenda: AgendaItem[];
         status: string;
         location: string;
-        attendees: Participant[]
+        attendees: Participant[],
+        hostEmail?: string;
+        creator?: Partial<User>;
     }) {
         if (op.endTime && op.startTime && op.endTime.getTime() < op.startTime.getTime()) {
             throw new BusinessException('End time must be after start time');
@@ -88,6 +103,8 @@ export class Meeting extends AggregateRoot<string> {
             op.status,
             op.location,
             op.attendees,
+            op.hostEmail,
+            op.creator
         );
     }
 
@@ -96,7 +113,7 @@ export class Meeting extends AggregateRoot<string> {
         description?: string;
         startTime?: Date;
         endTime?: Date;
-        agenda?: string;
+        agenda?: AgendaItem[];
         status?: string;
         location?: string;
         attendees?: Participant[],
@@ -105,6 +122,15 @@ export class Meeting extends AggregateRoot<string> {
         if (op.endTime && op.startTime && op.endTime.getTime() < op.startTime.getTime()) {
             throw new BusinessException('End time must be after start time');
         }
+
+        const needUpdate = op.summary !== this.#summary ||
+            op.agenda?.map((agenda) => agenda.agenda) !== this.#agenda?.map((agenda) => agenda.agenda) ||
+            op.description !== this.#description ||
+            op.startTime !== this.#startTime ||
+            op.endTime !== this.#endTime ||
+            op.location !== this.#location ||
+            op.attendees?.map((attendee) => attendee.email) !== this.#attendees?.map((attendee) => attendee.email);
+
         this.#summary = op.summary ?? this.#summary;
         this.#agenda = op.agenda ?? this.#agenda;
         this.#description = op.description ?? this.#description;
@@ -114,6 +140,7 @@ export class Meeting extends AggregateRoot<string> {
         this.#location = op.location ?? this.#location;
         this.#attendees = op.attendees ?? this.#attendees;
         this.#outcomes = op.outcomes ?? this.#outcomes;
+        return needUpdate;
     }
 
     addExtEvent(id: string, meetingLink: string, htmlLink: string) {
@@ -135,4 +162,6 @@ export class Meeting extends AggregateRoot<string> {
     get location() { return this.#location; }
     get attendees() { return this.#attendees; }
     get meetLink() { return this.#meetLink; }
+    get hostEmail() { return this.#hostEmail; }
+    get creator() { return this.#creator; }
 }

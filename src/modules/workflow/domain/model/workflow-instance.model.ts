@@ -18,18 +18,18 @@ export enum WorkflowInstanceStatus {
   CANCELLED = 'CANCELLED',
 }
 
-export enum WorkflowType {
-  JOIN_REQUEST = 'JOIN_REQUEST',
-  CONTACT_REQUEST = "CONTACT_REQUEST",
-  DONATION_REQUEST = "DONATION_REQUEST",
+// export enum WorkflowType {
+//   JOIN_REQUEST = 'JOIN_REQUEST',
+//   CONTACT_REQUEST = "CONTACT_REQUEST",
+//   DONATION_REQUEST = "DONATION_REQUEST",
 
-}
+// }
 
 export interface WorkflowFilter {
   readonly initiatedBy?: string;
   readonly initiatedFor?: string;
   readonly status?: WorkflowInstanceStatus[];
-  readonly type?: WorkflowType[];
+  readonly type?: string[];
   readonly delegated?: boolean;
   readonly workflowId?: string;
 }
@@ -37,7 +37,7 @@ export interface WorkflowFilter {
 
 export class WorkflowInstance extends AggregateRoot<string> {
 
-  #type: WorkflowType;
+  #type: string;
   #name: string;
   #description: string;
   #status: WorkflowInstanceStatus;
@@ -53,7 +53,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   constructor(
     protected _id: string,
-    type: WorkflowType,
+    type: string,
     name: string,
     description: string,
     status: WorkflowInstanceStatus,
@@ -85,7 +85,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
   }
 
   static create(data: {
-    type: WorkflowType;
+    type: string;
     definition: WorkflowDefinition;
     requestedBy: Partial<User>;
     data?: Record<string, any>
@@ -235,7 +235,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   get description(): string { return this.#description; }
 
-  get type(): WorkflowType { return this.#type; }
+  get type(): string { return this.#type; }
 
   get status(): WorkflowInstanceStatus { return this.#status; }
 

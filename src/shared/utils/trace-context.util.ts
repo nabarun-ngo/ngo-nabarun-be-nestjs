@@ -48,9 +48,18 @@ export class AppLogger extends ConsoleLogger {
     ): string {
         const traceId = getTraceId();
         const tracePrefix = traceId ? `[${traceId}] ` : '';
-        const formattedMessage = typeof message === 'object'
-            ? JSON.stringify(message)
-            : message;
+
+        let formattedMessage = message;
+
+        if (typeof message === 'object' && message !== null) {
+            // If the message is an object (likely an error), prefer its message property
+            // This fixes issues where internal NestJS errors are logged as unreadable JSON
+            if ('message' in message && typeof (message as any).message === 'string') {
+                formattedMessage = (message as any).message;
+            } else {
+                formattedMessage = JSON.stringify(message);
+            }
+        }
 
         return super.formatMessage(
             logLevel,
@@ -81,9 +90,16 @@ export class CronLogger extends ConsoleLogger {
     ): string {
         const traceId = getTraceId();
         const tracePrefix = traceId ? `[${traceId}] ` : '';
-        const formattedMessage = typeof message === 'object'
-            ? JSON.stringify(message)
-            : message;
+
+        let formattedMessage = message;
+
+        if (typeof message === 'object' && message !== null) {
+            if ('message' in message && typeof (message as any).message === 'string') {
+                formattedMessage = (message as any).message;
+            } else {
+                formattedMessage = JSON.stringify(message);
+            }
+        }
 
         return super.formatMessage(
             logLevel,

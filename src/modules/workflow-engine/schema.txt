@@ -1,0 +1,1033 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model UserProfile {
+  id          String    @id
+  title       String?   @db.VarChar(5)
+  firstName   String    @db.VarChar(50)
+  middleName  String?   @db.VarChar(50)
+  lastName    String    @db.VarChar(50)
+  dateOfBirth DateTime?
+  gender      String?   @db.VarChar(10)
+  about       String?   @db.VarChar(200)
+  picture     String?
+
+  // Relations
+  roles            UserRole[]
+  phoneNumbers     PhoneNumber[]
+  addresses        Address[]
+  socialMediaLinks Link[]
+  accounts         Account[]     @relation("AccountHolder")
+
+  email              String    @unique @db.VarChar(100)
+  isPublic           Boolean?
+  authUserId         String?   @db.VarChar(100)
+  status             String    @db.VarChar(20)
+  isTemporary        Boolean
+  isSameAddress      Boolean?
+  loginMethods       String?   @db.VarChar(100)
+  panNumber          String?   @db.VarChar(20)
+  aadharNumber       String?   @db.VarChar(20)
+  donationPauseStart DateTime?
+  donationPauseEnd   DateTime?
+  donationAmount     Decimal?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
+  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
+  taskAssignments    TaskAssignment[]   @relation("taskAssignments")
+  taskCompleted      WorkflowTask[]     @relation("taskCompletedBy")
+  engineInitiatedWorkflows EngineWorkflowInstance[] @relation("EngineInitiatedBy")
+  engineReceivedWorkflows  EngineWorkflowInstance[] @relation("EngineInitiatedFor")
+  engineTaskCompleted     EngineWorkflowTask[]     @relation("EngineTaskCompletedBy")
+  engineTaskAssignments   EngineTaskAssignment[]   @relation("EngineTaskAssignments")
+  noticesCreated     Notice[]           @relation("NoticeCreator")
+
+  // Project module relations
+  managedProjects     Project[]           @relation("ProjectManager")
+  sponsoredProjects   Project[]           @relation("ProjectSponsor")
+  assignedActivities  Activity[]          @relation("ActivityAssignee")
+  organizedActivities Activity[]          @relation("ActivityOrganizer")
+  projectTeamMembers  ProjectTeamMember[] @relation("ProjectTeamMember")
+  riskOwners          ProjectRisk[]       @relation("RiskOwner")
+  donations           Donation[]          @relation("Donation")
+  confirmedDonations  Donation[]          @relation("DonationConfirmedBy")
+  expenseCreator      Expense[]           @relation("ExpenseCreator")
+  expensePaidBy       Expense[]           @relation("ExpensePaidBy")
+  expenseSubmittedBy  Expense[]           @relation("ExpenseSubmittedBy")
+  expenseFinalizedBy  Expense[]           @relation("ExpenseFinalizedBy")
+  expenseSettledBy    Expense[]           @relation("ExpenseSettledBy")
+  expenseRejectedBy   Expense[]           @relation("ExpenseRejectedBy")
+  expenseUpdatedBy    Expense[]           @relation("ExpenseUpdatedBy")
+  //workflowTasks      WorkflowTask[]
+
+  accountCreator     Account[]         @relation("AccountCreator")
+  transactionCreator Transaction[]     @relation("TransactionCreator")
+  expenses           Expense[]
+  activityExpenses   ActivityExpense[]
+
+  @@index([email])
+  @@index([authUserId])
+  @@map("user_profiles")
+}
+
+model UserRole {
+  id           String  @id @default(uuid())
+  roleCode     String  @db.VarChar(50)
+  roleName     String  @db.VarChar(50)
+  authRoleCode String  @db.VarChar(50)
+  isDefault    Boolean @default(false)
+
+  // Relation to UserProfile (UserEntity in JPA)
+  user   UserProfile @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime  @default(now())
+  createdBy String?   @db.VarChar(255)
+  expireAt  DateTime?
+  version   Int       @default(0)
+
+  @@map("user_roles")
+}
+
+model PhoneNumber {
+  id          String  @id @default(uuid())
+  phoneCode   String?
+  phoneNumber String?
+  hidden      Boolean @default(false)
+  primary     Boolean @default(false)
+
+  user   UserProfile @relation(fields: [userId], references: [id])
+  userId String
+
+  version Int @default(0)
+
+  @@map("phone_numbers")
+}
+
+model Link {
+  id        String @id @default(uuid())
+  linkName  String @db.VarChar(20)
+  linkType  String @db.VarChar(20)
+  linkValue String @db.Text
+
+  // Relation to UserProfile (UserEntity in JPA)
+  user   UserProfile? @relation(fields: [userId], references: [id])
+  userId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(0)
+
+  @@map("links")
+}
+
+model Address {
+  id           String      @id @default(uuid())
+  addressLine1 String?
+  addressLine2 String?
+  addressLine3 String?
+  hometown     String?
+  zipCode      String?
+  state        String?
+  district     String?
+  country      String?
+  addressType  String
+  // Relation to UserProfile (UserEntity in JPA)
+  user         UserProfile @relation(fields: [userId], references: [id])
+  userId       String
+
+  version Int @default(0)
+
+  @@map("addresses")
+}
+
+model OAuthToken {
+  id           String    @id @default(uuid())
+  provider     String    @db.VarChar(20) // e.g., 'google', 'gmail'
+  clientId     String    @db.VarChar(100) // OAuth client ID
+  email        String    @db.VarChar(100) // Gmail address associated with token
+  accessToken  String    @db.Text // Encrypted access token
+  refreshToken String?   @db.Text // Encrypted refresh token
+  tokenType    String?   @db.VarChar(20) // Usually 'Bearer'
+  expiresAt    DateTime? // Token expiration time
+  scope        String?   @db.Text // OAuth scopes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email, clientId])
+  @@map("oauth_tokens")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String    @db.VarChar(20)
+  apiKey      String    @db.Text
+  apiKeyId    String    @unique @db.VarChar(50)
+  permissions String    @db.Text
+  rateLimit   Int?
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([apiKeyId])
+  @@map("api_keys")
+}
+
+model WorkflowInstance {
+  id            String  @id @default(uuid())
+  name          String
+  type          String  @db.VarChar(50)
+  description   String  @db.Text
+  status        String  @db.VarChar(50) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  currentStepId String? @db.VarChar(100)
+  data          String? @db.Text
+
+  initiatedBy   UserProfile? @relation(name: "InitiatedBy", fields: [initiatedById], references: [id])
+  initiatedById String?      @db.VarChar(100)
+
+  initiatedFor   UserProfile? @relation(name: "InitiatedFor", fields: [initiatedForId], references: [id])
+  initiatedForId String?      @db.VarChar(100)
+
+  completedAt DateTime?
+  remarks     String?   @db.Text
+  delegated   Boolean   @default(false)
+
+  isExtUser    Boolean @default(false)
+  extUserEmail String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(0)
+
+  steps WorkflowStep[]
+
+  @@index([type, status])
+  @@index([status])
+  @@index([initiatedForId])
+  @@map("workflow_instances")
+}
+
+model WorkflowStep {
+  id              String           @id @default(uuid())
+  instanceId      String
+  instance        WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stepId          String           @db.VarChar(50) // Step ID from definition
+  name            String           @db.VarChar(200)
+  description     String?          @db.Text
+  status          String           @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
+  orderIndex      Int
+  onSuccessStepId String?          @db.VarChar(50)
+  onFailureStepId String?          @db.VarChar(50)
+  remarks         String?          @db.Text
+  startedAt       DateTime? // When step was started
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tasks WorkflowTask[]
+
+  @@index([instanceId])
+  @@map("workflow_steps")
+}
+
+model WorkflowTask {
+  id             String       @id @default(uuid())
+  stepId         String
+  step           WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  taskId         String       @db.VarChar(50) // Task ID from definition
+  workflowId     String       @db.VarChar(50) // Workflow ID 
+  name           String       @db.VarChar(200)
+  description    String?      @db.Text
+  type           String       @db.VarChar(20) // MANUAL, AUTOMATIC
+  status         String       @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
+  handler        String?      @db.VarChar(255) // Handler class name for automatic tasks
+  checklist      String?      @db.Text // JSON checklist data
+  autoCloseable  Boolean?     @db.Boolean
+  autoCloseRefId String?      @db.VarChar(50)
+  jobId          String?      @db.VarChar(255) // Job ID if automatic task
+  resultData     String?      @db.Text // JSON result data
+  completedAt    DateTime?
+  completedBy    UserProfile? @relation(name: "taskCompletedBy", fields: [completedById], references: [id])
+  completedById  String?      @db.VarChar(255)
+  remarks        String?      @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments TaskAssignment[]
+
+  @@index([stepId])
+  @@index([status])
+  @@index([jobId])
+  @@map("workflow_tasks")
+}
+
+model TaskAssignment {
+  id           String       @id @default(uuid())
+  task         WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId       String
+  assignedTo   UserProfile  @relation(name: "taskAssignments", fields: [assignedToId], references: [id])
+  assignedToId String       @db.VarChar(255) // User ID
+  roleName     String?      @db.VarChar(50) // Role name if assigned by role
+  assignedBy   String?      @db.VarChar(255)
+  status       String       @db.VarChar(20) // PENDING, ACCEPTED, REJECTED, COMPLETED
+  acceptedAt   DateTime?
+  completedAt  DateTime?
+  notes        String?      @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([assignedToId, status])
+  @@map("task_assignments")
+}
+
+// ====================================
+// WORKFLOW ENGINE MODULE MODELS
+// ====================================
+
+model EngineWorkflowDefinition {
+  id             String   @id @default(uuid())
+  type           String   @db.VarChar(100)
+  version        Int
+  name           String   @db.VarChar(200)
+  description    String?  @db.Text
+  definitionJson String   @db.Text
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  instances EngineWorkflowInstance[]
+
+  @@unique([type, version])
+  @@map("engine_workflow_definitions")
+}
+
+model EngineWorkflowInstance {
+  id                String   @id @default(uuid())
+  definitionId      String?
+  definition        EngineWorkflowDefinition? @relation(fields: [definitionId], references: [id])
+  type              String   @db.VarChar(100)
+  definitionVersion Int?
+  name              String   @db.VarChar(200)
+  description       String?  @db.Text
+  status            String   @db.VarChar(50)
+  contextData       String?  @db.Text
+  activeStepIds     String?  @db.Text
+  initiatedById     String?  @db.VarChar(100)
+  initiatedBy       UserProfile? @relation("EngineInitiatedBy", fields: [initiatedById], references: [id])
+  initiatedForId    String?  @db.VarChar(100)
+  initiatedFor      UserProfile? @relation("EngineInitiatedFor", fields: [initiatedForId], references: [id])
+  requestData       String?  @db.Text
+  completedAt       DateTime?
+  remarks           String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  steps EngineWorkflowStep[]
+
+  @@index([type])
+  @@index([status])
+  @@index([initiatedForId])
+  @@map("engine_workflow_instances")
+}
+
+model EngineWorkflowStep {
+  id               String   @id @default(uuid())
+  instanceId       String
+  instance         EngineWorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stepId           String   @db.VarChar(100)
+  name             String   @db.VarChar(200)
+  description      String?  @db.Text
+  status           String   @db.VarChar(50)
+  orderIndex       Int
+  transitionConfig String?  @db.Text
+  startedAt        DateTime?
+  completedAt      DateTime?
+  remarks          String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tasks EngineWorkflowTask[]
+
+  @@index([instanceId])
+  @@map("engine_workflow_steps")
+}
+
+model EngineWorkflowTask {
+  id            String   @id @default(uuid())
+  stepId        String
+  step          EngineWorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  instanceId    String   @db.VarChar(100)
+  taskId        String   @db.VarChar(100)
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  type          String   @db.VarChar(20)
+  status        String   @db.VarChar(20)
+  handler       String?  @db.VarChar(255)
+  taskConfig    String?  @db.Text
+  resultData    String?  @db.Text
+  completedById String?  @db.VarChar(100)
+  completedBy   UserProfile? @relation(name: "EngineTaskCompletedBy", fields: [completedById], references: [id])
+  completedAt   DateTime?
+  remarks       String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assignments EngineTaskAssignment[]
+
+  @@index([stepId])
+  @@index([status])
+  @@index([instanceId])
+  @@map("engine_workflow_tasks")
+}
+
+model EngineTaskAssignment {
+  id               String   @id @default(uuid())
+  taskId           String
+  task             EngineWorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assigneeId       String   @db.VarChar(100)
+  assignee         UserProfile @relation(name: "EngineTaskAssignments", fields: [assigneeId], references: [id])
+  roleName         String?  @db.VarChar(50)
+  status           String   @db.VarChar(20)
+  assignedById     String?  @db.VarChar(100)
+  acceptedAt       DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String?  @db.Text
+  supersededById   String?  @db.VarChar(100)
+  supersededBy     EngineTaskAssignment? @relation("SupersededBy", fields: [supersededById], references: [id])
+  supersedes       EngineTaskAssignment[] @relation("SupersededBy")
+  dueAt            DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueAt, status])
+  @@map("engine_task_assignments")
+}
+
+// ====================================
+// FINANCE MODULE MODELS
+// ====================================
+
+model Account {
+  id          String  @id @default(uuid())
+  name        String  @db.VarChar(100)
+  type        String  @db.VarChar(20) // PRINCIPAL, GENERAL, DONATION, PUBLIC_DONATION (legacy)
+  balance     Decimal @db.Decimal(15, 2)
+  currency    String  @db.VarChar(3) // USD, INR, etc.
+  status      String  @db.VarChar(20) // ACTIVE, INACTIVE, BLOCKED (legacy)
+  description String? @db.Text
+
+  // Legacy fields
+  accountHolderName String?   @db.VarChar(255)
+  accountHolderId   String?   @db.VarChar(255) // User ID
+  activatedOn       DateTime?
+
+  // Bank details (stored as JSON for flexibility)
+  bankDetail String? @db.Text // BankDetail: bankAccountHolderName, bankName, bankBranch, bankAccountNumber, bankAccountType, IFSCNumber
+  upiDetail  String? @db.Text // UPIDetail: payeeName, upiId, mobileNumber, qrData
+
+  // Relations
+  donations Donation[] @relation("DonationAccount")
+
+  accountHolder UserProfile? @relation("AccountHolder", fields: [accountHolderId], references: [id])
+
+  createdBy   UserProfile? @relation("AccountCreator", fields: [createdById], references: [id])
+  createdById String?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  version          Int           @default(0)
+  deletedAt        DateTime?
+  fromTransactions Transaction[] @relation(name: "FromAccount")
+  toTransactions   Transaction[] @relation(name: "ToAccount")
+  expenses         Expense[]
+  earnings         Earning[]
+
+  @@index([type, status])
+  @@index([accountHolderId])
+  @@map("accounts")
+}
+
+model Donation {
+  id       String  @id @default(uuid())
+  type     String  @db.VarChar(20) // REGULAR, ONETIME
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @db.VarChar(3)
+  status   String  @db.VarChar(20) // RAISED, PAID, PENDING, PAYMENT_FAILED, PAY_LATER, CANCELLED, UPDATE_MISTAKE
+
+  // Donor information
+  donorId    String?      @db.VarChar(255) // UserId for internal members
+  donor      UserProfile? @relation("Donation", fields: [donorId], references: [id])
+  donorName  String?      @db.VarChar(100) // Name for guest donations
+  donorEmail String?      @db.VarChar(100) // Email for guest donations
+  donorPhone String?      @db.VarChar(20) // Phone for guest donations
+
+  // Legacy fields
+  isGuest   Boolean?  @default(false)
+  startDate DateTime? // For regular donations
+  endDate   DateTime? // For regular donations
+  raisedOn  DateTime // Alias for raisedDate (legacy)
+  paidOn    DateTime? // Alias for paidDate (legacy)
+
+  confirmedById        String?      @db.VarChar(255) // User ID
+  confirmedBy          UserProfile? @relation("DonationConfirmedBy", fields: [confirmedById], references: [id])
+  confirmedOn          DateTime?
+  paymentMethod        String?      @db.VarChar(20) // CASH, NETBANKING, UPI
+  paidToAccountId      String?      @db.VarChar(255) // Account ID
+  forEventId           String?      @db.VarChar(255) // Event ID
+  paidUsingUPI         String?      @db.VarChar(20) // GPAY, PAYTM, PHONEPE, BHARATPAY, UPI_OTH
+  isPaymentNotified    Boolean?     @default(false)
+  transactionRef       String?      @db.VarChar(255) // Legacy alias for transactionId
+  remarks              String?      @db.Text
+  cancelletionReason   String?      @db.Text // Legacy typo preserved
+  laterPaymentReason   String?      @db.Text
+  paymentFailureDetail String?      @db.Text
+  additionalFields     Json? // AdditionalField[] as JSON
+
+  // Relations
+  paidToAccount Account? @relation("DonationAccount", fields: [paidToAccountId], references: [id])
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  version      Int           @default(0)
+  deletedAt    DateTime?
+  transactions Transaction[]
+
+  @@index([donorId, status])
+  @@index([type, status])
+  @@index([raisedOn])
+  @@map("donations")
+}
+
+model Transaction {
+  id       String  @id @default(uuid())
+  type     String  @db.VarChar(20) // DONATION, EXPENSE, EARNING, TRANSFER
+  amount   Decimal @db.Decimal(15, 2)
+  currency String  @db.VarChar(3)
+  status   String  @db.VarChar(20) // PENDING, COMPLETED, FAILED, REVERSED
+
+  // Account relation
+  fromAccountId String?  @db.VarChar(255)
+  toAccountId   String?  @db.VarChar(255)
+  fromAccount   Account? @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
+  toAccount     Account? @relation(name: "ToAccount", fields: [toAccountId], references: [id])
+
+  fromAccountBalance Decimal @db.Decimal(15, 2)
+  toAccountBalance   Decimal @db.Decimal(15, 2)
+
+  // Reference to source
+  referenceId   String? @db.VarChar(255) // Donation ID, Expense ID, etc.
+  referenceType String? @db.VarChar(50) // Donation, Expense, Earning
+
+  description     String   @db.Text
+  metadata        Json? // Additional data as JSON
+  transactionDate DateTime
+  particulars     String?  @db.Text
+
+  // Relations
+  donation    Donation?    @relation(fields: [donationId], references: [id])
+  createdBy   UserProfile? @relation("TransactionCreator", fields: [createdById], references: [id])
+  createdById String?      @db.VarChar(255)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  version    Int       @default(0)
+  deletedAt  DateTime?
+  donationId String?
+
+  @@index([fromAccountId, toAccountId, transactionDate])
+  @@index([type, status])
+  @@index([referenceId, referenceType])
+  @@map("transactions")
+}
+
+model Expense {
+  id    String  @id @default(uuid())
+  title String  @db.VarChar(255)
+  items String? @db.Text // JSON string of expense items
+
+  // Amount and currency
+  amount      Decimal @db.Decimal(15, 2)
+  currency    String  @default("INR") @db.VarChar(3)
+  status      String  @db.VarChar(20) // PENDING, APPROVED, PAID, REJECTED, SETTLED
+  description String? @db.Text
+
+  // Reference to project/event
+  referenceId   String? @db.VarChar(255)
+  referenceType String? @db.VarChar(50)
+
+  // Legacy fields
+  isDelegated Boolean @default(false)
+
+  // Creator information
+  createdById String       @db.VarChar(255) // User ID
+  createdBy   UserProfile? @relation("ExpenseCreator", fields: [createdById], references: [id])
+  // Refer createdAt
+
+  // Paid by (person who paid the expense)
+  paidById    String       @db.VarChar(255) // User ID
+  paidBy      UserProfile? @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  expenseDate DateTime
+
+  // Submitted By (person who submitted the expense)
+  submittedById String       @db.VarChar(255) // User ID
+  submittedBy   UserProfile? @relation("ExpenseSubmittedBy", fields: [submittedById], references: [id])
+  submittedOn   DateTime?
+
+  // Finalized by (approver)
+  finalizedById String?      @db.VarChar(255) // User ID
+  finalizedBy   UserProfile? @relation("ExpenseFinalizedBy", fields: [finalizedById], references: [id])
+  finalizedOn   DateTime?
+
+  // Settled by (person who settled/paid back)
+  settledById String?      @db.VarChar(255) // User ID
+  settledBy   UserProfile? @relation("ExpenseSettledBy", fields: [settledById], references: [id])
+  settledOn   DateTime?
+
+  // Rejected by
+  rejectedById String?      @db.VarChar(255) // User ID
+  rejectedBy   UserProfile? @relation("ExpenseRejectedBy", fields: [rejectedById], references: [id])
+  rejectedOn   DateTime?
+
+  // Updated by
+  updatedById String?      @db.VarChar(255) // User ID
+  updatedBy   UserProfile? @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  updatedOn   DateTime?
+
+  // Account and transaction
+  accountId   String?  @db.VarChar(255)
+  accountName String?  @db.VarChar(255)
+  account     Account? @relation(fields: [accountId], references: [id])
+
+  transactionRef String? @db.VarChar(255) // Transaction reference number
+
+  // Dates
+  remarks String? @db.Text
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  version          Int               @default(0)
+  deletedAt        DateTime?
+  userProfile      UserProfile?      @relation(fields: [userProfileId], references: [id])
+  userProfileId    String?
+  activityExpenses ActivityExpense[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([paidById])
+  @@index([referenceId, referenceType])
+  @@map("expenses")
+}
+
+model Earning {
+  id          String  @id @default(uuid())
+  category    String  @db.VarChar(30) // SERVICE, PRODUCT, GRANT, SPONSORSHIP, OTHER
+  amount      Decimal @db.Decimal(10, 2)
+  currency    String  @db.VarChar(3)
+  status      String  @db.VarChar(20) // PENDING, RECEIVED, CANCELLED
+  description String  @db.Text
+  source      String  @db.VarChar(100) // Source of earning
+
+  // Reference to project/event
+  referenceId   String? @db.VarChar(255)
+  referenceType String? @db.VarChar(50)
+
+  // Account and transaction
+  accountId     String?  @db.VarChar(255)
+  account       Account? @relation(fields: [accountId], references: [id])
+  transactionId String?  @unique @db.VarChar(255)
+
+  earningDate  DateTime
+  receivedDate DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([category, status])
+  @@index([source])
+  @@map("earnings")
+}
+
+model DocumentReference {
+  id          String  @id @default(uuid())
+  fileName    String  @db.VarChar(500)
+  remotePath  String  @db.VarChar(1000)
+  publicToken String  @db.VarChar(255)
+  contentType String  @db.VarChar(100)
+  fileSize    Int
+  isPublic    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  mappings     DocumentMapping[]
+  uploadedById String?
+
+  @@map("document_references")
+}
+
+model DocumentMapping {
+  id                  String            @id @default(uuid())
+  documentReferenceId String            @db.VarChar(255)
+  documentReference   DocumentReference @relation(fields: [documentReferenceId], references: [id], onDelete: Cascade)
+  entityType          String            @db.VarChar(100) // e.g., UserProfile, Expense
+  entityId            String            @db.VarChar(255) // ID of the entity
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("document_mappings")
+}
+
+// ====================================
+// NOTICE MODULE MODELS
+// ====================================
+
+model Notice {
+  id          String    @id @default(uuid())
+  title       String    @db.VarChar(255)
+  description String    @db.Text
+  status      String    @db.VarChar(20) // ACTIVE, EXPIRED, DRAFT
+  noticeDate  DateTime
+  publishDate DateTime?
+  hasMeeting  Boolean   @default(false)
+
+  // Creator relation
+  creatorId       String       @db.VarChar(255)
+  creator         UserProfile? @relation("NoticeCreator", fields: [creatorId], references: [id])
+  creatorRoleCode String?      @db.VarChar(50)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([creatorId])
+  @@index([noticeDate])
+  @@map("notices")
+}
+
+model Meeting {
+  id                     String    @id @default(uuid())
+  extMeetingId           String?   @unique @db.VarChar(255) // Google Calendar event ID
+  meetingSummary         String    @db.VarChar(500)
+  meetingDescription     String?   @db.Text
+  meetingLocation        String?   @db.VarChar(500)
+  meetingStartTime       DateTime?
+  meetingEndTime         DateTime?
+  meetingRefId           String?   @db.VarChar(255) // Reference to Notice or Event
+  meetingType            String    @db.VarChar(20) // OFFLINE, ONLINE
+  status                 String    @db.VarChar(20) // 
+  meetingRemarks         String?   @db.Text
+  meetingRefType         String?   @db.VarChar(20) // NOTICE, EVENT
+  extVideoConferenceLink String?   @db.VarChar(1000) // Google Meet video link
+  extHtmlLink            String?   @db.VarChar(1000) // Google Calendar event link
+  creatorEmail           String?   @db.VarChar(255)
+  extConferenceStatus    String?   @db.VarChar(100)
+  meetingAgenda          String?   @db.Text
+  meetingOutcomes        String?   @db.Text
+  attendees              String?   @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([meetingType, status])
+  @@index([meetingRefId, meetingRefType])
+  @@index([extMeetingId])
+  @@map("meetings")
+}
+
+// ====================================
+// PROJECT MODULE MODELS
+// ====================================
+
+model Project {
+  id                     String    @id @default(uuid())
+  name                   String    @db.VarChar(255)
+  description            String    @db.Text
+  code                   String    @unique @db.VarChar(50)
+  category               String    @db.VarChar(50) // EDUCATION, HEALTH, etc.
+  status                 String    @db.VarChar(20) // PLANNING, ACTIVE, etc.
+  phase                  String    @db.VarChar(20) // INITIATION, PLANNING, etc.
+  startDate              DateTime
+  endDate                DateTime?
+  actualEndDate          DateTime?
+  budget                 Decimal   @db.Decimal(15, 2)
+  spentAmount            Decimal   @default(0) @db.Decimal(15, 2)
+  currency               String    @db.VarChar(3)
+  location               String?   @db.VarChar(255)
+  targetBeneficiaryCount Int?
+  actualBeneficiaryCount Int?
+  managerId              String    @db.VarChar(255)
+  sponsorId              String?   @db.VarChar(255)
+  tags                   String[]  @db.VarChar(50)
+  metadata               Json?
+
+  // Relations
+  manager       UserProfile         @relation("ProjectManager", fields: [managerId], references: [id])
+  sponsor       UserProfile?        @relation("ProjectSponsor", fields: [sponsorId], references: [id])
+  goals         Goal[]
+  activities    Activity[]
+  milestones    Milestone[]
+  teamMembers   ProjectTeamMember[]
+  beneficiaries Beneficiary[]
+  risks         ProjectRisk[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([category])
+  @@index([phase])
+  @@index([managerId])
+  @@index([code])
+  @@map("projects")
+}
+
+model Goal {
+  id           String    @id @default(uuid())
+  projectId    String    @db.VarChar(255)
+  title        String    @db.VarChar(255)
+  description  String?   @db.Text
+  targetValue  Decimal?  @db.Decimal(15, 2)
+  targetUnit   String?   @db.VarChar(50)
+  currentValue Decimal   @default(0) @db.Decimal(15, 2)
+  deadline     DateTime?
+  priority     String    @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  status       String    @db.VarChar(30) // NOT_STARTED, IN_PROGRESS, etc.
+  weight       Decimal?  @db.Decimal(5, 4) // 0-1
+  dependencies String[] // Array of goal IDs
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+  @@map("goals")
+}
+
+model Activity {
+  id                   String    @id @default(uuid())
+  projectId            String    @db.VarChar(255)
+  name                 String    @db.VarChar(255)
+  description          String?   @db.Text
+  scale                String    @db.VarChar(20) // TASK, ACTIVITY, EVENT
+  type                 String    @db.VarChar(50) // TRAINING, AWARENESS, etc.
+  status               String    @db.VarChar(20) // PLANNED, IN_PROGRESS, etc.
+  priority             String    @db.VarChar(20) // LOW, MEDIUM, HIGH, URGENT
+  startDate            DateTime?
+  endDate              DateTime?
+  actualStartDate      DateTime?
+  actualEndDate        DateTime?
+  location             String?   @db.VarChar(255)
+  venue                String?   @db.VarChar(255) // Mainly for EVENTS
+  assignedTo           String?   @db.VarChar(255) // Mainly for TASKS/ACTIVITIES
+  organizerId          String?   @db.VarChar(255) // Mainly for EVENTS
+  parentActivityId     String?   @db.VarChar(255) // For hierarchical breakdown
+  expectedParticipants Int? // Mainly for EVENTS
+  actualParticipants   Int? // Mainly for EVENTS
+  estimatedCost        Decimal?  @db.Decimal(15, 2)
+  actualCost           Decimal?  @db.Decimal(15, 2)
+  currency             String?   @db.VarChar(3)
+  tags                 String[]  @db.VarChar(50)
+  metadata             Json?
+
+  // Relations
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee         UserProfile?      @relation("ActivityAssignee", fields: [assignedTo], references: [id])
+  organizer        UserProfile?      @relation("ActivityOrganizer", fields: [organizerId], references: [id])
+  parentActivity   Activity?         @relation("ActivityHierarchy", fields: [parentActivityId], references: [id])
+  childActivities  Activity[]        @relation("ActivityHierarchy")
+  activityExpenses ActivityExpense[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  version   Int       @default(0)
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([scale])
+  @@index([type])
+  @@index([assignedTo])
+  @@index([organizerId])
+  @@index([parentActivityId])
+  @@map("activities")
+}
+
+model Milestone {
+  id           String    @id @default(uuid())
+  projectId    String    @db.VarChar(255)
+  name         String    @db.VarChar(255)
+  description  String?   @db.Text
+  targetDate   DateTime
+  actualDate   DateTime?
+  status       String    @db.VarChar(20) // PENDING, IN_PROGRESS, etc.
+  importance   String    @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  dependencies String[] // Array of milestone IDs
+  notes        String?   @db.Text
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([targetDate])
+  @@map("milestones")
+}
+
+model ProjectTeamMember {
+  id               String    @id @default(uuid())
+  projectId        String    @db.VarChar(255)
+  userId           String    @db.VarChar(255)
+  role             String    @db.VarChar(30) // PROJECT_MANAGER, TEAM_LEAD, etc.
+  responsibilities String?   @db.Text
+  startDate        DateTime
+  endDate          DateTime?
+  hoursAllocated   Decimal?  @db.Decimal(10, 2)
+  isActive         Boolean   @default(true)
+
+  // Relations
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    UserProfile @relation("ProjectTeamMember", fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([projectId, userId, isActive])
+  @@index([projectId])
+  @@index([userId])
+  @@index([isActive])
+  @@map("project_team_members")
+}
+
+model Beneficiary {
+  id               String    @id @default(uuid())
+  projectId        String    @db.VarChar(255)
+  name             String    @db.VarChar(255)
+  type             String    @db.VarChar(30) // INDIVIDUAL, FAMILY, etc.
+  gender           String?   @db.VarChar(20) // MALE, FEMALE, etc.
+  age              Int?
+  dateOfBirth      DateTime?
+  contactNumber    String?   @db.VarChar(20)
+  email            String?   @db.VarChar(255)
+  address          String?   @db.Text
+  location         String?   @db.VarChar(255)
+  category         String?   @db.VarChar(100)
+  enrollmentDate   DateTime
+  exitDate         DateTime?
+  status           String    @db.VarChar(20) // ACTIVE, COMPLETED, etc.
+  benefitsReceived String[]  @db.VarChar(100)
+  notes            String?   @db.Text
+  metadata         Json?
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([type])
+  @@index([enrollmentDate])
+  @@map("beneficiaries")
+}
+
+model ProjectRisk {
+  id             String    @id @default(uuid())
+  projectId      String    @db.VarChar(255)
+  title          String    @db.VarChar(255)
+  description    String?   @db.Text
+  category       String    @db.VarChar(30) // BUDGET, TIMELINE, etc.
+  severity       String    @db.VarChar(20) // LOW, MEDIUM, HIGH, CRITICAL
+  probability    String    @db.VarChar(20) // LOW, MEDIUM, HIGH
+  status         String    @db.VarChar(20) // IDENTIFIED, MONITORING, etc.
+  impact         String?   @db.Text
+  mitigationPlan String?   @db.Text
+  ownerId        String?   @db.VarChar(255)
+  identifiedDate DateTime
+  resolvedDate   DateTime?
+  notes          String?   @db.Text
+
+  // Relations
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   UserProfile? @relation("RiskOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([projectId])
+  @@index([status])
+  @@index([severity])
+  @@index([category])
+  @@map("project_risks")
+}
+
+model ActivityExpense {
+  id                   String   @id @default(uuid())
+  activityId           String   @db.VarChar(255)
+  expenseId            String   @db.VarChar(255) // References Finance module Expense entity
+  allocationPercentage Decimal? @db.Decimal(5, 2) // 0-100
+  allocationAmount     Decimal? @db.Decimal(15, 2)
+  notes                String?  @db.Text
+  createdBy            String   @db.VarChar(255)
+
+  // Relations
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  // creator  UserProfile @relation("ActivityExpenseCreator", fields: [createdBy], references: [id])
+
+  createdAt     DateTime     @default(now())
+  userProfile   UserProfile? @relation(fields: [userProfileId], references: [id])
+  userProfileId String?
+  expense       Expense      @relation(fields: [expenseId], references: [id])
+
+  @@unique([activityId, expenseId])
+  @@index([activityId])
+  @@index([expenseId])
+  @@map("activity_expenses")
+}

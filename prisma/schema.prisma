@@ -49,11 +49,18 @@ model UserProfile {
   version   Int       @default(0)
   deletedAt DateTime?
 
-  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
-  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
-  taskAssignments    TaskAssignment[]   @relation("taskAssignments")
-  taskCompleted      WorkflowTask[]     @relation("taskCompletedBy")
-  noticesCreated     Notice[]           @relation("NoticeCreator")
+  initiatedWorkflows       WorkflowInstance[]       @relation("InitiatedBy")
+  receivedWorkflows        WorkflowInstance[]       @relation("InitiatedFor")
+  taskAssignments          TaskAssignment[]         @relation("taskAssignments")
+  taskCompleted            WorkflowTask[]           @relation("taskCompletedBy")
+  engineInitiatedWorkflows EngineWorkflowInstance[] @relation("EngineInitiatedBy")
+  engineReceivedWorkflows  EngineWorkflowInstance[] @relation("EngineInitiatedFor")
+  engineTaskCompleted      EngineWorkflowTask[]     @relation("EngineTaskCompletedBy")
+  engineTaskAssignments    EngineTaskAssignment[]   @relation("EngineTaskAssignments")
+  noticesCreated           Notice[]                 @relation("NoticeCreator")
+  meetingsCreated          Meeting[]                @relation("MeetingCreator")
+  notifications            UserNotification[]       @relation("UserNotificationsFor")
+  fcmTokens                UserFcmToken[]           @relation("UserFcmTokens")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -71,6 +78,7 @@ model UserProfile {
   expenseSettledBy    Expense[]           @relation("ExpenseSettledBy")
   expenseRejectedBy   Expense[]           @relation("ExpenseRejectedBy")
   expenseUpdatedBy    Expense[]           @relation("ExpenseUpdatedBy")
+
   //workflowTasks      WorkflowTask[]
 
   accountCreator     Account[]         @relation("AccountCreator")
@@ -625,6 +633,9 @@ model Meeting {
   meetingOutcomes        String?   @db.Text
   attendees              String?   @db.Text
 
+  createdById String?      @db.VarChar(255)
+  createdBy   UserProfile? @relation("MeetingCreator", fields: [createdById], references: [id])
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   version   Int       @default(0)
@@ -900,4 +911,216 @@ model ActivityExpense {
   @@index([activityId])
   @@index([expenseId])
   @@map("activity_expenses")
+}
+
+// ====================================
+// WORKFLOW ENGINE MODULE MODELS [LEGACY]
+// ====================================
+
+model EngineWorkflowDefinition {
+  id             String   @id @default(uuid())
+  type           String   @db.VarChar(100)
+  version        Int
+  name           String   @db.VarChar(200)
+  description    String?  @db.Text
+  definitionJson String   @db.Text
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  instances EngineWorkflowInstance[]
+
+  @@unique([type, version])
+  @@map("engine_workflow_definitions")
+}
+
+model EngineWorkflowInstance {
+  id                String                    @id @default(uuid())
+  definitionId      String?
+  definition        EngineWorkflowDefinition? @relation(fields: [definitionId], references: [id])
+  type              String                    @db.VarChar(100)
+  definitionVersion Int?
+  name              String                    @db.VarChar(200)
+  description       String?                   @db.Text
+  status            String                    @db.VarChar(50)
+  contextData       String?                   @db.Text
+  activeStepIds     String?                   @db.Text
+  initiatedById     String?                   @db.VarChar(100)
+  initiatedBy       UserProfile?              @relation("EngineInitiatedBy", fields: [initiatedById], references: [id])
+  initiatedForId    String?                   @db.VarChar(100)
+  initiatedFor      UserProfile?              @relation("EngineInitiatedFor", fields: [initiatedForId], references: [id])
+  requestData       String?                   @db.Text
+  completedAt       DateTime?
+  remarks           String?                   @db.Text
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  steps EngineWorkflowStep[]
+
+  @@index([type])
+  @@index([status])
+  @@index([initiatedForId])
+  @@map("engine_workflow_instances")
+}
+
+model EngineWorkflowStep {
+  id               String                 @id @default(uuid())
+  instanceId       String
+  instance         EngineWorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stepId           String                 @db.VarChar(100)
+  name             String                 @db.VarChar(200)
+  description      String?                @db.Text
+  status           String                 @db.VarChar(50)
+  orderIndex       Int
+  transitionConfig String?                @db.Text
+  startedAt        DateTime?
+  completedAt      DateTime?
+  remarks          String?                @db.Text
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  tasks EngineWorkflowTask[]
+
+  @@index([instanceId])
+  @@map("engine_workflow_steps")
+}
+
+model EngineWorkflowTask {
+  id            String             @id @default(uuid())
+  stepId        String
+  step          EngineWorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  instanceId    String             @db.VarChar(100)
+  taskId        String             @db.VarChar(100)
+  name          String             @db.VarChar(200)
+  description   String?            @db.Text
+  type          String             @db.VarChar(20)
+  status        String             @db.VarChar(20)
+  handler       String?            @db.VarChar(255)
+  taskConfig    String?            @db.Text
+  resultData    String?            @db.Text
+  completedById String?            @db.VarChar(100)
+  completedBy   UserProfile?       @relation(name: "EngineTaskCompletedBy", fields: [completedById], references: [id])
+  completedAt   DateTime?
+  remarks       String?            @db.Text
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  assignments EngineTaskAssignment[]
+
+  @@index([stepId])
+  @@index([status])
+  @@index([instanceId])
+  @@map("engine_workflow_tasks")
+}
+
+model EngineTaskAssignment {
+  id              String                 @id @default(uuid())
+  taskId          String
+  task            EngineWorkflowTask     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assigneeId      String                 @db.VarChar(100)
+  assignee        UserProfile            @relation(name: "EngineTaskAssignments", fields: [assigneeId], references: [id])
+  roleName        String?                @db.VarChar(50)
+  status          String                 @db.VarChar(20)
+  assignedById    String?                @db.VarChar(100)
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?                @db.Text
+  supersededById  String?                @db.VarChar(100)
+  supersededBy    EngineTaskAssignment?  @relation("SupersededBy", fields: [supersededById], references: [id])
+  supersedes      EngineTaskAssignment[] @relation("SupersededBy")
+  dueAt           DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([taskId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueAt, status])
+  @@map("engine_task_assignments")
+}
+
+// ====================================
+// NOTIFICATION MODULE MODELS
+// ====================================
+
+model Notification {
+  id       String @id @default(uuid())
+  title    String @db.VarChar(255)
+  body     String @db.Text
+  type     String @db.VarChar(50) // INFO, SUCCESS, WARNING, ERROR, TASK, APPROVAL, etc.
+  category String @db.VarChar(50) // SYSTEM, WORKFLOW, DONATION, EXPENSE, PROJECT, etc.
+  priority String @default("NORMAL") @db.VarChar(20) // LOW, NORMAL, HIGH, URGENT
+
+  // Navigation
+  actionUrl  String? @db.VarChar(500) // URL to navigate when notification is clicked
+  actionType String? @db.VarChar(50) // NAVIGATE, OPEN_MODAL, etc.
+  actionData Json? // Additional data for the action
+
+  // Reference to source entity
+  referenceId   String? @db.VarChar(255)
+  referenceType String? @db.VarChar(50) // Workflow, Donation, Expense, etc.
+
+  // Metadata
+  imageUrl String? @db.VarChar(500)
+  icon     String? @db.VarChar(50)
+  metadata Json?
+
+  expiresAt         DateTime? // Optional expiration
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  userNotifications UserNotification[]
+
+  @@index([type, category])
+  @@index([referenceId, referenceType])
+  @@map("notifications")
+}
+
+model UserNotification {
+  id     String      @id @default(uuid())
+  userId String      @db.VarChar(255) // User who receives the notification
+  user   UserProfile @relation("UserNotificationsFor", fields: [userId], references: [id])
+
+  notificationId String       @db.VarChar(255) // User who receives the notification
+  notification   Notification @relation(fields: [notificationId], references: [id])
+
+  // Status
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  isArchived Boolean   @default(false)
+  archivedAt DateTime?
+
+  // Push notification tracking
+  isPushSent    Boolean   @default(false)
+  pushSentAt    DateTime?
+  pushDelivered Boolean   @default(false)
+  pushError     String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("user_notifications")
+}
+
+model UserFcmToken {
+  id     String      @id @default(uuid())
+  userId String      @db.VarChar(255)
+  user   UserProfile @relation("UserFcmTokens", fields: [userId], references: [id])
+
+  token      String  @unique @db.Text
+  deviceType String? @db.VarChar(50) // WEB, ANDROID, IOS
+  deviceName String? @db.VarChar(255)
+  browser    String? @db.VarChar(100)
+  os         String? @db.VarChar(100)
+
+  isActive   Boolean  @default(true)
+  lastUsedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isActive])
+  @@index([token])
+  @@map("user_fcm_tokens")
 }

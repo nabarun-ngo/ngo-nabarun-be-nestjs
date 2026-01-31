@@ -9,7 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DateTime } from 'luxon';
 
 @Injectable()
-export class CreateMeetingUseCase implements IUseCase<CreateMeetingDto, Meeting> {
+export class CreateMeetingUseCase implements IUseCase<{ request: CreateMeetingDto, creatorId?: string }, Meeting> {
     constructor(
         @Inject(MEETING_REPOSITORY)
         private readonly meetingRepository: IMeetingRepository,
@@ -17,11 +17,11 @@ export class CreateMeetingUseCase implements IUseCase<CreateMeetingDto, Meeting>
         private readonly eventEmitter: EventEmitter2
     ) { }
 
-    async execute(request: CreateMeetingDto): Promise<Meeting> {
+    async execute({ request, creatorId }: { request: CreateMeetingDto, creatorId?: string }): Promise<Meeting> {
         // 1. Create in Google Calendar
         const googleEvent = await this.googleCalendarService.createEvent({
             summary: request.summary,
-            description: `${request.description ?? ''}\nAgenda: ${request.agenda ?? 'Not Available'}`,
+            description: request.description ? `${request.description}\n\n` : '' + 'Agenda: ' + request.agenda?.map((agenda, index) => `\n${index + 1}. ${agenda.agenda}`).join('\n'),
             startTime: DateTime.fromISO(request.startTime, { zone: "Asia/Kolkata" }).toJSDate(),
             endTime: DateTime.fromISO(request.endTime, { zone: "Asia/Kolkata" }).toJSDate(),
             attendees: request.attendees.map((attendee) => attendee.email),
@@ -38,7 +38,7 @@ export class CreateMeetingUseCase implements IUseCase<CreateMeetingDto, Meeting>
 
         // 2. Create Domain Model
         const meeting = Meeting.create({
-            agenda: request.agenda ?? '',
+            agenda: request.agenda ?? [],
             description: request.description ?? '',
             location: request.location ?? '',
             summary: request.summary,
@@ -47,6 +47,8 @@ export class CreateMeetingUseCase implements IUseCase<CreateMeetingDto, Meeting>
             endTime: DateTime.fromISO(request.endTime, { zone: "Asia/Kolkata" }).toJSDate(),
             attendees: request.attendees,
             status: googleEvent.status ?? '',
+            hostEmail: googleEvent.hostEmail,
+            creator: { id: creatorId },
         })
 
         meeting.addExtEvent(
