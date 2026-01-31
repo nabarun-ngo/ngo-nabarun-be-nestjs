@@ -59,6 +59,8 @@ model UserProfile {
   engineTaskAssignments    EngineTaskAssignment[]   @relation("EngineTaskAssignments")
   noticesCreated           Notice[]                 @relation("NoticeCreator")
   meetingsCreated          Meeting[]                @relation("MeetingCreator")
+  notifications            UserNotification[]       @relation("UserNotificationsFor")
+  fcmTokens                UserFcmToken[]           @relation("UserFcmTokens")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -912,7 +914,7 @@ model ActivityExpense {
 }
 
 // ====================================
-// WORKFLOW ENGINE MODULE MODELS
+// WORKFLOW ENGINE MODULE MODELS [LEGACY]
 // ====================================
 
 model EngineWorkflowDefinition {
@@ -1035,4 +1037,90 @@ model EngineTaskAssignment {
   @@index([status])
   @@index([dueAt, status])
   @@map("engine_task_assignments")
+}
+
+// ====================================
+// NOTIFICATION MODULE MODELS
+// ====================================
+
+model Notification {
+  id       String @id @default(uuid())
+  title    String @db.VarChar(255)
+  body     String @db.Text
+  type     String @db.VarChar(50) // INFO, SUCCESS, WARNING, ERROR, TASK, APPROVAL, etc.
+  category String @db.VarChar(50) // SYSTEM, WORKFLOW, DONATION, EXPENSE, PROJECT, etc.
+  priority String @default("NORMAL") @db.VarChar(20) // LOW, NORMAL, HIGH, URGENT
+
+  // Navigation
+  actionUrl  String? @db.VarChar(500) // URL to navigate when notification is clicked
+  actionType String? @db.VarChar(50) // NAVIGATE, OPEN_MODAL, etc.
+  actionData Json? // Additional data for the action
+
+  // Reference to source entity
+  referenceId   String? @db.VarChar(255)
+  referenceType String? @db.VarChar(50) // Workflow, Donation, Expense, etc.
+
+  // Metadata
+  imageUrl String? @db.VarChar(500)
+  icon     String? @db.VarChar(50)
+  metadata Json?
+
+  expiresAt         DateTime? // Optional expiration
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  userNotifications UserNotification[]
+
+  @@index([type, category])
+  @@index([referenceId, referenceType])
+  @@map("notifications")
+}
+
+model UserNotification {
+  id     String      @id @default(uuid())
+  userId String      @db.VarChar(255) // User who receives the notification
+  user   UserProfile @relation("UserNotificationsFor", fields: [userId], references: [id])
+
+  notificationId String       @db.VarChar(255) // User who receives the notification
+  notification   Notification @relation(fields: [notificationId], references: [id])
+
+  // Status
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  isArchived Boolean   @default(false)
+  archivedAt DateTime?
+
+  // Push notification tracking
+  isPushSent    Boolean   @default(false)
+  pushSentAt    DateTime?
+  pushDelivered Boolean   @default(false)
+  pushError     String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("user_notifications")
+}
+
+model UserFcmToken {
+  id     String      @id @default(uuid())
+  userId String      @db.VarChar(255)
+  user   UserProfile @relation("UserFcmTokens", fields: [userId], references: [id])
+
+  token      String  @unique @db.Text
+  deviceType String? @db.VarChar(50) // WEB, ANDROID, IOS
+  deviceName String? @db.VarChar(255)
+  browser    String? @db.VarChar(100)
+  os         String? @db.VarChar(100)
+
+  isActive   Boolean  @default(true)
+  lastUsedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isActive])
+  @@index([token])
+  @@map("user_fcm_tokens")
 }

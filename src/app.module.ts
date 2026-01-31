@@ -18,6 +18,7 @@ import { CommunicationModule } from './modules/shared/communication/communicatio
 import { CronModule } from './modules/shared/cron/cron.module';
 import { DocumentGeneratorModule } from './modules/shared/document-generator/document-generator.module';
 import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.module';
+import { NotificationModule } from './modules/shared/notification/notification.module';
 
 @Module({
   controllers: [],
@@ -61,6 +62,7 @@ import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.
     CorrespondenceModule,
     CommunicationModule,
     CronModule,
+    NotificationModule
   ],
 })
 export class AppModule { }
