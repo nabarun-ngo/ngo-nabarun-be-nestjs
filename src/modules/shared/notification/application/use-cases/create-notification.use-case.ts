@@ -5,8 +5,11 @@ import { INotificationRepository } from "../../domain/repositories/notification.
 import { IFcmTokenRepository } from "../../domain/repositories/fcm-token.repository.interface";
 import { FirebaseMessagingService } from "../services/firebase-messaging.service";
 import { IUserNotificationRepository } from "../../domain/repositories/user-notification.repository.interface";
+import { OnEvent } from "@nestjs/event-emitter";
+import { SendNotificationRequestEvent } from "../events/send-notification-request.event";
+import { MetadataService } from "../../infrastructure/external/metadata.service";
 
-class CreateNotification {
+export class CreateNotification {
     userIds: string[];
     title: string;
     body: string;
@@ -38,6 +41,7 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         @Inject(IFcmTokenRepository)
         private readonly fcmTokenRepository: IFcmTokenRepository,
         private readonly firebaseMessaging: FirebaseMessagingService,
+        private readonly metadataService: MetadataService,
 
     ) { }
 
@@ -74,6 +78,24 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
             }
         }
         return notification;
+    }
+
+    @OnEvent(SendNotificationRequestEvent.name, { async: true })
+    async handleCreateNotificationRequestEvent(event: SendNotificationRequestEvent) {
+        const metadata = await this.metadataService.getNotification(event.notificationKey, event.data)
+        await this.execute({
+            userIds: event.targetUserIds,
+            type: event.type,
+            category: event.category,
+            priority: event.priority,
+            referenceId: event.referenceId,
+            referenceType: event.referenceType,
+            sendPush: event.sendPush,
+            body: metadata.description,
+            title: metadata.title,
+            actionUrl: metadata.actionUrl,
+            imageUrl: metadata.imageUrl,
+        });
     }
 
 

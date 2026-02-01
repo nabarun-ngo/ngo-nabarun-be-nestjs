@@ -10,9 +10,11 @@ import { IUserNotificationRepository } from './domain/repositories/user-notifica
 import { IFcmTokenRepository } from './domain/repositories/fcm-token.repository.interface';
 import { DatabaseModule } from '../database/database.module';
 import { CreateNotificationUseCase } from './application/use-cases/create-notification.use-case';
+import { FirebaseModule } from '../firebase/firebase.module';
+import { MetadataService } from './infrastructure/external/metadata.service';
 
 @Module({
-    imports: [DatabaseModule],
+    imports: [DatabaseModule, FirebaseModule],
     controllers: [NotificationController],
     providers: [
         NotificationService,
@@ -29,7 +31,8 @@ import { CreateNotificationUseCase } from './application/use-cases/create-notifi
             provide: IFcmTokenRepository,
             useClass: FcmTokenRepository,
         },
-        CreateNotificationUseCase
+        CreateNotificationUseCase,
+        MetadataService
     ],
     exports: [NotificationService, FirebaseMessagingService, CreateNotificationUseCase],
 })

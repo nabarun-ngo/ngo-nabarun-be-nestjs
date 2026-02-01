@@ -6,6 +6,8 @@ import type { IDonationRepository } from '../../domain/repositories/donation.rep
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { formatDate } from 'src/shared/utilities/common.util';
+import { SendNotificationRequestEvent } from 'src/modules/shared/notification/application/events/send-notification-request.event';
+import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/notification/domain/models/notification.model';
 
 export class CreateDonation {
   donorId?: string;
@@ -67,7 +69,6 @@ export class CreateDonationUseCase implements IUseCase<CreateDonation, Donation>
       this.eventEmitter.emit(event.constructor.name, event);
     }
     donation.clearEvents();
-
     return savedDonation;
   }
 }
