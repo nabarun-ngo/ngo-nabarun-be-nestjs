@@ -11,8 +11,8 @@ import { IUserNotificationRepository } from '../../domain/repositories/user-noti
 export class UserNotificationRepository implements IUserNotificationRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
     async findByUserIdAndNotificationId(userId: string, notificationId: string): Promise<Notification | null> {
-        const notification = await this.prisma.userNotification.findUnique({
-            where: { id: notificationId, userId: userId },
+        const notification = await this.prisma.userNotification.findFirst({
+            where: { notificationId: notificationId, userId: userId },
             include: {
                 user: true,
                 notification: true,
@@ -38,18 +38,13 @@ export class UserNotificationRepository implements IUserNotificationRepository {
         return this.toUserNotificationDomain(updated);
     }
 
-    async bulkUpdate(notifications: Notification[]): Promise<void> {
-        const updateData = notifications.map(n => ({
-            where: { id: n.id },
-            data: this.toUpdateData(n),
-        }));
-        if (updateData.length > 0) {
-            await this.prisma.userNotification.updateMany({
-                where: { id: { in: notifications.map(n => n.id) } },
-                data: updateData,
-            });
-        }
+    async bulkUpdate(ids: string[], notification: Notification): Promise<void> {
+        await this.prisma.userNotification.updateMany({
+            where: { id: { in: ids } },
+            data: this.toUpdateData(notification),
+        });
     }
+
     async count<NotificationFilter>(filter: NotificationFilter): Promise<number> {
         return await this.prisma.userNotification.count({
             where: this.whereQuery(filter!),
@@ -68,7 +63,7 @@ export class UserNotificationRepository implements IUserNotificationRepository {
         return notification ? this.toUserNotificationDomain(notification) : null;
     }
 
-    async findAll<NotificationFilter>(filters?: NotificationFilter): Promise<Notification[]> {
+    async findAll(filters?: NotificationFilter): Promise<Notification[]> {
         const notifications = await this.prisma.userNotification.findMany({
             where: this.whereQuery(filters!),
             include: {
@@ -81,7 +76,7 @@ export class UserNotificationRepository implements IUserNotificationRepository {
         return notifications.map(n => this.toUserNotificationDomain(n));
     }
 
-    async findPaged<NotificationFilter>(filter?: BaseFilter<NotificationFilter> | undefined): Promise<PagedResult<Notification>> {
+    async findPaged(filter?: BaseFilter<NotificationFilter> | undefined): Promise<PagedResult<Notification>> {
         const [notifications, total] = await Promise.all([
             this.prisma.userNotification.findMany({
                 where: this.whereQuery(filter?.props!),
@@ -97,7 +92,6 @@ export class UserNotificationRepository implements IUserNotificationRepository {
                 where: this.whereQuery(filter?.props!),
             }),
         ]);
-
         return {
             content: notifications.map(n => this.toUserNotificationDomain(n)),
             totalSize: total,
@@ -108,15 +102,15 @@ export class UserNotificationRepository implements IUserNotificationRepository {
 
     private whereQuery(filters?: NotificationFilter | undefined): Prisma.UserNotificationWhereInput {
         return {
-            ...filters?.userId && { userId: filters.userId },
-            ...filters?.type && { notification: { type: filters.type } },
-            ...filters?.category && { notification: { category: filters.category } },
-            ...filters?.isRead !== undefined && { isRead: filters.isRead },
-            ...filters?.isArchived !== undefined && { isArchived: filters.isArchived },
-            ...filters?.referenceId && { notification: { referenceId: filters.referenceId } },
-            ...filters?.referenceType && { notification: { referenceType: filters.referenceType } },
-            ...filters?.fromDate && { createdAt: { gte: filters.fromDate } },
-            ...filters?.toDate && { createdAt: { lte: filters.toDate } },
+            ...filters?.userId ? { userId: filters.userId } : {},
+            ...filters?.type ? { notification: { type: filters.type } } : {},
+            ...filters?.category ? { notification: { category: filters.category } } : {},
+            ...filters?.isRead !== undefined ? { isRead: filters.isRead } : {},
+            ...filters?.isArchived !== undefined ? { isArchived: filters.isArchived } : {},
+            ...filters?.referenceId ? { notification: { referenceId: filters.referenceId } } : {},
+            ...filters?.referenceType ? { notification: { referenceType: filters.referenceType } } : {},
+            ...filters?.fromDate ? { createdAt: { gte: filters.fromDate } } : {},
+            ...filters?.toDate ? { createdAt: { lte: filters.toDate } } : {},
         };
     }
 

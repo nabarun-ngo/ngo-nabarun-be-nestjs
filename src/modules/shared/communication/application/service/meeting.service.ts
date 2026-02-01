@@ -7,7 +7,7 @@ import { toMeetingDto } from "../dto/meeting.mapper";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
 import { AuthUser } from "src/modules/shared/auth/domain/models/api-user.model";
-import { ConnectionUpstreamAliasEnum } from "node_modules/auth0/dist/cjs/management/api";
+import { MeetingFilter } from "../../domain/model/meeting.model";
 
 @Injectable()
 export class MeetingService {
@@ -26,8 +26,7 @@ export class MeetingService {
         return toMeetingDto(await this.updateMeetingUseCase.execute({ id, updateData: request }));
     }
 
-    async list(filter: BaseFilter<any>, user?: AuthUser) {
-        console.log(user)
+    async list(filter: BaseFilter<MeetingFilter>, user?: AuthUser) {
         const meetings = await this.meetingRepository.findPaged({
             pageIndex: filter.pageIndex,
             pageSize: filter.pageSize,

@@ -81,6 +81,8 @@ export class AccountController {
   @ApiOperation({ summary: 'List all accounts' })
   @RequirePermissions('read:accounts')
   @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   async listAccounts(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,

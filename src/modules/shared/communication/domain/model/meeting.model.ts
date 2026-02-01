@@ -11,9 +11,10 @@ export enum MeetingType {
 
 
 export class Participant {
+    id?: string;
     name?: string;
     email: string;
-    attended?: boolean;
+    attended?: string;
 }
 
 export class AgendaItem {
@@ -128,13 +129,24 @@ export class Meeting extends AggregateRoot<string> {
             throw new BusinessException('End time must be after start time');
         }
 
-        const needUpdate = op.summary !== this.#summary ||
-            op.agenda?.map((agenda) => agenda.agenda) !== this.#agenda?.map((agenda) => agenda.agenda) ||
-            op.description !== this.#description ||
-            op.startTime !== this.#startTime ||
-            op.endTime !== this.#endTime ||
-            op.location !== this.#location ||
-            op.attendees?.map((attendee) => attendee.email) !== this.#attendees?.map((attendee) => attendee.email);
+        const attendee1 = op.attendees?.map((attendee) => attendee.email);
+        const attendee2 = this.#attendees?.map((attendee) => attendee.email);
+        const attendeeMissing = attendee1?.filter(item => attendee2?.indexOf(item) < 0);
+
+        const agenda1 = op.agenda?.map((agenda) => agenda.agenda);
+        const agenda2 = this.#agenda?.map((agenda) => agenda.agenda);
+        const agendaMissing = agenda1?.filter(item => agenda2?.indexOf(item)! < 0);
+
+        const isSummaryChanged = op.summary !== undefined && op.summary !== this.#summary;
+        const isAgendaChanged = op.agenda !== undefined && agendaMissing && agendaMissing?.length > 0;
+        const isDescriptionChanged = op.description !== undefined && op.description !== this.#description;
+        const isStartTimeChanged = op.startTime !== undefined && op.startTime.toISOString() !== this.#startTime.toISOString();
+        const isEndTimeChanged = op.endTime !== undefined && op.endTime.toISOString() !== this.#endTime.toISOString();
+        const isLocationChanged = op.location !== undefined && op.location !== this.#location;
+        const isAttendeesChanged = op.attendees !== undefined && attendeeMissing && attendeeMissing?.length > 0;
+
+        const needUpdate = isSummaryChanged || isAgendaChanged || isDescriptionChanged
+            || isStartTimeChanged || isEndTimeChanged || isLocationChanged || isAttendeesChanged;
 
         this.#summary = op.summary ?? this.#summary;
         this.#agenda = op.agenda ?? this.#agenda;

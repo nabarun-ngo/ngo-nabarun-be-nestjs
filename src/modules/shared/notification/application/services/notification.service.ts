@@ -7,7 +7,6 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateNotificationUseCase } from '../use-cases/create-notification.use-case';
 import { NotificationDtoMapper } from '../dto/notification-dto.mapper';
 import { IUserNotificationRepository } from '../../domain/repositories/user-notification.repository.interface';
-import { NotificationFilter } from '../../domain/models/notification.model';
 
 @Injectable()
 export class NotificationService {
@@ -45,8 +44,7 @@ export class NotificationService {
         userId: string,
         filter?: BaseFilter<NotificationFiltersDto>,
     ): Promise<PagedResult<NotificationResponseDto>> {
-        console.log(filter?.props)
-        const pagedResult = await this.userNotificationRepository.findPaged<NotificationFilter>({
+        const pagedResult = await this.userNotificationRepository.findPaged({
             pageIndex: filter?.pageIndex,
             pageSize: filter?.pageSize,
             props: {
@@ -56,10 +54,12 @@ export class NotificationService {
                 isArchived: filter?.props?.isArchived ? (filter?.props?.isArchived === 'Y') : undefined,
             }
         });
-        return {
-            ...pagedResult,
-            content: pagedResult.content.map(NotificationDtoMapper.toResponseDto),
-        };
+        return new PagedResult<NotificationResponseDto>(
+            pagedResult.content.map(n => NotificationDtoMapper.toResponseDto(n!)),
+            pagedResult.totalSize,
+            pagedResult.pageIndex,
+            pagedResult.pageSize
+        );
     }
 
 
@@ -80,7 +80,7 @@ export class NotificationService {
     async markAsRead(userId: string, notificationId: string): Promise<void> {
         const notification = await this.userNotificationRepository.findByUserIdAndNotificationId(userId, notificationId);
         if (!notification) {
-            throw new NotFoundException(`Notification with ID ${notificationId} not found`);
+            throw new Error(`Notification with ID ${notificationId} not found`);
         }
         notification.markAsRead();
         await this.userNotificationRepository.update(notification.userNotificationId!, notification);
@@ -91,17 +91,17 @@ export class NotificationService {
      */
     async markAllAsRead(userId: string): Promise<void> {
         const notifications = await this.userNotificationRepository.findAll({
-            filter: {
-                userId,
-                isRead: false,
-                isArchived: false,
-            },
+            userId,
+            isRead: false,
+            isArchived: false,
         });
 
         for (const notification of notifications) {
             notification.markAsRead();
         }
-        await this.userNotificationRepository.bulkUpdate(notifications);
+        if (notifications.length > 0) {
+            await this.userNotificationRepository.bulkUpdate(notifications.map(n => n.userNotificationId!), notifications[0]);
+        }
     }
 
     /**
