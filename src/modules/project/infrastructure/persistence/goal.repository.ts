@@ -10,8 +10,32 @@ import { PagedResult } from 'src/shared/models/paged-result';
 @Injectable()
 class GoalRepository implements IGoalRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
-  findPaged(filter?: BaseFilter<GoalFilterProps> | undefined): Promise<PagedResult<Goal>> {
-    throw new Error('Method not implemented.');
+
+  async count(filter: GoalFilterProps): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.goal.count({ where });
+  }
+
+  async findPaged(filter?: BaseFilter<GoalFilterProps>): Promise<PagedResult<Goal>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.goal.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: { project: true },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
+      }),
+      this.prisma.goal.count({ where }),
+    ]);
+
+    return new PagedResult<Goal>(
+      data.map(m => ProjectInfraMapper.toGoalDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 1000,
+    );
   }
 
   async findAll(filter?: GoalFilterProps): Promise<Goal[]> {

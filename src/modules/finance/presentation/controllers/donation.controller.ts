@@ -166,7 +166,7 @@ export class DonationController {
     const result = await this.donationService.list({
       pageIndex,
       pageSize,
-      props: { ...filter, isGuest: true },
+      props: { ...filter, isGuest: 'Y' },
     });
     return new SuccessResponse(result);
   }

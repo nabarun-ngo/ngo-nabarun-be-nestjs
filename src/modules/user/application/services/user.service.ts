@@ -43,7 +43,7 @@ export class UserService {
                 lastName: filterDto.props?.lastName,
                 roleCodes: filterDto.props?.roleCodes,
                 phoneNumber: filterDto.props?.phoneNumber,
-                public: filterDto.props?.public,
+                public: filterDto.props?.public ? (filterDto.props?.public === 'Y') : undefined,
             }
         }
         const users = await this.userRepository.findPaged(filter);

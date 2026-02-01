@@ -311,9 +311,10 @@ export class UserFilterDto {
   @IsOptional()
   readonly phoneNumber?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
   @IsOptional()
-  readonly public?: boolean;
+  @IsEnum(['Y', 'N'])
+  readonly public?: 'Y' | 'N';
 
 }
 

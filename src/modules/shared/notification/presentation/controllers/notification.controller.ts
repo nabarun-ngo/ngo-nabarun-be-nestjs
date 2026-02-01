@@ -22,7 +22,7 @@ import {
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
-import { ApiAutoResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoPagedResponse, ApiAutoResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
 
 @ApiTags(NotificationController.name)
 @ApiBearerAuth('jwt')
@@ -42,7 +42,7 @@ export class NotificationController {
     @ApiOperation({ summary: 'Get my notifications' })
     @ApiQuery({ name: 'pageIndex', required: false, type: Number })
     @ApiQuery({ name: 'pageSize', required: false, type: Number })
-    @ApiAutoResponse(NotificationResponseDto, { status: 200, description: 'Notifications retrieved successfully', wrapInSuccessResponse: true })
+    @ApiAutoPagedResponse(NotificationResponseDto, { status: 200, description: 'Notifications retrieved successfully', wrapInSuccessResponse: true, isArray: true })
     async getMyNotifications(
         @CurrentUser() user: AuthUser,
         @Query('pageIndex') pageIndex?: number,
@@ -62,16 +62,16 @@ export class NotificationController {
         return new SuccessResponse(result);
     }
 
-    @Get('me/unread/count')
+    @Get('me/unread-count')
     @ApiOperation({ summary: 'Get my unread notification count' })
     @ApiAutoResponse(Number, { status: 200, description: 'Unread count retrieved successfully', wrapInSuccessResponse: true })
     async getMyUnreadCount(@CurrentUser() user: AuthUser) {
         const userId = user.profile_id!;
         const count = await this.notificationService.getUnreadCount(userId);
-        return new SuccessResponse(count);
+        return new SuccessResponse(count ?? 0);
     }
 
-    @Patch('me/update/:id/read')
+    @Patch('me/update-as-read/:id')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Mark notification as read' })
     @ApiAutoVoidResponse({ status: 200, description: 'Notification marked as read' })
@@ -80,7 +80,7 @@ export class NotificationController {
         return new SuccessResponse();
     }
 
-    @Patch('me/update/read-all')
+    @Patch('me/update-as-read-all')
     @ApiOperation({ summary: 'Mark all my notifications as read' })
     @ApiAutoVoidResponse({ status: 200, description: 'All notifications marked as read' })
     async markAllAsRead(@CurrentUser() user: AuthUser) {
@@ -89,7 +89,7 @@ export class NotificationController {
         return new SuccessResponse();
     }
 
-    @Patch('me/update/:id/archive')
+    @Patch('me/update-as-archive/:id')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: 'Archive notification' })
     @ApiAutoVoidResponse({ status: 200, description: 'Notification archived' })

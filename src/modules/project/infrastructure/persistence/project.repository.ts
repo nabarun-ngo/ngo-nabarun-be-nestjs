@@ -11,6 +11,11 @@ import { PagedResult } from 'src/shared/models/paged-result';
 class ProjectRepository implements IProjectRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: ProjectFilterProps): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.project.count({ where });
+  }
+
   async findPaged(filter?: BaseFilter<ProjectFilterProps>): Promise<PagedResult<Project>> {
     const where = this.whereQuery(filter?.props);
 

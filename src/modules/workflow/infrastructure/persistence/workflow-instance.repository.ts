@@ -44,6 +44,12 @@ class WorkflowInstanceRepository
 
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: WorkflowFilter): Promise<number> {
+    return await this.prisma.workflowInstance.count({
+      where: this.whereQuery(filter),
+    });
+  }
+
   async findAllTasks(filter: TaskFilter): Promise<WorkflowTask[]> {
     const tasks: PrismaWorkflowTasks[] = await this.prisma.workflowTask.findMany({
       where: this.whereQueryTasks(filter),

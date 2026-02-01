@@ -58,16 +58,7 @@ export class NotificationRepository implements INotificationRepository {
         return this.toDomain(updated);
     }
 
-    async bulkUpdate(notifications: Notification[]): Promise<void> {
-        const updateData = notifications.map(n => ({
-            where: { id: n.id },
-            data: this.toUpdateData(n),
-        }));
-        await this.prisma.notification.updateMany({
-            where: { id: { in: notifications.map(n => n.id) } },
-            data: updateData,
-        });
-    }
+
     async count(filter: any): Promise<number> {
         return await this.prisma.notification.count();
     }

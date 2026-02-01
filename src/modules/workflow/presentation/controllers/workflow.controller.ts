@@ -78,6 +78,7 @@ export class WorkflowController {
         props: {
           initiatedFor: user?.profile_id,
           ...filter,
+          delegated: filter?.delegated ? (filter?.delegated === 'Y') : undefined,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
@@ -102,6 +103,7 @@ export class WorkflowController {
         props: {
           initiatedBy: user?.profile_id,
           ...filter,
+          delegated: filter?.delegated ? (filter?.delegated === 'Y') : undefined,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);

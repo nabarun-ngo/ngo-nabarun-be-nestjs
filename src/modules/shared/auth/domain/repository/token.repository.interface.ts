@@ -1,7 +1,7 @@
 import { IRepository } from 'src/shared/interfaces/repository.interface';
 import { AuthToken } from '../models/auth-token.model';
 
-export interface ITokenRepository extends IRepository<AuthToken, string> {
+export interface ITokenRepository extends IRepository<AuthToken, string, any> {
     findByAttribute(attribute: {
         provider: string,
         clientId: string,

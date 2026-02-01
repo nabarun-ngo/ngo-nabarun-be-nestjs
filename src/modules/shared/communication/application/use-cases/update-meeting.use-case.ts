@@ -32,7 +32,6 @@ export class UpdateMeetingUseCase implements IUseCase<UpdateMeetingRequest, Meet
             throw new BusinessException('Meeting not found locally');
         }
 
-        console.log(`updateData.cancelEvent: ${updateData.cancelEvent}`);
 
         const needUpdate = existingMeeting.update({
             summary: updateData.summary,
@@ -44,7 +43,7 @@ export class UpdateMeetingUseCase implements IUseCase<UpdateMeetingRequest, Meet
             location: updateData.location,
             outcomes: updateData.outcomes,
         });
-
+        console.log(`needUpdate: ${needUpdate}`);
         if (needUpdate && !updateData.cancelEvent) {
             // 1. Update in Google Calendar
             const googleEvent = await this.googleCalendarService.updateEvent(existingMeeting.extMeetingId!, {

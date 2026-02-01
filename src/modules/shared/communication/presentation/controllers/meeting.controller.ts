@@ -28,10 +28,11 @@ export class MeetingController {
     @Get('list')
     @ApiAutoResponse(MeetingDto, { description: 'Meetings fetched successfully', wrapInSuccessResponse: true })
     async listMeetings(
+        @CurrentUser() user: AuthUser,
         @Query('pageIndex') pageIndex?: number,
         @Query('pageSize') pageSize?: number) {
         return new SuccessResponse(
-            await this.meetingService.list({ pageIndex, pageSize })
+            await this.meetingService.list({ pageIndex, pageSize }, user)
         );
     }
 

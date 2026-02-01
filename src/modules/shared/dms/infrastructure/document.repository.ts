@@ -16,6 +16,12 @@ export class DocumentRepository
 
     constructor(private readonly prisma: PrismaPostgresService) { }
 
+    async count(filter: DocumentProps): Promise<number> {
+        return await this.prisma.documentReference.count({
+            where: this.whereQuery(filter),
+        });
+    }
+
     async findAll(filter: DocumentProps): Promise<Document[]> {
         const documents = await this.prisma.documentReference.findMany({
             orderBy: { createdAt: 'desc' },

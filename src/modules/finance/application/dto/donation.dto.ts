@@ -136,10 +136,10 @@ export class DonationDetailFilterDto {
   )
   type?: DonationType[];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
   @IsOptional()
-  @IsBoolean()
-  isGuest?: boolean;
+  @IsEnum(['Y', 'N'])
+  isGuest?: 'Y' | 'N';
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
