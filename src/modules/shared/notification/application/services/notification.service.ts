@@ -7,6 +7,7 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateNotificationUseCase } from '../use-cases/create-notification.use-case';
 import { NotificationDtoMapper } from '../dto/notification-dto.mapper';
 import { IUserNotificationRepository } from '../../domain/repositories/user-notification.repository.interface';
+import { NotificationFilter } from '../../domain/models/notification.model';
 
 @Injectable()
 export class NotificationService {
@@ -45,12 +46,14 @@ export class NotificationService {
         filter?: BaseFilter<NotificationFiltersDto>,
     ): Promise<PagedResult<NotificationResponseDto>> {
         console.log(filter?.props)
-        const pagedResult = await this.userNotificationRepository.findPaged({
+        const pagedResult = await this.userNotificationRepository.findPaged<NotificationFilter>({
             pageIndex: filter?.pageIndex,
             pageSize: filter?.pageSize,
             props: {
                 userId,
                 ...filter?.props,
+                isRead: filter?.props?.isRead ? (filter?.props?.isRead === 'Y') : undefined,
+                isArchived: filter?.props?.isArchived ? (filter?.props?.isArchived === 'Y') : undefined,
             }
         });
         return {

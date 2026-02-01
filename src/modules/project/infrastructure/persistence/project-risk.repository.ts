@@ -11,8 +11,34 @@ import { PagedResult } from 'src/shared/models/paged-result';
 class ProjectRiskRepository implements IProjectRiskRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
-  findPaged(filter?: BaseFilter<ProjectRiskFilterProps> | undefined): Promise<PagedResult<ProjectRisk>> {
-    throw new Error('Method not implemented.');
+  async count(filter: ProjectRiskFilterProps): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.projectRisk.count({ where });
+  }
+
+  async findPaged(filter?: BaseFilter<ProjectRiskFilterProps> | undefined): Promise<PagedResult<ProjectRisk>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.projectRisk.findMany({
+        where,
+        orderBy: { identifiedDate: 'desc' },
+        include: {
+          project: true,
+          owner: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
+      }),
+      this.prisma.projectRisk.count({ where }),
+    ]);
+
+    return new PagedResult<ProjectRisk>(
+      data.map(m => ProjectInfraMapper.toProjectRiskDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 1000,
+    );
   }
 
   async findAll(filter?: ProjectRiskFilterProps): Promise<ProjectRisk[]> {

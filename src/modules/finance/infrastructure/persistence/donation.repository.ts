@@ -27,6 +27,11 @@ export type OnlyDonation = Prisma.DonationGetPayload<{
 class DonationRepository implements IDonationRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: DonationFilter): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.donation.count({ where });
+  }
+
   async findPaged(filter?: BaseFilter<DonationFilter>): Promise<PagedResult<Donation>> {
     const where = this.whereQuery(filter?.props);
 

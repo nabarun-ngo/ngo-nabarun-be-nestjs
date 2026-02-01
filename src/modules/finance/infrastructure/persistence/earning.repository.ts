@@ -17,6 +17,11 @@ export type EarningPersistence = Prisma.EarningGetPayload<{
 class EarningRepository implements IEarningRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: EarningFilter): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.earning.count({ where });
+  }
+
   async findPaged(filter?: BaseFilter<EarningFilter>): Promise<PagedResult<Earning>> {
     const where = this.whereQuery(filter?.props);
 

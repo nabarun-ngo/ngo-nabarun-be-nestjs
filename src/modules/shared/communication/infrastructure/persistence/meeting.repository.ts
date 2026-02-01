@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaPostgresService } from '../../../database/prisma-postgres.service';
 import { IMeetingRepository } from '../../domain/repositories/meeting.repository.interface';
-import { Meeting } from '../../domain/model/meeting.model';
+import { Meeting, MeetingFilter } from '../../domain/model/meeting.model';
 import { MeetingMapper } from '../mapper/meeting-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
@@ -9,7 +9,14 @@ import { PagedResult } from 'src/shared/models/paged-result';
 @Injectable()
 export default class MeetingRepository implements IMeetingRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
-    async findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Meeting>> {
+    async count(filter: MeetingFilter): Promise<number> {
+        return await this.prisma.meeting.count({
+            where: {
+                deletedAt: null
+            },
+        });
+    }
+    async findPaged(filter?: BaseFilter<MeetingFilter> | undefined): Promise<PagedResult<Meeting>> {
         const entities = await this.prisma.meeting.findMany({
             where: { deletedAt: null },
             orderBy: { createdAt: 'desc' },
@@ -85,7 +92,7 @@ export default class MeetingRepository implements IMeetingRepository {
         return entity ? MeetingMapper.fromEntityToModel(entity) : null;
     }
 
-    async findAll(options?: {}): Promise<Meeting[]> {
+    async findAll(filter?: MeetingFilter): Promise<Meeting[]> {
         const entities = await this.prisma.meeting.findMany({
             where: { deletedAt: null },
             orderBy: { createdAt: 'desc' },

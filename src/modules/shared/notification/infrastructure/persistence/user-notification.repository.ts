@@ -81,10 +81,10 @@ export class UserNotificationRepository implements IUserNotificationRepository {
         return notifications.map(n => this.toUserNotificationDomain(n));
     }
 
-    async findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<Notification>> {
+    async findPaged<NotificationFilter>(filter?: BaseFilter<NotificationFilter> | undefined): Promise<PagedResult<Notification>> {
         const [notifications, total] = await Promise.all([
             this.prisma.userNotification.findMany({
-                where: this.whereQuery(filter?.props),
+                where: this.whereQuery(filter?.props!),
                 include: {
                     user: true,
                     notification: true,
@@ -94,7 +94,7 @@ export class UserNotificationRepository implements IUserNotificationRepository {
                 take: filter?.pageSize ?? 1000,
             }),
             this.prisma.userNotification.count({
-                where: this.whereQuery(filter?.props),
+                where: this.whereQuery(filter?.props!),
             }),
         ]);
 
@@ -106,7 +106,7 @@ export class UserNotificationRepository implements IUserNotificationRepository {
         };
     }
 
-    private whereQuery(filters?: NotificationFilter): Prisma.UserNotificationWhereInput {
+    private whereQuery(filters?: NotificationFilter | undefined): Prisma.UserNotificationWhereInput {
         return {
             ...filters?.userId && { userId: filters.userId },
             ...filters?.type && { notification: { type: filters.type } },

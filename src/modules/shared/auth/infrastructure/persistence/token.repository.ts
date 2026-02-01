@@ -9,6 +9,11 @@ import { AuthToken } from '../../domain/models/auth-token.model';
 @Injectable()
 export class TokenRepository implements ITokenRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
+    async count(filter: any): Promise<number> {
+        return await this.prisma.oAuthToken.count({
+
+        });
+    }
     findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<AuthToken>> {
         throw new Error('Method not implemented.');
     }

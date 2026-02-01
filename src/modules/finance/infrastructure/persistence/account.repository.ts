@@ -24,8 +24,13 @@ export type AccountWithTransactions = Prisma.AccountGetPayload<{
 class AccountRepository implements IAccountRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: AccountFilter): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.account.count({ where });
+  }
+
   async findPaged(filter?: BaseFilter<AccountFilter>): Promise<PagedResult<Account>> {
-    const where = this.whereQuery(filter?.props);
+    const where = this.whereQuery(filter?.props!);
 
     const [data, total] = await Promise.all([
       this.prisma.account.findMany({
