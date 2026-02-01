@@ -1,4 +1,4 @@
-import { OnEvent } from "@nestjs/event-emitter";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { DonationRaisedEvent } from "../../domain/events/donation-raised.event";
 import { Inject, Injectable } from "@nestjs/common";
 import { DonationPaidEvent } from "../../domain/events/donation-paid.event";
@@ -12,10 +12,13 @@ import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/r
 import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
 import { ConfigService } from "@nestjs/config";
 import { Configkey } from "src/shared/config-keys";
-import { DonationStatus } from "../../domain/model/donation.model";
+import { DonationStatus, DonationType } from "../../domain/model/donation.model";
 import { groupBy } from "lodash";
 import { formatDate } from "src/shared/utilities/common.util";
 import { ReportParamsDto } from "../dto/report.dto";
+import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
+import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
+import { NotificationKeys } from "src/shared/notification-keys";
 
 export class TriggerMonthlyDonationEvent { }
 export class TriggerMarkDonationAsPendingEvent { }
@@ -34,6 +37,7 @@ export class DonationsEventHandler {
         private readonly userRepository: IUserRepository,
         private readonly jobProcessingService: JobProcessingService,
         private readonly configService: ConfigService,
+        private readonly eventEmitter: EventEmitter2,
 
     ) { }
 
@@ -64,6 +68,23 @@ export class DonationsEventHandler {
             });
 
             this.logger.log(`Email sent successfully for donation ${donation.id}`);
+
+            if (donation.donorId) {
+                this.eventEmitter.emit(SendNotificationRequestEvent.name,
+                    new SendNotificationRequestEvent({
+                        targetUserIds: [donation.donorId!],
+                        notificationKey: NotificationKeys.DONATION_CREATED,
+                        type: NotificationType.INFO,
+                        category: NotificationCategory.DONATION,
+                        priority: NotificationPriority.HIGH,
+                        data: {
+                            donation: donation.toJson(),
+                        },
+                        referenceId: donation.id,
+                        referenceType: 'donation',
+                    }));
+            }
+
         } catch (error) {
             this.logger.error(`Failed to send email for donation ${event.donation.id}`, error);
             throw error;
@@ -97,6 +118,21 @@ export class DonationsEventHandler {
                 },
             });
             this.logger.log(`Email sent successfully for donation ${donation.id}`);
+            if (donation.donorId) {
+                this.eventEmitter.emit(SendNotificationRequestEvent.name,
+                    new SendNotificationRequestEvent({
+                        targetUserIds: [donation.donorId!],
+                        notificationKey: NotificationKeys.DONATION_PAID,
+                        type: NotificationType.INFO,
+                        category: NotificationCategory.DONATION,
+                        priority: NotificationPriority.HIGH,
+                        data: {
+                            donation: donation.toJson(),
+                        },
+                        referenceId: donation.id,
+                        referenceType: 'donation',
+                    }));
+            }
         } catch (error) {
             this.logger.error(`Failed to send email for donation ${event.donation.id}`, error);
             throw error;

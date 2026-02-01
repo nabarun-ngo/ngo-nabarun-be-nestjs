@@ -32,6 +32,7 @@ export class MeetingService {
             pageSize: filter.pageSize,
             props: {
                 ...filter.props,
+                participantId: user?.profile_id,
             }
         });
         return new PagedResult(
