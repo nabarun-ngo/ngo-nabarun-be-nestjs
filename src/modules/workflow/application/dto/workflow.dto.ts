@@ -6,6 +6,7 @@ import {
   IsDefined,
   IsBoolean,
   IsArray,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -379,9 +380,10 @@ export class WorkflowFilterDto {
     Array.isArray(value) ? value : value ? [value] : undefined
   ) readonly type?: string[];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
   @IsOptional()
-  readonly delegated?: boolean;
+  @IsEnum(['Y', 'N'])
+  readonly delegated?: 'Y' | 'N';
 }
 
 export class TaskFilterDto {
@@ -402,8 +404,8 @@ export class TaskFilterDto {
   )
   readonly type?: WorkflowTaskType[];
 
-  @ApiPropertyOptional({ description: 'Options Y/N' })
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
   @IsOptional()
-  @IsString()
-  readonly completed?: string;
+  @IsEnum(['Y', 'N'])
+  readonly completed?: 'Y' | 'N';
 }

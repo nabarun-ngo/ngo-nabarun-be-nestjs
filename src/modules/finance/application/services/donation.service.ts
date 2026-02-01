@@ -36,7 +36,7 @@ export class DonationService {
         donorId: filter.props?.donorId,
         status: filter.props?.status,
         type: filter.props?.type,
-        isGuest: filter.props?.isGuest,
+        isGuest: filter.props?.isGuest ? (filter.props?.isGuest === 'Y') : undefined,
         startDate_raisedOn: filter.props?.startDate,
         endDate_raisedOn: filter.props?.endDate,
       }

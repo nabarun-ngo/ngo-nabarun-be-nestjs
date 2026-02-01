@@ -21,6 +21,11 @@ export class AgendaItem {
     outcomes?: string;
 }
 
+export class MeetingFilter {
+    createdById?: string;
+    attendeeEmail?: string;
+}
+
 export class Meeting extends AggregateRoot<string> {
     #extMeetingId: string | undefined;
     #summary: string;

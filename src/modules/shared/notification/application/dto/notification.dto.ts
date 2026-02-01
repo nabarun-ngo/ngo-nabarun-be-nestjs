@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsEnum, IsOptional, IsObject, IsBoolean, IsDateString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { NotificationCategory, NotificationPriority, NotificationType } from '../../domain/models/notification.model';
 
 //TODO: Remove this DTO
@@ -162,42 +163,42 @@ export class NotificationFiltersDto {
     @ApiPropertyOptional({ enum: NotificationType })
     @IsEnum(NotificationType)
     @IsOptional()
-    type?: NotificationType;
+    readonly type?: NotificationType;
 
     @ApiPropertyOptional({ enum: NotificationCategory })
     @IsEnum(NotificationCategory)
     @IsOptional()
-    category?: NotificationCategory;
+    readonly category?: NotificationCategory;
 
-    @ApiPropertyOptional()
-    @IsBoolean()
+    @ApiPropertyOptional({ enum: ['Y', 'N'] })
+    @IsEnum(['Y', 'N'])
     @IsOptional()
-    isRead?: boolean;
+    readonly isRead?: 'Y' | 'N';
 
-    @ApiPropertyOptional()
-    @IsBoolean()
+    @ApiPropertyOptional({ enum: ['Y', 'N'] })
+    @IsEnum(['Y', 'N'])
     @IsOptional()
-    isArchived?: boolean;
-
-    @ApiPropertyOptional()
-    @IsString()
-    @IsOptional()
-    referenceId?: string;
+    readonly isArchived?: 'Y' | 'N';
 
     @ApiPropertyOptional()
     @IsString()
     @IsOptional()
-    referenceType?: string;
+    readonly referenceId?: string;
+
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    readonly referenceType?: string;
 
     @ApiPropertyOptional()
     @IsDateString()
     @IsOptional()
-    fromDate?: Date;
+    readonly fromDate?: Date;
 
     @ApiPropertyOptional()
     @IsDateString()
     @IsOptional()
-    toDate?: Date;
+    readonly toDate?: Date;
 }
 
 export class RegisterFcmTokenDto {

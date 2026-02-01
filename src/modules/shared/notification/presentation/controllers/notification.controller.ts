@@ -68,7 +68,7 @@ export class NotificationController {
     async getMyUnreadCount(@CurrentUser() user: AuthUser) {
         const userId = user.profile_id!;
         const count = await this.notificationService.getUnreadCount(userId);
-        return new SuccessResponse(count);
+        return new SuccessResponse(count || 0);
     }
 
     @Patch('me/update/:id/read')

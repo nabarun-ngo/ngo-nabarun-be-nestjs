@@ -1,11 +1,8 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { INotificationRepository } from '../../domain/repositories/notification.repository.interface';
 import { IFcmTokenRepository } from '../../domain/repositories/fcm-token.repository.interface';
-import { Notification } from '../../domain/models/notification.model';
 import { FcmToken } from '../../domain/models/fcm-token.model';
-import { FirebaseMessagingService } from './firebase-messaging.service';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { CreateNotificationDto, RegisterFcmTokenDto, BulkNotificationDto, NotificationFiltersDto, NotificationResponseDto } from '../dto/notification.dto';
+import { RegisterFcmTokenDto, BulkNotificationDto, NotificationFiltersDto, NotificationResponseDto } from '../dto/notification.dto';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateNotificationUseCase } from '../use-cases/create-notification.use-case';
 import { NotificationDtoMapper } from '../dto/notification-dto.mapper';
@@ -47,6 +44,7 @@ export class NotificationService {
         userId: string,
         filter?: BaseFilter<NotificationFiltersDto>,
     ): Promise<PagedResult<NotificationResponseDto>> {
+        console.log(filter?.props)
         const pagedResult = await this.userNotificationRepository.findPaged({
             pageIndex: filter?.pageIndex,
             pageSize: filter?.pageSize,

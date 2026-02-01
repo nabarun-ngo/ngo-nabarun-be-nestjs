@@ -126,11 +126,18 @@ export class AccountDetailFilterDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  includePaymentDetail?: boolean;
+  @IsString()
+  accountHolderName?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
   @IsOptional()
-  includeBalance?: boolean;
+  @IsEnum(['Y', 'N'])
+  includePaymentDetail?: 'Y' | 'N';
+
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
+  @IsOptional()
+  @IsEnum(['Y', 'N'])
+  includeBalance?: 'Y' | 'N';
 
   @ApiPropertyOptional()
   @IsOptional()

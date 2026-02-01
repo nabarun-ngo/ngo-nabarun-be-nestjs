@@ -47,7 +47,11 @@ export class AccountService {
       }
     });
     return new PagedResult(
-      result.content.map(a => AccountDtoMapper.toDto(a, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true })),
+      result.content.map(a => AccountDtoMapper.toDto(a, {
+        includeBankDetail: filter.props?.includePaymentDetail === 'Y',
+        includeUpiDetail: filter.props?.includePaymentDetail === 'Y',
+        includeBalance: filter.props?.includeBalance === 'Y',
+      })),
       result.totalSize,
       result.pageIndex,
       result.pageSize,
