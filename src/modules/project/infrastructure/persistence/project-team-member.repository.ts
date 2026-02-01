@@ -11,8 +11,34 @@ import { PagedResult } from 'src/shared/models/paged-result';
 class ProjectTeamMemberRepository implements IProjectTeamMemberRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
-  findPaged(filter?: BaseFilter<ProjectTeamMemberFilterProps> | undefined): Promise<PagedResult<ProjectTeamMember>> {
-    throw new Error('Method not implemented.');
+  async count(filter: ProjectTeamMemberFilterProps): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.projectTeamMember.count({ where });
+  }
+
+  async findPaged(filter?: BaseFilter<ProjectTeamMemberFilterProps> | undefined): Promise<PagedResult<ProjectTeamMember>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.projectTeamMember.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          project: true,
+          user: true,
+        },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
+      }),
+      this.prisma.projectTeamMember.count({ where }),
+    ]);
+
+    return new PagedResult<ProjectTeamMember>(
+      data.map(m => ProjectInfraMapper.toProjectTeamMemberDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 1000,
+    );
   }
 
   async findAll(filter?: ProjectTeamMemberFilterProps): Promise<ProjectTeamMember[]> {

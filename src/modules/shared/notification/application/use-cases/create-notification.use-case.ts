@@ -114,7 +114,7 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
             result.successCount > 0,
             result.failureCount > 0 ? `${result.failureCount} failures. ${JSON.stringify(result.errors)}` : undefined
         );
-        await this.userNotificationRepository.update(userNotification.id, userNotification);
+        await this.userNotificationRepository.update(userNotification.userNotificationId!, userNotification);
 
         this.logger.log(
             `Push notification sent for notification ${notification.id}: ` +

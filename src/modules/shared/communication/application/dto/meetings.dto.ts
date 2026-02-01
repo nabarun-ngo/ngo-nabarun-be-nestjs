@@ -7,6 +7,11 @@ export class MeetingParticipantDto {
     @ApiPropertyOptional()
     @IsString()
     @IsOptional()
+    id?: string;
+
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
     name?: string;
     @ApiProperty()
     @IsString()
@@ -14,9 +19,9 @@ export class MeetingParticipantDto {
     email: string;
 
     @ApiPropertyOptional()
-    @IsBoolean()
+    @IsString()
     @IsOptional()
-    attended?: boolean;
+    attended?: string;
 
 }
 

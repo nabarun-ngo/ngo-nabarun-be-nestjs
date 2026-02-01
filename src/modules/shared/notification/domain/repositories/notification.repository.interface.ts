@@ -1,9 +1,8 @@
 import { BaseRepository } from 'src/shared/models/repository.base';
-import { Notification } from '../models/notification.model';
+import { Notification, NotificationFilter } from '../models/notification.model';
 
 
-export interface INotificationRepository extends BaseRepository<Notification, string> {
-    bulkUpdate(notifications: Notification[]): Promise<void>;
+export interface INotificationRepository extends BaseRepository<Notification, string, NotificationFilter> {
 }
 
 export const INotificationRepository = Symbol('INotificationRepository');

@@ -17,6 +17,12 @@ class UserRepository
   implements IUserRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: UserFilterProps): Promise<number> {
+    return await this.prisma.userProfile.count({
+      where: this.whereQuery(filter),
+    });
+  }
+
   async findPaged(filter?: BaseFilter<UserFilterProps> | undefined): Promise<PagedResult<User>> {
 
     const [data, total] = await Promise.all([

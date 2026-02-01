@@ -12,7 +12,7 @@ import { AccountDtoMapper } from '../dto/mapper/account-dto.mapper';
 import { TransactionDtoMapper } from '../dto/mapper/transaction-dto.mapper';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { type ITransactionRepository, TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
-import { AccountStatus, AccountType } from '../../domain/model/account.model';
+import { AccountFilter, AccountStatus, AccountType } from '../../domain/model/account.model';
 import { AccountRefDataDto } from '../dto/donation.dto';
 import { MetadataService } from '../../infrastructure/external/metadata.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
@@ -47,7 +47,11 @@ export class AccountService {
       }
     });
     return new PagedResult(
-      result.content.map(a => AccountDtoMapper.toDto(a, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true })),
+      result.content.map(a => AccountDtoMapper.toDto(a, {
+        includeBankDetail: filter.props?.includePaymentDetail === 'Y',
+        includeUpiDetail: filter.props?.includePaymentDetail === 'Y',
+        includeBalance: filter.props?.includeBalance === 'Y',
+      })),
       result.totalSize,
       result.pageIndex,
       result.pageSize,

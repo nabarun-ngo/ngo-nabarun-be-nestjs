@@ -15,6 +15,11 @@ export type TransactionPersistence = Prisma.TransactionGetPayload<{
 class TransactionRepository implements ITransactionRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: TransactionFilter): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.transaction.count({ where });
+  }
+
   async findPaged(filter?: BaseFilter<TransactionFilter>): Promise<PagedResult<Transaction>> {
     const where = this.whereQuery(filter?.props);
 

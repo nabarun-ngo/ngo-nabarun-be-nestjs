@@ -17,9 +17,11 @@ export class ReportParamsDto {
 
     @ApiPropertyOptional({ enum: ['Y', 'N'] })
     @IsEnum(['Y', 'N'])
+    @IsOptional()
     uploadFile?: 'Y' | 'N';
 
     @ApiPropertyOptional({ enum: ['Y', 'N'] })
     @IsEnum(['Y', 'N'])
+    @IsOptional()
     sendEmail?: 'Y' | 'N';
 }

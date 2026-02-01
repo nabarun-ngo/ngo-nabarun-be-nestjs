@@ -26,6 +26,11 @@ export type ExpensePersistence = Prisma.ExpenseGetPayload<{
 class ExpenseRepository implements IExpenseRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
 
+  async count(filter: ExpenseFilter): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.expense.count({ where });
+  }
+
   async findPaged(filter?: BaseFilter<ExpenseDetailFilterDto>): Promise<PagedResult<Expense>> {
     const where = this.whereQuery(filter?.props);
 

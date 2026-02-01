@@ -10,9 +10,31 @@ import { PagedResult } from 'src/shared/models/paged-result';
 @Injectable()
 class MilestoneRepository implements IMilestoneRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
+  async count(filter: MilestoneFilterProps): Promise<number> {
+    const where = this.whereQuery(filter);
+    return await this.prisma.milestone.count({ where });
+  }
 
-  findPaged(filter?: BaseFilter<MilestoneFilterProps> | undefined): Promise<PagedResult<Milestone>> {
-    throw new Error('Method not implemented.');
+  async findPaged(filter?: BaseFilter<MilestoneFilterProps> | undefined): Promise<PagedResult<Milestone>> {
+    const where = this.whereQuery(filter?.props);
+
+    const [data, total] = await Promise.all([
+      this.prisma.milestone.findMany({
+        where,
+        orderBy: { targetDate: 'desc' },
+        include: { project: true },
+        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+        take: filter?.pageSize ?? 1000,
+      }),
+      this.prisma.milestone.count({ where }),
+    ]);
+
+    return new PagedResult<Milestone>(
+      data.map(m => ProjectInfraMapper.toMilestoneDomain(m)!),
+      total,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 1000,
+    );
   }
 
   async findAll(filter?: MilestoneFilterProps): Promise<Milestone[]> {

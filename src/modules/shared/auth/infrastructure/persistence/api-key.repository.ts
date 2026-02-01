@@ -8,7 +8,10 @@ import { IApiKeyRepository } from "../../domain/repository/api-key.repository.in
 @Injectable()
 export class ApiKeyRepository implements IApiKeyRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
-    findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<ApiKey>> {
+    async count(filter: any): Promise<number> {
+        return await this.prisma.apiKey.count({});
+    }
+    async findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<ApiKey>> {
         throw new Error("Method not implemented.");
     }
     async findByKeyId(key: string): Promise<ApiKey | null> {
