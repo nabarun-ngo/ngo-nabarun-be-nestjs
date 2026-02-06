@@ -45,6 +45,7 @@ export class WorkflowTask extends BaseDomain<string> {
   #completedAt?: Date;
   #completedBy?: Partial<User>;
   #remarks?: string;
+  #resultData?: Record<string, any>;
 
   #assignments: TaskAssignment[] = [];
 
@@ -65,6 +66,7 @@ export class WorkflowTask extends BaseDomain<string> {
     completedAt?: Date,
     completedBy?: User,
     remarks?: string,
+    resultData?: Record<string, any>,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
@@ -85,6 +87,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#completedAt = completedAt;
     this.#completedBy = completedBy;
     this.#remarks = remarks;
+    this.#resultData = resultData;
   }
 
   static create(workflowId: string, step: WorkflowStep, task: TaskDef): WorkflowTask {
@@ -131,7 +134,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  complete(completedBy?: Partial<User>, remarks?: string): void {
+  complete(completedBy?: Partial<User>, remarks?: string, resultData?: Record<string, any>): void {
     if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
       throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
     }
@@ -143,6 +146,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#completedBy = completedBy;
     this.#completedAt = new Date();
     this.#remarks = remarks;
+    this.#resultData = resultData;
     this.touch();
   }
 
@@ -249,5 +253,9 @@ export class WorkflowTask extends BaseDomain<string> {
 
   get remarks(): string | undefined {
     return this.#remarks;
+  }
+
+  get resultData(): Record<string, any> | undefined {
+    return this.#resultData ? { ...this.#resultData } : undefined;
   }
 }

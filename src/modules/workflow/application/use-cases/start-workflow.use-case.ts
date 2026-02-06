@@ -60,9 +60,8 @@ export class StartWorkflowUseCase implements IUseCase<{
       forExternalUser: request.forExternalUser ?? false,
       externalUserEmail: request.externalUserEmail,
     });
-
-    // Save instance
     instance.start();
+    // Save instance
     const savedInstance = await this.instanceRepository.create(instance);
     // Emit domain events
     instance.domainEvents.forEach((event) => {

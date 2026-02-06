@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 import { WorkflowTask } from './workflow-task.model';
-import { StepDef } from '../vo/workflow-def.vo';
+import { StepDef, StepTransitionsDef } from '../vo/workflow-def.vo';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 export enum WorkflowStepStatus {
@@ -19,8 +19,7 @@ export class WorkflowStep extends BaseDomain<string> {
   #description: string;
   #status: WorkflowStepStatus;
   #orderIndex: number;
-  //#onSuccessStepId?: string;
-  //#onFailureStepId?: string;
+  #transitions: StepTransitionsDef[] = [];
 
 
   #completedAt?: Date;
@@ -36,8 +35,7 @@ export class WorkflowStep extends BaseDomain<string> {
     description: string,
     status: WorkflowStepStatus,
     orderIndex: number,
-    onSuccessStepId?: string,
-    onFailureStepId?: string,
+    transitions: StepTransitionsDef[] = [],
     completedAt?: Date,
     remarks?: string,
     startedAt?: Date,
@@ -51,8 +49,7 @@ export class WorkflowStep extends BaseDomain<string> {
     this.#description = description;
     this.#status = status;
     this.#orderIndex = orderIndex;
-    // this.#onSuccessStepId = onSuccessStepId;
-    // this.#onFailureStepId = onFailureStepId;
+    this.#transitions = transitions;
 
     this.#completedAt = completedAt;
     this.#remarks = remarks;
@@ -71,9 +68,9 @@ export class WorkflowStep extends BaseDomain<string> {
       step.description,
       WorkflowStepStatus.PENDING,
       step.orderIndex,
+      step.transitions,
     );
 
-    //instance.#setTransitions(step.transitions);
     return instance;
   }
 
@@ -81,11 +78,6 @@ export class WorkflowStep extends BaseDomain<string> {
   //        Private methods
   // -----------------------------------
 
-  // #setTransitions(transitions: StepTransitionsDef) {
-  //   this.#onSuccessStepId = transitions.onSuccess!;
-  //   this.#onFailureStepId = transitions.onFailure!;
-  //   this.touch();
-  // }
 
   // -----------------------------------
   //        Mutators
@@ -167,13 +159,9 @@ export class WorkflowStep extends BaseDomain<string> {
     return this.#startedAt;
   }
 
-  // get onSuccessStepId() {
-  //   return this.#onSuccessStepId;
-  // }
-
-  // get onFailureStepId() {
-  //   return this.#onFailureStepId;
-  // }
+  get transitions(): ReadonlyArray<StepTransitionsDef> {
+    return [...this.#transitions];
+  }
 
   // -----------------------------------
   //        Query helpers

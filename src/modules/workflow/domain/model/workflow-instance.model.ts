@@ -142,30 +142,71 @@ export class WorkflowInstance extends AggregateRoot<string> {
   }
 
   public moveToNextStep(): void {
-    const currentStep = this.steps.find(s => s.stepId === this.#currentStepId);
+    const currentStep = this.#steps.find((s) => s.stepId === this.#currentStepId);
 
-    if (this.isAllStepsCompleted) {
+    if (!currentStep) {
+      throw new BusinessException(`Current step not found: ${this.#currentStepId}`);
+    }
+
+    let nextStepId: string | undefined;
+
+    // Evaluate transitions from the current step
+    for (const transition of currentStep.transitions) {
+      if (this.#evaluateCondition(transition.condition)) {
+        nextStepId = transition.nextStepId;
+        break;
+      }
+    }
+
+    if (!nextStepId) {
+      // If no next step is found after a step completion, the workflow is finished
       this.complete();
       return;
     }
 
-    if (currentStep?.isCompleted()) {
-      //evaluate the transition and determind the next step
-      this.#currentStepId = currentStep.onSuccessStepId;
-      //this.steps.find(s => s.stepId === current.onFailureStepId)?.skip();
-    } else if (currentStep?.isFailed()) {
-      this.#currentStepId = currentStep.onFailureStepId;
-      //this.steps.find(s => s.stepId === current.onSuccessStepId)?.skip();
+    this.#currentStepId = nextStepId;
+    const nextStep = this.#steps.find((s) => s.stepId === this.#currentStepId);
+
+    if (!nextStep) {
+      throw new BusinessException(`Next step not found: ${this.#currentStepId}`);
     }
 
-    const step = this.steps.find(s => s.stepId === this.#currentStepId);
-    step?.start();
-
-    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
+    nextStep.start();
+    this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id));
     this.touch();
   }
 
-  updateTask(taskId: string, status: WorkflowTaskStatus, user?: Partial<User>, remarks?: string) {
+  #evaluateCondition(expression: string): boolean {
+    if (expression === 'default' || !expression) return true;
+
+    try {
+      // Create a context for evaluation that includes requestData and any other context
+      const evaluationContext = {
+        ...this.#requestData,
+        ...this.#context,
+      };
+
+      // Simple evaluation using Function constructor
+      // Security Note: In a production environment with untrusted users, 
+      // use a safer expression evaluator like 'expr-eval' or 'jexl'.
+      const fn = new Function(
+        'context',
+        `with(context) { return ${expression}; }`,
+      );
+      return Boolean(fn(evaluationContext));
+    } catch (error) {
+      console.error(`Error evaluating condition "${expression}":`, error);
+      return false;
+    }
+  }
+
+  updateTask(
+    taskId: string,
+    status: WorkflowTaskStatus,
+    user?: Partial<User>,
+    remarks?: string,
+    data?: Record<string, any>,
+  ) {
     const step = this.steps.find(s => s.stepId === this.#currentStepId);
     const task = step?.tasks?.find(t => t.id === taskId);
 
@@ -183,7 +224,10 @@ export class WorkflowInstance extends AggregateRoot<string> {
         task.start(user);
         break;
       case WorkflowTaskStatus.COMPLETED:
-        task.complete(user, remarks);
+        task.complete(user, remarks, data);
+        if (data) {
+          this.#mergeResultIntoContext(task.taskId, data);
+        }
         break;
       case WorkflowTaskStatus.FAILED:
         task.fail(remarks!, user);
@@ -202,6 +246,18 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.touch();
     this.addDomainEvent(new TaskCompletedEvent(this.id, step?.id!, task.id));
     return task;
+  }
+
+  #mergeResultIntoContext(taskId: string, data: Record<string, any>): void {
+    // Preserve existing context and merge new data
+    // We can also nest it under the taskId if preferred, 
+    // but flat merge is often easier for expressions.
+    this.#context = {
+      ...this.#context,
+      ...data,
+      [`task_${taskId}`]: data, // Also provide a namespaced version
+    };
+    this.touch();
   }
 
   public complete(): void {
@@ -254,31 +310,28 @@ export class WorkflowInstance extends AggregateRoot<string> {
   get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
 
   get expectedSteps(): ReadonlyArray<WorkflowStep> {
-    var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
-    this.#steps.forEach(step => {
-      if (step.onSuccessStepId) {
-        steps.push(this.#steps.find(s => s.stepId == step.onSuccessStepId)!);
-      }
-    });
-    return steps;
+    const expected: WorkflowStep[] = [];
+    if (this.#steps.length === 0) return expected;
+
+    let current = this.#steps.find((s) => s.orderIndex === 0);
+    while (current) {
+      expected.push(current);
+      // For "expected" path, we just follow the first transition or default
+      const nextId = current.transitions[0]?.nextStepId;
+      current = nextId ? this.#steps.find((s) => s.stepId === nextId) : undefined;
+      if (current && expected.includes(current)) break; // Prevent infinite loops
+    }
+    return expected;
   }
 
   get actualSteps(): ReadonlyArray<WorkflowStep> {
-    var steps: WorkflowStep[] = this.#steps.length > 0 ? [this.#steps[0]] : [];
-    this.#steps.forEach(step => {
-      if (step.isCompleted()) {
-        const completedStep = this.#steps.find(s => s.stepId == step.onSuccessStepId)
-        if (completedStep) {
-          steps.push(completedStep);
-        }
-      } else if (step.isFailed()) {
-        const failedStep = this.#steps.find(s => s.stepId == step.onFailureStepId);
-        if (failedStep) {
-          steps.push(failedStep);
-        }
-      }
-    });
-    return steps;
+    const actual: WorkflowStep[] = [];
+    if (this.#steps.length === 0) return actual;
+
+    // Follow the steps that have actually been started or completed
+    return this.#steps
+      .filter((s) => s.status !== 'PENDING')
+      .sort((a, b) => (a.startedAt?.getTime() || 0) - (b.startedAt?.getTime() || 0));
   }
 
 

@@ -205,6 +205,7 @@ model WorkflowInstance {
   status        String  @db.VarChar(50) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
   currentStepId String? @db.VarChar(100)
   data          String? @db.Text
+  context       String? @db.Text
 
   initiatedBy   UserProfile? @relation(name: "InitiatedBy", fields: [initiatedById], references: [id])
   initiatedById String?      @db.VarChar(100)
@@ -240,6 +241,7 @@ model WorkflowStep {
   description     String?          @db.Text
   status          String           @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
   orderIndex      Int
+  transitions     String?          @db.Text
   onSuccessStepId String?          @db.VarChar(50)
   onFailureStepId String?          @db.VarChar(50)
   remarks         String?          @db.Text
