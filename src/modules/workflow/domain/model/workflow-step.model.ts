@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { BaseDomain } from '../../../../shared/models/base-domain';
 import { WorkflowTask } from './workflow-task.model';
-import { StepDef, StepTransitionsDef } from '../vo/workflow-def.vo';
+import { StepDef } from '../vo/workflow-def.vo';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 
 export enum WorkflowStepStatus {
@@ -19,8 +19,9 @@ export class WorkflowStep extends BaseDomain<string> {
   #description: string;
   #status: WorkflowStepStatus;
   #orderIndex: number;
-  #onSuccessStepId?: string;
-  #onFailureStepId?: string;
+  //#onSuccessStepId?: string;
+  //#onFailureStepId?: string;
+
 
   #completedAt?: Date;
   #remarks?: string;
@@ -50,8 +51,8 @@ export class WorkflowStep extends BaseDomain<string> {
     this.#description = description;
     this.#status = status;
     this.#orderIndex = orderIndex;
-    this.#onSuccessStepId = onSuccessStepId;
-    this.#onFailureStepId = onFailureStepId;
+    // this.#onSuccessStepId = onSuccessStepId;
+    // this.#onFailureStepId = onFailureStepId;
 
     this.#completedAt = completedAt;
     this.#remarks = remarks;
@@ -72,7 +73,7 @@ export class WorkflowStep extends BaseDomain<string> {
       step.orderIndex,
     );
 
-    instance.#setTransitions(step.transitions);
+    //instance.#setTransitions(step.transitions);
     return instance;
   }
 
@@ -80,11 +81,11 @@ export class WorkflowStep extends BaseDomain<string> {
   //        Private methods
   // -----------------------------------
 
-  #setTransitions(transitions: StepTransitionsDef) {
-    this.#onSuccessStepId = transitions.onSuccess!;
-    this.#onFailureStepId = transitions.onFailure!;
-    this.touch();
-  }
+  // #setTransitions(transitions: StepTransitionsDef) {
+  //   this.#onSuccessStepId = transitions.onSuccess!;
+  //   this.#onFailureStepId = transitions.onFailure!;
+  //   this.touch();
+  // }
 
   // -----------------------------------
   //        Mutators
@@ -104,21 +105,22 @@ export class WorkflowStep extends BaseDomain<string> {
     this.touch();
   }
 
-  complete(): string | undefined {
+  complete() {
     if (this.#status !== WorkflowStepStatus.IN_PROGRESS) {
       throw new BusinessException(`Cannot complete step in status: ${this.#status}`);
     }
     this.#status = WorkflowStepStatus.COMPLETED;
     this.#completedAt = new Date();
     this.touch();
-    return this.#onSuccessStepId;
+    //Updating All Task level context here 
+    // return this.#onSuccessStepId;
   }
 
-  fail(reason: string): string | undefined {
+  fail(reason: string) {
     this.#status = WorkflowStepStatus.FAILED;
     this.#remarks = reason;
     this.touch();
-    return this.#onFailureStepId;
+    //return this.#onFailureStepId;
   }
 
   skip() {
@@ -165,13 +167,13 @@ export class WorkflowStep extends BaseDomain<string> {
     return this.#startedAt;
   }
 
-  get onSuccessStepId() {
-    return this.#onSuccessStepId;
-  }
+  // get onSuccessStepId() {
+  //   return this.#onSuccessStepId;
+  // }
 
-  get onFailureStepId() {
-    return this.#onFailureStepId;
-  }
+  // get onFailureStepId() {
+  //   return this.#onFailureStepId;
+  // }
 
   // -----------------------------------
   //        Query helpers

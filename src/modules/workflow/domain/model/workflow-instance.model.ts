@@ -50,6 +50,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
   #steps: WorkflowStep[] = [];
   #isExternalUser: boolean | undefined;
   #externalUserEmail: string | undefined;
+  #context?: Record<string, any>;
+
 
   constructor(
     protected _id: string,
@@ -60,6 +62,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     initiatedBy?: Partial<User>,
     initiatedFor?: Partial<User>,
     requestData?: Record<string, string>,
+    context?: Record<string, any>,
     isExternalUser?: boolean,
     externalUserEmail?: string,
     currentStepId?: string,
@@ -82,6 +85,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#currentStepId = currentStepId;
     this.#completedAt = completedAt;
     this.#remarks = remarks;
+    this.#context = context;
   }
 
   static create(data: {
@@ -106,6 +110,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
       data.requestedBy,
       data.requestedFor ?? (data.forExternalUser ? undefined : data.requestedBy),
       // If external user, then requestedFor will be undefined, need to be updated later if required
+      data.data,
       data.data,
       data.forExternalUser,
       data.externalUserEmail,
@@ -137,18 +142,19 @@ export class WorkflowInstance extends AggregateRoot<string> {
   }
 
   public moveToNextStep(): void {
-    const current = this.steps.find(s => s.stepId === this.#currentStepId);
+    const currentStep = this.steps.find(s => s.stepId === this.#currentStepId);
 
     if (this.isAllStepsCompleted) {
       this.complete();
       return;
     }
 
-    if (current?.isCompleted()) {
-      this.#currentStepId = current.onSuccessStepId;
+    if (currentStep?.isCompleted()) {
+      //evaluate the transition and determind the next step
+      this.#currentStepId = currentStep.onSuccessStepId;
       //this.steps.find(s => s.stepId === current.onFailureStepId)?.skip();
-    } else if (current?.isFailed()) {
-      this.#currentStepId = current.onFailureStepId;
+    } else if (currentStep?.isFailed()) {
+      this.#currentStepId = currentStep.onFailureStepId;
       //this.steps.find(s => s.stepId === current.onSuccessStepId)?.skip();
     }
 

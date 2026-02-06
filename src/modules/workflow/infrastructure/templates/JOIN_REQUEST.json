@@ -42,15 +42,14 @@
           "name": "Verify information",
           "description": "Verify {{requestData.firstName}} {{requestData.lastName}}'s details and that policy was accepted",
           "type": "MANUAL",
-          "requireAcceptance": true,
-          "dueInDays": 1,
+          "etaHours": 24,
           "taskDetail": {
             "assignedTo": {
-              "userId": "",
+              "userId": null,
               "roleNames": [
                 "GROUP_COORDINATOR"
               ],
-              "roleGroup": ""
+              "roleGroup": []
             },
             "isAutoCloseable": false,
             "checklist": [
