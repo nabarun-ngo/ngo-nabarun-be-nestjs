@@ -127,6 +127,18 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
             },
         });
 
+        // Handle invalid tokens (unregistered or invalid)
+        if (result.failureCount > 0) {
+            for (const errObj of result.errors) {
+                const errorCode = errObj.error?.code;
+                if (errorCode === 'messaging/registration-token-not-registered' ||
+                    errorCode === 'messaging/invalid-registration-token') {
+                    this.logger.warn(`Deactivating invalid token for user ${userId}: ${errObj.token}`);
+                    await this.fcmTokenRepository.deactivateToken(errObj.token);
+                }
+            }
+        }
+
         const userNotification = await this.userNotificationRepository.findByUserIdAndNotificationId(userId, notification.id);
         if (!userNotification) {
             return;

@@ -25,15 +25,13 @@ export class WorkflowDefService {
         const def = await this.findWorkflowByType(type);
         const additionalFields = (await this.getWorkflowRefData()).additionalFields.filter(f => f.ACTIVE);
         const requiredFields = additionalFields
-            .filter(f => def.requiredFields.includes(f.KEY)).map(m => {
-                m.ATTRIBUTES['MANDATORY'] = true
+            .filter(f => def.fields.map(f => f.key).includes(f.KEY)).map(m => {
+                const field = def.fields.find(f => f.key === m.KEY);
+                m.ATTRIBUTES['MANDATORY'] = field?.required ?? false;
+                m.VALUE = field?.label ?? m.VALUE;
                 return m;
             });
-        const optionalFields = additionalFields.filter(f => def.optionalFields.includes(f.KEY)).map(m => {
-            m.ATTRIBUTES['MANDATORY'] = false
-            return m;
-        });
-        return [...requiredFields, ...optionalFields]
+        return [...requiredFields]
     }
 
     async getWorkflowRefData() {
