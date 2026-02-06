@@ -67,7 +67,7 @@ export class WorkflowStep extends BaseDomain<string> {
       step.name,
       step.description,
       WorkflowStepStatus.PENDING,
-      step.orderIndex,
+      step.isDefault ? 0 : -1,
       step.transitions,
     );
 
@@ -94,6 +94,11 @@ export class WorkflowStep extends BaseDomain<string> {
     }
     this.#status = WorkflowStepStatus.IN_PROGRESS;
     this.#startedAt = new Date();
+    this.touch();
+  }
+
+  set currentOrderIndex(index: number) {
+    this.#orderIndex = index;
     this.touch();
   }
 

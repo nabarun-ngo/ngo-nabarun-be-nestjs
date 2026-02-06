@@ -37,7 +37,7 @@ export interface StepTransitionsDef {
 }
 
 export interface StepDef {
-  orderIndex: number;
+  isDefault: boolean;
   stepId: string;
   name: string;
   description: string;

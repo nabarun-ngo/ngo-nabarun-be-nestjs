@@ -145,7 +145,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     const currentStep = this.#steps.find((s) => s.stepId === this.#currentStepId);
 
     if (!currentStep) {
-      throw new BusinessException(`Current step not found: ${this.#currentStepId}`);
+      throw new Error(`Current step not found: ${this.#currentStepId}`);
     }
 
     let nextStepId: string | undefined;
@@ -168,9 +168,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
     const nextStep = this.#steps.find((s) => s.stepId === this.#currentStepId);
 
     if (!nextStep) {
-      throw new BusinessException(`Next step not found: ${this.#currentStepId}`);
+      throw new Error(`Next step not found: ${this.#currentStepId}`);
     }
-
+    nextStep.currentOrderIndex = currentStep.orderIndex + 1;
     nextStep.start();
     this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id));
     this.touch();
@@ -346,5 +346,6 @@ export class WorkflowInstance extends AggregateRoot<string> {
   get isDelegated(): boolean { return this.#initiatedBy?.id !== this.#initiatedFor?.id; }
   get isExternalUser(): boolean | undefined { return this.#isExternalUser; }
   get externalUserEmail(): string | undefined { return this.#externalUserEmail; }
+  get context(): Record<string, any> | undefined { return this.#context; }
 }
 

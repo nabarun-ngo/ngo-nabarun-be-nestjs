@@ -132,6 +132,7 @@ export class WorkflowInfraMapper {
       prisma.completedAt || undefined,
       new User(prisma.completedBy?.id!, prisma.completedBy?.firstName!, prisma.completedBy?.lastName!, prisma.completedBy?.email!),
       prisma.remarks || undefined,
+      prisma.resultData ? JSON.parse(prisma.resultData) : undefined,
       prisma.createdAt,
       prisma.updatedAt,
     );
@@ -191,6 +192,7 @@ export class WorkflowInfraMapper {
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),
       data: domain.requestData ? JSON.stringify(domain.requestData) : null,
+      context: domain.context ? JSON.stringify(domain.context) : null,
       //version: BigInt(0),
       initiatedBy: domain.initiatedBy?.id ? { connect: { id: domain.initiatedBy?.id! } } : undefined,
       initiatedFor: domain.initiatedFor?.id ? { connect: { id: domain.initiatedFor?.id! } } : undefined,
@@ -218,6 +220,8 @@ export class WorkflowInfraMapper {
       updatedAt: new Date(),
       isExtUser: domain.isExternalUser,
       extUserEmail: domain.externalUserEmail,
+      context: domain.context ? JSON.stringify(domain.context) : null,
+      data: domain.requestData ? JSON.stringify(domain.requestData) : null,
       // steps: handled separately via nested create/update
     };
   }
@@ -242,6 +246,8 @@ export class WorkflowInfraMapper {
       completedAt: domain.completedAt ?? null,
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),
+      transitions: domain.transitions ? JSON.stringify(domain.transitions) : null,
+
       // tasks handled separately
     };
   }
@@ -263,7 +269,7 @@ export class WorkflowInfraMapper {
       autoCloseable: domain.isAutoCloseable ?? null,
       autoCloseRefId: domain.autoCloseRefId ?? null,
       jobId: domain.jobId ?? null,
-      resultData: null, // if you later persist resultData
+      resultData: domain.resultData ? JSON.stringify(domain.resultData) : null,
       completedAt: domain.completedAt ?? null,
       completedBy: domain.completedBy?.id ? { connect: { id: domain.completedBy?.id! } } : {},
       remarks: domain.remarks ?? null,
