@@ -44,7 +44,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
   #initiatedBy?: Partial<User>;
   #initiatedFor?: Partial<User>;
   #requestData?: Record<string, string>;
-  #currentStepId?: string;
+  #currentStepDefId?: string;
   #completedAt?: Date;
   #remarks?: string;
   #steps: WorkflowStep[] = [];
@@ -65,7 +65,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     context?: Record<string, any>,
     isExternalUser?: boolean,
     externalUserEmail?: string,
-    currentStepId?: string,
+    currentStepDefId?: string,
     completedAt?: Date,
     remarks?: string,
     createdAt?: Date,
@@ -82,7 +82,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#requestData = requestData;
     this.#isExternalUser = isExternalUser;
     this.#externalUserEmail = externalUserEmail;
-    this.#currentStepId = currentStepId;
+    this.#currentStepDefId = currentStepDefId;
     this.#completedAt = completedAt;
     this.#remarks = remarks;
     this.#context = context;
@@ -132,9 +132,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
   public start(): void {
     this.#status = WorkflowInstanceStatus.IN_PROGRESS;
 
-    this.#currentStepId = this.steps.find(s => s.orderIndex === 0)?.stepId;
+    this.#currentStepDefId = this.steps.find(s => s.orderIndex === 0)?.stepDefId;
 
-    const step = this.steps.find(s => s.stepId === this.#currentStepId);
+    const step = this.steps.find(s => s.stepDefId === this.#currentStepDefId);
     step?.start();
 
     this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
@@ -142,10 +142,10 @@ export class WorkflowInstance extends AggregateRoot<string> {
   }
 
   public moveToNextStep(): void {
-    const currentStep = this.#steps.find((s) => s.stepId === this.#currentStepId);
+    const currentStep = this.#steps.find((s) => s.stepDefId === this.#currentStepDefId);
 
     if (!currentStep) {
-      throw new Error(`Current step not found: ${this.#currentStepId}`);
+      throw new Error(`Current step not found: ${this.#currentStepDefId}`);
     }
 
     let nextStepId: string | undefined;
@@ -164,11 +164,11 @@ export class WorkflowInstance extends AggregateRoot<string> {
       return;
     }
 
-    this.#currentStepId = nextStepId;
-    const nextStep = this.#steps.find((s) => s.stepId === this.#currentStepId);
+    this.#currentStepDefId = nextStepId;
+    const nextStep = this.#steps.find((s) => s.stepDefId === this.#currentStepDefId);
 
     if (!nextStep) {
-      throw new Error(`Next step not found: ${this.#currentStepId}`);
+      throw new Error(`Next step not found: ${this.#currentStepDefId}`);
     }
     nextStep.currentOrderIndex = currentStep.orderIndex + 1;
     nextStep.start();
@@ -207,7 +207,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     remarks?: string,
     data?: Record<string, any>,
   ) {
-    const step = this.steps.find(s => s.stepId === this.#currentStepId);
+    const step = this.steps.find(s => s.stepDefId === this.#currentStepDefId);
     const task = step?.tasks?.find(t => t.id === taskId);
 
     if (!task) {
@@ -218,23 +218,26 @@ export class WorkflowInstance extends AggregateRoot<string> {
     if (task.status === WorkflowTaskStatus.COMPLETED) {
       throw new BusinessException(`Task is already completed: ${task.id}`);
     }
-
-    switch (status) {
-      case WorkflowTaskStatus.IN_PROGRESS:
-        task.start(user);
-        break;
-      case WorkflowTaskStatus.COMPLETED:
-        task.complete(user, remarks, data);
-        if (data) {
-          this.#mergeResultIntoContext(task.taskId, data);
-        }
-        break;
-      case WorkflowTaskStatus.FAILED:
-        task.fail(remarks!, user);
-        break;
-      default:
-        throw new BusinessException(`Invalid task status: ${status}`);
+    if (data) {
+      task.resultData = data;
+      this.#mergeResultIntoContext(task.stepDefId, task.taskDefId, data);
     }
+    if (task.status !== status) {
+      switch (status) {
+        case WorkflowTaskStatus.IN_PROGRESS:
+          task.start(user);
+          break;
+        case WorkflowTaskStatus.COMPLETED:
+          task.complete(user, remarks, data);
+          break;
+        case WorkflowTaskStatus.FAILED:
+          task.fail(remarks!, user);
+          break;
+        default:
+          throw new BusinessException(`Invalid task status: ${status}`);
+      }
+    }
+
 
     if (step?.isAllTasksCompleted()) {
       step.complete();
@@ -248,14 +251,13 @@ export class WorkflowInstance extends AggregateRoot<string> {
     return task;
   }
 
-  #mergeResultIntoContext(taskId: string, data: Record<string, any>): void {
-    // Preserve existing context and merge new data
-    // We can also nest it under the taskId if preferred, 
-    // but flat merge is often easier for expressions.
+  #mergeResultIntoContext(stepDefId: string, taskDefId: string, data: Record<string, any>): void {
     this.#context = {
       ...this.#context,
-      ...data,
-      [`task_${taskId}`]: data, // Also provide a namespaced version
+      [`step_${stepDefId}_task_${taskDefId}`]: {
+        ...(this.#context?.[`step_${stepDefId}_task_${taskDefId}`] ?? {}),
+        ...data,
+      },
     };
     this.touch();
   }
@@ -266,7 +268,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     }
     this.#status = WorkflowInstanceStatus.COMPLETED;
     this.#completedAt = new Date();
-    this.#currentStepId = undefined;
+    this.#currentStepDefId = undefined;
     this.touch();
   }
 
@@ -305,24 +307,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
     return this.#requestData ? { ...this.#requestData } : {};
   }
 
-  get currentStepId(): string | undefined { return this.#currentStepId; }
+  get currentStepDefId(): string | undefined { return this.#currentStepDefId; }
 
   get steps(): ReadonlyArray<WorkflowStep> { return [...this.#steps]; }
-
-  get expectedSteps(): ReadonlyArray<WorkflowStep> {
-    const expected: WorkflowStep[] = [];
-    if (this.#steps.length === 0) return expected;
-
-    let current = this.#steps.find((s) => s.orderIndex === 0);
-    while (current) {
-      expected.push(current);
-      // For "expected" path, we just follow the first transition or default
-      const nextId = current.transitions[0]?.nextStepId;
-      current = nextId ? this.#steps.find((s) => s.stepId === nextId) : undefined;
-      if (current && expected.includes(current)) break; // Prevent infinite loops
-    }
-    return expected;
-  }
 
   get actualSteps(): ReadonlyArray<WorkflowStep> {
     const actual: WorkflowStep[] = [];
@@ -330,8 +317,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     // Follow the steps that have actually been started or completed
     return this.#steps
-      .filter((s) => s.status !== 'PENDING')
-      .sort((a, b) => (a.startedAt?.getTime() || 0) - (b.startedAt?.getTime() || 0));
+      .filter((s) => s.orderIndex >= 0)
+      .sort((a, b) => (a.orderIndex) - (b.orderIndex));
   }
 
 

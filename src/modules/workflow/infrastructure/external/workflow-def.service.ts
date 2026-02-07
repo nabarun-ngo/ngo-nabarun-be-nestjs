@@ -3,14 +3,16 @@ import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/r
 import { parsefromString, parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 import { WorkflowDefinition } from "../../domain/vo/workflow-def.vo";
 import Handlebars from "handlebars";
+import { join } from 'path';
+import { existsSync, readFileSync } from 'fs';
 
 @Injectable()
 export class WorkflowDefService {
     constructor(private readonly remoteConfig: RemoteConfigService) { }
 
     async findWorkflowByType(type: string, context?: Record<string, unknown>) {
-        const config = (await this.remoteConfig.getAllKeyValues())[type];
-        let value = config.value;
+        let value = await this.getWorkflowConfigValue(type);
+
         if (value == null) {
             throw new Error(`Workflow definition not found for type: ${type}`);
         }
@@ -21,13 +23,14 @@ export class WorkflowDefService {
         return parsefromString<WorkflowDefinition>(value);
     }
 
-    async getAdditionalFields(type: string) {
+    async getAdditionalFields(type: string, stepId?: string, taskId?: string) {
         const def = await this.findWorkflowByType(type);
+        const defFields = stepId && taskId ? (def.steps.find(s => s.stepId === stepId)?.tasks.find(t => t.taskId === taskId)?.taskDetail?.fields ?? []) : def.fields;
         const additionalFields = (await this.getWorkflowRefData()).additionalFields.filter(f => f.ACTIVE);
         const requiredFields = additionalFields
-            .filter(f => def.fields.map(f => f.key).includes(f.KEY)).map(m => {
-                const field = def.fields.find(f => f.key === m.KEY);
-                m.ATTRIBUTES['MANDATORY'] = field?.required ?? false;
+            .filter(f => defFields.map(f => f.key).includes(f.KEY)).map(m => {
+                const field = defFields.find(f => f.key === m.KEY);
+                m.ATTRIBUTES['MANDATORY'] = field?.mandatory ?? false;
                 m.VALUE = field?.label ?? m.VALUE;
                 return m;
             });
@@ -35,14 +38,15 @@ export class WorkflowDefService {
     }
 
     async getWorkflowRefData() {
-        const keyValueConfigs = await this.remoteConfig.getAllKeyValues()
-        const WORKFLOW_TYPES = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_TYPES'].value);
-        const ADDITIONAL_FIELDS = parseKeyValueConfigs(keyValueConfigs['ADDITIONAL_FIELDS'].value);
-        const WORKFLOW_STATUS = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_STATUS'].value);
+        const config = (await this.remoteConfig.getAllKeyValues());
 
-        const WORKFLOW_STEP_STATUS = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_STEP_STATUS'].value);
-        const WORKFLOW_TASK_STATUS = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_TASK_STATUS'].value);
-        const WORKFLOW_TASK_TYPE = parseKeyValueConfigs(keyValueConfigs['WORKFLOW_TASK_TYPE'].value);
+        const WORKFLOW_TYPES = parseKeyValueConfigs(config['WORKFLOW_TYPES']?.value);
+        const ADDITIONAL_FIELDS = parseKeyValueConfigs(config['ADDITIONAL_FIELDS']?.value);
+        const WORKFLOW_STATUS = parseKeyValueConfigs(config['WORKFLOW_STATUS']?.value);
+
+        const WORKFLOW_STEP_STATUS = parseKeyValueConfigs(config['WORKFLOW_STEP_STATUS']?.value);
+        const WORKFLOW_TASK_STATUS = parseKeyValueConfigs(config['WORKFLOW_TASK_STATUS']?.value);
+        const WORKFLOW_TASK_TYPE = parseKeyValueConfigs(config['WORKFLOW_TASK_TYPE']?.value);
         return {
             workflowTypes: WORKFLOW_TYPES,
             visibleWorkflowTypes: WORKFLOW_TYPES.filter(w => w.getAttribute<boolean>('IS_VISIBLE') === true),
@@ -53,6 +57,19 @@ export class WorkflowDefService {
             workflowTaskType: WORKFLOW_TASK_TYPE,
             visibleTaskStatus: WORKFLOW_TASK_STATUS.filter(w => w.getAttribute<boolean>('IS_VISIBLE') === true),
         }
+    }
+
+    private async getWorkflowConfigValue(key: string): Promise<string | undefined> {
+        // For local development, allow fetching from local templates
+        if (process.env.LOCAL_WORKFLOW_DEF) {
+            console.log(`Fetching workflow config for key: ${key}`);
+            const localPath = join(process.cwd(), 'src/modules/workflow/infrastructure/templates', `${key}.json`);
+            if (existsSync(localPath)) {
+                return readFileSync(localPath, 'utf8');
+            }
+        }
+        const config = (await this.remoteConfig.getAllKeyValues())[key];
+        return config?.value;
     }
 
 }

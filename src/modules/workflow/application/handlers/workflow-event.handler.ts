@@ -54,7 +54,7 @@ export class WorkflowEventsHandler {
     const emailData = await this.corrService.getEmailTemplateData(EmailTemplateName.WORKFLOW_UPDATE, {
       workflow: workflow?.toJson(),
       action,
-      currentStepName: workflow?.steps?.find(step => step.stepId === workflow?.currentStepId)?.name ?? ''
+      currentStepName: workflow?.steps?.find(step => step.stepDefId === workflow?.currentStepDefId)?.name ?? ''
     })
 
     emailData.body.content.table[0].data = workflow?.actualSteps.map(m => [m.name, m.status])

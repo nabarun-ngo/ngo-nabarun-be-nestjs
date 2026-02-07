@@ -38,7 +38,7 @@ export class WorkflowController {
   @RequireAllPermissions('update:work')
   @Post(':id/tasks/:taskId/update')
   @ApiOperation({ summary: 'Update a workflow task' })
-  @ApiAutoResponse(WorkflowTaskDto, { description: 'Task updated successfully' })
+  @ApiAutoResponse(WorkflowTaskDto, { status: 200, description: 'Task updated successfully' })
   async updateTask(@Param('id') id: string,
     @Param('taskId') taskId: string,
     @Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
@@ -181,11 +181,15 @@ export class WorkflowController {
   @ApiOperation({ summary: 'Get additional fields for a workflow type' })
   @ApiAutoResponse(FieldAttributeDto, { description: 'Additional fields retrieved successfully', wrapInSuccessResponse: true, isArray: true })
   @ApiQuery({ name: 'workflowType', required: true, description: 'Workflow type' })
+  @ApiQuery({ name: 'stepId', required: false, description: 'Step ID' })
+  @ApiQuery({ name: 'taskId', required: false, description: 'Task ID' })
   async additionalFields(
     @Query('workflowType') type: string,
+    @Query('stepId') stepId?: string,
+    @Query('taskId') taskId?: string,
   ): Promise<SuccessResponse<FieldAttributeDto[]>> {
     return new SuccessResponse<FieldAttributeDto[]>(
-      await this.workflowService.getAdditionalFields(type)
+      await this.workflowService.getAdditionalFields(type, stepId, taskId)
     );
   }
 

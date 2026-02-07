@@ -62,9 +62,10 @@ export class WorkflowService {
     const instance = await this.completeTask.execute({
       instanceId: id,
       taskId: taskId,
-      remarks: dto.remarks,
+      remarks: dto.remarks ?? '',
       status: dto.status,
       completedBy: { id: authUser.profile_id },
+      data: dto.resultData,
     })
     return WorkflowDtoMapper.taskDomainToDto(instance);
   }
@@ -87,7 +88,7 @@ export class WorkflowService {
   ): Promise<WorkflowTaskDto> {
     const workflow: WorkflowInstance | null = instance instanceof WorkflowInstance ? instance :
       await this.instanceRepository.findById(instance, true);
-    const step = workflow?.steps.find(s => s.stepId === workflow.currentStepId);
+    const step = workflow?.steps.find(s => s.stepDefId === workflow.currentStepDefId);
     const task = step?.tasks?.find(t => t.id == taskId);
 
     if (!task) {
@@ -126,8 +127,8 @@ export class WorkflowService {
     }
   }
 
-  async getAdditionalFields(type: string) {
-    const additionalFields = await this.workflowDefService.getAdditionalFields(type);
+  async getAdditionalFields(type: string, stepId?: string, taskId?: string) {
+    const additionalFields = await this.workflowDefService.getAdditionalFields(type, stepId, taskId);
     return additionalFields.map(WorkflowDtoMapper.fieldAttributeDomainToDto);
   }
 

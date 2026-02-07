@@ -19,9 +19,9 @@ export class WorkflowDtoMapper {
       type: domain.type,
       description: domain.description,
       status: domain.status,
-      currentStepId: domain.currentStepId ?? null,
+      currentStepId: domain.currentStepDefId ?? null,
       requestData: domain.requestData ?? {},
-      resultData: domain.requestData ?? {},
+      resultData: domain.context ?? {},
       initiatedById: domain.initiatedBy?.id ?? undefined,
       initiatedByName: domain.initiatedBy?.fullName ?? undefined,
       initiatedForId: domain.initiatedFor?.id ?? undefined,
@@ -31,7 +31,7 @@ export class WorkflowDtoMapper {
       createdAt: domain.createdAt,
       updatedAt: domain.updatedAt,
       steps: domain.steps.map(s => this.stepDomainToDto(s)),
-      expectedSteps: domain.expectedSteps.map(s => this.stepDomainToDto(s)),
+      expectedSteps: domain.actualSteps.map(s => this.stepDomainToDto(s)),
       actualSteps: domain.actualSteps.map(s => this.stepDomainToDto(s)),
     };
   }
@@ -39,7 +39,7 @@ export class WorkflowDtoMapper {
   private static stepDomainToDto(step: WorkflowStep): WorkflowStepDto {
     return {
       id: step.id,
-      stepId: step.stepId,
+      stepId: step.stepDefId,
       name: step.name,
       description: step.description ?? undefined,
       status: step.status,
@@ -57,8 +57,8 @@ export class WorkflowDtoMapper {
   static taskDomainToDto(task: WorkflowTask): WorkflowTaskDto {
     return {
       id: task.id,
-      stepId: task.stepId,
-      taskId: task.taskId,
+      stepId: task.stepDefId,
+      taskId: task.taskDefId,
       name: task.name,
       workflowId: task.workflowId,
       description: task.description ?? undefined,
@@ -69,7 +69,7 @@ export class WorkflowDtoMapper {
       assignedToId: task.assignedTo?.id,
       assignedToName: task.assignedTo?.fullName,
       jobId: task.jobId,
-      resultData: undefined,
+      resultData: task.resultData,
       completedAt: task.completedAt,
       completedById: task.completedBy?.id,
       completedByName: task.completedBy?.fullName,

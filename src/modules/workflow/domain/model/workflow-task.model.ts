@@ -32,7 +32,8 @@ export class WorkflowTask extends BaseDomain<string> {
   // 🔒 All private fields
   #step: WorkflowStep;
   #workflowId: string;
-  #taskId: string;
+  #stepDefId: string;
+  #taskDefId: string;
   #name: string;
   #description: string | null;
   #type: WorkflowTaskType;
@@ -53,7 +54,8 @@ export class WorkflowTask extends BaseDomain<string> {
     id: string,
     step: WorkflowStep,
     workflowId: string,
-    taskId: string,
+    stepDefId: string,
+    taskDefId: string,
     name: string,
     description: string | null,
     type: WorkflowTaskType,
@@ -74,7 +76,8 @@ export class WorkflowTask extends BaseDomain<string> {
 
     this.#step = step;
     this.#workflowId = workflowId;
-    this.#taskId = taskId;
+    this.#stepDefId = stepDefId;
+    this.#taskDefId = taskDefId;
     this.#name = name;
     this.#description = description;
     this.#type = type;
@@ -95,6 +98,7 @@ export class WorkflowTask extends BaseDomain<string> {
       `NWT${generateUniqueNDigitNumber(6)}`,
       step,
       workflowId,
+      step.stepDefId,
       task.taskId,
       task.name,
       task.description,
@@ -179,24 +183,25 @@ export class WorkflowTask extends BaseDomain<string> {
   }
 
   static get pendingTaskStatus(): WorkflowTaskStatus[] {
-    return [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS];
+    return [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS, WorkflowTaskStatus.FAILED];
   }
 
   static get completedTaskStatus(): WorkflowTaskStatus[] {
-    return [WorkflowTaskStatus.COMPLETED, WorkflowTaskStatus.FAILED];
+    return [WorkflowTaskStatus.COMPLETED];
   }
 
   // 🔓 Getters (Public Read-Only API)
-  get stepId(): string {
-    return this.#step.stepId;
-  }
 
   get workflowId(): string {
     return this.#workflowId;
   }
 
-  get taskId(): string {
-    return this.#taskId;
+  get stepDefId(): string {
+    return this.#stepDefId;
+  }
+
+  get taskDefId(): string {
+    return this.#taskDefId;
   }
 
   get name(): string {
@@ -257,5 +262,10 @@ export class WorkflowTask extends BaseDomain<string> {
 
   get resultData(): Record<string, any> | undefined {
     return this.#resultData ? { ...this.#resultData } : undefined;
+  }
+
+  set resultData(data: Record<string, any> | undefined) {
+    this.#resultData = { ...(this.#resultData ?? {}), ...(data ?? {}) };
+    this.touch();
   }
 }

@@ -9,7 +9,7 @@ export interface AssignedToDef {
 export interface FieldDef {
   key: string;
   label: string;
-  required: boolean;
+  mandatory: boolean;
 }
 
 export interface TaskDetailDef {

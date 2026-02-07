@@ -14,7 +14,7 @@ export enum WorkflowStepStatus {
 
 export class WorkflowStep extends BaseDomain<string> {
   // 🔒 Pure private fields
-  #stepId: string;
+  #stepDefId: string;
   #name: string;
   #description: string;
   #status: WorkflowStepStatus;
@@ -30,7 +30,7 @@ export class WorkflowStep extends BaseDomain<string> {
 
   constructor(
     id: string,
-    stepId: string,
+    stepDefId: string,
     name: string,
     description: string,
     status: WorkflowStepStatus,
@@ -44,7 +44,7 @@ export class WorkflowStep extends BaseDomain<string> {
   ) {
     super(id, createdAt, updatedAt);
 
-    this.#stepId = stepId;
+    this.#stepDefId = stepDefId;
     this.#name = name;
     this.#description = description;
     this.#status = status;
@@ -128,8 +128,8 @@ export class WorkflowStep extends BaseDomain<string> {
   //        Read-only API
   // -----------------------------------
 
-  get stepId() {
-    return this.#stepId;
+  get stepDefId() {
+    return this.#stepDefId;
   }
 
   get name() {

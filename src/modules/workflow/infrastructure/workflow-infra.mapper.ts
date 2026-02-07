@@ -21,7 +21,7 @@ export class WorkflowInfraMapper {
       prisma.context ? JSON.parse(prisma.context) : undefined,
       MapperUtils.nullToUndefined(prisma.isExtUser),
       MapperUtils.nullToUndefined(prisma.extUserEmail),
-      prisma.currentStepId ?? undefined,
+      prisma.currentStepDefId ?? undefined,
       prisma.completedAt ?? undefined,
       prisma.remarks ?? undefined,
       prisma.createdAt,
@@ -34,7 +34,7 @@ export class WorkflowInfraMapper {
       sorted.forEach((s) => {
         const step = new WorkflowStep(
           s.id,
-          s.stepId,
+          s.stepDefId,
           s.name,
           s.description ?? '',
           s.status as WorkflowStepStatus,
@@ -71,7 +71,7 @@ export class WorkflowInfraMapper {
       prisma.context ? JSON.parse(prisma.context) : undefined,
       MapperUtils.nullToUndefined(prisma.isExtUser),
       MapperUtils.nullToUndefined(prisma.extUserEmail),
-      prisma.currentStepId ?? undefined,
+      prisma.currentStepDefId ?? undefined,
       prisma.completedAt ?? undefined,
       prisma.remarks ?? undefined,
       prisma.createdAt,
@@ -84,7 +84,7 @@ export class WorkflowInfraMapper {
       sorted.forEach((s) => {
         const step = new WorkflowStep(
           s.id,
-          s.stepId,
+          s.stepDefId,
           s.name,
           s.description ?? '',
           s.status as WorkflowStepStatus,
@@ -119,7 +119,8 @@ export class WorkflowInfraMapper {
       prisma.id,
       { id: prisma.stepId } as WorkflowStep,
       prisma.workflowId,
-      prisma.taskId,
+      prisma.stepDefId!,
+      prisma.taskDefId,
       prisma.name,
       prisma.description,
       prisma.type as WorkflowTaskType,
@@ -130,7 +131,7 @@ export class WorkflowInfraMapper {
       prisma.jobId || undefined,
       prisma.autoCloseRefId || undefined,
       prisma.completedAt || undefined,
-      new User(prisma.completedBy?.id!, prisma.completedBy?.firstName!, prisma.completedBy?.lastName!, prisma.completedBy?.email!),
+      prisma.completedBy ? new User(prisma.completedBy.id, prisma.completedBy.firstName, prisma.completedBy.lastName, prisma.completedBy.email) : undefined,
       prisma.remarks || undefined,
       prisma.resultData ? JSON.parse(prisma.resultData) : undefined,
       prisma.createdAt,
@@ -185,7 +186,7 @@ export class WorkflowInfraMapper {
       type: domain.type,
       description: domain.description,
       status: domain.status,
-      currentStepId: domain.currentStepId ?? null,
+      currentStepDefId: domain.currentStepDefId ?? null,
       completedAt: domain.completedAt ?? null,
       remarks: domain.remarks ?? null,
       delegated: domain.isDelegated ?? false,
@@ -212,7 +213,7 @@ export class WorkflowInfraMapper {
       type: domain.type,
       description: domain.description,
       status: domain.status,
-      currentStepId: domain.currentStepId ?? null,
+      currentStepDefId: domain.currentStepDefId ?? null,
       initiatedBy: domain.initiatedBy?.id ? { connect: { id: domain.initiatedBy?.id! } } : undefined,
       initiatedFor: domain.initiatedFor?.id ? { connect: { id: domain.initiatedFor?.id! } } : undefined,
       completedAt: domain.completedAt ?? null,
@@ -234,28 +235,25 @@ export class WorkflowInfraMapper {
     return {
       id: domain.id,
       //instanceId: domain.instanceId,//no need to set instance id separately
-      stepId: domain.stepId,
+      stepDefId: domain.stepDefId,
       name: domain.name,
       description: domain.description ?? null,
       status: domain.status,
       orderIndex: domain.orderIndex,
-      onSuccessStepId: null,
-      onFailureStepId: null,
       remarks: domain.remarks ?? null,
       startedAt: domain.startedAt ?? null,
       completedAt: domain.completedAt ?? null,
       createdAt: domain.createdAt ?? new Date(),
       updatedAt: domain.updatedAt ?? new Date(),
       transitions: domain.transitions ? JSON.stringify(domain.transitions) : null,
-
-      // tasks handled separately
     };
   }
 
   static toPrismaWorkflowTaskPersistance(domain: WorkflowTask, stepId: string): Prisma.WorkflowTaskCreateInput {
     return {
       id: domain.id,
-      taskId: domain.taskId,
+      stepDefId: domain.stepDefId,
+      taskDefId: domain.taskDefId,
       workflowId: domain.workflowId,
       step: { connect: { id: stepId } },
       name: domain.name,

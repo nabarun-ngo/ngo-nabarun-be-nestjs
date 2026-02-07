@@ -54,19 +54,19 @@ export class UpdateTaskDto {
   @ApiProperty({ description: 'Task status', required: true })
   @IsDefined()
   @IsString()
+  @IsEnum(WorkflowTaskStatus)
   @IsNotEmpty()
   status: WorkflowTaskStatus;
 
-  @ApiProperty({ description: 'Remarks for task update', required: true })
-  @IsDefined()
+  @ApiPropertyOptional({ description: 'Remarks for task update', required: false })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  remarks: string;
+  remarks?: string;
 
   @ApiProperty({ description: 'Result data from task completion', required: false })
   @IsOptional()
   @IsObject()
-  resultData?: Record<string, string>;
+  resultData?: Record<string, any>;
 }
 
 export class TaskAssignmentDto {

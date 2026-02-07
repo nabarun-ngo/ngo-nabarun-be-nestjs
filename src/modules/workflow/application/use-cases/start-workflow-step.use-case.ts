@@ -35,10 +35,10 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         if (!definition) {
             throw new BusinessException(`Workflow definition not found for type: ${workflow?.type}`);
         }
-        const taskDefs = definition.steps.find(f => f.stepId === workflow?.currentStepId)?.tasks;
-        const step = workflow?.steps.find(f => f.stepId === workflow?.currentStepId);
+        const taskDefs = definition.steps.find(f => f.stepId === workflow?.currentStepDefId)?.tasks;
+        const step = workflow?.steps.find(f => f.stepDefId === workflow?.currentStepDefId);
         if (!step) {
-            throw new BusinessException(`Workflow step not found: ${workflow?.currentStepId}`);
+            throw new BusinessException(`Workflow step not found: ${workflow?.currentStepDefId}`);
         }
 
         if (taskDefs && taskDefs.length > 0) {
@@ -56,7 +56,7 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                     }
                 }
                 else {
-                    var roleCodes = taskDefs.find(td => td.taskId == task.taskId)?.taskDetail?.assignedTo?.roleNames;
+                    var roleCodes = taskDefs.find(td => td.taskId == task.taskDefId)?.taskDetail?.assignedTo?.roleNames;
                     const users = await this.userRepository.findAll({ roleCodes: roleCodes });
                     const assignments = users.map(u => TaskAssignment.create({
                         taskId: task.id,

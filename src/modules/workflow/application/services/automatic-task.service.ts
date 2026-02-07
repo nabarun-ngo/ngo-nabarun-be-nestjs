@@ -29,7 +29,7 @@ export class AutomaticTaskService {
                 await this.checkIfAlreadyRegistered(requestData)
                 break;
             case 'ValidateInputs':
-                this.validateRequiredKeys(requestData, definition?.fields.filter(f => f.required).map(f => f.key)!,)
+                this.validateRequiredKeys(requestData, definition?.fields.filter(f => f.mandatory).map(f => f.key)!,)
                 break;
             default:
                 throw new BusinessException(`Task handler not found: ${task.handler}`);
