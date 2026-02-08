@@ -13,6 +13,7 @@ import { UpdateUserUseCase } from './application/use-cases/update-user.use-case'
 import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
 import { DMSModule } from '../shared/dms/dms.module';
 import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
+import { DeleteUserUseCase } from './application/use-cases/delete-user.use-case';
 
 @Module({
   controllers: [UserController],
@@ -30,8 +31,9 @@ import { ChangePasswordUseCase } from './application/use-cases/change-password.u
     UserMetadataService,
     UserService,
     AssignRoleUseCase,
-    ChangePasswordUseCase
+    ChangePasswordUseCase,
+    DeleteUserUseCase
   ],
-  exports: [USER_REPOSITORY, CreateUserUseCase],
+  exports: [USER_REPOSITORY, CreateUserUseCase, DeleteUserUseCase],
 })
 export class UserModule { }

@@ -1,0 +1,221 @@
+{
+    "name": "Member Exit Request",
+    "description": "Exit request for member {{firstName}} {{lastName}} ({{email}})",
+    "fields": [
+        {
+            "key": "reasonForExit",
+            "defKey": "TEXTAREA_FIELD",
+            "label": "Reason for Exit",
+            "mandatory": true
+        },
+        {
+            "key": "suggestion",
+            "defKey": "TEXTAREA_FIELD",
+            "label": "Suggestion/Comments",
+            "mandatory": false
+        }
+    ],
+    "preCreationTasks": [
+        {
+            "taskId": "validateinputs",
+            "type": "AUTOMATIC",
+            "handler": "ValidateInputs",
+            "description": "Validate termination request inputs"
+        }
+    ],
+    "steps": [
+        {
+            "isDefault": true,
+            "stepId": "initial_coordination",
+            "name": "Exit Coordination",
+            "description": "Group Coordinator connects with the member for an exit discussion.",
+            "tasks": [
+                {
+                    "taskId": "exit_discussion",
+                    "name": "Conduct Exit Discussion with {{firstName}}",
+                    "description": "Discuss the reasons for termination with {{firstName}} {{lastName}} and understand if any issues can be resolved.",
+                    "type": "MANUAL",
+                    "etaHours": 48,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "GROUP_COORDINATOR",
+                                "ASST_GROUP_COORDINATOR"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Connect with {{firstName}} {{lastName}}.",
+                            "Discuss the reason for exit.",
+                            "Verify if there are any outstanding responsibilities.",
+                            "Explain the exit process and financial clearance requirement."
+                        ],
+                        "fields": [
+                            {
+                                "key": "proceedToClearance",
+                                "defKey": "SELECT_YES_NO_FIELD",
+                                "label": "Should we proceed with the termination process?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "interviewNotes",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Exit Discussion Notes",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_initial_coordination_task_exit_discussion.proceedToClearance == 'Yes'",
+                    "nextStepId": "financial_clearance"
+                },
+                {
+                    "condition": "step_initial_coordination_task_exit_discussion.proceedToClearance == 'No'",
+                    "nextStepId": null
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": "initial_coordination"
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "financial_clearance",
+            "name": "Financial Clearance",
+            "description": "Cashier/Treasurer verifies donations and clears pending dues.",
+            "tasks": [
+                {
+                    "taskId": "verify_and_cancel_donations",
+                    "name": "Clear Financial Dues for {{firstName}}",
+                    "description": "Verify all paid donations and handle pending donations as per discussion with requester.",
+                    "type": "MANUAL",
+                    "etaHours": 48,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "CASHIER",
+                                "ASSISTANT_CASHIER",
+                                "TREASURER"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Review all donation records for {{firstName}} {{lastName}}.",
+                            "Mark all paid donations as 'PAID' in the system.",
+                            "Ensure there are no outstanding financial obligations."
+                        ],
+                        "fields": [
+                            {
+                                "key": "isFinancialCleared",
+                                "defKey": "SELECT_YES_NO_FIELD",
+                                "label": "Has financial clearance been completed?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "clearanceNotes",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Financial Clearance Notes",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_financial_clearance_task_verify_and_cancel_donations.isFinancialCleared == 'Yes'",
+                    "nextStepId": "final_approval"
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": "financial_clearance"
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "final_approval",
+            "name": "Final Approval",
+            "description": "Leadership review and final approval of the termination request.",
+            "tasks": [
+                {
+                    "taskId": "leadership_approval",
+                    "name": "Leadership Approval - Exit Request: {{firstName}}",
+                    "description": "President or Secretary reviews the coordination notes and financial clearance before final approval.",
+                    "type": "APPROVAL",
+                    "etaHours": 72,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "PRESIDENT",
+                                "SECRETARY"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Review exit discussion notes: {{step_initial_coordination_task_exit_discussion.interviewNotes}}.",
+                            "Verify financial clearance completion.",
+                            "Approve the termination of membership."
+                        ],
+                        "fields": [
+                            {
+                                "key": "decision",
+                                "defKey": "SELECT_APPROVE_DECLINE_FIELD",
+                                "label": "Approve Termination Request?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "remarks",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Final Remarks",
+                                "mandatory": false
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_final_approval_task_leadership_approval.decision == 'Approve'",
+                    "nextStepId": "user_cleanup_and_delete"
+                },
+                {
+                    "condition": "step_final_approval_task_leadership_approval.decision == 'Decline'",
+                    "nextStepId": "initial_coordination"
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": "final_approval"
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "user_cleanup_and_delete",
+            "name": "User Delete and Data cleanup",
+            "description": "User delete and data cleanup for the exit request.",
+            "tasks": [
+                {
+                    "taskId": "usercleanupanddelete",
+                    "name": "User Delete and Data cleanup",
+                    "type": "AUTOMATIC",
+                    "handler": "UserDeleteAndDataCleanupHandler",
+                    "description": "Cleanup and delete user's data from the system."
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "default",
+                    "nextStepId": null
+                }
+            ]
+        }
+    ]
+}

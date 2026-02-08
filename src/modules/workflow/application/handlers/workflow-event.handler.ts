@@ -10,13 +10,14 @@ import { StepCompletedEvent } from "../../domain/events/step-completed.event";
 import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
 import { JobName } from "src/shared/job-names";
 import { CronLogger } from "src/shared/utils/trace-context.util";
-import { WorkflowTask } from "../../domain/model/workflow-task.model";
+import { WorkflowTask, WorkflowTaskType } from "../../domain/model/workflow-task.model";
 import { TaskAssignmentCreatedEvent } from "../../domain/events/task-assignment-created.event";
 import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
 import { NotificationKeys } from "src/shared/notification-keys";
 import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
 import { TaskStartedEvent } from "../../domain/events/task-started.event";
 import { TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
+import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
 
 export class TriggerRemindPendingTasksEvent { }
 
@@ -177,6 +178,8 @@ export class WorkflowEventsHandler {
         referenceId: task.id,
         referenceType: 'task',
       }));
+    this.logger.warn(`TODO : Send email to user ${task.assignments.map(assignment => assignment.assignedTo.email)} about task started`)
+
     // this.corrService.sendTemplatedEmail({
     //   templateName: EmailTemplateName.TASK_STARTED,
     //   data: { ...task.toJson(), workflowId: task.workflowId },
@@ -184,6 +187,17 @@ export class WorkflowEventsHandler {
     //     recipients: { to: task.assignments.map(assignment => assignment.assignedTo.email) }
     //   }
     // })
+  }
+
+  @OnEvent(UserDeletedEvent.name, { async: true })
+  async handleUserDeletedEvent(event: UserDeletedEvent) {
+    const user = event.user;
+    const tasks = await this.workflowInstanceRepository.findAllTasks({
+      assignedTo: user.id,
+      status: WorkflowTask.pendingTaskStatus,
+      type: [WorkflowTaskType.MANUAL]
+    })
+
   }
 
 

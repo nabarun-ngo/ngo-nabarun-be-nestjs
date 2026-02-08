@@ -8,11 +8,13 @@ import { PhoneNumber } from './phone-number.model';
 import { Link } from './link.model';
 import { generatePassword } from '../../../../shared/utilities/password-util';
 import { RoleAssignedEvent } from '../events/role-assigned.event';
+import { UserDeletedEvent } from '../events/user-deleted.event';
 
 export enum UserStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   BLOCKED = "BLOCKED",
+  DELETED = "DELETED",
 }
 export enum LoginMethod {
   EMAIL = 'EMAIL',
@@ -550,5 +552,23 @@ export class User extends AggregateRoot<string> {
 
   get isDeleted() {
     return this.#isDeleted;
+  }
+
+  delete() {
+    this.#isDeleted = true;
+    this.#status = UserStatus.DELETED;
+    this.#donationAmount = undefined;
+    this.#donationPauseEnd = undefined;
+    this.#donationPauseStart = undefined;
+    this.#panNumber = undefined;
+    this.#aadharNumber = undefined;
+    this.#socialMediaLinks = [];
+    this.#roles = [];
+    this.#about = undefined;
+    this.#title = undefined;
+    this.#isPublic = false;
+    this.#loginMethod = [];
+    this.#isProfileCompleted = false;
+    this.addDomainEvent(new UserDeletedEvent(this.id, this));
   }
 }
