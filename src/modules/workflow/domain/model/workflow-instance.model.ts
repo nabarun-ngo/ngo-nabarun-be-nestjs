@@ -9,6 +9,7 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { WorkflowTaskStatus } from './workflow-task.model';
 import { TaskCompletedEvent } from '../events/task-completed.event';
 import { StepCompletedEvent } from '../events/step-completed.event';
+import { Parser } from 'expr-eval';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -141,7 +142,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.touch();
   }
 
-  public moveToNextStep(): void {
+  public moveToNextStep() {
     const currentStep = this.#steps.find((s) => s.stepDefId === this.#currentStepDefId);
 
     if (!currentStep) {
@@ -152,7 +153,8 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     // Evaluate transitions from the current step
     for (const transition of currentStep.transitions) {
-      if (this.#evaluateCondition(transition.condition)) {
+      const d = this.#evaluateCondition(transition.condition);
+      if (d) {
         nextStepId = transition.nextStepId;
         break;
       }
@@ -166,7 +168,6 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     this.#currentStepDefId = nextStepId;
     const nextStep = this.#steps.find((s) => s.stepDefId === this.#currentStepDefId);
-
     if (!nextStep) {
       throw new Error(`Next step not found: ${this.#currentStepDefId}`);
     }
@@ -176,27 +177,19 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.touch();
   }
 
-  #evaluateCondition(expression: string): boolean {
+  #evaluateCondition(expression: string) {
     if (expression === 'default' || !expression) return true;
 
     try {
-      // Create a context for evaluation that includes requestData and any other context
-      const evaluationContext = {
-        ...this.#requestData,
-        ...this.#context,
-      };
-
-      // Simple evaluation using Function constructor
-      // Security Note: In a production environment with untrusted users, 
-      // use a safer expression evaluator like 'expr-eval' or 'jexl'.
-      const fn = new Function(
-        'context',
-        `with(context) { return ${expression}; }`,
+      const parser = new Parser();
+      const result = parser.evaluate(
+        expression,
+        this.#context
       );
-      return Boolean(fn(evaluationContext));
+      console.log(result)
+      return result == 1;
     } catch (error) {
-      console.error(`Error evaluating condition "${expression}":`, error);
-      return false;
+      throw new Error(`Error evaluating condition "${expression}":`, error);
     }
   }
 

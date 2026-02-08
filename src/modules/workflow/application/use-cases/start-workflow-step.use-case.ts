@@ -28,10 +28,7 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         if (!workflow) {
             throw new BusinessException(`Workflow instance not found: ${instanceId}`);
         }
-        const data = {
-            requestData: workflow?.requestData
-        };
-        const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!, data);
+        const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!, workflow?.context);
         if (!definition) {
             throw new BusinessException(`Workflow definition not found for type: ${workflow?.type}`);
         }
@@ -49,7 +46,7 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                 if (task.type === WorkflowTaskType.AUTOMATIC) {
                     try {
                         workflow.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
-                        await this.automaticTaskService.handleTask(task, workflow.requestData, definition);
+                        await this.automaticTaskService.handleTask(task, workflow.context, definition);
                         workflow.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
                     } catch (error) {
                         workflow.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);

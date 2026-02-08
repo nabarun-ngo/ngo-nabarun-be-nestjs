@@ -1,47 +1,53 @@
 {
   "name": "User Onboarding",
-  "description": "Onboard {{requestData.firstName}} {{requestData.lastName}} to NABARUN.",
+  "description": "Onboard {{firstName}} {{lastName}} to NABARUN.",
   "fields": [
     {
       "key": "firstName",
+      "defKey": "firstName",
       "label": "First Name",
       "mandatory": true
     },
     {
       "key": "lastName",
+      "defKey": "lastName",
       "label": "Last Name",
       "mandatory": true
     },
     {
       "key": "email",
+      "defKey": "email",
       "label": "Email Address",
       "mandatory": true
     },
     {
       "key": "contactNumber",
+      "defKey": "contactNumber",
       "label": "Contact Number",
       "mandatory": true
     },
     {
       "key": "hometown",
+      "defKey": "hometown",
       "label": "Home Town",
       "mandatory": true
     },
     {
       "key": "howDoUKnowAboutUs",
+      "defKey": "howDoUKnowAboutUs",
       "label": "How did the Requester hear about us?",
       "mandatory": false
     }
   ],
   "preCreationTasks": [
     {
-      "taskId": "validate-inputs",
+      "taskId": "validateinputs",
       "type": "AUTOMATIC",
       "handler": "ValidateInputs",
       "description": ""
     },
     {
-      "taskId": "check-duplicate-user",
+      "taskId": "checkduplicateuser",
       "type": "AUTOMATIC",
       "handler": "UserNotRegisteredTaskHandler",
       "description": "Ensure no existing user is registered with the same email address."
@@ -52,12 +58,12 @@
       "isDefault": true,
       "stepId": "verification",
       "name": "Data Verification and Policy Acceptance",
-      "description": "Verify {{requestData.firstName}} {{requestData.lastName}} data, answer questions, and confirm that the {{requestData.firstName}} {{requestData.lastName}} understands and accepts Nabarun’s rules, regulations, and policies.",
+      "description": "Verify {{firstName}} {{lastName}} data, answer questions, and confirm that the {{firstName}} {{lastName}} understands and accepts Nabarun’s rules, regulations, and policies.",
       "tasks": [
         {
-          "taskId": "verify-info",
-          "name": "Verify {{requestData.firstName}} {{requestData.lastName}} data",
-          "description": "Ask {{requestData.firstName}} {{requestData.lastName}} to confirm that email address {{requestData.lastName}} and other personal details are correct.",
+          "taskId": "verifyinfo",
+          "name": "Verify {{firstName}} {{lastName}} data",
+          "description": "Ask {{firstName}} {{lastName}} to confirm that email address {{lastName}} and other personal details are correct.",
           "type": "MANUAL",
           "etaHours": 24,
           "taskDetail": {
@@ -71,22 +77,29 @@
             "isAutoCloseable": false,
             "autoCloseCondition": null,
             "checklist": [
-              "Confirm {{requestData.firstName}} {{requestData.lastName}} email address.",
-              "Verify {{requestData.firstName}} {{requestData.lastName}} name and contact details."
+              "Confirm {{firstName}} {{lastName}} email address.",
+              "Verify {{firstName}} {{lastName}} name and contact details."
             ],
             "fields": [
               {
-                "key": "answer",
+                "key": "todosVerified",
+                "defKey": "answer",
                 "label": "Did you verified all the above ToDos?",
+                "mandatory": true
+              },
+              {
+                "key": "correctionNeeded",
+                "defKey": "answer",
+                "label": "Is there any data correction needed? (if needed, update the remarks field)",
                 "mandatory": true
               }
             ]
           }
         },
         {
-          "taskId": "policy-acceptance",
+          "taskId": "policyacceptance",
           "name": "Confirm Policy Acceptance",
-          "description": "Explain Nabarun’s Rules & Regulations, and policies, and confirm that the {{requestData.firstName}} {{requestData.lastName}} agrees to comply.",
+          "description": "Explain Nabarun’s Rules & Regulations, and policies, and confirm that the {{firstName}} {{lastName}} agrees to comply.",
           "type": "MANUAL",
           "etaHours": 24,
           "taskDetail": {
@@ -103,11 +116,12 @@
               "Explain Nabarun’s Goals, Mission and Activities.",
               "Explain Nabarun’s Rules and Regulations.",
               "Explain the monthly donation scheme.",
-              "Send all relevant documents with the {{requestData.firstName}} {{requestData.lastName}}."
+              "Send all relevant documents with the {{firstName}} {{lastName}}."
             ],
             "fields": [
               {
-                "key": "answer",
+                "key": "todosVerified",
+                "defKey": "answer",
                 "label": "Did you verified all the above ToDos?",
                 "mandatory": true
               }
@@ -117,8 +131,16 @@
       ],
       "transitions": [
         {
-          "condition": "default",
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'Yes'",
+          "nextStepId": null
+        },
+        {
+          "condition": "step_verification_task_policyacceptance.todosVerified == 'Yes' and step_verification_task_verifyinfo.todosVerified == 'Yes'",
           "nextStepId": "approval"
+        },
+        {
+          "condition": "default",
+          "nextStepId": null
         }
       ]
     },
@@ -129,7 +151,7 @@
       "description": "Obtain final approval from authorized leadership before creating the member account.",
       "tasks": [
         {
-          "taskId": "verify-approval",
+          "taskId": "verifyapproval",
           "name": "President/Secretary Approval",
           "type": "APPROVAL",
           "etaHours": 24,
@@ -152,7 +174,8 @@
             ],
             "fields": [
               {
-                "key": "approval",
+                "key": "decision",
+                "defKey": "decision",
                 "label": "Do you approve the onboarding of the new member?",
                 "mandatory": true
               }
@@ -162,32 +185,32 @@
       ],
       "transitions": [
         {
-          "condition": "context.step_approval.task_verify-approval.decision === 'APPROVE'",
-          "nextStepId": "account-creation"
+          "condition": "step_approval_task_verifyapproval.decision == 'APPROVE'",
+          "nextStepId": "accountcreation"
         },
         {
           "condition": "default",
-          "nextStepId": "verification"
+          "nextStepId": "approval"
         }
       ]
     },
     {
       "isDefault": false,
-      "stepId": "account-creation",
+      "stepId": "accountcreation",
       "name": "Account Creation",
       "description": "Automatically create the user account and assign the appropriate system roles.",
       "tasks": [
         {
-          "taskId": "create-auth0-user",
+          "taskId": "createauth0user",
           "name": "Create User Account",
           "type": "AUTOMATIC",
           "handler": "Auth0UserCreationHandler",
           "description": "Create the user in the system and assign base roles."
         },
         {
-          "taskId": "add-to-whatsapp",
-          "name": "Add {{requestData.firstName}} {{requestData.lastName}} to NABARUN'S Official WhatsApp Group",
-          "description": "Add {{requestData.firstName}} {{requestData.lastName}} () to NABARUN'S Official WhatsApp Group.",
+          "taskId": "addtowhatsapp",
+          "name": "Add {{firstName}} {{lastName}} to NABARUN'S Official WhatsApp Group",
+          "description": "Add {{firstName}} {{lastName}} ({{contactNumber}}) to NABARUN'S Official WhatsApp Group.",
           "type": "MANUAL",
           "etaHours": 24,
           "taskDetail": {
@@ -195,14 +218,17 @@
               "roleGroups": [],
               "roleNames": [
                 "GROUP_COORDINATOR",
-                "ASST_GROUP_COORDINATOR"
+                "ASST_GROUP_COORDINATOR",
+                "PRESIDENT",
+                "VICE_PRESIDENT",
+                "SECRETARY",
+                "ASST_SECRETARY"
               ]
             },
             "isAutoCloseable": false,
             "autoCloseCondition": null,
             "checklist": [
-              "Confirm {{requestData.firstName}} {{requestData.lastName}} email address.",
-              "Verify {{requestData.firstName}} {{requestData.lastName}} name and contact details."
+              "Add {{contactNumber}} to NABARUN'S Official WhatsApp Group."
             ],
             "fields": []
           }

@@ -5,6 +5,7 @@ import { WorkflowDefinition } from "../../domain/vo/workflow-def.vo";
 import Handlebars from "handlebars";
 import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
+import { KeyValueConfig } from "src/shared/models/key-value-config.model";
 
 @Injectable()
 export class WorkflowDefService {
@@ -27,12 +28,22 @@ export class WorkflowDefService {
         const def = await this.findWorkflowByType(type);
         const defFields = stepId && taskId ? (def.steps.find(s => s.stepId === stepId)?.tasks.find(t => t.taskId === taskId)?.taskDetail?.fields ?? []) : def.fields;
         const additionalFields = (await this.getWorkflowRefData()).additionalFields.filter(f => f.ACTIVE);
-        const requiredFields = additionalFields
-            .filter(f => defFields.map(f => f.key).includes(f.KEY)).map(m => {
-                const field = defFields.find(f => f.key === m.KEY);
-                m.ATTRIBUTES['MANDATORY'] = field?.mandatory ?? false;
-                m.VALUE = field?.label ?? m.VALUE;
-                return m;
+        const requiredFields = defFields
+            .map(m => {
+                const field = additionalFields.find(f => f.KEY === m.defKey);
+                if (!field) {
+                    throw new Error(`Additional field not found for key: ${m.defKey}`);
+                }
+                return new KeyValueConfig({
+                    KEY: m.key,
+                    VALUE: m.label,
+                    DESCRIPTION: '',
+                    ACTIVE: true,
+                    ATTRIBUTES: {
+                        ...field.ATTRIBUTES,
+                        'MANDATORY': m.mandatory
+                    }
+                });
             });
         return [...requiredFields]
     }

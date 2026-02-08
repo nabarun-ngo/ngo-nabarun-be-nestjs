@@ -8,6 +8,7 @@ export interface AssignedToDef {
 
 export interface FieldDef {
   key: string;
+  defKey: string;
   label: string;
   mandatory: boolean;
 }

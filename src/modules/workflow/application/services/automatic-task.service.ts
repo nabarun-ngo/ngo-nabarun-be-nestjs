@@ -7,6 +7,7 @@ import { WORKFLOW_INSTANCE_REPOSITORY } from "../../domain/repositories/workflow
 import WorkflowInstanceRepository from "../../infrastructure/persistence/workflow-instance.repository";
 import { CreateUserUseCase } from "src/modules/user/application/use-cases/create-user.use-case";
 import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
+import { PhoneNumber } from "src/modules/user/domain/model/phone-number.model";
 
 @Injectable()
 export class AutomaticTaskService {
@@ -45,13 +46,20 @@ export class AutomaticTaskService {
     }
     private async createUser(requestData: Record<string, any> | undefined, task: WorkflowTask) {
         const data = requestData as SignUpDto;
+        let phoneNumber: string = data.contactNumber;
+        let phoneCode: string = '+91';
+
+        if (data.contactNumber.split("-").length > 1) {
+            phoneCode = data.contactNumber.split("-")[0];
+            phoneNumber = data.contactNumber.split("-")[1];
+        }
         const user = await this.createUserUseCase.execute({
             email: data.email!,
             firstName: data.firstName!,
             lastName: data.lastName!,
             phoneNumber: {
-                code: data.dialCode!,
-                number: data.contactNumber!,
+                code: phoneCode!,
+                number: phoneNumber!,
             },
             isTemporary: false,
         })

@@ -101,7 +101,7 @@ export class WorkflowService {
 
     try {
       workflow?.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
-      await this.taskService.handleTask(task, workflow?.requestData);
+      await this.taskService.handleTask(task, workflow?.context);
       workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
     } catch (error) {
       workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);

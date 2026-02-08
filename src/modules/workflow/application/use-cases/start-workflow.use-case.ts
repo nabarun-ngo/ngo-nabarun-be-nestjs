@@ -34,11 +34,8 @@ export class StartWorkflowUseCase implements IUseCase<{
     forExternalUser?: boolean;
     externalUserEmail?: string;
   }): Promise<WorkflowInstance> {
-    const data = {
-      requestData: request.data
-    };
     // Find workflow definition
-    const definition = await this.definitionRepository.findWorkflowByType(request.type, data);
+    const definition = await this.definitionRepository.findWorkflowByType(request.type, request.data);
     if (!definition) {
       throw new BusinessException(`Workflow definition not found for type: ${request.type}`);
     }

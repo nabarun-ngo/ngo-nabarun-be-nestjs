@@ -15,7 +15,7 @@ export const config = {
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
     logLevel: (process.env[Configkey.LOG_LEVEL] || 'log') as LogLevel,
-    fileSize: '10mb',
+    fileSize: '10mb'
   },
   database: {
     mongodbUrl: process.env[Configkey.MONGODB_URL],
