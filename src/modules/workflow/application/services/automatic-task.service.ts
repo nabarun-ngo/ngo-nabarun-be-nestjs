@@ -6,6 +6,7 @@ import { IAutomaticTaskHandler } from "../automatic-task-handlers/automatic-task
 import { ValidateInputsHandler } from "../automatic-task-handlers/validate-inputs.handler";
 import { Auth0UserCreationHandler } from "../automatic-task-handlers/auth0-user-creation.handler";
 import { UserNotRegisteredTaskHandler } from "../automatic-task-handlers/user-not-registered.handler";
+import { GuestDonationCreationHandler } from "../automatic-task-handlers/guest-donation-creation.handler";
 
 @Injectable()
 export class AutomaticTaskService {
@@ -15,10 +16,12 @@ export class AutomaticTaskService {
         private readonly validateInputsHandler: ValidateInputsHandler,
         private readonly auth0UserCreationHandler: Auth0UserCreationHandler,
         private readonly userNotRegisteredTaskHandler: UserNotRegisteredTaskHandler,
+        private readonly guestDonationCreationHandler: GuestDonationCreationHandler,
     ) {
         this.registerHandler(this.validateInputsHandler);
         this.registerHandler(this.auth0UserCreationHandler);
         this.registerHandler(this.userNotRegisteredTaskHandler);
+        this.registerHandler(this.guestDonationCreationHandler);
     }
 
     private registerHandler(handler: IAutomaticTaskHandler) {

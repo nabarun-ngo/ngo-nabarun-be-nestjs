@@ -320,8 +320,6 @@ export class WorkflowRefDataDto {
   @ApiProperty()
   workflowTypes?: KeyValueDto[];
   @ApiProperty()
-  additionalFields?: KeyValueDto[];
-  @ApiProperty()
   visibleWorkflowTypes?: KeyValueDto[];
   @ApiProperty()
   workflowStatuses?: KeyValueDto[];

@@ -1,15 +1,17 @@
 import { AggregateRoot } from '../../../../shared/models/aggregate-root';
 import { WorkflowStep } from './workflow-step.model';
-import { WorkflowDefinition } from '../vo/workflow-def.vo';
+import { TaskDef, WorkflowDefinition } from '../vo/workflow-def.vo';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { WorkflowCreatedEvent } from '../events/workflow-created.event';
 import { StepStartedEvent } from '../events/step-started.event';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
-import { WorkflowTaskStatus } from './workflow-task.model';
+import { WorkflowTask, WorkflowTaskStatus } from './workflow-task.model';
 import { TaskCompletedEvent } from '../events/task-completed.event';
 import { StepCompletedEvent } from '../events/step-completed.event';
 import { Parser } from 'expr-eval';
+import { TaskStartedEvent } from '../events/task-started.event';
+import { TaskFailedEvent } from '../events/task-failed.event';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -132,12 +134,9 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   public start(): void {
     this.#status = WorkflowInstanceStatus.IN_PROGRESS;
-
     this.#currentStepDefId = this.steps.find(s => s.orderIndex === 0)?.stepDefId;
-
     const step = this.steps.find(s => s.stepDefId === this.#currentStepDefId);
     step?.start();
-
     this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
     this.touch();
   }
@@ -165,12 +164,17 @@ export class WorkflowInstance extends AggregateRoot<string> {
       this.complete();
       return;
     }
+    // If the next step is the same as the current step, do nothing
+    if (this.#currentStepDefId === nextStepId) return;
 
+    // Set the next step as the current step
     this.#currentStepDefId = nextStepId;
     const nextStep = this.#steps.find((s) => s.stepDefId === this.#currentStepDefId);
     if (!nextStep) {
       throw new Error(`Next step not found: ${this.#currentStepDefId}`);
     }
+    //TODO: Need to handle the order index properly
+    // If the revisited step is already then handle it some way
     nextStep.currentOrderIndex = currentStep.orderIndex + 1;
     nextStep.start();
     this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id));
@@ -213,18 +217,21 @@ export class WorkflowInstance extends AggregateRoot<string> {
     }
     if (data) {
       task.resultData = data;
-      this.#mergeResultIntoContext(task.stepDefId, task.taskDefId, data);
+      this.#mergeResultIntoContext(task, data);
     }
     if (task.status !== status) {
       switch (status) {
         case WorkflowTaskStatus.IN_PROGRESS:
           task.start(user);
+          this.addDomainEvent(new TaskStartedEvent(this.id, task));
           break;
         case WorkflowTaskStatus.COMPLETED:
           task.complete(user, remarks, data);
+          this.addDomainEvent(new TaskCompletedEvent(this.id, task));
           break;
         case WorkflowTaskStatus.FAILED:
           task.fail(remarks!, user);
+          this.addDomainEvent(new TaskFailedEvent(this.id, task));
           break;
         default:
           throw new BusinessException(`Invalid task status: ${status}`);
@@ -240,15 +247,14 @@ export class WorkflowInstance extends AggregateRoot<string> {
     }
 
     this.touch();
-    this.addDomainEvent(new TaskCompletedEvent(this.id, step?.id!, task.id));
     return task;
   }
 
-  #mergeResultIntoContext(stepDefId: string, taskDefId: string, data: Record<string, any>): void {
+  #mergeResultIntoContext(task: WorkflowTask, data: Record<string, any>): void {
     this.#context = {
       ...this.#context,
-      [`step_${stepDefId}_task_${taskDefId}`]: {
-        ...(this.#context?.[`step_${stepDefId}_task_${taskDefId}`] ?? {}),
+      [task.contextKey]: {
+        ...(this.#context?.[task.contextKey] ?? {}),
         ...data,
       },
     };

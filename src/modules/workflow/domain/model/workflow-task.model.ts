@@ -190,6 +190,10 @@ export class WorkflowTask extends BaseDomain<string> {
     return [WorkflowTaskStatus.COMPLETED];
   }
 
+  get contextKey(): string {
+    return `step_${this.#stepDefId}_task_${this.#taskDefId}`;
+  }
+
   // 🔓 Getters (Public Read-Only API)
 
   get workflowId(): string {

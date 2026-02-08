@@ -102,9 +102,9 @@ export class WorkflowService {
     try {
       workflow?.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
       await this.taskService.handleTask(task, workflow?.context);
-      workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
+      workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED, undefined, undefined, task.resultData);
     } catch (error) {
-      workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);
+      workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message, task.resultData);
     }
 
     await this.instanceRepository.update(workflow?.id!, workflow!);
@@ -116,7 +116,6 @@ export class WorkflowService {
     return {
       workflowTypes: refData.workflowTypes.map(toKeyValueDto),
       visibleWorkflowTypes: refData.visibleWorkflowTypes.map(toKeyValueDto),
-      additionalFields: refData.additionalFields.map(toKeyValueDto),
       workflowStatuses: refData.workflowStatus.map(toKeyValueDto),
       workflowStepStatuses: refData.workflowStepStatus.map(toKeyValueDto),
       workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),

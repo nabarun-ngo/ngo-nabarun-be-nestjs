@@ -1,0 +1,102 @@
+{
+    "name": "Contact & Support Request",
+    "description": "Request from {{fullName}} for assistance/support regarding: {{subject}}",
+    "fields": [
+        {
+            "key": "fullName",
+            "defKey": "INPUT_TEXT_FIELD",
+            "label": "Full Name",
+            "mandatory": true
+        },
+        {
+            "key": "email",
+            "defKey": "INPUT_EMAIL_FIELD",
+            "label": "Email Address",
+            "mandatory": true
+        },
+        {
+            "key": "contactNumber",
+            "defKey": "INPUT_PHONE_FIELD",
+            "label": "Contact Number",
+            "mandatory": true
+        },
+        {
+            "key": "subject",
+            "defKey": "INPUT_TEXT_FIELD",
+            "label": "Subject",
+            "mandatory": true
+        },
+        {
+            "key": "message",
+            "defKey": "TEXTAREA_FIELD",
+            "label": "Message",
+            "mandatory": true
+        }
+    ],
+    "preCreationTasks": [
+        {
+            "taskId": "validateinputs",
+            "type": "AUTOMATIC",
+            "handler": "ValidateInputs",
+            "description": ""
+        }
+    ],
+    "steps": [
+        {
+            "isDefault": true,
+            "stepId": "supportresolution",
+            "name": "Support and Resolution",
+            "description": "Review and provide the requested support to {{fullName}}.",
+            "tasks": [
+                {
+                    "taskId": "providesupport",
+                    "name": "Provide Support to {{fullName}} on {{subject}}",
+                    "description": "Message: {{message}}",
+                    "type": "MANUAL",
+                    "etaHours": 48,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "GROUP_COORDINATOR",
+                                "ASST_GROUP_COORDINATOR",
+                                "SECRETARY"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Review the message from {{fullName}}.",
+                            "Contact the requester via {{email}} or {{contactNumber}}.",
+                            "Address the query or provide the required assistance.",
+                            "Ensure the requester is satisfied with the resolution."
+                        ],
+                        "fields": [
+                            {
+                                "key": "isResolved",
+                                "defKey": "SELECT_YES_NO_FIELD",
+                                "label": "Has the request been successfully resolved?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "resolutionRemarks",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Resolution Remarks",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_supportresolution_task_providesupport.isResolved == 'Yes'",
+                    "nextStepId": null
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": "supportresolution"
+                }
+            ]
+        }
+    ]
+}

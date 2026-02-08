@@ -1,7 +1,7 @@
 import { DomainEvent } from '../../../../shared/models/domain-event';
-import { WorkflowTask } from '../../domain/model/workflow-task.model';
+import { WorkflowTask } from '../model/workflow-task.model';
 
-export class TaskAssignmentCreatedEvent extends DomainEvent {
+export class TaskFailedEvent extends DomainEvent {
   constructor(
     aggregateId: string,
     public readonly task: WorkflowTask,

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
 import { StepStartedEvent } from "../../domain/events/step-started.event";
-import { OnEvent } from "@nestjs/event-emitter";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { WORKFLOW_INSTANCE_REPOSITORY, type IWorkflowInstanceRepository } from "../../domain/repositories/workflow-instance.repository.interface";
 import { EmailTemplateName } from "src/shared/email-keys";
@@ -11,6 +11,12 @@ import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event
 import { JobName } from "src/shared/job-names";
 import { CronLogger } from "src/shared/utils/trace-context.util";
 import { WorkflowTask } from "../../domain/model/workflow-task.model";
+import { TaskAssignmentCreatedEvent } from "../../domain/events/task-assignment-created.event";
+import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
+import { NotificationKeys } from "src/shared/notification-keys";
+import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
+import { TaskStartedEvent } from "../../domain/events/task-started.event";
+import { TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
 
 export class TriggerRemindPendingTasksEvent { }
 
@@ -24,7 +30,9 @@ export class WorkflowEventsHandler {
     private readonly workflowRepository: IWorkflowInstanceRepository,
     private readonly corrService: CorrespondenceService,
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
-    private readonly workflowInstanceRepository: IWorkflowInstanceRepository) { }
+    private readonly workflowInstanceRepository: IWorkflowInstanceRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) { }
 
   @OnEvent(StepStartedEvent.name, { async: true })
   async handleStepStartedEvent(event: StepStartedEvent) {
@@ -75,7 +83,7 @@ export class WorkflowEventsHandler {
   @OnEvent(TriggerRemindPendingTasksEvent.name, { async: true })
   async remindPendingTasks(): Promise<void> {
     const startedAt = Date.now();
-    this.logger.log('[Cron] Remind pending tasks started');
+    this.logger.log('Remind pending tasks started');
 
     try {
       const tasks =
@@ -84,7 +92,7 @@ export class WorkflowEventsHandler {
         });
 
       this.logger.log(
-        `[Cron] Found ${tasks.length} pending tasks`,
+        `Found ${tasks.length} pending tasks`,
       );
 
       const assignees = new Map(
@@ -94,14 +102,14 @@ export class WorkflowEventsHandler {
       );
 
       this.logger.log(
-        `[Cron] Unique assignees count: ${assignees.size}`,
+        `Unique assignees count: ${assignees.size}`,
       );
 
       let successCount = 0;
 
       for (const user of assignees.values()) {
         this.logger.debug(
-          `[Cron] Queueing reminder | userId=${user.id} | email=${user.email}`,
+          `Queueing reminder | userId=${user.id} | email=${user.email}`,
         );
 
         await this.jobProcessingService.addJob(
@@ -117,14 +125,66 @@ export class WorkflowEventsHandler {
       }
 
       this.logger.log(
-        `[Cron] Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
+        `Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
       );
     } catch (error) {
       this.logger.error(
-        '[Cron] Failed to process pending task reminders',
+        'Failed to process pending task reminders',
         error?.stack ?? error,
       );
     }
   }
+
+  @OnEvent(TaskAssignmentCreatedEvent.name, { async: true })
+  async handleTaskAssignmentCreatedEvent(event: TaskAssignmentCreatedEvent) {
+    const task = event.task;
+    this.eventEmitter.emit(SendNotificationRequestEvent.name,
+      new SendNotificationRequestEvent({
+        targetUserIds: task.assignments.map(assignment => assignment.assignedTo.id),
+        notificationKey: NotificationKeys.TASK_ASSIGNED,
+        type: NotificationType.TASK,
+        category: NotificationCategory.TASK,
+        priority: NotificationPriority.HIGH,
+        data: {
+          task: task.toJson(),
+        },
+        referenceId: task.id,
+        referenceType: 'task',
+      }));
+    this.corrService.sendTemplatedEmail({
+      templateName: EmailTemplateName.TASK_ASSIGNED,
+      data: { ...task.toJson(), workflowId: task.workflowId },
+      options: {
+        recipients: { to: task.assignments.map(assignment => assignment.assignedTo.email) }
+      }
+    })
+  }
+
+  @OnEvent(TaskStartedEvent.name, { async: true })
+  async handleTaskStartedEvent(event: TaskStartedEvent) {
+    const task = event.task;
+    this.eventEmitter.emit(SendNotificationRequestEvent.name,
+      new SendNotificationRequestEvent({
+        targetUserIds: task.assignments.filter(a => a.status !== TaskAssignmentStatus.ACCEPTED)
+          .map(assignment => assignment.assignedTo.id),
+        notificationKey: NotificationKeys.TASK_STARTED,
+        type: NotificationType.TASK,
+        category: NotificationCategory.TASK,
+        priority: NotificationPriority.HIGH,
+        data: {
+          task: task.toJson(),
+        },
+        referenceId: task.id,
+        referenceType: 'task',
+      }));
+    // this.corrService.sendTemplatedEmail({
+    //   templateName: EmailTemplateName.TASK_STARTED,
+    //   data: { ...task.toJson(), workflowId: task.workflowId },
+    //   options: {
+    //     recipients: { to: task.assignments.map(assignment => assignment.assignedTo.email) }
+    //   }
+    // })
+  }
+
 
 }

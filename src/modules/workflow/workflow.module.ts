@@ -18,9 +18,11 @@ import { AutomaticTaskService } from './application/services/automatic-task.serv
 import { ValidateInputsHandler } from './application/automatic-task-handlers/validate-inputs.handler';
 import { Auth0UserCreationHandler } from './application/automatic-task-handlers/auth0-user-creation.handler';
 import { UserNotRegisteredTaskHandler } from './application/automatic-task-handlers/user-not-registered.handler';
+import { GuestDonationCreationHandler } from './application/automatic-task-handlers/guest-donation-creation.handler';
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
-  imports: [JobProcessingModule, UserModule, FirebaseModule],
+  imports: [JobProcessingModule, UserModule, FirebaseModule, FinanceModule],
   controllers: [WorkflowController],
   providers: [
     StartWorkflowUseCase,
@@ -38,6 +40,7 @@ import { UserNotRegisteredTaskHandler } from './application/automatic-task-handl
     ValidateInputsHandler,
     Auth0UserCreationHandler,
     UserNotRegisteredTaskHandler,
+    GuestDonationCreationHandler,
   ],
   exports: [
     WorkflowService,

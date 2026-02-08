@@ -142,6 +142,7 @@ import { FinanceReportController } from './presentation/controllers/finance-repo
     ACCOUNT_REPOSITORY,
     EXPENSE_REPOSITORY,
     EARNING_REPOSITORY,
+    CreateDonationUseCase,
   ],
 })
 export class FinanceModule { }

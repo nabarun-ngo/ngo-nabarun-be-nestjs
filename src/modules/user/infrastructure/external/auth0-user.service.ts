@@ -242,7 +242,7 @@ export class Auth0UserService {
     const cachedRoles = await this.cacheManager.get<Auth0Role[]>('ALL_ROLES');
     var allRoles = cachedRoles ?? (await this.managementClient.roles.list()).data;
     if (!cachedRoles) {
-      await this.cacheManager.set<Auth0Role[]>('ALL_ROLES', allRoles);
+      await this.cacheManager.set<Auth0Role[]>('ALL_ROLES', allRoles, 90 * 24 * 3600 * 1000);
     }
     try {
       return allRoles.map((role) => {

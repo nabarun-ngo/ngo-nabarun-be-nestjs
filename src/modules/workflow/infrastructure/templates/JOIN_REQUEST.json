@@ -4,37 +4,37 @@
   "fields": [
     {
       "key": "firstName",
-      "defKey": "firstName",
+      "defKey": "INPUT_TEXT_FIELD",
       "label": "First Name",
       "mandatory": true
     },
     {
       "key": "lastName",
-      "defKey": "lastName",
+      "defKey": "INPUT_TEXT_FIELD",
       "label": "Last Name",
       "mandatory": true
     },
     {
       "key": "email",
-      "defKey": "email",
+      "defKey": "INPUT_EMAIL_FIELD",
       "label": "Email Address",
       "mandatory": true
     },
     {
       "key": "contactNumber",
-      "defKey": "contactNumber",
+      "defKey": "INPUT_PHONE_FIELD",
       "label": "Contact Number",
       "mandatory": true
     },
     {
       "key": "hometown",
-      "defKey": "hometown",
+      "defKey": "INPUT_TEXT_FIELD",
       "label": "Home Town",
       "mandatory": true
     },
     {
       "key": "howDoUKnowAboutUs",
-      "defKey": "howDoUKnowAboutUs",
+      "defKey": "TEXTAREA_FIELD",
       "label": "How did the Requester hear about us?",
       "mandatory": false
     }
@@ -82,15 +82,9 @@
             ],
             "fields": [
               {
-                "key": "todosVerified",
-                "defKey": "answer",
-                "label": "Did you verified all the above ToDos?",
-                "mandatory": true
-              },
-              {
                 "key": "correctionNeeded",
-                "defKey": "answer",
-                "label": "Is there any data correction needed? (if needed, update the remarks field)",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Is there any data correction needed? (if needed, update the remarks field with correct data)",
                 "mandatory": true
               }
             ]
@@ -120,9 +114,9 @@
             ],
             "fields": [
               {
-                "key": "todosVerified",
-                "defKey": "answer",
-                "label": "Did you verified all the above ToDos?",
+                "key": "rulesAccepted",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Did requester agree to Nabarun’s Rules & Regulations?",
                 "mandatory": true
               }
             ]
@@ -131,16 +125,24 @@
       ],
       "transitions": [
         {
-          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'Yes'",
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'Yes' and step_verification_task_policyacceptance.rulesAccepted == 'Yes'",
+          "nextStepId": "correction"
+        },
+        {
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'Yes' and step_verification_task_policyacceptance.rulesAccepted == 'No'",
           "nextStepId": null
         },
         {
-          "condition": "step_verification_task_policyacceptance.todosVerified == 'Yes' and step_verification_task_verifyinfo.todosVerified == 'Yes'",
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'No' and step_verification_task_policyacceptance.rulesAccepted == 'Yes'",
           "nextStepId": "approval"
         },
         {
-          "condition": "default",
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'No' and step_verification_task_policyacceptance.rulesAccepted == 'No'",
           "nextStepId": null
+        },
+        {
+          "condition": "default",
+          "nextStepId": "verification"
         }
       ]
     },
@@ -175,7 +177,7 @@
             "fields": [
               {
                 "key": "decision",
-                "defKey": "decision",
+                "defKey": "SELECT_APPROVE_DECLINE_FIELD",
                 "label": "Do you approve the onboarding of the new member?",
                 "mandatory": true
               }
@@ -185,12 +187,16 @@
       ],
       "transitions": [
         {
-          "condition": "step_approval_task_verifyapproval.decision == 'APPROVE'",
+          "condition": "step_approval_task_verifyapproval.decision == 'Approve'",
           "nextStepId": "accountcreation"
         },
         {
+          "condition": "step_approval_task_verifyapproval.decision == 'Decline'",
+          "nextStepId": null
+        },
+        {
           "condition": "default",
-          "nextStepId": "approval"
+          "nextStepId": null
         }
       ]
     },
@@ -230,14 +236,77 @@
             "checklist": [
               "Add {{contactNumber}} to NABARUN'S Official WhatsApp Group."
             ],
-            "fields": []
+            "fields": [
+              {
+                "key": "userAdded",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Has this member been added to NABARUN'S Official WhatsApp Group?",
+                "mandatory": true
+              }
+            ]
           }
         }
       ],
       "transitions": [
         {
-          "condition": "default",
+          "condition": "step_accountcreation_task_addtowhatsapp.userAdded == 'Yes'",
           "nextStepId": null
+        },
+        {
+          "condition": "default",
+          "nextStepId": "accountcreation"
+        }
+      ]
+    },
+    {
+      "isDefault": false,
+      "stepId": "correction",
+      "name": "Data Correction",
+      "description": "Correct the data from backend system.",
+      "tasks": [
+        {
+          "taskId": "correctinfo",
+          "name": "Correct Data",
+          "description": "Correct the provided data from backend system.",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "TECHNICAL_SPECIALIST"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Collect the correct data from Workflow Context / From Coordinators / From Member",
+              "Update the correct data in the backend system",
+              "Notify the member about the correction"
+            ],
+            "fields": [
+              {
+                "key": "isCorrected",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Has the data been corrected?",
+                "mandatory": true
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_correction_task_correctinfo.isCorrected == 'Yes'",
+          "nextStepId": "approval"
+        },
+        {
+          "condition": "step_correction_task_correctinfo.isCorrected == 'No'",
+          "nextStepId": "correction"
+        },
+        {
+          "condition": "default",
+          "nextStepId": "correction"
         }
       ]
     }
