@@ -15,6 +15,9 @@ import { WorkflowDefService } from './infrastructure/external/workflow-def.servi
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
 import { AutomaticTaskService } from './application/services/automatic-task.service';
+import { ValidateInputsHandler } from './application/automatic-task-handlers/validate-inputs.handler';
+import { Auth0UserCreationHandler } from './application/automatic-task-handlers/auth0-user-creation.handler';
+import { UserNotRegisteredTaskHandler } from './application/automatic-task-handlers/user-not-registered.handler';
 
 @Module({
   imports: [JobProcessingModule, UserModule, FirebaseModule],
@@ -32,6 +35,9 @@ import { AutomaticTaskService } from './application/services/automatic-task.serv
     WorkflowEventsHandler,
     StartWorkflowStepUseCase,
     AutomaticTaskService,
+    ValidateInputsHandler,
+    Auth0UserCreationHandler,
+    UserNotRegisteredTaskHandler,
   ],
   exports: [
     WorkflowService,
