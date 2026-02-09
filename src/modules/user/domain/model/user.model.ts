@@ -48,13 +48,18 @@ export class UserProfileProps {
   isAddressSame?: boolean;
   isPublicProfile?: boolean;
   socialMediaLinks?: Link[];
-  donationAmount?: number;
 }
 
 export class UserAttributesProps {
   status?: UserStatus;
   userId?: string;
   loginMethods?: LoginMethod[];
+  aadharNumber?: string;
+  panNumber?: string
+  donationAmount?: number;
+  donationPauseStart?: Date;
+  donationPauseEnd?: Date;
+
 }
 
 export class User extends AggregateRoot<string> {
@@ -177,7 +182,6 @@ export class User extends AggregateRoot<string> {
     this.#dateOfBirth = detail.dateOfBirth ?? this.#dateOfBirth;
     this.#gender = detail.gender ?? this.#gender;
     this.#about = detail.about ?? this.#about;
-    this.#donationAmount = detail.donationAmount ?? this.#donationAmount;
 
     if (detail.primaryNumber) {
       this.#primaryNumber =
@@ -272,6 +276,11 @@ export class User extends AggregateRoot<string> {
     this.#status = detail.status ?? this.#status;
     this.#authUserId = detail.userId ?? this.#authUserId;
     this.#updateAuth = detail.userId !== undefined || this.#status !== undefined;
+    this.#donationAmount = detail.donationAmount ?? this.#donationAmount;
+    this.#aadharNumber = detail.aadharNumber ?? this.#aadharNumber;
+    this.#panNumber = detail.panNumber ?? this.#panNumber;
+    this.#donationPauseStart = detail.donationPauseStart ?? this.#donationPauseStart;
+    this.#donationPauseEnd = detail.donationPauseEnd ?? this.#donationPauseEnd;
     this.touch();
   }
 

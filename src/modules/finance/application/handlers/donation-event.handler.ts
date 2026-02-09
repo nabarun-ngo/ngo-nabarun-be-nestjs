@@ -146,7 +146,14 @@ export class DonationsEventHandler {
         this.logger.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
         const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
         const defaultAmount = Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT));
+        const today = new Date();
         for (const user of users) {
+            if (user.donationPauseStart && user.donationPauseEnd &&
+                user.donationPauseStart <= today && user.donationPauseEnd >= today) {
+                this.logger.warn(`Donation pause period (${user.donationPauseStart}-${user.donationPauseEnd}) found for user ${user.id}. Skipping donation creation.`);
+                continue;
+            }
+
             const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
             await this.jobProcessingService.addJob(
                 JobName.CREATE_DONATION,

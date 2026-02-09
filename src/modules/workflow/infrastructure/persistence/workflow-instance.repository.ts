@@ -118,7 +118,8 @@ class WorkflowInstanceRepository
       ...(filter?.assignedTo ? {
         assignments: {
           some: {
-            assignedToId: filter.assignedTo, status: {
+            assignedToId: filter.assignedTo,
+            status: {
               in: TaskAssignment.pendingStatus
             }
           }

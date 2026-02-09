@@ -8,6 +8,8 @@ import { Auth0UserCreationHandler } from "../automatic-task-handlers/auth0-user-
 import { UserNotRegisteredTaskHandler } from "../automatic-task-handlers/user-not-registered.handler";
 import { GuestDonationCreationHandler } from "../automatic-task-handlers/guest-donation-creation.handler";
 import { UserDeleteAndDataCleanupHandler } from "../automatic-task-handlers/user-delete-and-data-cleanup.handler";
+import { DonationAmountUpdateHandler } from "../automatic-task-handlers/donation-amount-update.handler";
+import { DonationPauseUpdateHandler } from "../automatic-task-handlers/donation-pause-update.handler";
 
 @Injectable()
 export class AutomaticTaskService {
@@ -19,12 +21,16 @@ export class AutomaticTaskService {
         private readonly userNotRegisteredTaskHandler: UserNotRegisteredTaskHandler,
         private readonly guestDonationCreationHandler: GuestDonationCreationHandler,
         private readonly userDeleteAndDataCleanupHandler: UserDeleteAndDataCleanupHandler,
+        private readonly amountUpdateHandler: DonationAmountUpdateHandler,
+        private readonly pauseUpdateHandler: DonationPauseUpdateHandler
     ) {
         this.registerHandler(this.validateInputsHandler);
         this.registerHandler(this.auth0UserCreationHandler);
         this.registerHandler(this.userNotRegisteredTaskHandler);
         this.registerHandler(this.guestDonationCreationHandler);
         this.registerHandler(this.userDeleteAndDataCleanupHandler);
+        this.registerHandler(this.amountUpdateHandler);
+        this.registerHandler(this.pauseUpdateHandler);
     }
 
     private registerHandler(handler: IAutomaticTaskHandler) {
