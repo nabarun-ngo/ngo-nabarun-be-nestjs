@@ -76,6 +76,8 @@ export class UserService {
             detail: {
                 status: command.status,
                 loginMethods: command.loginMethods,
+                aadharNumber: command.aadharNumber,
+                panNumber: command.panNumber,
             },
         });
         return UserDtoMapper.toUserDTO(updatedUser);

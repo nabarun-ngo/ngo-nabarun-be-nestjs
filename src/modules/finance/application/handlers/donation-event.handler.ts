@@ -68,7 +68,6 @@ export class DonationsEventHandler {
                 },
             });
 
-            this.logger.log(`Email sent successfully for donation ${donation.id}`);
 
             if (donation.donorId) {
                 this.eventEmitter.emit(SendNotificationRequestEvent.name,
@@ -118,7 +117,6 @@ export class DonationsEventHandler {
                         : 'Not Applicable',
                 },
             });
-            this.logger.log(`Email sent successfully for donation ${donation.id}`);
             if (donation.donorId) {
                 this.eventEmitter.emit(SendNotificationRequestEvent.name,
                     new SendNotificationRequestEvent({

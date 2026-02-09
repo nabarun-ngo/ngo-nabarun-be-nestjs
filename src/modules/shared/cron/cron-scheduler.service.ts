@@ -5,16 +5,22 @@ import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { CronExpressionParser } from 'cron-parser';
 import { CronJobDto } from './cron-job.dto';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
-import { CronJob } from './cron-job.model';
+import { CronJob, CronExecutionLog } from './cron-job.model';
 import { RemoteConfigService } from '../firebase/remote-config/remote-config.service';
 import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
 
 @Injectable()
 export class CronSchedulerService {
     private readonly logger = new CronLogger(CronSchedulerService.name);
+    private readonly CRON_LOGS_CACHE_PREFIX = 'cron:logs:';
+    private readonly CRON_LOGS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
-    constructor(private eventEmitter: EventEmitter2,
+    constructor(
+        private eventEmitter: EventEmitter2,
         private readonly firebasRC: RemoteConfigService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
     async triggerScheduledJobs(timestamp?: string): Promise<{ executed: string[], skipped: string[] }> {
@@ -28,8 +34,24 @@ export class CronSchedulerService {
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
                 this.logger.log(`[CRON] Triggered job: ${job.name}`);
-                this.eventEmitter.emit(job.handler);
                 executed.push(job.name);
+                try {
+                    await this.eventEmitter.emitAsync(job.handler);
+                    await this.addLog({
+                        jobName: job.name,
+                        executedAt: new Date(),
+                        trigger: 'AUTOMATIC',
+                        status: 'SUCCESS'
+                    });
+                } catch (error) {
+                    await this.addLog({
+                        jobName: job.name,
+                        executedAt: new Date(),
+                        trigger: 'AUTOMATIC',
+                        status: 'FAILED',
+                        error: error.message
+                    });
+                }
             } else {
                 this.logger.log(`[CRON] Skipped job: ${job.name}`);
                 skipped.push(job.name);
@@ -71,7 +93,50 @@ export class CronSchedulerService {
         if (!job) {
             throw new BusinessException(`Job ${name} not found OR Not in active state`);
         }
-        return await this.eventEmitter.emitAsync(job.handler);
+        try {
+            const results = await this.eventEmitter.emitAsync(job.handler);
+            await this.addLog({
+                jobName: job.name,
+                executedAt: new Date(),
+                trigger: 'MANUAL',
+                status: 'SUCCESS'
+            });
+            return results;
+        } catch (error) {
+            await this.addLog({
+                jobName: job.name,
+                executedAt: new Date(),
+                trigger: 'MANUAL',
+                status: 'FAILED',
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async getCronLogs(jobName: string): Promise<CronExecutionLog[]> {
+        const key = `${this.CRON_LOGS_CACHE_PREFIX}${jobName}`;
+        return await this.cacheManager.get<CronExecutionLog[]>(key) || [];
+    }
+
+    private async addLog(log: CronExecutionLog) {
+        try {
+            const key = `${this.CRON_LOGS_CACHE_PREFIX}${log.jobName}`;
+            const existingLogs = await this.cacheManager.get<CronExecutionLog[]>(key) || [];
+
+            // Keep only logs from the last 7 days and limit to last 100 entries to avoid cache bloat
+            const sevenDaysAgo = Date.now() - this.CRON_LOGS_TTL;
+            const filteredLogs = existingLogs.filter(l => new Date(l.executedAt).getTime() > sevenDaysAgo);
+
+            filteredLogs.unshift(log); // Add new log to the beginning
+
+            // Limit to 100 logs per job
+            const limitedLogs = filteredLogs.slice(0, 100);
+
+            await this.cacheManager.set(key, limitedLogs, this.CRON_LOGS_TTL);
+        } catch (error) {
+            this.logger.error(`Failed to cache cron log for ${log.jobName}: ${error.stack}`);
+        }
     }
 
     /**

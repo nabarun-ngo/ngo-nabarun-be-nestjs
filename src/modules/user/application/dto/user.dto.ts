@@ -278,6 +278,16 @@ export class UserUpdateAdminDto {
   @IsEnum(LoginMethod, { each: true })
   loginMethods?: LoginMethod[];
 
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  aadharNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  panNumber?: string;
+
 }
 
 export class UserFilterDto {
