@@ -14,6 +14,7 @@ import { AutomaticTaskService } from './automatic-task.service';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
 import { ReassignTaskUseCase } from '../use-cases/reassign-task.use-case';
+import { CancelWorkflowUseCase } from '../use-cases/cancel-workflow.use-case';
 
 @Injectable()
 export class WorkflowService {
@@ -29,6 +30,7 @@ export class WorkflowService {
     private readonly taskService: AutomaticTaskService,
     private readonly workflowDefService: WorkflowDefService,
     private readonly reassignTaskUseCase: ReassignTaskUseCase,
+    private readonly cancelWorkflowUseCase: CancelWorkflowUseCase,
   ) { }
 
   async getWorkflows(filter: BaseFilter<WorkflowFilter>): Promise<PagedResult<WorkflowInstanceDto>> {
@@ -133,15 +135,24 @@ export class WorkflowService {
     return additionalFields.map(WorkflowDtoMapper.fieldAttributeDomainToDto);
   }
 
-  async reassignTask(instanceId: string, taskId: string, userId?: string, fromDefinition?: boolean): Promise<WorkflowInstanceDto> {
+  async reassignTask(instanceId: string, taskId: string, userId?: string, fromDefinition?: boolean): Promise<WorkflowTaskDto> {
     if (fromDefinition == false && !userId) {
       throw new BusinessException('User is required for reassignment');
     }
-    const workflow = await this.reassignTaskUseCase.execute({
+    const task = await this.reassignTaskUseCase.execute({
       instanceId,
       taskId,
       userId,
       fromDefinition,
+    });
+    return WorkflowDtoMapper.taskDomainToDto(task);
+  }
+
+  async cancelWorkflow(instanceId: string, reason: string, authUser: AuthUser): Promise<WorkflowInstanceDto> {
+    const workflow = await this.cancelWorkflowUseCase.execute({
+      id: instanceId,
+      reason: reason,
+      userId: authUser.profile_id!,
     });
     return WorkflowDtoMapper.toDto(workflow);
   }

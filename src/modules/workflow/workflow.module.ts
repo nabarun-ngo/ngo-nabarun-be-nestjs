@@ -22,6 +22,7 @@ import { UserNotRegisteredTaskHandler } from './application/automatic-task-handl
 import { GuestDonationCreationHandler } from './application/automatic-task-handlers/guest-donation-creation.handler';
 import { FinanceModule } from '../finance/finance.module';
 import { UserDeleteAndDataCleanupHandler } from './application/automatic-task-handlers/user-delete-and-data-cleanup.handler';
+import { CancelWorkflowUseCase } from './application/use-cases/cancel-workflow.use-case';
 
 @Module({
   imports: [JobProcessingModule, UserModule, FirebaseModule, FinanceModule],
@@ -44,7 +45,8 @@ import { UserDeleteAndDataCleanupHandler } from './application/automatic-task-ha
     Auth0UserCreationHandler,
     UserNotRegisteredTaskHandler,
     GuestDonationCreationHandler,
-    UserDeleteAndDataCleanupHandler
+    UserDeleteAndDataCleanupHandler,
+    CancelWorkflowUseCase
   ],
   exports: [
     WorkflowService,

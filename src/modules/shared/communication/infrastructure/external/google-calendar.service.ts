@@ -24,6 +24,11 @@ export interface EventData {
         anyoneCanAddSelf?: boolean;
     };
     hostEmail?: string;
+    defaultReminder?: boolean;
+    reminders?: {
+        method: 'popup' | 'email';
+        minutes: number;
+    }[];
 }
 
 
@@ -66,7 +71,8 @@ export class GoogleCalendarService {
                     timeZone: eventData?.timeZone || 'Asia/Kolkata',
                 },
                 reminders: {
-                    useDefault: true,
+                    useDefault: eventData?.defaultReminder || true,
+                    overrides: eventData?.reminders,
                 },
             };
 

@@ -49,16 +49,16 @@ export class WorkflowController {
   @RequireAllPermissions('update:work')
   @Post(':id/tasks/:taskId/reassign')
   @ApiOperation({ summary: 'Reassign a workflow task' })
-  @ApiAutoResponse(WorkflowInstanceDto, { status: 200, description: 'Task reassigned successfully' })
+  @ApiAutoResponse(WorkflowTaskDto, { status: 200, description: 'Task reassigned successfully' })
   @ApiQuery({ name: 'userId', required: false, description: 'User ID to reassign the task to' })
   @ApiQuery({ name: 'fromDefinition', required: false, description: 'Reassign based on workflow definition roles' })
   async reassignTask(@Param('id') id: string,
     @Param('taskId') taskId: string,
     @Query('fromDefinition') fromDefinition: boolean,
     @Query('userId') userId?: string,
-  ): Promise<SuccessResponse<WorkflowInstanceDto>> {
+  ): Promise<SuccessResponse<WorkflowTaskDto>> {
     const result = await this.workflowService.reassignTask(id, taskId, userId, fromDefinition);
-    return new SuccessResponse<WorkflowInstanceDto>(result);
+    return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
 
@@ -181,6 +181,15 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowTaskDto>(
       await this.workflowService.processAutomaticTask(id, taskId)
     );
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a workflow instance' })
+  @ApiAutoResponse(WorkflowInstanceDto, { description: 'Workflow instance cancelled successfully' })
+  @ApiQuery({ name: 'reason', required: true, description: 'Reason for cancellation' })
+  async cancelWorkflow(@Param('id') id: string, @Query('reason') reason: string, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowInstanceDto>> {
+    const result = await this.workflowService.cancelWorkflow(id, reason, user);
+    return new SuccessResponse<WorkflowInstanceDto>(result);
   }
 
   @Get('static/referenceData')

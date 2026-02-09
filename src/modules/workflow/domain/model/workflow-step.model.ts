@@ -124,6 +124,7 @@ export class WorkflowStep extends BaseDomain<string> {
     this.#status = WorkflowStepStatus.SKIPPED;
     this.touch();
   }
+
   // -----------------------------------
   //        Read-only API
   // -----------------------------------

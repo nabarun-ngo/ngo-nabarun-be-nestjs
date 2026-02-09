@@ -137,9 +137,11 @@ export class WorkflowTask extends BaseDomain<string> {
     ) {
       throw new BusinessException(`Cannot start task in status: ${this.#status}`);
     }
-    const assignment = this.assignments.find((a) => a.assignedTo.id == starter?.id);
+    const assignment = this.assignments
+      .filter(a => TaskAssignment.pendingStatus.includes(a.status))
+      .find((a) => a.assignedTo.id == starter?.id);
     if (this.requiresManualAction() && !assignment) {
-      throw new BusinessException(`User: ${starter?.id} cannot act on this task.`);
+      throw new BusinessException(`User: ${starter?.fullName} cannot act on this task.`);
     }
     assignment?.accept();
     this.#assignments.filter(f => f.assignedTo.id != starter?.id).forEach(a => a.remove());

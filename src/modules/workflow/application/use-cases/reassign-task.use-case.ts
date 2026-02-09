@@ -8,6 +8,7 @@ import { WorkflowDefService } from '../../infrastructure/external/workflow-def.s
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User, UserStatus } from 'src/modules/user/domain/model/user.model';
+import { WorkflowTask } from '../../domain/model/workflow-task.model';
 
 
 export class ReassignTask {
@@ -18,7 +19,7 @@ export class ReassignTask {
 }
 
 @Injectable()
-export class ReassignTaskUseCase implements IUseCase<ReassignTask, WorkflowInstance> {
+export class ReassignTaskUseCase implements IUseCase<ReassignTask, WorkflowTask> {
     constructor(
         @Inject(WORKFLOW_INSTANCE_REPOSITORY)
         private readonly instanceRepository: IWorkflowInstanceRepository,
@@ -27,7 +28,7 @@ export class ReassignTaskUseCase implements IUseCase<ReassignTask, WorkflowInsta
         private readonly eventEmitter: EventEmitter2,
     ) { }
 
-    async execute(dto: ReassignTask): Promise<WorkflowInstance> {
+    async execute(dto: ReassignTask): Promise<WorkflowTask> {
         const task = await this.instanceRepository.findByTaskId(dto.taskId);
         if (!task) {
             throw new BusinessException(`Workflow task not found: ${dto.taskId}`);
@@ -71,7 +72,7 @@ export class ReassignTaskUseCase implements IUseCase<ReassignTask, WorkflowInsta
             throw new BusinessException('No users found for reassignment');
         }
 
-        workflow.assignTask(task.id, users, roleCodes, true);
+        const updatedTask = workflow.assignTask(task.id, users, roleCodes, true);
         await this.instanceRepository.update(workflow.id, workflow);
 
         // Emit domain events
@@ -80,6 +81,6 @@ export class ReassignTaskUseCase implements IUseCase<ReassignTask, WorkflowInsta
         }
         workflow.clearEvents();
 
-        return workflow;
+        return updatedTask;
     }
 }

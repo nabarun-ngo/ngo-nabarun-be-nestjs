@@ -231,6 +231,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     }
     this.addDomainEvent(new TaskAssignmentCreatedEvent(this.id, task));
     this.touch();
+    return task;
   }
 
   updateTask(
@@ -313,9 +314,22 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.touch();
   }
 
-  public cancel(reason: string): void {
+  public cancel(reason: string, userId: string): void {
+    if (this.#status === WorkflowInstanceStatus.CANCELLED || this.#status === WorkflowInstanceStatus.COMPLETED) {
+      throw new BusinessException(`Cannot cancel workflow in status: ${this.#status}`);
+    }
+
     this.#status = WorkflowInstanceStatus.CANCELLED;
-    this.#remarks = reason;
+    this.#remarks = `User Cancelled due to : ${reason}`;
+    const step = this.steps.find(s => s.stepDefId === this.#currentStepDefId);
+    if (step) {
+      step.complete();
+      step.tasks.forEach(task => {
+        task.complete({ id: userId }, this.#remarks);
+        this.addDomainEvent(new TaskCompletedEvent(this.id, task));
+      });
+      this.addDomainEvent(new StepCompletedEvent(this.id, step.id));
+    }
     this.touch();
   }
 
