@@ -46,6 +46,21 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
+  @RequireAllPermissions('update:work')
+  @Post(':id/tasks/:taskId/reassign')
+  @ApiOperation({ summary: 'Reassign a workflow task' })
+  @ApiAutoResponse(WorkflowInstanceDto, { status: 200, description: 'Task reassigned successfully' })
+  @ApiQuery({ name: 'userId', required: false, description: 'User ID to reassign the task to' })
+  @ApiQuery({ name: 'fromDefinition', required: false, description: 'Reassign based on workflow definition roles' })
+  async reassignTask(@Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @Query('fromDefinition') fromDefinition: boolean,
+    @Query('userId') userId?: string,
+  ): Promise<SuccessResponse<WorkflowInstanceDto>> {
+    const result = await this.workflowService.reassignTask(id, taskId, userId, fromDefinition);
+    return new SuccessResponse<WorkflowInstanceDto>(result);
+  }
+
 
   @RequireAllPermissions('read:request')
   @Get(':id/instance')

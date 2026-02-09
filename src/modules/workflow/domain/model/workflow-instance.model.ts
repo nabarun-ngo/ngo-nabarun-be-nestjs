@@ -12,6 +12,8 @@ import { StepCompletedEvent } from '../events/step-completed.event';
 import { Parser } from 'expr-eval';
 import { TaskStartedEvent } from '../events/task-started.event';
 import { TaskFailedEvent } from '../events/task-failed.event';
+import { TaskAssignmentCreatedEvent } from '../events/task-assignment-created.event';
+import { TaskAssignment } from './task-assignment.model';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -195,6 +197,40 @@ export class WorkflowInstance extends AggregateRoot<string> {
     } catch (error) {
       throw new Error(`Error evaluating condition "${expression}":`, error);
     }
+  }
+
+  public initCurrentStepTasks(taskDefs: TaskDef[]): WorkflowTask[] {
+    const step = this.#steps.find(s => s.stepDefId === this.#currentStepDefId);
+    if (!step) {
+      throw new BusinessException(`Step not found: ${this.#currentStepDefId}`);
+    }
+    const tasks = taskDefs.map(td => WorkflowTask.create(this.id, step, td));
+    step.setTasks(tasks);
+    this.touch();
+    return tasks;
+  }
+
+  public assignTask(taskId: string, users: User[], roleCodes: string[], isReassign: boolean = false) {
+    const step = this.#steps.find(s => s.stepDefId === this.#currentStepDefId);
+    const task = step?.tasks?.find(t => t.id === taskId);
+    if (!task) {
+      throw new BusinessException(`Task not found: ${taskId}`);
+    }
+
+    const assignments = users.map(u => TaskAssignment.create({
+      taskId: task.id,
+      assignedTo: u,
+      roleName: (roleCodes && roleCodes.length > 0)
+        ? u.roles.find(r => roleCodes.includes(r.roleCode))?.roleCode!
+        : undefined
+    }));
+    if (isReassign) {
+      task.reassign(assignments);
+    } else {
+      task.setAssignments(assignments);
+    }
+    this.addDomainEvent(new TaskAssignmentCreatedEvent(this.id, task));
+    this.touch();
   }
 
   updateTask(

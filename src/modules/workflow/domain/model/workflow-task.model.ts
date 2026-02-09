@@ -121,6 +121,16 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
+  reassign(assignments: TaskAssignment[]): void {
+    if (this.#status === WorkflowTaskStatus.COMPLETED) {
+      throw new BusinessException(`Cannot reassign a completed task: ${this.id}`);
+    }
+    this.#assignments.forEach(a => a.delete());
+    this.#assignments.push(...assignments);
+    this.#status = WorkflowTaskStatus.PENDING;
+    this.touch();
+  }
+
   start(starter?: Partial<User>): void {
     if (this.#status !== WorkflowTaskStatus.PENDING
       && this.#status !== WorkflowTaskStatus.FAILED

@@ -14,6 +14,7 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { WorkflowDefService } from './infrastructure/external/workflow-def.service';
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
+import { ReassignTaskUseCase } from './application/use-cases/reassign-task.use-case';
 import { AutomaticTaskService } from './application/services/automatic-task.service';
 import { ValidateInputsHandler } from './application/automatic-task-handlers/validate-inputs.handler';
 import { Auth0UserCreationHandler } from './application/automatic-task-handlers/auth0-user-creation.handler';
@@ -37,6 +38,7 @@ import { UserDeleteAndDataCleanupHandler } from './application/automatic-task-ha
     WorkflowDefService,
     WorkflowEventsHandler,
     StartWorkflowStepUseCase,
+    ReassignTaskUseCase,
     AutomaticTaskService,
     ValidateInputsHandler,
     Auth0UserCreationHandler,

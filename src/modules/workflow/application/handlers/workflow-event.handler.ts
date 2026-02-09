@@ -16,8 +16,9 @@ import { SendNotificationRequestEvent } from "src/modules/shared/notification/ap
 import { NotificationKeys } from "src/shared/notification-keys";
 import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
 import { TaskStartedEvent } from "../../domain/events/task-started.event";
-import { TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
+import { TaskAssignment, TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
+import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
 
 export class TriggerRemindPendingTasksEvent { }
 
@@ -33,6 +34,7 @@ export class WorkflowEventsHandler {
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly workflowInstanceRepository: IWorkflowInstanceRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly reassignTaskUseCase: ReassignTaskUseCase
   ) { }
 
   @OnEvent(StepStartedEvent.name, { async: true })
@@ -166,7 +168,7 @@ export class WorkflowEventsHandler {
     const task = event.task;
     this.eventEmitter.emit(SendNotificationRequestEvent.name,
       new SendNotificationRequestEvent({
-        targetUserIds: task.assignments.filter(a => a.status !== TaskAssignmentStatus.ACCEPTED)
+        targetUserIds: task.assignments.filter(a => a.status == TaskAssignmentStatus.REMOVED)
           .map(assignment => assignment.assignedTo.id),
         notificationKey: NotificationKeys.TASK_STARTED,
         type: NotificationType.TASK,
@@ -191,12 +193,23 @@ export class WorkflowEventsHandler {
 
   @OnEvent(UserDeletedEvent.name, { async: true })
   async handleUserDeletedEvent(event: UserDeletedEvent) {
+    this.logger.log(`Processing user deletion for user: ${event.user.id}`);
     const user = event.user;
     const tasks = await this.workflowInstanceRepository.findAllTasks({
       assignedTo: user.id,
       status: WorkflowTask.pendingTaskStatus,
       type: [WorkflowTaskType.MANUAL]
     })
+    this.logger.log(`Found ${tasks.length} pending tasks for user: ${event.user.id}`);
+    for (const task of tasks) {
+      this.logger.log(`Reassigning task: ${task.id} for user: ${event.user.id}`);
+      await this.reassignTaskUseCase.execute({
+        taskId: task.id,
+        instanceId: task.workflowId,
+        fromDefinition: true
+      })
+      this.logger.log(`Reassigned task: ${task.id} for user: ${event.user.id}`);
+    }
 
   }
 

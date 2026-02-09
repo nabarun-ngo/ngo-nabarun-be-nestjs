@@ -16,6 +16,7 @@ import { SendNotificationRequestEvent } from 'src/modules/shared/notification/ap
 import { NotificationKeys } from 'src/shared/notification-keys';
 import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/notification/domain/models/notification.model';
 import { TaskAssignmentCreatedEvent } from '../../domain/events/task-assignment-created.event';
+import { UserStatus } from 'src/modules/user/domain/model/user.model';
 
 @Injectable()
 export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstance> {
@@ -38,14 +39,9 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
             throw new BusinessException(`Workflow definition not found for type: ${workflow?.type}`);
         }
         const taskDefs = definition.steps.find(f => f.stepId === workflow?.currentStepDefId)?.tasks;
-        const step = workflow?.steps.find(f => f.stepDefId === workflow?.currentStepDefId);
-        if (!step) {
-            throw new BusinessException(`Workflow step not found: ${workflow?.currentStepDefId}`);
-        }
 
         if (taskDefs && taskDefs.length > 0) {
-            const tasks = taskDefs.map(td => WorkflowTask.create(workflow.id, step, td));
-            step?.setTasks(tasks);
+            const tasks = workflow.initCurrentStepTasks(taskDefs);
 
             for (const task of tasks) {
                 if (task.type === WorkflowTaskType.AUTOMATIC) {
@@ -58,19 +54,12 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                     }
                 }
                 else {
-                    var roleCodes = taskDefs.find(td => td.taskId == task.taskDefId)?.taskDetail?.assignedTo?.roleNames;
-                    const users = await this.userRepository.findAll({ roleCodes: roleCodes });
-                    const assignments = users.map(u => TaskAssignment.create({
-                        taskId: task.id,
-                        assignedTo: u,
-                        roleName: u.roles.find(r => roleCodes?.includes(r.roleCode))?.roleCode!
-                    }));
-                    task.setAssignments(assignments);
-                    this.eventEmitter.emit(TaskAssignmentCreatedEvent.name, new TaskAssignmentCreatedEvent(
-                        workflow.id,
-                        task
-                    ));
-
+                    const taskDef = taskDefs.find(td => td.taskId == task.taskDefId);
+                    const roleCodes = taskDef?.taskDetail?.assignedTo?.roleNames || [];
+                    const users = await this.userRepository.findAll({ roleCodes, status: UserStatus.ACTIVE });
+                    if (users.length > 0) {
+                        workflow.assignTask(task.id, users, roleCodes);
+                    }
                 }
             }
             await this.instanceRepository.update(workflow.id, workflow!);
