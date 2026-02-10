@@ -7,10 +7,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BusinessException } from '../exceptions/business-exception';
 import { ErrorResponse } from '../models/response-model';
 import { config } from '../../config/app.config';
 import { getTraceId, resolveTraceId } from '../utils/trace-context.util';
+import { SlackNotificationRequestEvent } from 'src/modules/shared/correspondence/events/slack-notification-request.event';
+import { AppTechnicalError } from '../exceptions/app-tech-error';
 
 /**
  * Global exception filter that handles all exceptions in the application.
@@ -24,6 +27,8 @@ import { getTraceId, resolveTraceId } from '../utils/trace-context.util';
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
+
+  constructor(private readonly eventEmitter: EventEmitter2) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -137,6 +142,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Set trace ID if available (retrieve from context or request headers)
     errorResponse.traceId = getTraceId() || resolveTraceId(request.headers);
+
+    if (status >= 500) {
+      this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError(errorResponse));
+      this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
+        message: `HTTP ${status} Error: ${errorResponse.messages.join(', ')} \n Stack : ${exception instanceof Error ? exception.stack : (exception as any)?.stack}`,
+        type: 'error',
+      });
+    }
 
     // Log error details for monitoring
     const logDetails = {

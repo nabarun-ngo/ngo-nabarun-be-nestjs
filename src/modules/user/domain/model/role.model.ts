@@ -8,6 +8,7 @@ export class Role extends BaseDomain<string> {
   public static readonly ASSISTANT_CASHIER = 'ASSISTANT_CASHIER';
   public static readonly TREASURER = 'TREASURER';
   public static readonly MEMBER = 'MEMBER';
+  public static readonly TECHNICAL_SPECIALIST = 'TECHNICAL_SPECIALIST';
 
   // 🔒 TRUE PRIVATE FIELDS
   #roleCode: string;

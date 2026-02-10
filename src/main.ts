@@ -4,8 +4,6 @@ import { applyConfig, config } from './config/app.config';
 import { AppLogger } from './shared/utils/trace-context.util';
 
 async function bootstrap() {
-
-
   console.time('BOOT');
   const app = await NestFactory.create(AppModule, {
     logger: new AppLogger(config.app.logLevel),

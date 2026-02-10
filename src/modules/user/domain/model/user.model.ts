@@ -338,7 +338,7 @@ export class User extends AggregateRoot<string> {
     });
 
     if (toAdd.length > 0 || toRemove.length > 0) {
-      this.addDomainEvent(new RoleAssignedEvent(this.id, this));
+      this.addDomainEvent(new RoleAssignedEvent(this.id, this, toAdd, toRemove));
     }
     return { toAdd, toRemove };
   }

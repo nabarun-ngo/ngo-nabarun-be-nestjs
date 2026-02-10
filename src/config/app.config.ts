@@ -7,6 +7,7 @@ import * as bodyParser from 'body-parser';
 import { TimingInterceptor } from "src/shared/interceptors/timing.interceptor";
 import { resolveTraceId, traceStorage } from "src/shared/utils/trace-context.util";
 import { Request, Response, NextFunction } from "express";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 export const config = {
   app: {
@@ -74,7 +75,7 @@ export function applyConfig(app: INestApplication) {
   }
 
   app.enableCors(config.cors);
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter(app.get(EventEmitter2)));
   app.useGlobalInterceptors(...interceptors);
 
   app.enableShutdownHooks();

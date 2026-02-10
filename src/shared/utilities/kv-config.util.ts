@@ -40,8 +40,9 @@ export function parsefromString<T>(
 export function toKeyValueDto(keyValue: KeyValueConfig): KeyValueDto {
   return {
     key: keyValue.KEY,
-    displayValue: keyValue.VALUE,
+    value: keyValue.VALUE,
     description: keyValue.DESCRIPTION,
+    displayValue: keyValue.VALUE,
     active: keyValue.ACTIVE,
   }
 }
