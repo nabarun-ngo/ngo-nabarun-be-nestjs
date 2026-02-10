@@ -74,6 +74,12 @@ export class NotificationRepository implements INotificationRepository {
     async findAll(filters?: any): Promise<Notification[]> {
         const notifications = await this.prisma.notification.findMany({
             orderBy: { createdAt: 'desc' },
+            where: {
+                createdAt: {
+                    lt: filters?.toDate,
+                    gte: filters?.fromDate,
+                },
+            },
         });
 
         return notifications.map(n => this.toDomain(n));
@@ -102,6 +108,20 @@ export class NotificationRepository implements INotificationRepository {
         await this.prisma.notification.delete({
             where: { id },
         });
+    }
+    async deleteOldNotifications(daysOld: number): Promise<number> {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+        const result = await this.prisma.notification.deleteMany({
+            where: {
+                createdAt: {
+                    lt: cutoffDate,
+                },
+            },
+        });
+
+        return result.count;
     }
 
     private toUpdateData(notification: Notification): Prisma.NotificationUpdateInput {
