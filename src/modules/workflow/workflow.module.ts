@@ -14,10 +14,20 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { WorkflowDefService } from './infrastructure/external/workflow-def.service';
 import { WorkflowEventsHandler } from './application/handlers/workflow-event.handler';
 import { StartWorkflowStepUseCase } from './application/use-cases/start-workflow-step.use-case';
+import { ReassignTaskUseCase } from './application/use-cases/reassign-task.use-case';
 import { AutomaticTaskService } from './application/services/automatic-task.service';
+import { ValidateInputsHandler } from './application/automatic-task-handlers/validate-inputs.handler';
+import { Auth0UserCreationHandler } from './application/automatic-task-handlers/auth0-user-creation.handler';
+import { UserNotRegisteredTaskHandler } from './application/automatic-task-handlers/user-not-registered.handler';
+import { GuestDonationCreationHandler } from './application/automatic-task-handlers/guest-donation-creation.handler';
+import { FinanceModule } from '../finance/finance.module';
+import { UserDeleteAndDataCleanupHandler } from './application/automatic-task-handlers/user-delete-and-data-cleanup.handler';
+import { CancelWorkflowUseCase } from './application/use-cases/cancel-workflow.use-case';
+import { DonationAmountUpdateHandler } from './application/automatic-task-handlers/donation-amount-update.handler';
+import { DonationPauseUpdateHandler } from './application/automatic-task-handlers/donation-pause-update.handler';
 
 @Module({
-  imports: [JobProcessingModule, UserModule, FirebaseModule],
+  imports: [JobProcessingModule, UserModule, FirebaseModule, FinanceModule],
   controllers: [WorkflowController],
   providers: [
     StartWorkflowUseCase,
@@ -31,7 +41,16 @@ import { AutomaticTaskService } from './application/services/automatic-task.serv
     WorkflowDefService,
     WorkflowEventsHandler,
     StartWorkflowStepUseCase,
+    ReassignTaskUseCase,
     AutomaticTaskService,
+    ValidateInputsHandler,
+    Auth0UserCreationHandler,
+    UserNotRegisteredTaskHandler,
+    GuestDonationCreationHandler,
+    UserDeleteAndDataCleanupHandler,
+    CancelWorkflowUseCase,
+    DonationAmountUpdateHandler,
+    DonationPauseUpdateHandler
   ],
   exports: [
     WorkflowService,

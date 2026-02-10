@@ -9,6 +9,7 @@ export interface IWorkflowInstanceRepository extends IRepository<WorkflowInstanc
   findAllTasks(filter: TaskFilter): Promise<WorkflowTask[]>;
   findTasksPaged(filter: BaseFilter<TaskFilter>): Promise<PagedResult<WorkflowTask>>;
   findById(id: string, includeSteps?: boolean): Promise<WorkflowInstance | null>;
+  findByTaskId(taskId: string): Promise<WorkflowTask | null>;
   create(instance: WorkflowInstance): Promise<WorkflowInstance>;
   update(id: string, instance: WorkflowInstance): Promise<WorkflowInstance>;
   delete(id: string): Promise<void>;

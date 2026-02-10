@@ -38,11 +38,26 @@ export class WorkflowController {
   @RequireAllPermissions('update:work')
   @Post(':id/tasks/:taskId/update')
   @ApiOperation({ summary: 'Update a workflow task' })
-  @ApiAutoResponse(WorkflowTaskDto, { description: 'Task updated successfully' })
+  @ApiAutoResponse(WorkflowTaskDto, { status: 200, description: 'Task updated successfully' })
   async updateTask(@Param('id') id: string,
     @Param('taskId') taskId: string,
     @Body() dto: UpdateTaskDto, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowTaskDto>> {
     const result = await this.workflowService.updateTask(id, taskId, dto, user);
+    return new SuccessResponse<WorkflowTaskDto>(result);
+  }
+
+  @RequireAllPermissions('update:work')
+  @Post(':id/tasks/:taskId/reassign')
+  @ApiOperation({ summary: 'Reassign a workflow task' })
+  @ApiAutoResponse(WorkflowTaskDto, { status: 200, description: 'Task reassigned successfully' })
+  @ApiQuery({ name: 'userId', required: false, description: 'User ID to reassign the task to' })
+  @ApiQuery({ name: 'fromDefinition', required: false, description: 'Reassign based on workflow definition roles' })
+  async reassignTask(@Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @Query('fromDefinition') fromDefinition: boolean,
+    @Query('userId') userId?: string,
+  ): Promise<SuccessResponse<WorkflowTaskDto>> {
+    const result = await this.workflowService.reassignTask(id, taskId, userId, fromDefinition);
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
@@ -168,6 +183,15 @@ export class WorkflowController {
     );
   }
 
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a workflow instance' })
+  @ApiAutoResponse(WorkflowInstanceDto, { description: 'Workflow instance cancelled successfully' })
+  @ApiQuery({ name: 'reason', required: true, description: 'Reason for cancellation' })
+  async cancelWorkflow(@Param('id') id: string, @Query('reason') reason: string, @CurrentUser() user: AuthUser): Promise<SuccessResponse<WorkflowInstanceDto>> {
+    const result = await this.workflowService.cancelWorkflow(id, reason, user);
+    return new SuccessResponse<WorkflowInstanceDto>(result);
+  }
+
   @Get('static/referenceData')
   @ApiOperation({ summary: 'Get static reference data' })
   @ApiAutoResponse(WorkflowRefDataDto, { description: 'Static reference data retrieved successfully' })
@@ -181,11 +205,15 @@ export class WorkflowController {
   @ApiOperation({ summary: 'Get additional fields for a workflow type' })
   @ApiAutoResponse(FieldAttributeDto, { description: 'Additional fields retrieved successfully', wrapInSuccessResponse: true, isArray: true })
   @ApiQuery({ name: 'workflowType', required: true, description: 'Workflow type' })
+  @ApiQuery({ name: 'stepId', required: false, description: 'Step ID' })
+  @ApiQuery({ name: 'taskId', required: false, description: 'Task ID' })
   async additionalFields(
     @Query('workflowType') type: string,
+    @Query('stepId') stepId?: string,
+    @Query('taskId') taskId?: string,
   ): Promise<SuccessResponse<FieldAttributeDto[]>> {
     return new SuccessResponse<FieldAttributeDto[]>(
-      await this.workflowService.getAdditionalFields(type)
+      await this.workflowService.getAdditionalFields(type, stepId, taskId)
     );
   }
 

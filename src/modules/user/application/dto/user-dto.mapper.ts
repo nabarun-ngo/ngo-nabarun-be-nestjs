@@ -26,6 +26,7 @@ export class UserDtoMapper {
       roles: user.getRoles()
         .filter((role) => role != null)
         .map((role) => UserDtoMapper.toRoleDTO(role)),
+      roleHistory: UserDtoMapper.mapRolesRecord(user.getRoleHistory()),
       loginMethod: user.loginMethod as LoginMethod[],
       email: user.email,
       primaryNumber: UserDtoMapper.toPhoneNumberDTO(user.primaryNumber!),
@@ -76,7 +77,7 @@ export class UserDtoMapper {
     return {
       roleCode: role.roleCode,
       roleName: role.roleName,
-      description: '',
+      description: role.authRoleCode,
     };
   }
   static toLinkDTO(link: Link): LinkDto {
@@ -85,5 +86,17 @@ export class UserDtoMapper {
       linkName: link.linkName,
       linkValue: link.linkValue,
     };
+  }
+
+  private static mapRolesRecord(
+    input: Record<string, Role[]>
+  ): Record<string, RoleDto[]> {
+
+    return Object.fromEntries(
+      Object.entries(input).map(([key, roles]) => [
+        key,
+        roles.map(UserDtoMapper.toRoleDTO)
+      ])
+    );
   }
 }

@@ -8,6 +8,7 @@ import { EmailTemplateName } from "src/shared/email-keys";
 import { JobName } from "src/shared/job-names";
 import { formatDate } from "src/shared/utilities/common.util";
 import { StaticDocsService } from "src/modules/shared/dms/application/services/static-docs.service";
+import { UserDeletedEvent } from "../../domain/events/user-deleted.event";
 
 @Injectable()
 export class UserEventsHandler {
@@ -80,6 +81,12 @@ export class UserEventsHandler {
       })
       this.logger.log(`Role Assigned Email sent successfully!!`);
     }
+  }
+
+  @OnEvent(UserDeletedEvent.name, { async: true })
+  async handleUserDeletedEvent(event: UserDeletedEvent) {
+    this.logger.warn(`TODO : Send final email to user ${event.user.email} about account deactivation`)
+
   }
 
 }

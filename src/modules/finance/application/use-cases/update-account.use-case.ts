@@ -11,7 +11,7 @@ export class UpdateAccountUseCase implements IUseCase<{ id: string; dto: UpdateA
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
-  ) {}
+  ) { }
 
   async execute(request: { id: string; dto: UpdateAccountDto }): Promise<Account> {
     const account = await this.accountRepository.findById(request.id);
@@ -52,10 +52,8 @@ export class UpdateAccountUseCase implements IUseCase<{ id: string; dto: UpdateA
     if (request.dto.accountStatus) {
       if (request.dto.accountStatus === 'ACTIVE') {
         account.activate();
-      } else if (request.dto.accountStatus === 'INACTIVE') {
-        account.deactivate();
-      } else if (request.dto.accountStatus === 'BLOCKED') {
-        account.block();
+      } else if (request.dto.accountStatus === 'CLOSED') {
+        account.close();
       }
     }
 

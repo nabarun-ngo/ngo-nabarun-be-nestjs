@@ -8,13 +8,15 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CronJob } from './cron-job.model';
 import { RemoteConfigService } from '../firebase/remote-config/remote-config.service';
 import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
+import { CronLogStorageService } from './cron-log-storage.service';
 
 @Injectable()
 export class CronSchedulerService {
     private readonly logger = new CronLogger(CronSchedulerService.name);
-
-    constructor(private eventEmitter: EventEmitter2,
+    constructor(
+        private eventEmitter: EventEmitter2,
         private readonly firebasRC: RemoteConfigService,
+        private readonly logStorage: CronLogStorageService
     ) { }
 
     async triggerScheduledJobs(timestamp?: string): Promise<{ executed: string[], skipped: string[] }> {
@@ -28,8 +30,24 @@ export class CronSchedulerService {
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
                 this.logger.log(`[CRON] Triggered job: ${job.name}`);
-                this.eventEmitter.emit(job.handler);
                 executed.push(job.name);
+                try {
+                    await this.eventEmitter.emitAsync(job.handler);
+                    await this.logStorage.addLog({
+                        jobName: job.name,
+                        executedAt: new Date(),
+                        trigger: 'AUTOMATIC',
+                        status: 'SUCCESS'
+                    });
+                } catch (error) {
+                    await this.logStorage.addLog({
+                        jobName: job.name,
+                        executedAt: new Date(),
+                        trigger: 'AUTOMATIC',
+                        status: 'FAILED',
+                        error: error.message
+                    });
+                }
             } else {
                 this.logger.log(`[CRON] Skipped job: ${job.name}`);
                 skipped.push(job.name);
@@ -71,7 +89,29 @@ export class CronSchedulerService {
         if (!job) {
             throw new BusinessException(`Job ${name} not found OR Not in active state`);
         }
-        return await this.eventEmitter.emitAsync(job.handler);
+        try {
+            const results = await this.eventEmitter.emitAsync(job.handler);
+            await this.logStorage.addLog({
+                jobName: job.name,
+                executedAt: new Date(),
+                trigger: 'MANUAL',
+                status: 'SUCCESS'
+            });
+            return results;
+        } catch (error) {
+            await this.logStorage.addLog({
+                jobName: job.name,
+                executedAt: new Date(),
+                trigger: 'MANUAL',
+                status: 'FAILED',
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    async getCronLogs(jobName: string) {
+        return await this.logStorage.getLogs(jobName);
     }
 
     /**

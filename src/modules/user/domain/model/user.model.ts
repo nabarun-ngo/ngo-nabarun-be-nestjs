@@ -8,11 +8,13 @@ import { PhoneNumber } from './phone-number.model';
 import { Link } from './link.model';
 import { generatePassword } from '../../../../shared/utilities/password-util';
 import { RoleAssignedEvent } from '../events/role-assigned.event';
+import { UserDeletedEvent } from '../events/user-deleted.event';
 
 export enum UserStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   BLOCKED = "BLOCKED",
+  DELETED = "DELETED",
 }
 export enum LoginMethod {
   EMAIL = 'EMAIL',
@@ -46,13 +48,18 @@ export class UserProfileProps {
   isAddressSame?: boolean;
   isPublicProfile?: boolean;
   socialMediaLinks?: Link[];
-  donationAmount?: number;
 }
 
 export class UserAttributesProps {
   status?: UserStatus;
   userId?: string;
   loginMethods?: LoginMethod[];
+  aadharNumber?: string;
+  panNumber?: string
+  donationAmount?: number;
+  donationPauseStart?: Date;
+  donationPauseEnd?: Date;
+
 }
 
 export class User extends AggregateRoot<string> {
@@ -175,7 +182,6 @@ export class User extends AggregateRoot<string> {
     this.#dateOfBirth = detail.dateOfBirth ?? this.#dateOfBirth;
     this.#gender = detail.gender ?? this.#gender;
     this.#about = detail.about ?? this.#about;
-    this.#donationAmount = detail.donationAmount ?? this.#donationAmount;
 
     if (detail.primaryNumber) {
       this.#primaryNumber =
@@ -270,6 +276,11 @@ export class User extends AggregateRoot<string> {
     this.#status = detail.status ?? this.#status;
     this.#authUserId = detail.userId ?? this.#authUserId;
     this.#updateAuth = detail.userId !== undefined || this.#status !== undefined;
+    this.#donationAmount = detail.donationAmount ?? this.#donationAmount;
+    this.#aadharNumber = detail.aadharNumber ?? this.#aadharNumber;
+    this.#panNumber = detail.panNumber ?? this.#panNumber;
+    this.#donationPauseStart = detail.donationPauseStart ?? this.#donationPauseStart;
+    this.#donationPauseEnd = detail.donationPauseEnd ?? this.#donationPauseEnd;
     this.touch();
   }
 
@@ -550,5 +561,23 @@ export class User extends AggregateRoot<string> {
 
   get isDeleted() {
     return this.#isDeleted;
+  }
+
+  delete() {
+    this.#isDeleted = true;
+    this.#status = UserStatus.DELETED;
+    this.#donationAmount = undefined;
+    this.#donationPauseEnd = undefined;
+    this.#donationPauseStart = undefined;
+    this.#panNumber = undefined;
+    this.#aadharNumber = undefined;
+    this.#socialMediaLinks = [];
+    this.#roles = [];
+    this.#about = undefined;
+    this.#title = undefined;
+    this.#isPublic = false;
+    this.#loginMethod = [];
+    this.#isProfileCompleted = false;
+    this.addDomainEvent(new UserDeletedEvent(this.id, this));
   }
 }

@@ -8,6 +8,7 @@ export enum TaskAssignmentStatus {
   ACCEPTED = 'ACCEPTED',
   REMOVED = 'REMOVED',
   REJECTED = 'REJECTED',
+  DELETED = "DELETED",
 }
 
 export class TaskAssignment extends BaseDomain<string> {
@@ -80,6 +81,10 @@ export class TaskAssignment extends BaseDomain<string> {
     return this.#notes;
   }
 
+  static get pendingStatus() {
+    return [TaskAssignmentStatus.PENDING, TaskAssignmentStatus.ACCEPTED];
+  }
+
   // -------- FACTORY --------
 
   static create(data: {
@@ -112,10 +117,15 @@ export class TaskAssignment extends BaseDomain<string> {
   }
 
   remove() {
-    if (this.#status !== TaskAssignmentStatus.PENDING) {
-      throw new BusinessException(`Cannot reject assignment in status: ${this.#status}`);
-    }
+    // if (this.#status !== TaskAssignmentStatus.PENDING) {
+    //   throw new BusinessException(`Cannot reject assignment in status: ${this.#status}`);
+    // }
     this.#status = TaskAssignmentStatus.REMOVED;
+    this.touch();
+  }
+
+  delete() {
+    this.#status = TaskAssignmentStatus.DELETED;
     this.touch();
   }
 

@@ -8,6 +8,7 @@ import { USER_REPOSITORY, type IUserRepository } from "src/modules/user/domain/r
 
 @Injectable()
 export class PublicService {
+    private cacheTTL: number = 10 * 24 * 3600 * 1000;
 
     constructor(
         @Inject(USER_REPOSITORY)
@@ -24,7 +25,7 @@ export class PublicService {
                 status: UserStatus.ACTIVE,
                 includeLinks: true,
             })).map(toTeamMemberDTO);
-            await this.cacheManager.set('team-members', users);
+            await this.cacheManager.set('team-members', users, this.cacheTTL);
             return users;
         } else {
             return cached;

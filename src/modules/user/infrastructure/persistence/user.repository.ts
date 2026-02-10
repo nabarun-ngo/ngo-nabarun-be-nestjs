@@ -11,6 +11,7 @@ import { DonationStatus } from 'src/modules/finance/domain/model/donation.model'
 import { ExpenseStatus } from 'src/modules/finance/domain/model/expense.model';
 import { WorkflowTask } from 'src/modules/workflow/domain/model/workflow-task.model';
 import { AccountType } from 'src/modules/finance/domain/model/account.model';
+import { TaskAssignment } from 'src/modules/workflow/domain/model/task-assignment.model';
 
 @Injectable()
 class UserRepository
@@ -336,6 +337,9 @@ class UserRepository
           assignments: {
             some: {
               assignedToId: id,
+              status: {
+                in: TaskAssignment.pendingStatus
+              }
             }
           }
         }
