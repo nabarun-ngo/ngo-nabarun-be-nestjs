@@ -952,7 +952,7 @@ model UserNotification {
   user   UserProfile @relation("UserNotificationsFor", fields: [userId], references: [id])
 
   notificationId String       @db.VarChar(255) // User who receives the notification
-  notification   Notification @relation(fields: [notificationId], references: [id])
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
   // Status
   isRead     Boolean   @default(false)

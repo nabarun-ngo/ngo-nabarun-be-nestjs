@@ -410,6 +410,11 @@ export class UserRefDataDto {
   @ApiProperty()
   phoneCodes?: KeyValueDto[];
 
+  @ApiProperty()
+  maxUserPerRole?: KeyValueDto[];
+  @ApiProperty()
+  minUserPerRole?: KeyValueDto[];
+
 }
 
 export class UserRefDataFilterDto {

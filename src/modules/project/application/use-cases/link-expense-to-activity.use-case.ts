@@ -6,7 +6,7 @@ import { ACTIVITY_REPOSITORY } from '../../domain/repositories/activity.reposito
 import type { IActivityRepository } from '../../domain/repositories/activity.repository.interface';
 import { LinkExpenseToActivityDto } from '../dto/activity.dto';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { PrismaPostgresService } from '../../../../modules/shared/database/prisma-postgres.service';
+import { PrismaPostgresService } from '../../../shared/database/prisma-postgres.service';
 
 @Injectable()
 export class LinkExpenseToActivityUseCase implements IUseCase<{ activityId: string; data: LinkExpenseToActivityDto; createdBy: string }, ActivityExpense> {
@@ -16,7 +16,7 @@ export class LinkExpenseToActivityUseCase implements IUseCase<{ activityId: stri
     @Inject(ACTIVITY_REPOSITORY)
     private readonly activityRepository: IActivityRepository,
     private readonly prisma: PrismaPostgresService,
-  ) {}
+  ) { }
 
   async execute(request: { activityId: string; data: LinkExpenseToActivityDto; createdBy: string }): Promise<ActivityExpense> {
     // Verify activity exists

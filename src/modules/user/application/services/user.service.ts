@@ -162,6 +162,8 @@ export class UserService {
             loginMethods: data.loginMethods.map(toKeyValueDto),
             userGenders: data.userGenders.map(toKeyValueDto),
             availableRoles: data.availableRoles.map(toKeyValueDto),
+            maxUserPerRole: data.maxUserPerRole.map(toKeyValueDto),
+            minUserPerRole: data.minUserPerRole.map(toKeyValueDto),
             userTitles: data.userTitles.map(toKeyValueDto),
             countries: data.countryData.map(toKeyValueDto),
             states: (filter?.countryCode ? await this.metadataService.getStates(filter.countryCode) : data.stateData).map(toKeyValueDto),

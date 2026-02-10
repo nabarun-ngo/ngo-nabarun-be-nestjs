@@ -9,7 +9,6 @@ import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
 export class UserMetadataService {
     private readonly logger = new Logger(UserMetadataService.name);
     constructor(private readonly configService: RemoteConfigService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
 
     async getAllRoles(): Promise<Role[]> {
@@ -20,11 +19,11 @@ export class UserMetadataService {
 
     async getReferenceData() {
         const keyValueConfigs = await this.configService.getAllKeyValues()
-        const status = parsefromString<KeyValueConfig[]>(keyValueConfigs['PROFILE_STATUSES'].value);
-        const connections = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_CONNECTIONS'].value)
-        const genders = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_GENDERS'].value)
-        const roles = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_ROLES'].value)
-        const titles = parsefromString<KeyValueConfig[]>(keyValueConfigs['USER_TITLES'].value)
+        const status = parseKeyValueConfigs(keyValueConfigs['PROFILE_STATUSES'].value);
+        const connections = parseKeyValueConfigs(keyValueConfigs['USER_CONNECTIONS'].value)
+        const genders = parseKeyValueConfigs(keyValueConfigs['USER_GENDERS'].value)
+        const roles = parseKeyValueConfigs(keyValueConfigs['USER_ROLES'].value)
+        const titles = parseKeyValueConfigs(keyValueConfigs['USER_TITLES'].value)
         const countries = parsefromString<KeyValueConfig[]>(keyValueConfigs['COUNTRY_LIST'].value)
         const states = parsefromString<KeyValueConfig[]>(keyValueConfigs['STATE_LIST'].value)
         const districts = parsefromString<KeyValueConfig[]>(keyValueConfigs['DISTRICT_LIST'].value)
@@ -38,8 +37,19 @@ export class UserMetadataService {
             dialCodes: countries.map(this.mapDialCodeData),
             countryData: countries.map(this.mapData),
             stateData: states.map(this.mapData),
-            districtData: districts.map(this.mapData)
+            districtData: districts.map(this.mapData),
+            maxUserPerRole: roles.map(m => this.mapAttributeData(m, 'MAX_USER')),
+            minUserPerRole: roles.map(m => this.mapAttributeData(m, 'MIN_USER'))
         }
+    }
+    private mapAttributeData(data: KeyValueConfig, name: string): KeyValueConfig {
+        return {
+            KEY: data.KEY,
+            VALUE: data.getAttribute(name),
+            DESCRIPTION: data.VALUE,
+            ATTRIBUTES: data.ATTRIBUTES,
+            ACTIVE: data.ACTIVE,
+        } as KeyValueConfig
     }
 
     async getStates(countryCode: string): Promise<KeyValueConfig[]> {
@@ -64,7 +74,9 @@ export class UserMetadataService {
         return {
             KEY: data.KEY,
             VALUE: data.VALUE,
-            DESCRIPTION: `${data.VALUE} (${data.KEY})`
+            DESCRIPTION: `${data.VALUE} (${data.KEY})`,
+            ATTRIBUTES: data.ATTRIBUTES,
+            ACTIVE: data.ACTIVE,
         } as KeyValueConfig
     }
 
