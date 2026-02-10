@@ -192,8 +192,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
         expression,
         this.#context
       );
-      console.log(result)
-      return result == 1;
+      return !!result;;
     } catch (error) {
       throw new Error(`Error evaluating condition "${expression}":`, error);
     }
@@ -325,8 +324,10 @@ export class WorkflowInstance extends AggregateRoot<string> {
     if (step) {
       step.complete();
       step.tasks.forEach(task => {
-        task.complete({ id: userId }, this.#remarks);
-        this.addDomainEvent(new TaskCompletedEvent(this.id, task));
+        if (task.status == WorkflowTaskStatus.IN_PROGRESS || task.status == WorkflowTaskStatus.PENDING) {
+          task.complete({ id: userId }, this.#remarks);
+          this.addDomainEvent(new TaskCompletedEvent(this.id, task));
+        }
       });
       this.addDomainEvent(new StepCompletedEvent(this.id, step.id));
     }
