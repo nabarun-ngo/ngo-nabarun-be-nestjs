@@ -355,6 +355,9 @@ export class UserDto {
   picture?: string;
   @ApiProperty({ type: () => [RoleDto] })
   roles: RoleDto[];
+
+  @ApiProperty({ type: () => [RoleDto] })
+  roleHistory?: Record<string, RoleDto[]>
   @ApiProperty()
   email: string;
   @ApiPropertyOptional({ type: () => PhoneNumberDto })

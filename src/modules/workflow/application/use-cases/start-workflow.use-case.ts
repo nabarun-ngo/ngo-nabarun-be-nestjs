@@ -3,20 +3,23 @@ import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
 import { WorkflowInstance } from '../../domain/model/workflow-instance.model';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
 import { AutomaticTaskService } from '../services/automatic-task.service';
+import { CreateWorkflowRequestEvent } from '../events/create-workflow-request.event';
 
-@Injectable()
-export class StartWorkflowUseCase implements IUseCase<{
+export class StartWorkflow {
   type: string;
   data: Record<string, string>;
   requestedBy: string;
   requestedFor?: string;
   forExternalUser?: boolean;
   externalUserEmail?: string;
-}, WorkflowInstance> {
+}
+
+@Injectable()
+export class StartWorkflowUseCase implements IUseCase<StartWorkflow, WorkflowInstance> {
   constructor(
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly instanceRepository: IWorkflowInstanceRepository,
@@ -26,14 +29,7 @@ export class StartWorkflowUseCase implements IUseCase<{
 
   ) { }
 
-  async execute(request: {
-    type: string;
-    data: Record<string, string>;
-    requestedBy: string;
-    requestedFor?: string;
-    forExternalUser?: boolean;
-    externalUserEmail?: string;
-  }): Promise<WorkflowInstance> {
+  async execute(request: StartWorkflow): Promise<WorkflowInstance> {
     // Find workflow definition
     const definition = await this.definitionRepository.findWorkflowByType(request.type, request.data);
     if (!definition) {
@@ -66,6 +62,11 @@ export class StartWorkflowUseCase implements IUseCase<{
     });
     instance.clearEvents();
     return savedInstance;
+  }
+
+  @OnEvent(CreateWorkflowRequestEvent.name, { async: true })
+  async handleCreateWorkflowRequestEvent(event: CreateWorkflowRequestEvent) {
+    await this.execute(event.workflow);
   }
 }
 

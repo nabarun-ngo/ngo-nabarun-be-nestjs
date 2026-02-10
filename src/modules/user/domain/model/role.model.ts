@@ -4,6 +4,11 @@ import { User } from './user.model';
 
 export class Role extends BaseDomain<string> {
 
+  public static readonly CASHIER = 'CASHIER';
+  public static readonly ASSISTANT_CASHIER = 'ASSISTANT_CASHIER';
+  public static readonly TREASURER = 'TREASURER';
+  public static readonly MEMBER = 'MEMBER';
+
   // 🔒 TRUE PRIVATE FIELDS
   #roleCode: string;
   #roleName: string;

@@ -5,7 +5,6 @@ import { WorkflowService } from "src/modules/workflow/application/services/workf
 import { ContactFormDto, DonationFormDto, SignUpDto, TeamMember } from "../dto/public.dto";
 import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
 import { USER_REPOSITORY, type IUserRepository } from "src/modules/user/domain/repositories/user.repository.interface";
-import { config } from "src/config/app.config";
 
 @Injectable()
 export class PublicService {
@@ -35,7 +34,6 @@ export class PublicService {
 
 
     async contactUs(dto: ContactFormDto) {
-        console.log(dto)
         const workflow = await this.workflowService.createWorkflow({
             type: "CONTACT_REQUEST",
             data: dtoToRecord(dto),
