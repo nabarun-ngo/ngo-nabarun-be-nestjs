@@ -359,14 +359,15 @@ export class User extends AggregateRoot<string> {
   public getRoleHistory(): Record<string, Role[]> {
     const format = (d: Date) =>
       d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-    return this.#roles.reduce((acc, role) => {
-      const start = format(role.createdAt);
-      const end = role.expireAt ? format(role.expireAt) : 'Present';
-      const key = `${start} - ${end}`;
-      acc[key] = acc[key] || [];
-      acc[key].push(role);
-      return acc;
-    }, {} as Record<string, Role[]>);
+    return this.#roles.reverse()
+      .reduce((acc, role) => {
+        const start = format(role.createdAt);
+        const end = role.expireAt ? format(role.expireAt) : 'Present';
+        const key = `${start} - ${end}`;
+        acc[key] = acc[key] || [];
+        acc[key].unshift(role);
+        return acc;
+      }, {} as Record<string, Role[]>);
   }
 
   // ---- Constructors & getters region ----

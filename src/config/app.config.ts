@@ -22,7 +22,9 @@ export const config = {
     mongodbUrl: process.env[Configkey.MONGODB_URL],
     postgresUrl: process.env[Configkey.POSTGRES_URL],
     redisUrl: process.env[Configkey.REDIS_URL],
+    auditedModels: ['Account', 'Donation', 'Expense', 'Transaction', 'Earning'],
   },
+
   cors: {
     origin: process.env[Configkey.CORS_ALLOWED_ORIGIN]?.split(','),
     credentials: true,
@@ -44,8 +46,16 @@ export function applyConfig(app: INestApplication) {
     const traceId = resolveTraceId(req.headers);
     // Set traceId in response header for convenience
     res.setHeader('x-trace-id', traceId);
-    traceStorage.run({ traceId }, () => next());
+    traceStorage.run({
+      traceId,
+      user: {
+        userId: 'system', // Default if not authenticated
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      }
+    }, () => next());
   });
+
 
   app.use(compression()); // Response compression
 

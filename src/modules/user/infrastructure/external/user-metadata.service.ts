@@ -24,6 +24,7 @@ export class UserMetadataService {
         const genders = parseKeyValueConfigs(keyValueConfigs['USER_GENDERS'].value)
         const roles = parseKeyValueConfigs(keyValueConfigs['USER_ROLES'].value)
         const titles = parseKeyValueConfigs(keyValueConfigs['USER_TITLES'].value)
+        const document_types = parseKeyValueConfigs(keyValueConfigs['USER_DOCUMENT_TYPES'].value)
         const countries = parsefromString<KeyValueConfig[]>(keyValueConfigs['COUNTRY_LIST'].value)
         const states = parsefromString<KeyValueConfig[]>(keyValueConfigs['STATE_LIST'].value)
         const districts = parsefromString<KeyValueConfig[]>(keyValueConfigs['DISTRICT_LIST'].value)
@@ -39,7 +40,8 @@ export class UserMetadataService {
             stateData: states.map(this.mapData),
             districtData: districts.map(this.mapData),
             maxUserPerRole: roles.map(m => this.mapAttributeData(m, 'MAX_USER')),
-            minUserPerRole: roles.map(m => this.mapAttributeData(m, 'MIN_USER'))
+            minUserPerRole: roles.map(m => this.mapAttributeData(m, 'MIN_USER')),
+            document_types: document_types.map(this.mapData)
         }
     }
     private mapAttributeData(data: KeyValueConfig, name: string): KeyValueConfig {

@@ -2,19 +2,28 @@ import { AsyncLocalStorage } from 'async_hooks';
 import { ConsoleLogger, LogLevel } from '@nestjs/common';
 import { generateUniqueNDigitNumber } from '../utilities/password-util';
 
+export interface UserContext {
+    userId: string;
+    userName?: string;
+    ipAddress?: string;
+    userAgent?: string;
+}
+
 export interface TraceContext {
     traceId: string;
+    user?: UserContext;
 }
 
 export const traceStorage = new AsyncLocalStorage<TraceContext>();
 
-/**
- * Gets the current trace ID from the async storage context.
- * Returns undefined if no context is found.
- */
 export function getTraceId(): string | undefined {
     return traceStorage.getStore()?.traceId;
 }
+
+export function getUserContext(): UserContext | undefined {
+    return traceStorage.getStore()?.user;
+}
+
 
 /**
  * Generates or retrieves a trace ID from the request headers.
