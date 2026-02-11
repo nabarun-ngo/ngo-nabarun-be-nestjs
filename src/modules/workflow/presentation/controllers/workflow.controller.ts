@@ -25,7 +25,7 @@ export class WorkflowController {
     private readonly workflowService: WorkflowService,
   ) { }
 
-  @RequireAllPermissions('create:request')
+  @RequireAllPermissions('create:workflow')
   @Post('create')
   @ApiOperation({ summary: 'Start a new workflow instance' })
   @ApiAutoResponse(WorkflowInstanceDto, { status: 201, description: 'Workflow started successfully' })
@@ -35,7 +35,7 @@ export class WorkflowController {
   }
 
 
-  @RequireAllPermissions('update:work')
+  @RequireAllPermissions('update:task')
   @Post(':id/tasks/:taskId/update')
   @ApiOperation({ summary: 'Update a workflow task' })
   @ApiAutoResponse(WorkflowTaskDto, { status: 200, description: 'Task updated successfully' })
@@ -46,7 +46,7 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowTaskDto>(result);
   }
 
-  @RequireAllPermissions('update:work')
+  @RequireAllPermissions('update:task')
   @Post(':id/tasks/:taskId/reassign')
   @ApiOperation({ summary: 'Reassign a workflow task' })
   @ApiAutoResponse(WorkflowTaskDto, { status: 200, description: 'Task reassigned successfully' })
@@ -62,7 +62,7 @@ export class WorkflowController {
   }
 
 
-  @RequireAllPermissions('read:request')
+  @RequireAllPermissions('read:workflow')
   @Get(':id/instance')
   @ApiOperation({ summary: 'Get workflow instance by ID' })
   @ApiAutoResponse(WorkflowInstanceDto, { description: 'Workflow instance retrieved successfully' })
@@ -74,7 +74,7 @@ export class WorkflowController {
     return new SuccessResponse<WorkflowInstanceDto>(instance);
   }
 
-  @RequireAllPermissions('read:request')
+  @RequireAllPermissions('read:workflow')
   @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully', wrapInSuccessResponse: true })
@@ -99,7 +99,7 @@ export class WorkflowController {
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
-  @RequireAllPermissions('read:request')
+  @RequireAllPermissions('read:workflow')
   @Get('instances/byMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
@@ -124,7 +124,7 @@ export class WorkflowController {
     return new SuccessResponse<PagedResult<WorkflowInstanceDto>>(instances);
   }
 
-  @RequireAllPermissions('read:work')
+  @RequireAllPermissions('read:task')
   @Get('tasks/forMe')
   @ApiOperation({ summary: 'List workflow tasks', description: 'Filter by completed (set true to get completed tasks, set false to get pending tasks)' })
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
@@ -152,7 +152,7 @@ export class WorkflowController {
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);
   }
 
-  @RequireAllPermissions('read:work')
+  @RequireAllPermissions('read:task')
   @Get('tasks/automatic')
   @ApiOperation({ summary: 'List automatic workflow tasks' })
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })

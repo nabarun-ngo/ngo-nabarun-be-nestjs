@@ -8,6 +8,7 @@ import { ActivityDetailDto, CreateActivityDto, UpdateActivityDto } from '../../a
 import { ActivityFilterProps } from '../../domain/model/activity.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 @ApiTags(ProjectController.name)
 @Controller('projects')
@@ -16,6 +17,7 @@ export class ProjectController {
   constructor(private readonly projectService: ProjectService) { }
   @Get()
   @ApiOperation({ summary: 'List projects with filters and pagination' })
+  @RequirePermissions('read:project')
   @ApiQuery({ name: 'pageIndex', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiAutoPagedResponse(ProjectDetailDto, { description: 'Projects retrieved successfully', wrapInSuccessResponse: true })
@@ -34,6 +36,7 @@ export class ProjectController {
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('create:project')
   @ApiOperation({ summary: 'Create a new project' })
   @ApiAutoResponse(ProjectDetailDto, { status: 201, description: 'Project created successfully', wrapInSuccessResponse: true })
   async createProject(@Body() dto: CreateProjectDto): Promise<SuccessResponse<ProjectDetailDto>> {
@@ -41,6 +44,7 @@ export class ProjectController {
   }
 
   @Patch(':id/update')
+  @RequirePermissions('update:project')
   @ApiOperation({ summary: 'Update a project' })
   @ApiParam({ name: 'id', description: 'Project ID' })
   @ApiAutoResponse(ProjectDetailDto, { status: 200, description: 'Project updated successfully', wrapInSuccessResponse: true })
@@ -49,6 +53,7 @@ export class ProjectController {
   }
 
   @Get(':id')
+  @RequirePermissions('read:project')
   @ApiOperation({ summary: 'Get project by ID' })
   @ApiParam({ name: 'id', description: 'Project ID' })
   @ApiAutoResponse(ProjectDetailDto, { status: 200, description: 'Project retrieved successfully', wrapInSuccessResponse: true })
@@ -59,6 +64,7 @@ export class ProjectController {
 
 
   @Get(':id/activities')
+  @RequirePermissions('read:activity')
   @ApiOperation({ summary: 'List project activities with filters and pagination' })
   @ApiQuery({ name: 'pageIndex', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
@@ -80,6 +86,7 @@ export class ProjectController {
   }
 
   @Post(':id/activity')
+  @RequirePermissions('create:activity')
   @ApiOperation({ summary: 'create new activity' })
   @ApiAutoResponse(ActivityDetailDto, { description: 'Project activity created successfully', wrapInSuccessResponse: true })
   async createActivity(
@@ -92,6 +99,7 @@ export class ProjectController {
   }
 
   @Patch(':id/activity/:activityId')
+  @RequirePermissions('update:activity')
   @ApiOperation({ summary: 'Update project activity' })
   @ApiAutoResponse(ActivityDetailDto, { description: 'Project activity updated successfully', wrapInSuccessResponse: true })
   async updateActivity(
@@ -105,6 +113,7 @@ export class ProjectController {
   }
 
   @Get('static/referenceData')
+  @RequirePermissions('read:project')
   @ApiOperation({ summary: 'Get project reference data' })
   @ApiAutoResponse(ProjectRefDataDto, { wrapInSuccessResponse: true, description: 'Project reference data retrieved successfully' })
   async getProjectReferenceData(): Promise<SuccessResponse<ProjectRefDataDto>> {
