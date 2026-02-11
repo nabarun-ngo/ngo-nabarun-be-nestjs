@@ -176,7 +176,7 @@ export class AccountController {
 
   @Post(':id/transaction/reverse')
   @ApiOperation({ summary: 'Reverse transaction for account' })
-  // @RequirePermissions('update:transactions')
+  @RequirePermissions('update:transactions')
   @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async reverseTransaction(
     @Param('id') id: string,

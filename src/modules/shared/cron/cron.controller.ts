@@ -6,6 +6,7 @@ import { UseApiKey } from '../auth/application/decorators/use-api-key.decorator'
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { CronJobDto } from './cron-job.dto';
+import { RequirePermissions } from '../auth/application/decorators/require-permissions.decorator';
 
 @ApiTags(CronController.name)
 @Controller('cron')
@@ -16,6 +17,7 @@ export class CronController {
 
     @Post('trigger')
     @UseApiKey()
+    @RequirePermissions('update:cron')
     async executeCron(
         @Headers('x-cloudscheduler-scheduletime') scheduleTime?: string, // ISO 8601 format
     ) {
@@ -25,6 +27,7 @@ export class CronController {
     }
 
     @Post('run/:name')
+    @RequirePermissions('update:cron')
     @ApiAutoResponse(SuccessResponse, { description: 'OK', wrapInSuccessResponse: true })
     async runScheduledJob(@Param('name') name: string) {
         await this.schedulerService.runScheduledJob(name)
@@ -32,6 +35,7 @@ export class CronController {
     }
 
     @Get('jobs')
+    @RequirePermissions('read:cron')
     @ApiAutoResponse(CronJobDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
     async getScheduledJobs() {
         return new SuccessResponse(
@@ -39,6 +43,7 @@ export class CronController {
         );
     }
     @Get('logs/:name')
+    @RequirePermissions('read:cron')
     @ApiAutoResponse(SuccessResponse, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
     async getCronLogs(@Param('name') name: string) {
         return new SuccessResponse(

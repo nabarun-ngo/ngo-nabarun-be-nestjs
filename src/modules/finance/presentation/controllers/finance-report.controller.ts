@@ -11,6 +11,7 @@ import { MetadataService } from "../../infrastructure/external/metadata.service"
 import { SuccessResponse } from "src/shared/models/response-model";
 import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
+import { RequirePermissions } from "src/modules/shared/auth/application/decorators/require-permissions.decorator";
 
 @ApiTags(FinanceReportController.name)
 @Controller('finance-report')
@@ -23,6 +24,7 @@ export class FinanceReportController {
 
     @Get('list')
     @ApiOperation({ summary: 'Get list of reports' })
+    @RequirePermissions('read:reports')
     @ApiAutoResponse(KeyValueDto, { description: 'Get list of reports', isArray: true, wrapInSuccessResponse: true })
     async getReportList(): Promise<SuccessResponse<KeyValueDto[]>> {
         return new SuccessResponse(
@@ -33,6 +35,7 @@ export class FinanceReportController {
 
     @Get('generate/:reportName')
     @ApiOperation({ summary: 'Download a document file' })
+    @RequirePermissions('read:reports')
     @ApiParam({ name: 'reportName', description: 'Report name', type: String })
     @ApiProduces('application/octet-stream')
     @ApiResponse({

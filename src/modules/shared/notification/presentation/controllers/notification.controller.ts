@@ -7,7 +7,6 @@ import {
     Query,
     Delete,
     Patch,
-    Request,
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
@@ -23,6 +22,7 @@ import { CurrentUser } from 'src/modules/shared/auth/application/decorators/curr
 import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoPagedResponse, ApiAutoResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 @ApiTags(NotificationController.name)
 @ApiBearerAuth('jwt')
@@ -32,6 +32,7 @@ export class NotificationController {
 
     @Post('bulk')
     @ApiOperation({ summary: 'Create bulk notifications' })
+    @RequirePermissions('create:notification')
     @ApiAutoResponse(NotificationResponseDto, { status: 201, description: 'Bulk notifications created successfully', wrapInSuccessResponse: true })
     async createBulkNotifications(@Body() dto: BulkNotificationDto) {
         const notifications = await this.notificationService.createBulkNotifications(dto);
