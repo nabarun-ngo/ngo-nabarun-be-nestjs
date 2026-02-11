@@ -1,0 +1,96 @@
+{
+    "name": "Account Adjustment",
+    "description": "Account adjustment due to role change",
+    "fields": [
+        {
+            "key": "needCreateAccount",
+            "defKey": "SELECT_YES_NO_FIELD",
+            "label": "Need to create account?",
+            "mandatory": true
+        },
+        {
+            "key": "needDeleteAccount",
+            "defKey": "SELECT_YES_NO_FIELD",
+            "label": "Need to close account?",
+            "mandatory": true
+        },
+        {
+            "key": "addedRoles",
+            "defKey": "INPUT_TEXT_FIELD",
+            "label": "Added Roles",
+            "mandatory": true
+        },
+        {
+            "key": "removedRoles",
+            "defKey": "INPUT_TEXT_FIELD",
+            "label": "Removed Roles",
+            "mandatory": true
+        },
+        {
+            "key": "name",
+            "defKey": "INPUT_TEXT_FIELD",
+            "label": "Member Name",
+            "mandatory": true
+        },
+        {
+            "key": "email",
+            "defKey": "INPUT_EMAIL_FIELD",
+            "label": "Email Address",
+            "mandatory": true
+        }
+    ],
+    "preCreationTasks": [
+        {
+            "taskId": "validateinputs",
+            "type": "AUTOMATIC",
+            "handler": "ValidateInputs",
+            "description": ""
+        }
+    ],
+    "steps": [
+        {
+            "isDefault": true,
+            "stepId": "accountadjustment",
+            "name": "Account Adjustment",
+            "description": "Review and create or close account for {{name}} ({{email}}).",
+            "tasks": [
+                {
+                    "taskId": "createorremoveaccount",
+                    "name": "{{#if (eq needCreateAccount 'Yes')}}Review and create Account for {{name}}.{{/if}}{{#if (eq needDeleteAccount 'Yes')}}Review and close Account for {{name}}.{{/if}}",
+                    "description": "Role for {{name}} ({{email}}) has been updated. {{#if (eq needCreateAccount 'Yes')}}You may need to create suitable account for {{name}} with roles {{addedRoles}}.{{/if}}{{#if (eq needDeleteAccount 'Yes')}}You may need to close account for {{name}} with roles {{removedRoles}}.{{/if}}",
+                    "type": "MANUAL",
+                    "etaHours": 48,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "TREASURER"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Review the roles added ({{addedRoles}}) and roles removed ({{removedRoles}}) for {{name}} ({{email}})",
+                            "Goto the Accounts page and click on Manage Accounts tab.",
+                            "Add or close account for {{name}} ({{email}}) as per the requirement.",
+                            "Ensure that that before closing the account the amount is transferred to the new account."
+                        ],
+                        "fields": [
+                            {
+                                "key": "resolutionRemarks",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Resolution Remarks",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "default",
+                    "nextStepId": null
+                }
+            ]
+        }
+    ]
+}

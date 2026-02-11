@@ -19,6 +19,7 @@ import { TaskStartedEvent } from "../../domain/events/task-started.event";
 import { TaskAssignment, TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
 import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
+import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
 
 export class TriggerRemindPendingTasksEvent { }
 
@@ -84,6 +85,7 @@ export class WorkflowEventsHandler {
 
 
   @OnEvent(TriggerRemindPendingTasksEvent.name, { async: true })
+  @ApplyTryCatch()
   async remindPendingTasks(): Promise<void> {
     const startedAt = Date.now();
     this.logger.log('Remind pending tasks started');

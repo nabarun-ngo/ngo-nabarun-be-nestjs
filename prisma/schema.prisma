@@ -952,7 +952,7 @@ model UserNotification {
   user   UserProfile @relation("UserNotificationsFor", fields: [userId], references: [id])
 
   notificationId String       @db.VarChar(255) // User who receives the notification
-  notification   Notification @relation(fields: [notificationId], references: [id])
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
   // Status
   isRead     Boolean   @default(false)
@@ -994,4 +994,30 @@ model UserFcmToken {
   @@index([userId, isActive])
   @@index([token])
   @@map("user_fcm_tokens")
+}
+
+// ====================================
+// AUDIT MODULE MODELS
+// ====================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String   @db.VarChar(50) // e.g., 'Donation', 'Expense', 'Account', 'Transaction'
+  entityId   String   @db.VarChar(100)
+  action     String   @db.VarChar(20) // 'CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE'
+  userId     String?  @db.VarChar(100) // Who performed the action
+  userName   String?  @db.VarChar(100) // Name of the person for quick view
+  oldValues  Json? // Previous state
+  newValues  Json? // New state
+  remarks    String?  @db.Text
+  ipAddress  String?  @db.VarChar(50)
+  userAgent  String?  @db.Text
+  traceId    String?  @db.VarChar(100)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([traceId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

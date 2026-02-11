@@ -12,7 +12,7 @@ import { CreateWorkflowRequestEvent } from '../events/create-workflow-request.ev
 export class StartWorkflow {
   type: string;
   data: Record<string, string>;
-  requestedBy: string;
+  requestedBy?: string;
   requestedFor?: string;
   forExternalUser?: boolean;
   externalUserEmail?: string;

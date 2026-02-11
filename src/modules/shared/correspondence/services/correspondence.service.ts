@@ -59,7 +59,7 @@ export class CorrespondenceService {
     return this.sendInternalEmail({
       html: request.html,
       subject: request.subject,
-      to: request.to,
+      to: request.to.split(','),
       cc: request.cc,
       bcc: request.bcc,
       from: request.from

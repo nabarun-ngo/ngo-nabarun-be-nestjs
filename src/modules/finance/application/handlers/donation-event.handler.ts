@@ -20,6 +20,7 @@ import { SendNotificationRequestEvent } from "src/modules/shared/notification/ap
 import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
 import { NotificationKeys } from "src/shared/notification-keys";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
+import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
 
 export class TriggerMonthlyDonationEvent { }
 export class TriggerMarkDonationAsPendingEvent { }
@@ -140,6 +141,7 @@ export class DonationsEventHandler {
     }
 
     @OnEvent(TriggerMonthlyDonationEvent.name)
+    @ApplyTryCatch()
     async handleTriggerMonthlyDonationEvent(event: TriggerMonthlyDonationEvent) {
         this.logger.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
         const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
@@ -176,6 +178,7 @@ export class DonationsEventHandler {
     }
 
     @OnEvent(TriggerMarkDonationAsPendingEvent.name, { async: true })
+    @ApplyTryCatch()
     async markPendingDonations(): Promise<void> {
         this.logger.log('[PendingDonationsJob] Starting mark pending donations process...');
         const raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] })
@@ -188,6 +191,7 @@ export class DonationsEventHandler {
     }
 
     @OnEvent(TriggerRemindPendingDonationsEvent.name, { async: true })
+    @ApplyTryCatch()
     async remindPendingDonations(): Promise<void> {
         this.logger.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
         const donations = await this.donationRepository.findAll({ status: [DonationStatus.PENDING], isGuest: false });
@@ -220,6 +224,7 @@ export class DonationsEventHandler {
     }
 
     @OnEvent(GenerateDonationSummaryReportEvent.name, { async: true })
+    @ApplyTryCatch()
     async generateDonationSummaryReport(): Promise<void> {
         this.logger.log('[GenerateDonationSummaryReportJob] Triggering donation summary report generation...');
         const now = new Date();

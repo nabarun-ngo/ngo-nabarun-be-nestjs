@@ -1,9 +1,11 @@
 export interface CronExecutionLog {
     jobName: string;
     executedAt: Date;
+    duration: number;
     trigger: 'AUTOMATIC' | 'MANUAL';
     status: 'SUCCESS' | 'FAILED' | 'TRIGGERED';
     error?: string;
+    result?: any;
 }
 
 export interface CronJob {
@@ -12,4 +14,5 @@ export interface CronJob {
     description: string;
     handler: string; // method name in service
     enabled: boolean
+    inputData?: any;
 }
