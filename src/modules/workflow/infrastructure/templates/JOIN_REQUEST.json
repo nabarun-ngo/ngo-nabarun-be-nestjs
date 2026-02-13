@@ -155,7 +155,7 @@
         {
           "taskId": "verifyapproval",
           "name": "President/Secretary Approval",
-          "type": "APPROVAL",
+          "type": "MANUAL",
           "etaHours": 24,
           "description": "President or Secretary reviews and approves the onboarding request.",
           "taskDetail": {
