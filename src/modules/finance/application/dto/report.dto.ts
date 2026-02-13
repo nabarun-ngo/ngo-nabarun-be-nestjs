@@ -24,4 +24,9 @@ export class ReportParamsDto {
     @IsEnum(['Y', 'N'])
     @IsOptional()
     sendEmail?: 'Y' | 'N';
+
+    @ApiPropertyOptional({ enum: ['paidOn', 'confirmedOn'] })
+    @IsEnum(['paidOn', 'confirmedOn'])
+    @IsOptional()
+    on?: 'paidOn' | 'confirmedOn';
 }

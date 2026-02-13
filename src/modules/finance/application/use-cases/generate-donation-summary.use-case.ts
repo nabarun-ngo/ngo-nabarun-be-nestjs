@@ -12,7 +12,7 @@ import { Configkey } from 'src/shared/config-keys';
 
 
 @Injectable()
-export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDate: Date, endDate: Date }, Buffer> {
+export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDate: Date, endDate: Date, on: 'paidOn' | 'confirmedOn' }, Buffer> {
   constructor(
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
@@ -21,7 +21,7 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
 
   ) { }
 
-  async execute(request: { startDate: Date, endDate: Date }): Promise<Buffer> {
+  async execute(request: { startDate: Date, endDate: Date, on: 'paidOn' | 'confirmedOn' }): Promise<Buffer> {
     const monthName = formatDate(request.startDate!, {
       format: 'MMM yyyy'
     })
@@ -29,8 +29,13 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
     const password = this.configService.get(Configkey.APP_SECRET);
 
     const paidDonations = await this.donationRepository.findAll({
-      startDate_confirmedOn: request.startDate,
-      endDate_confirmedOn: request.endDate,
+      ...request.on === 'paidOn' ? {
+        startDate_paidOn: request.startDate,
+        endDate_paidOn: request.endDate
+      } : {
+        startDate_confirmedOn: request.startDate,
+        endDate_confirmedOn: request.endDate
+      },
       status: [DonationStatus.PAID]
     });
 
