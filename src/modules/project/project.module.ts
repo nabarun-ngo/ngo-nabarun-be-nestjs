@@ -15,15 +15,12 @@ import { BeneficiaryRepository } from './infrastructure/persistence/beneficiary.
 import { BENEFICIARY_REPOSITORY } from './domain/repositories/beneficiary.repository.interface';
 import { ProjectRiskRepository } from './infrastructure/persistence/project-risk.repository';
 import { PROJECT_RISK_REPOSITORY } from './domain/repositories/project-risk.repository.interface';
-import { ActivityExpenseRepository } from './infrastructure/persistence/activity-expense.repository';
-import { ACTIVITY_EXPENSE_REPOSITORY } from './domain/repositories/activity-expense.repository.interface';
 
 // Use Cases
 import { CreateProjectUseCase } from './application/use-cases/create-project.use-case';
 import { UpdateProjectUseCase } from './application/use-cases/update-project.use-case';
 import { CreateGoalUseCase } from './application/use-cases/create-goal.use-case';
 import { CreateActivityUseCase } from './application/use-cases/create-activity.use-case';
-import { LinkExpenseToActivityUseCase } from './application/use-cases/link-expense-to-activity.use-case';
 import { UpdateActivityUseCase } from './application/use-cases/update-activity.use-case';
 
 // Services
@@ -66,16 +63,11 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
       provide: PROJECT_RISK_REPOSITORY,
       useClass: ProjectRiskRepository,
     },
-    {
-      provide: ACTIVITY_EXPENSE_REPOSITORY,
-      useClass: ActivityExpenseRepository,
-    },
     // Use Cases
     CreateProjectUseCase,
     UpdateProjectUseCase,
     CreateGoalUseCase,
     CreateActivityUseCase,
-    LinkExpenseToActivityUseCase,
     UpdateActivityUseCase,
     // Services
     ProjectService,
