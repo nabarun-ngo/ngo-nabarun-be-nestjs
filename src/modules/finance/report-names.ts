@@ -1,4 +1,0 @@
-export enum ReportName {
-    DONATION_SUMMARY_REPORT = 'DONATION_SUMMARY_REPORT',
-
-}
