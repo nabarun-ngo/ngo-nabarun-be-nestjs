@@ -1,11 +1,33 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEnum, ValidateNested, IsDate } from 'class-validator';
+import { IsOptional, IsString, ValidateNested, IsNumber, IsDate } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { AccountStatus, AccountType } from '../../domain/model/account.model';
+import { AccountType as BackendAccountType, AccountStatus } from '../../domain/model/account.model';
 
 /**
- * Bank Detail DTO - matches legacy system
+ * Simplified Account Type for Frontend
+ * Hides backend complexity - frontend only sees simple categories
  */
+export enum AccountType {
+  /** Main organizational account */
+  PRINCIPAL = 'PRINCIPAL',
+  /** Cashier/operational account for receiving donations */
+  DONATION = 'DONATION',
+  /** Public donation collection account */
+  PUBLIC_DONATION = 'PUBLIC_DONATION',
+  /** Personal wallet account */
+  WALLET = 'WALLET',
+}
+
+/**
+ * Account Category for Frontend Display
+ * Groups accounts by their purpose for UI
+ */
+export enum AccountCategory {
+  ORGANIZATIONAL = 'ORGANIZATIONAL',
+  OPERATIONAL = 'OPERATIONAL',
+  INDIVIDUAL = 'INDIVIDUAL',
+}
+
 export class BankDetailDto {
   @ApiPropertyOptional()
   @IsOptional()
@@ -64,7 +86,8 @@ export class UPIDetailDto {
 }
 
 /**
- * Account Detail DTO - matches legacy AccountDetail
+ * Account Detail DTO - Simplified for Frontend
+ * Backend complexity is hidden - only shows what frontend needs
  */
 export class AccountDetailDto {
   @ApiProperty()
@@ -85,8 +108,21 @@ export class AccountDetailDto {
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   activatedOn?: Date;
 
-  @ApiProperty({ enum: AccountType })
+  @ApiProperty({ enum: AccountType, description: 'Simplified account type for frontend' })
   accountType: AccountType;
+
+  @ApiProperty({ enum: AccountCategory, description: 'Account category for UI grouping' })
+  accountCategory: AccountCategory;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
 
   @ApiPropertyOptional({ type: BankDetailDto })
   @IsOptional()
@@ -112,32 +148,24 @@ export class AccountDetailFilterDto {
   )
   status?: AccountStatus[];
 
-  @ApiPropertyOptional({ enum: AccountType, isArray: true })
+  @ApiPropertyOptional({ enum: AccountType, isArray: true, description: 'Simplified account types for filtering' })
   @IsOptional()
   @Transform(({ value }) =>
     Array.isArray(value) ? value : value ? [value] : undefined
   )
-  type?: AccountType[];
+  accountType?: AccountType[];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: AccountCategory, isArray: true, description: 'Filter by account category' })
   @IsOptional()
-  @IsString()
-  accountHolderId?: string;
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value : value ? [value] : undefined
+  )
+  accountCategory?: AccountCategory[];
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   accountHolderName?: string;
-
-  @ApiPropertyOptional({ enum: ['Y', 'N'] })
-  @IsOptional()
-  @IsEnum(['Y', 'N'])
-  includePaymentDetail?: 'Y' | 'N';
-
-  @ApiPropertyOptional({ enum: ['Y', 'N'] })
-  @IsOptional()
-  @IsEnum(['Y', 'N'])
-  includeBalance?: 'Y' | 'N';
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -146,16 +174,15 @@ export class AccountDetailFilterDto {
 }
 
 /**
- * Create Account DTO
+ * Create Account DTO - Simplified for Frontend
  */
 export class CreateAccountDto {
   @ApiProperty()
   @IsString()
   name: string;
 
-  @ApiProperty({ enum: AccountType })
-  @IsEnum(AccountType)
-  type: AccountType;
+  @ApiProperty({ enum: AccountType, description: 'Simplified account type - backend maps to detailed type' })
+  accountType: AccountType;
 
   @ApiProperty()
   @IsString()
@@ -163,27 +190,16 @@ export class CreateAccountDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
-  initialBalance?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsString()
   accountHolderId: string;
-}
 
-
-
-
-/**
- * Update Account DTO
- */
-export class UpdateAccountSelfDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  initialBalance?: number;
 
   @ApiPropertyOptional({ type: BankDetailDto })
   @IsOptional()
@@ -196,6 +212,11 @@ export class UpdateAccountSelfDto {
   @ValidateNested()
   @Type(() => UPIDetailDto)
   upiDetail?: UPIDetailDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  createdById?: string;
 }
 
 /**
@@ -207,20 +228,14 @@ export class UpdateAccountDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ enum: AccountStatus })
-  @IsOptional()
-  @IsEnum(AccountStatus)
-  accountStatus?: AccountStatus;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: AccountType })
+  @ApiPropertyOptional({ enum: AccountStatus })
   @IsOptional()
-  @IsEnum(AccountType)
-  type?: AccountType;
+  accountStatus?: AccountStatus;
 
   @ApiPropertyOptional({ type: BankDetailDto })
   @IsOptional()
@@ -235,6 +250,21 @@ export class UpdateAccountDto {
   upiDetail?: UPIDetailDto;
 }
 
+/**
+ * Update Account Self DTO (for account holder to update their own account)
+ */
+export class UpdateAccountSelfDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({ type: UPIDetailDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UPIDetailDto)
+  upiDetail?: UPIDetailDto;
+}
 
 export class TransferDto {
   @ApiProperty()
@@ -267,9 +297,6 @@ export class AddFundDto {
 
   @ApiProperty()
   @IsDate()
-  transferDate: Date;
+  fundDate: Date;
 
 }
-
-
-

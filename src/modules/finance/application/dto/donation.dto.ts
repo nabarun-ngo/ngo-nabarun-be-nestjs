@@ -241,7 +241,7 @@ export class DonationDto {
   @ApiPropertyOptional({ description: 'Whether payment notification was sent' })
   isPaymentNotified?: boolean;
 
-  @ApiPropertyOptional({ description: 'Transaction reference ID' })
+  @ApiPropertyOptional({ description: 'Journal entry ID linked to this donation (legacy field name: transactionRef)' })
   transactionRef?: string;
 
   @ApiPropertyOptional({ description: 'Additional remarks' })

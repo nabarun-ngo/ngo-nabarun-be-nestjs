@@ -3,11 +3,23 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AccountCreatedEvent } from '../events/account-created.event';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
+/**
+ * Account Type Enum
+ * Categorizes accounts by their purpose and ownership
+ */
 export enum AccountType {
-  PRINCIPAL = 'PRINCIPAL',    // Legacy: Principal account
-  GENERAL = 'GENERAL',        // Legacy: General account // Not in use
-  DONATION = 'DONATION',      // Legacy: Donation account // Cashier Account
-  PUBLIC_DONATION = 'PUBLIC_DONATION', // Legacy: Public donation account
+  // ORGANIZATIONAL ACCOUNTS (No accountHolder - organization-owned)
+  /** Main NGO account - used for donation income and organizational funds */
+  PRINCIPAL = 'PRINCIPAL',
+  
+  // OPERATIONAL ACCOUNTS (Has accountHolder - managed by staff)
+  /** Cashier account - for receiving donations, managed by cashier/assistant cashier */
+  DONATION = 'DONATION',
+  /** Public donation account - for public-facing donation collection */
+  PUBLIC_DONATION = 'PUBLIC_DONATION',
+  
+  // INDIVIDUAL ACCOUNTS (Has accountHolder - personal ownership)
+  /** Personal wallet - individual user's personal account */
   WALLET = 'WALLET',
 }
 export enum AccountStatus {

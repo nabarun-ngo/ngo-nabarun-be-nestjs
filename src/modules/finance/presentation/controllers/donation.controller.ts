@@ -52,7 +52,7 @@ export class DonationController {
 
   @Post('create/guest')
   @HttpCode(HttpStatus.CREATED)
-  @RequirePermissions('create:donation_guest')
+  @RequirePermissions('create:donation')
   @ApiOperation({ summary: 'Create new guest donation' })
   @ApiAutoResponse(DonationDto, { status: 201, description: 'Created' })
   async createGuestDonation(@Body() dto: CreateGuestDonationDto): Promise<SuccessResponse<DonationDto>> {

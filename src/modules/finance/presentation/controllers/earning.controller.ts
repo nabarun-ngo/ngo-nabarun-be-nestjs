@@ -41,8 +41,11 @@ export class EarningController {
   @RequirePermissions('create:earning')
   @ApiOperation({ summary: 'Create new earning' })
   @ApiAutoResponse(EarningDetailDto, { status: 200, description: 'OK' })
-  async createEarning(@Body() dto: CreateEarningDto): Promise<SuccessResponse<EarningDetailDto>> {
-    const earning = await this.earningService.create(dto);
+  async createEarning(
+    @Body() dto: CreateEarningDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<SuccessResponse<EarningDetailDto>> {
+    const earning = await this.earningService.create(dto, user.profile_id!);
     return new SuccessResponse(earning);
   }
 

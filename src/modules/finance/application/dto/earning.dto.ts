@@ -37,7 +37,7 @@ export class EarningDetailDto {
   @ApiPropertyOptional()
   accountId?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Journal entry ID linked to this earning (legacy field name: transactionId)' })
   transactionId?: string;
 
   @ApiProperty({ type: String, format: 'date-time' })

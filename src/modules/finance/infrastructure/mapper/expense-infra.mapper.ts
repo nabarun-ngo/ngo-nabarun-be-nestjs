@@ -93,7 +93,7 @@ export class ExpenseInfraMapper {
             updatedBy: MapperUtils.connect(domain.requestedBy), // Default to creator
             updatedOn: domain.updatedAt,
             account: MapperUtils.connect({ id: domain.accountId }),
-            transactionRef: MapperUtils.undefinedToNull(domain.txnNumber),
+            transactionRef: MapperUtils.undefinedToNull(domain.transactionId ?? domain.txnNumber),
             expenseDate: domain.expenseDate,
             submittedBy: MapperUtils.connect(domain.requestedBy),
             submittedOn: domain.submittedDate,
@@ -130,7 +130,7 @@ export class ExpenseInfraMapper {
             updatedBy: MapperUtils.connect(domain.requestedBy), // Default to creator
             updatedOn: domain.updatedAt,
             account: MapperUtils.connect({ id: domain.accountId }),
-            transactionRef: MapperUtils.undefinedToNull(domain.txnNumber),
+            transactionRef: MapperUtils.undefinedToNull(domain.transactionId ?? domain.txnNumber),
             expenseDate: domain.expenseDate,
             submittedBy: MapperUtils.connect(domain.requestedBy),
             submittedOn: domain.submittedDate,

@@ -77,7 +77,8 @@ Handlebars.registerHelper("not", (a) => !a);
     CorrespondenceModule,
     CommunicationModule,
     CronModule,
-    NotificationModule
+    NotificationModule,
+    //FinanceModule2
   ],
 })
 export class AppModule { }

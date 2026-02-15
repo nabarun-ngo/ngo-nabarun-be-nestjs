@@ -331,6 +331,15 @@ export class Expense extends AggregateRoot<string> {
     this.touch();
   }
 
+  /**
+   * Link a journal entry to this expense (e.g. after backfilling ledger).
+   * Used when expense is already SETTLED but had no journal entry linked.
+   */
+  linkTransaction(journalEntryId: string): void {
+    this.#transactionId = journalEntryId;
+    this.touch();
+  }
+
   // Getters
   get name(): string { return this.#name; }
   get amount(): number { return this.#amount; }

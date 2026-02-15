@@ -3,11 +3,14 @@ import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { Donation, DonationStatus, PaymentMethod, UPIPaymentType } from '../../domain/model/donation.model';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
+import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
+import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { CreateTransactionUseCase } from './create-transaction.use-case';
-import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
-import { ReverseTransactionUseCase } from './reverse-transaction.use-case';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PostToLedgerUseCase } from './post-to-ledger.use-case';
+import { ReverseJournalEntryUseCase } from './reverse-journal-entry.use-case';
+import { JournalEntryReferenceType } from '../../domain/model/journal-entry.model';
+import { AccountType, AccountStatus } from '../../domain/model/account.model';
 
 interface UpdateDonation {
   paidOn: Date | undefined;
@@ -20,7 +23,6 @@ interface UpdateDonation {
   remarks?: string;
   amount?: number;
   id: string;
-
 }
 
 @Injectable()
@@ -28,10 +30,11 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
   constructor(
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
-    private readonly transactionUseCase: CreateTransactionUseCase,
-    private readonly reverseTransactionUseCase: ReverseTransactionUseCase,
+    @Inject(ACCOUNT_REPOSITORY)
+    private readonly accountRepository: IAccountRepository,
+    private readonly postToLedgerUseCase: PostToLedgerUseCase,
+    private readonly reverseJournalEntryUseCase: ReverseJournalEntryUseCase,
     private readonly eventEmitter: EventEmitter2,
-
   ) { }
 
   async execute(request: UpdateDonation): Promise<Donation> {
@@ -45,7 +48,6 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
       forEventId: request.forEvent,
     });
 
-    // Update status if provided
     if (request.status) {
       switch (request.status) {
         case DonationStatus.CANCELLED:
@@ -59,42 +61,73 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
           break;
         case DonationStatus.UPDATE_MISTAKE:
           donation.markForUpdateMistake();
-          await this.reverseTransactionUseCase.execute({
-            accountId: donation.paidToAccount?.id!,
-            reason: request.remarks || 'Update mistake',
-            txnId: donation.transactionRef!,
-          });
+          if (donation.transactionRef) {
+            await this.reverseJournalEntryUseCase.execute({
+              journalEntryId: donation.transactionRef,
+              postedById: request.confirmedById ?? 'system',
+              description: request.remarks ?? 'Update mistake',
+            });
+          }
           break;
         case DonationStatus.PENDING:
           donation.markAsPending();
           break;
         case DonationStatus.PAID:
+          if (!request.paidToAccountId) {
+            throw new BusinessException('paidToAccountId is required when marking donation as paid');
+          }
           donation.markAsPaid({
-            paidToAccountId: request.paidToAccountId!,
+            paidToAccountId: request.paidToAccountId,
             paymentMethod: request.paymentMethod!,
-            paidUsingUPI: request.paidUsingUPI!,
-            confirmedById: request.confirmedById!,
+            paidUsingUPI: request.paidUsingUPI,
+            confirmedById: request.confirmedById,
             paidDate: request.paidOn!,
           });
-
-          const transaction = await this.transactionUseCase.execute({
-            accountId: donation.paidToAccount?.id!,
-            txnAmount: donation.amount!,
-            currency: 'INR',
-            txnDescription: `Donation amount for ${donation.id}, Payment method: ${request.paymentMethod}, Paid using UPI: ${request.paidUsingUPI}`,
-            txnType: TransactionType.IN,
-            txnDate: donation.paidOn,
-            txnRefId: donation.id,
-            txnRefType: TransactionRefType.DONATION,
-            txnParticulars: `Donation amount for ${donation.id}`,
-          })
-          donation.linkTransaction(transaction.id)
+          
+          // Get donation income account (PRINCIPAL account)
+          const donationIncomeAccounts = await this.accountRepository.findAll({
+            type: [AccountType.PRINCIPAL],
+            status: [AccountStatus.ACTIVE],
+          });
+          
+          if (donationIncomeAccounts.length === 0) {
+            throw new BusinessException('No active PRINCIPAL account found for donation income. Please create a PRINCIPAL account first.');
+          }
+          
+          const donationIncomeAccount = donationIncomeAccounts[0];
+          const amount = Number(donation.amount);
+          const currency = donation.currency ?? 'INR';
+          
+          const journalEntry = await this.postToLedgerUseCase.execute({
+            entryDate: request.paidOn ?? new Date(),
+            description: `Donation payment: ${donation.id}`,
+            referenceType: JournalEntryReferenceType.DONATION,
+            referenceId: donation.id,
+            postedById: request.confirmedById ?? 'system',
+            lines: [
+              {
+                accountId: request.paidToAccountId,
+                debitAmount: 0,
+                creditAmount: amount,
+                currency,
+                particulars: request.remarks ?? `Donation ${donation.id}`,
+              },
+              {
+                accountId: donationIncomeAccount.id,
+                debitAmount: amount,
+                creditAmount: 0,
+                currency,
+                particulars: request.remarks ?? `Donation income ${donation.id}`,
+              },
+            ],
+          });
+          donation.linkTransaction(journalEntry.id);
           break;
         default:
           break;
       }
-
     }
+
     const updatedDonation = await this.donationRepository.update(request.id, donation);
     for (const event of donation.domainEvents) {
       this.eventEmitter.emit(event.constructor.name, event);
@@ -103,5 +136,3 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
     return updatedDonation;
   }
 }
-
-

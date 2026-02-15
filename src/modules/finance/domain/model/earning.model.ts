@@ -41,7 +41,7 @@ export class Earning extends AggregateRoot<string> {
     public referenceId: string | undefined,      // Project ID, Event ID, etc.
     public referenceType: string | undefined,    // 'Project', 'Event', etc.
     public accountId: string | undefined,        // Account to which credited
-    public transactionId: string | undefined,    // Transaction ID after receipt
+    public transactionId: string | undefined,    // Journal entry id (legacy field name kept for DB)
     public earningDate: Date,
     public receivedDate: Date | undefined,
     createdAt?: Date,

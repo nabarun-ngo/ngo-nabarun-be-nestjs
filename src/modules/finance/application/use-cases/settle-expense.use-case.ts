@@ -6,9 +6,9 @@ import type { IExpenseRepository } from '../../domain/repositories/expense.repos
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
-import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CreateTransactionUseCase } from './create-transaction.use-case';
+import { PostToLedgerUseCase } from './post-to-ledger.use-case';
+import { JournalEntryReferenceType } from '../../domain/model/journal-entry.model';
 
 @Injectable()
 export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: string; settledById: string }, Expense> {
@@ -18,8 +18,8 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly transactionUseCase: CreateTransactionUseCase,
-  ) { }
+    private readonly postToLedgerUseCase: PostToLedgerUseCase,
+  ) {}
 
   async execute(request: { id: string; accountId: string; settledById: string }): Promise<Expense> {
     const expense = await this.expenseRepository.findById(request.id);
@@ -40,28 +40,43 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
       throw new BusinessException('Insufficient account balance');
     }
 
-    const transaction = await this.transactionUseCase.execute({
-      txnAmount: expense.amount,
-      currency: expense.currency,
-      accountId: request.accountId,
-      txnDescription: `Expense settlement: ${expense.name}`,
-      txnRefId: expense.id,
-      txnRefType: TransactionRefType.EXPENSE,
-      txnType: TransactionType.OUT,
-      txnDate: new Date(),
-      txnParticulars: 'Expense settlement',
+    const expenseAccountId = expense.accountId;
+    if (!expenseAccountId) {
+      throw new BusinessException('Expense account is required for settlement (set expense.accountId)');
+    }
+
+    const journalEntry = await this.postToLedgerUseCase.execute({
+      entryDate: new Date(),
+      description: `Expense settlement: ${expense.name}`,
+      referenceType: JournalEntryReferenceType.EXPENSE,
+      referenceId: expense.id,
+      postedById: request.settledById,
+      lines: [
+        {
+          accountId: expenseAccountId,
+          debitAmount: expense.amount,
+          creditAmount: 0,
+          currency: expense.currency,
+          particulars: 'Expense settlement',
+        },
+        {
+          accountId: request.accountId,
+          debitAmount: 0,
+          creditAmount: expense.amount,
+          currency: expense.currency,
+          particulars: 'Expense settlement',
+        },
+      ],
     });
 
-    // Settle expense
     expense.settle({
       settledBy: { id: request.settledById },
       accountId: request.accountId,
-      transactionId: transaction.id,
+      transactionId: journalEntry.id,
     });
 
     const updatedExpense = await this.expenseRepository.update(expense.id, expense);
 
-    // Emit domain events
     for (const event of updatedExpense.domainEvents) {
       this.eventEmitter.emit(event.constructor.name, event);
     }
@@ -70,5 +85,3 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
     return updatedExpense;
   }
 }
-
-

@@ -40,7 +40,7 @@ export class EarningService {
     return EarningDtoMapper.toDto(earning);
   }
 
-  async create(dto: CreateEarningDto): Promise<EarningDetailDto> {
+  async create(dto: CreateEarningDto, postedById: string): Promise<EarningDetailDto> {
     const earning = await this.createEarningUseCase.execute({
       accountId: dto.accountId,
       category: dto.category,
@@ -48,6 +48,7 @@ export class EarningService {
       currency: dto.currency,
       description: dto.description,
       earningDate: dto.earningDate,
+      postedById,
     });
     return EarningDtoMapper.toDto(earning);
   }

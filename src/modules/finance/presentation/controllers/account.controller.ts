@@ -21,7 +21,12 @@ import {
   TransferDto,
   AddFundDto,
 } from '../../application/dto/account.dto';
-import { ReverseTransactionDto, TransactionDetailDto, TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
+import {
+  LedgerActivityDto,
+  LedgerActivityFilterDto,
+  JournalEntryResponseDto,
+  ReverseJournalEntryDto,
+} from '../../application/dto/ledger-activity.dto';
 import { AccountService } from '../../application/services/account.service';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
@@ -46,8 +51,11 @@ export class AccountController {
   @RequirePermissions('create:account')
   @ApiOperation({ summary: 'Create new account' })
   @ApiAutoResponse(AccountDetailDto, { status: 201, description: 'Created' })
-  async createAccount(@Body() dto: CreateAccountDto): Promise<SuccessResponse<AccountDetailDto>> {
-    const account = await this.accountService.create(dto);
+  async createAccount(
+    @Body() dto: CreateAccountDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<AccountDetailDto>> {
+    const account = await this.accountService.create(dto, user?.profile_id);
     return new SuccessResponse(account);
   }
 
@@ -113,17 +121,17 @@ export class AccountController {
   }
 
 
-  @Get(':id/transactions')
-  @ApiOperation({ summary: 'List transactions for account' })
-  @RequirePermissions('read:transactions')
-  @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listAccountTransactions(
+  @Get(':id/activity')
+  @ApiOperation({ summary: 'List ledger activity for account' })
+  @RequirePermissions('read:ledger')
+  @ApiAutoPagedResponse(LedgerActivityDto, { description: 'OK', wrapInSuccessResponse: true })
+  async listAccountActivity(
     @Param('id') accountId: string,
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
-    @Query() filter?: TransactionDetailFilterDto,
-  ): Promise<SuccessResponse<PagedResult<TransactionDetailDto>>> {
-    const result = await this.accountService.listTransactions(accountId, {
+    @Query() filter?: LedgerActivityFilterDto,
+  ): Promise<SuccessResponse<PagedResult<LedgerActivityDto>>> {
+    const result = await this.accountService.listLedgerActivity(accountId, {
       pageIndex,
       pageSize,
       props: filter,
@@ -131,17 +139,17 @@ export class AccountController {
     return new SuccessResponse(result);
   }
 
-  @Get(':id/transactions/me')
-  @ApiOperation({ summary: 'List own transactions for account' })
-  @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async listSelfAccountTransactions(
+  @Get(':id/activity/me')
+  @ApiOperation({ summary: 'List own account ledger activity' })
+  @ApiAutoPagedResponse(LedgerActivityDto, { description: 'OK', wrapInSuccessResponse: true })
+  async listSelfAccountActivity(
     @Param('id') accountId: string,
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
-    @Query() filter?: TransactionDetailFilterDto,
+    @Query() filter?: LedgerActivityFilterDto,
     @CurrentUser() user?: AuthUser,
-  ): Promise<SuccessResponse<PagedResult<TransactionDetailDto>>> {
-    const result = await this.accountService.listTransactions(accountId, {
+  ): Promise<SuccessResponse<PagedResult<LedgerActivityDto>>> {
+    const result = await this.accountService.listLedgerActivity(accountId, {
       pageIndex,
       pageSize,
       props: filter,
@@ -150,44 +158,44 @@ export class AccountController {
   }
 
   @Post(':id/transfer/me')
-  @ApiOperation({ summary: 'Transfer amount to another account' })
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiOperation({ summary: 'Transfer amount to another account (posted to ledger)' })
+  @ApiAutoResponse(JournalEntryResponseDto, { description: 'OK', wrapInSuccessResponse: true })
   async transferAmountSelf(
     @Param('id') accountId: string,
     @Body() dto: TransferDto,
     @CurrentUser() user?: AuthUser,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
+  ): Promise<SuccessResponse<JournalEntryResponseDto>> {
     const result = await this.accountService.transferAmount(accountId, dto, user?.profile_id);
     return new SuccessResponse(result);
   }
 
   @Post(':id/addFund/me')
-  @ApiOperation({ summary: 'Add fund to account' })
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiOperation({ summary: 'Add fund to account (posted to ledger)' })
+  @ApiAutoResponse(JournalEntryResponseDto, { description: 'OK', wrapInSuccessResponse: true })
   async addFundSelf(
     @Param('id') accountId: string,
     @Body() dto: AddFundDto,
     @CurrentUser() user?: AuthUser,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
+  ): Promise<SuccessResponse<JournalEntryResponseDto>> {
     const result = await this.accountService.addFundToAccount(accountId, dto, user?.profile_id);
     return new SuccessResponse(result);
   }
 
-
-  @Post(':id/transaction/reverse')
-  @ApiOperation({ summary: 'Reverse transaction for account' })
-  @RequirePermissions('update:transactions')
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
-  async reverseTransaction(
-    @Param('id') id: string,
-    @Body() dto: ReverseTransactionDto,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
-    const result = await this.accountService.reverseTransaction(id, dto);
+  @Post(':id/journal/reverse')
+  @RequirePermissions('update:journal-entries')
+  @ApiOperation({ summary: 'Reverse a journal entry' })
+  @ApiAutoResponse(JournalEntryResponseDto, { description: 'OK', wrapInSuccessResponse: true })
+  async reverseJournalEntry(
+    @Param('id') accountId: string,
+    @Body() dto: ReverseJournalEntryDto,
+  ): Promise<SuccessResponse<JournalEntryResponseDto>> {
+    const result = await this.accountService.reverseJournalEntry(accountId, dto);
     return new SuccessResponse(result);
   }
 
 
   @Get('payable-account')
+  @RequirePermissions('read:accounts')
   @ApiOperation({ summary: 'Get account data for payable' })
   @ApiAutoResponse(AccountDetailDto, { status: 200, description: 'OK', isArray: true, wrapInSuccessResponse: true })
   @ApiQuery({ name: 'isTransfer', required: false, type: Boolean })
@@ -197,6 +205,7 @@ export class AccountController {
   }
 
   @Get('static/referenceData')
+  @RequirePermissions('read:accounts')
   @ApiOperation({ summary: 'Get account reference data' })
   @ApiAutoResponse(AccountRefDataDto, { wrapInSuccessResponse: true, description: 'Donation reference data retrieved successfully' })
   async getAccountReferenceData(): Promise<SuccessResponse<AccountRefDataDto>> {

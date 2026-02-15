@@ -148,7 +148,7 @@
                     "taskId": "leadership_approval",
                     "name": "Leadership Approval - Exit Request: {{firstName}}",
                     "description": "President or Secretary reviews the coordination notes and financial clearance before final approval.",
-                    "type": "APPROVAL",
+                    "type": "MANUAL",
                     "etaHours": 72,
                     "taskDetail": {
                         "assignedTo": {

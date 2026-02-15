@@ -80,7 +80,7 @@ export class Donation extends AggregateRoot<string> {
   #forEventId: string | undefined;
   #paidUsingUPI: UPIPaymentType | undefined;
   #isPaymentNotified: boolean;
-  #transactionRef: string | undefined; // Legacy alias
+  #transactionRef: string | undefined; // Journal entry id (legacy field name kept for DB)
   #remarks: string | undefined;
   #cancelletionReason: string | undefined; // Legacy typo preserved
   #laterPaymentReason: string | undefined;
@@ -221,7 +221,7 @@ export class Donation extends AggregateRoot<string> {
   }
 
   /**
-   * Mark donation as paid and link to transaction
+   * Mark donation as paid and link to journal entry (stored in transactionRef)
    * Business validation: Cannot pay if already paid or cancelled
    */
   markAsPaid(props: {

@@ -13,13 +13,6 @@ export type OnlyAccount = Prisma.AccountGetPayload<{
   }
 }>;
 
-export type AccountWithTransactions = Prisma.AccountGetPayload<{
-  include: {
-    accountHolder: true;
-    transactions: true;
-  }
-}>;
-
 @Injectable()
 class AccountRepository implements IAccountRepository {
   constructor(private readonly prisma: PrismaPostgresService) { }
