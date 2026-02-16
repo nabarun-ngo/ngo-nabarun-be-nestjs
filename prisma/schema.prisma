@@ -312,7 +312,6 @@ model Account {
   id          String  @id @default(uuid())
   name        String  @db.VarChar(100)
   type        String  @db.VarChar(20) // PRINCIPAL, GENERAL, DONATION, PUBLIC_DONATION (legacy)
-  balance     Decimal @db.Decimal(15, 2)
   currency    String  @db.VarChar(3) // USD, INR, etc.
   status      String  @db.VarChar(20) // ACTIVE, INACTIVE, BLOCKED (legacy)
   description String? @db.Text

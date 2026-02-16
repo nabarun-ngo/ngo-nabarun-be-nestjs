@@ -58,7 +58,7 @@ class TransactionRepository implements ITransactionRepository {
     const where: Prisma.TransactionWhereInput = {
       ...(props?.type ? { type: { in: props.type } } : {}),
       ...(props?.status ? { status: { in: props.status } } : {}),
-      ...(props?.accountId ? { OR: [{ fromAccountId: props.accountId }, { toAccountId: props.accountId }] } : {}),
+      ...(props?.accountIds ? { OR: [{ fromAccountId: { in: props.accountIds } }, { toAccountId: { in: props.accountIds } }] } : {}),
       ...(props?.referenceType ? { referenceType: { in: props.referenceType } } : {}),
       ...(props?.referenceId ? { referenceId: props.referenceId } : {}),
       ...(props?.startDate || props?.endDate
