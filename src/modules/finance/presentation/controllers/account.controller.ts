@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoPagedResponse, ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import {
   AccountDetailDto,
@@ -20,6 +20,7 @@ import {
   AccountDetailFilterDto,
   TransferDto,
   AddFundDto,
+  FixTransactionDto,
 } from '../../application/dto/account.dto';
 import { ReverseTransactionDto, TransactionDetailDto, TransactionDetailFilterDto } from '../../application/dto/transaction.dto';
 import { AccountService } from '../../application/services/account.service';
@@ -28,6 +29,8 @@ import { RequirePermissions } from 'src/modules/shared/auth/application/decorato
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { AccountRefDataDto } from '../../application/dto/donation.dto';
+import { FixTransactionUseCase } from '../../application/use-cases/fix-transaction.use-case';
+import { deprecate } from 'node:util';
 
 /**
  * Account Controller - matches legacy endpoints
@@ -39,6 +42,7 @@ import { AccountRefDataDto } from '../../application/dto/donation.dto';
 export class AccountController {
   constructor(
     private readonly accountService: AccountService,
+    private readonly fixTransaction: FixTransactionUseCase
   ) { }
 
   @Post('create')
@@ -131,6 +135,18 @@ export class AccountController {
     return new SuccessResponse(result);
   }
 
+
+  @Get(':id/balance')
+  @ApiOperation({ summary: 'Get account balance' })
+  @RequirePermissions('read:accounts')
+  @ApiAutoPrimitiveResponse('number', { description: 'OK' })
+  async accountBalance(
+    @Param('id') accountId: string,
+  ): Promise<SuccessResponse<number>> {
+    const result = await this.accountService.calculateBalance(accountId);
+    return new SuccessResponse(result);
+  }
+
   @Get(':id/transactions/me')
   @ApiOperation({ summary: 'List own transactions for account' })
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
@@ -184,6 +200,17 @@ export class AccountController {
   ): Promise<SuccessResponse<TransactionDetailDto>> {
     const result = await this.accountService.reverseTransaction(id, dto);
     return new SuccessResponse(result);
+  }
+
+  @Post('transaction/fix')
+  @ApiOperation({ summary: 'Fix transaction for account' })
+  @RequirePermissions('update:transactions')
+  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  async fixTransactions(
+    @Body() dto: FixTransactionDto,
+  ): Promise<SuccessResponse<void>> {
+    await this.fixTransaction.execute(dto);
+    return new SuccessResponse();
   }
 
 

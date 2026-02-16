@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { AccountDetailDto, AccountDetailFilterDto, AddFundDto, CreateAccountDto, TransferDto, UpdateAccountDto } from '../dto/account.dto';
+import { AccountDetailDto, AccountDetailFilterDto, AddFundDto, CreateAccountDto, FixTransactionDto, TransferDto, UpdateAccountDto } from '../dto/account.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateAccountUseCase } from '../use-cases/create-account.use-case';
@@ -46,12 +46,13 @@ export class AccountService {
         type: filter.props?.type,
       }
     });
+
     return new PagedResult(
-      result.content.map(a => AccountDtoMapper.toDto(a, {
-        includeBankDetail: filter.props?.includePaymentDetail === 'Y',
-        includeUpiDetail: filter.props?.includePaymentDetail === 'Y',
-        includeBalance: filter.props?.includeBalance === 'Y',
-      })),
+      result.content.map(a => AccountDtoMapper.toDto(a,
+        {
+          includeBankDetail: filter.props?.includePaymentDetail === 'Y',
+          includeUpiDetail: filter.props?.includePaymentDetail === 'Y',
+        })),
       result.totalSize,
       result.pageIndex,
       result.pageSize,
@@ -63,12 +64,12 @@ export class AccountService {
     if (!account) {
       throw new BusinessException('Account not found with id ' + id);
     }
-    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
+    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true });
   }
 
   async create(dto: CreateAccountDto): Promise<AccountDetailDto> {
     const account = await this.createAccountUseCase.execute(dto);
-    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
+    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true });
   }
 
   async payableAccount(isTransfer: boolean): Promise<AccountDetailDto[]> {
@@ -79,13 +80,18 @@ export class AccountService {
     return account.map(a => AccountDtoMapper.toDto(a, {
       includeBankDetail: true,
       includeUpiDetail: true,
-      includeBalance: false
     }));
+  }
+
+  async calculateBalance(accountId: string): Promise<number> {
+    const transactions = await this.transactionRepository.findAll({ accountIds: [accountId] });
+    const balance = transactions.reduce((acc, t) => acc + (t.txnType === TransactionType.IN ? t.txnAmount : -t.txnAmount), 0);
+    return balance;
   }
 
   async update(id: string, dto: UpdateAccountDto, userId?: string): Promise<AccountDetailDto> {
     const account = await this.updateAccountUseCase.execute({ id, dto });
-    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true, includeBalance: true });
+    return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true });
   }
 
   async createTransaction(accountId: string, dto: CreateTransactionDto): Promise<TransactionDetailDto> {
@@ -103,7 +109,7 @@ export class AccountService {
     if (userId && account?.accountHolderId !== userId) {
       throw new BusinessException('Account does not belongs to user.')
     }
-    const result = await this.transactionRepository.findPaged({ ...filter, props: { ...filter.props, accountId: accountId } });
+    const result = await this.transactionRepository.findPaged({ ...filter, props: { ...filter.props, accountIds: [accountId] } });
     return new PagedResult(
       result.content.map(t => TransactionDtoMapper.toDto(t, accountId)),
       result.totalSize,

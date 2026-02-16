@@ -13,7 +13,6 @@ export class AccountDtoMapper {
     return {
       id: account.id,
       accountHolderName: account.accountHolderName,
-      currentBalance: options.includeBalance ? account.balance : 0,
       accountHolder: account.accountHolderId, // UserDetail reference - would need to fetch
       accountStatus: account.status,
       activatedOn: account.activatedOn,

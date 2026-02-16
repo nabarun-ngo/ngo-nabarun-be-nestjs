@@ -12,6 +12,7 @@ import { ExpenseStatus } from 'src/modules/finance/domain/model/expense.model';
 import { WorkflowTask } from 'src/modules/workflow/domain/model/workflow-task.model';
 import { AccountType } from 'src/modules/finance/domain/model/account.model';
 import { TaskAssignment } from 'src/modules/workflow/domain/model/task-assignment.model';
+import { TransactionType } from 'src/modules/finance/domain/model/transaction.model';
 
 @Injectable()
 class UserRepository
@@ -308,7 +309,13 @@ class UserRepository
 
 
   async findUserMetrics(id: string): Promise<{ pendingDonations: number; unsettledExpense: number; pendingTask: number; walletBalance: number; }> {
-    const [donations, expenses, account, pendingTask] = await Promise.all([
+    const accounts = await this.prisma.account.findMany({
+      where: { type: { in: [AccountType.WALLET] }, accountHolderId: id },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true }
+    });
+    const accountIds = accounts.map(m => m.id);
+    const [donations, expenses, transactions, pendingTask] = await Promise.all([
       this.prisma.donation.aggregate({
         where: {
           donorId: id,
@@ -325,9 +332,9 @@ class UserRepository
         },
         _sum: { amount: true }
       }),
-      this.prisma.account.aggregate({
-        where: { accountHolderId: id, type: AccountType.WALLET },
-        _sum: { balance: true }
+      this.prisma.transaction.findMany({
+        where: { OR: [{ fromAccountId: { in: accountIds } }, { toAccountId: { in: accountIds } }] },
+        select: { amount: true, type: true }
       }),
       this.prisma.workflowTask.count({
         where: {
@@ -350,7 +357,7 @@ class UserRepository
       pendingDonations: Number(donations._sum.amount ?? 0),
       unsettledExpense: Number(expenses._sum.amount ?? 0),
       pendingTask,
-      walletBalance: Number(account._sum.balance ?? 0)
+      walletBalance: Number(transactions.reduce((acc, t) => acc + Number(t.type === TransactionType.IN ? t.amount : -t.amount), 0))
     };
   }
 }

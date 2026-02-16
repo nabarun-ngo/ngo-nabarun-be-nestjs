@@ -22,14 +22,15 @@ export class FinanceReportService {
         private readonly userRepository: IUserRepository,
     ) { }
 
-    async generateReport(reportName: string, params: ReportParamsDto, authUserId: string): Promise<{
+    async generateReport(reportName: string, params: ReportParamsDto, authUserId: string, on?: 'paidOn' | 'confirmedOn'): Promise<{
         fileName: string,
         contentType: string,
         buffer: Buffer
     }> {
         const buffer = await this.donationSummaryUseCase.execute({
             startDate: params.startDate!,
-            endDate: params.endDate!
+            endDate: params.endDate!,
+            on: on ?? 'confirmedOn'
         });
         const startDate = formatDate(params.startDate!, { format: 'dd-MM-yyyy' });
         const endDate = formatDate(params.endDate!, { format: 'dd-MM-yyyy' });

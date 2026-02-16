@@ -73,9 +73,6 @@ export class AccountDetailDto {
   @ApiPropertyOptional()
   accountHolderName?: string;
 
-  @ApiProperty()
-  currentBalance: number;
-
   @ApiPropertyOptional()
   accountHolder?: string; // UserDetail reference
 
@@ -269,6 +266,20 @@ export class AddFundDto {
   @IsDate()
   transferDate: Date;
 
+}
+
+export class FixTransactionDto {
+  @ApiProperty()
+  @IsString()
+  itemId: string;
+
+  @ApiProperty({ enum: ['EXPENSE', 'DONATION'] })
+  @IsEnum(['EXPENSE', 'DONATION'])
+  itemType: 'EXPENSE' | 'DONATION';
+
+  @ApiProperty()
+  @IsString()
+  newAccountId: string;
 }
 
 
