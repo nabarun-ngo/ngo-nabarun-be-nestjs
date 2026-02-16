@@ -1,6 +1,6 @@
 
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDefined, IsNotEmpty, IsString } from "class-validator";
+import { IsDefined, IsNotEmpty, IsNumber, IsString } from "class-validator";
 
 export class SignUpDto {
   @ApiProperty({ required: true })
@@ -25,13 +25,6 @@ export class SignUpDto {
   @IsDefined()
   @IsString()
   @IsNotEmpty()
-  dialCode: string;
-
-
-  @ApiProperty({ required: true })
-  @IsDefined()
-  @IsString()
-  @IsNotEmpty()
   contactNumber: string;
 
   @ApiProperty({ required: true })
@@ -48,19 +41,59 @@ export class SignUpDto {
 }
 
 export class ContactFormDto {
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   fullName: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   email: string;
-  dialCode: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   contactNumber: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   subject: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   message: string;
 }
 
 export class DonationFormDto {
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   fullName: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   email: string;
-  dialCode: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
   contactNumber: string;
+
+  @ApiProperty({ required: true })
+  @IsDefined()
+  @IsNumber()
   amount: number;
 }
 

@@ -11,6 +11,7 @@ import type { Response } from 'express';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { StreamableFile } from '@nestjs/common';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 @ApiTags(DmsController.name)
 @ApiBearerAuth('jwt')
@@ -20,6 +21,7 @@ export class DmsController {
 
     @Post('upload')
     @ApiOperation({ summary: 'Upload a document' })
+    @RequirePermissions('create:document')
     @ApiAutoResponse(DocumentDto, { status: 201, description: 'Document uploaded successfully' })
     async uploadFile(
         @Body() body: DmsUploadDto,
@@ -31,6 +33,7 @@ export class DmsController {
 
     @Get('document/:type/:id/list')
     @ApiOperation({ summary: 'Get all documents for a specific entity' })
+    @RequirePermissions('read:document_list')
     @ApiParam({ name: 'type', description: 'Type of the entity', required: true, enum: DocumentMappingRefType })
     @ApiParam({ name: 'id', description: 'ID of the entity', required: true })
     @ApiAutoResponse(DocumentDto, { isArray: true, description: 'List of documents retrieved successfully' })
@@ -43,6 +46,7 @@ export class DmsController {
 
     @Get('document/:id/view')
     @ApiOperation({ summary: 'Get a signed URL to view a document' })
+    @RequirePermissions('read:document')
     @ApiAutoPrimitiveResponse('string', { description: 'Signed URL generated successfully' })
     async viewDocument(
         @Param('id') id: string): Promise<SuccessResponse<string>> {
@@ -53,6 +57,7 @@ export class DmsController {
 
     @Get('document/:id/download')
     @ApiOperation({ summary: 'Download a document file' })
+    @RequirePermissions('read:document')
     @ApiParam({ name: 'id', description: 'Document ID', type: String })
     @ApiProduces('application/octet-stream')
     @ApiResponse({
@@ -70,6 +75,7 @@ export class DmsController {
     @ApiResponse({ status: 404, description: 'Document not found' })
     @ApiResponse({ status: 500, description: 'Internal server error' })
     @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+    @RequirePermissions('read:document')
     async downloadDocument(
         @Param('id') id: string,
         @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {

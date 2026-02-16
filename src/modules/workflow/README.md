@@ -100,7 +100,7 @@ A workflow definition follows this structure (matching `workflow.json`):
         {
           "taskId": "verify-info",
           "name": "Verify Information",
-          "type": "VERIFICATION",
+          "type": "MANUAL",
           "taskDetail": {
             "assignedTo": {
               "roleNames": ["GROUP_COORDINATOR"]

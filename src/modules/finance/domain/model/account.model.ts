@@ -12,8 +12,6 @@ export enum AccountType {
 }
 export enum AccountStatus {
   ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  BLOCKED = 'BLOCKED',        // Legacy: BLOCKED instead of CLOSED
   CLOSED = 'CLOSED',
 }
 
@@ -176,8 +174,8 @@ export class Account extends AggregateRoot<string> {
       throw new BusinessException('Cannot debit from inactive or blocked account');
     }
 
-    if (this.#balance < amount) {
-      throw new BusinessException('Insufficient balance');
+    if (!this.hasSufficientFunds(amount)) {
+      throw new BusinessException('You dont have sufficiend balance.');
     }
 
     this.#balance -= amount;
@@ -185,14 +183,17 @@ export class Account extends AggregateRoot<string> {
   }
 
   /**
-   * Deactivate account
-   * Business validation: Cannot deactivate blocked account
+   * Close account
+   * Business validation: Cannot close closed account
    */
-  deactivate(): void {
-    if (this.#status === AccountStatus.BLOCKED) {
-      throw new BusinessException('Cannot deactivate a blocked account');
+  close(): void {
+    if (this.#status === AccountStatus.CLOSED) {
+      throw new BusinessException('Cannot close a already closed account');
     }
-    this.#status = AccountStatus.INACTIVE;
+    if (this.#balance !== 0) {
+      throw new BusinessException('Cannot close an account with balance');
+    }
+    this.#status = AccountStatus.CLOSED;
     this.touch();
   }
 
@@ -201,22 +202,13 @@ export class Account extends AggregateRoot<string> {
    * Business validation: Cannot activate blocked account
    */
   activate(): void {
-    if (this.#status === AccountStatus.BLOCKED) {
-      throw new BusinessException('Cannot activate a blocked account');
+    if (this.#status === AccountStatus.CLOSED) {
+      throw new BusinessException('Cannot activate a closed account');
     }
     this.#status = AccountStatus.ACTIVE;
     if (!this.#activatedOn) {
       this.#activatedOn = new Date();
     }
-    this.touch();
-  }
-
-  /**
-   * Block account
-   * Business validation: Can block any account
-   */
-  block(): void {
-    this.#status = AccountStatus.BLOCKED;
     this.touch();
   }
 

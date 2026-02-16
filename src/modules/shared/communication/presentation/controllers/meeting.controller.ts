@@ -6,6 +6,7 @@ import { SuccessResponse } from "src/shared/models/response-model";
 import { MeetingService } from "../../application/service/meeting.service";
 import { type AuthUser } from "src/modules/shared/auth/domain/models/api-user.model";
 import { CurrentUser } from "src/modules/shared/auth/application/decorators/current-user.decorator";
+import { RequirePermissions } from "src/modules/shared/auth/application/decorators/require-permissions.decorator";
 
 
 @ApiTags(MeetingController.name)
@@ -17,6 +18,7 @@ export class MeetingController {
     ) { }
 
     @Post('create')
+    @RequirePermissions('create:meeting')
     @ApiAutoResponse(MeetingDto, { description: 'Meeting created successfully', wrapInSuccessResponse: true })
     async createMeeting(@Body() eventData: CreateMeetingDto,
         @CurrentUser() user: AuthUser) {
@@ -26,6 +28,7 @@ export class MeetingController {
     }
 
     @Get('list')
+    @RequirePermissions('read:meeting')
     @ApiAutoResponse(MeetingDto, { description: 'Meetings fetched successfully', wrapInSuccessResponse: true })
     async listMeetings(
         @CurrentUser() user: AuthUser,
@@ -37,6 +40,7 @@ export class MeetingController {
     }
 
     @Put('update/:id')
+    @RequirePermissions('update:meeting')
     @ApiAutoResponse(MeetingDto, { description: 'Meeting updated successfully', wrapInSuccessResponse: true })
     async updateMeeting(
         @Param('id') eventId: string,

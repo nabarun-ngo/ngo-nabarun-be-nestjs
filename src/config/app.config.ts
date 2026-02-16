@@ -7,6 +7,7 @@ import * as bodyParser from 'body-parser';
 import { TimingInterceptor } from "src/shared/interceptors/timing.interceptor";
 import { resolveTraceId, traceStorage } from "src/shared/utils/trace-context.util";
 import { Request, Response, NextFunction } from "express";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 export const config = {
   app: {
@@ -15,13 +16,15 @@ export const config = {
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
     logLevel: (process.env[Configkey.LOG_LEVEL] || 'log') as LogLevel,
-    fileSize: '10mb',
+    fileSize: '10mb'
   },
   database: {
     mongodbUrl: process.env[Configkey.MONGODB_URL],
     postgresUrl: process.env[Configkey.POSTGRES_URL],
     redisUrl: process.env[Configkey.REDIS_URL],
+    auditedModels: ['Account', 'Donation', 'Expense', 'Transaction', 'Earning'],
   },
+
   cors: {
     origin: process.env[Configkey.CORS_ALLOWED_ORIGIN]?.split(','),
     credentials: true,
@@ -43,8 +46,16 @@ export function applyConfig(app: INestApplication) {
     const traceId = resolveTraceId(req.headers);
     // Set traceId in response header for convenience
     res.setHeader('x-trace-id', traceId);
-    traceStorage.run({ traceId }, () => next());
+    traceStorage.run({
+      traceId,
+      user: {
+        userId: 'system', // Default if not authenticated
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      }
+    }, () => next());
   });
+
 
   app.use(compression()); // Response compression
 
@@ -74,7 +85,7 @@ export function applyConfig(app: INestApplication) {
   }
 
   app.enableCors(config.cors);
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter(app.get(EventEmitter2)));
   app.useGlobalInterceptors(...interceptors);
 
   app.enableShutdownHooks();

@@ -12,13 +12,13 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiBody,
-  ApiResponse,
 } from '@nestjs/swagger';
 import { ApiKeyService } from '../../application/services/api-key.service';
 import { ApiKeyDto, CreateApiKeyDto } from '../../application/dto/api-key.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiKey } from '../../domain/models/api-key.model';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { RequirePermissions } from '../../application/decorators/require-permissions.decorator';
 
 
 @ApiBearerAuth('jwt')
@@ -35,6 +35,7 @@ export class ApiKeyController {
   @ApiOperation({
     summary: 'Generate API Key',
   })
+  @RequirePermissions('create:api_keys')
   @ApiAutoResponse(ApiKeyDto, { description: 'API Key generated successfully' })
   @ApiBody({ type: CreateApiKeyDto })
   async generateApiKey(
@@ -63,6 +64,7 @@ export class ApiKeyController {
 
   @Get('list')
   @ApiOperation({ summary: 'List all API keys' })
+  @RequirePermissions('read:api_keys')
   @ApiAutoResponse(ApiKeyDto, { description: 'List of API keys', wrapInSuccessResponse: true, isArray: true })
   async listApiKeys(): Promise<SuccessResponse<Array<ApiKeyDto>>> {
     return new SuccessResponse(
@@ -72,6 +74,7 @@ export class ApiKeyController {
 
   @Get('scopes')
   @ApiOperation({ summary: 'List all API scopes' })
+  @RequirePermissions('read:api_keys')
   @ApiAutoResponse(String, { description: 'List of API scopes', isArray: true, wrapInSuccessResponse: true })
   async listApiScopes(): Promise<SuccessResponse<string[]>> {
     return new SuccessResponse(
@@ -81,6 +84,7 @@ export class ApiKeyController {
 
   @Patch('permissions/:id')
   @ApiOperation({ summary: 'Update API key permissions' })
+  @RequirePermissions('update:api_keys')
   @ApiAutoResponse(ApiKeyDto, { description: 'API key permissions updated successfully' })
   async updateApiKeyPermissions(
     @Param('id') id: string,
@@ -93,6 +97,7 @@ export class ApiKeyController {
 
   @Delete('revoke/:id')
   @ApiOperation({ summary: 'Revoke API key' })
+  @RequirePermissions('delete:api_keys')
   @ApiAutoResponse(Boolean, { description: 'API key revoked successfully', wrapInSuccessResponse: true })
   async revokeApiKey(
     @Param('id') id: string,

@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Account, AccountType } from '../../domain/model/account.model';
+import { Account, AccountStatus, AccountType } from '../../domain/model/account.model';
 import { ACCOUNT_REPOSITORY } from '../../domain/repositories/account.repository.interface';
 import type { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -9,6 +9,7 @@ import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/r
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
+import { Role } from 'src/modules/user/domain/model/role.model';
 
 export class CreateAccountRequest {
   name: string;
@@ -33,6 +34,35 @@ export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account>
     const user = await this.userRepository.findById(request.accountHolderId);
     if (!user) {
       throw new BusinessException('User not found with id ' + request.accountHolderId);
+    }
+
+    let accountHolder: string | undefined;
+
+    if (request.type !== AccountType.PRINCIPAL) {
+      accountHolder = request.accountHolderId;
+    }
+
+    const existingAccount = await this.accountRepository.findAll({
+      status: [AccountStatus.ACTIVE],
+      type: [request.type],
+      accountHolderId: accountHolder
+    });
+    if (existingAccount.length > 0) {
+      throw new BusinessException(`An active account of this type already exists${accountHolder ? ' for this account holder' : ''}.`);
+    }
+
+    if (request.type === AccountType.PRINCIPAL) {
+      const role = user.roles.find(role => role.roleCode === Role.TREASURER);
+      if (!role) {
+        throw new BusinessException(`Account Holder is not authorized to have this type of account`);
+      }
+    }
+
+    if (request.type === AccountType.DONATION) {
+      const role = user.roles.find(role => role.roleCode === Role.CASHIER || role.roleCode === Role.ASSISTANT_CASHIER);
+      if (!role) {
+        throw new BusinessException(`Account Holder is not authorized to have this type of account`);
+      }
     }
 
     const account = Account.create({

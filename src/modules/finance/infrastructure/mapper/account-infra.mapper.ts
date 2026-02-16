@@ -13,7 +13,7 @@ export class AccountInfraMapper {
             p.id,
             p.name,
             p.type as AccountType,
-            Number(p.balance),
+            0,
             p.currency,
             p.status as AccountStatus,
             MapperUtils.nullToUndefined(p.description),
@@ -32,7 +32,6 @@ export class AccountInfraMapper {
             id: domain.id,
             name: domain.name,
             type: domain.type,
-            balance: domain.balance,
             currency: domain.currency,
             status: domain.status,
             description: MapperUtils.undefinedToNull(domain.description),
@@ -48,7 +47,6 @@ export class AccountInfraMapper {
     static toAccountUpdatePersistence(domain: Account): Prisma.AccountUncheckedUpdateInput {
         return {
             name: domain.name,
-            balance: domain.balance,
             status: domain.status,
             description: MapperUtils.undefinedToNull(domain.description),
             updatedAt: new Date(),

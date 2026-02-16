@@ -13,6 +13,8 @@ import { CompleteTaskUseCase } from '../use-cases/complete-task.use-case';
 import { AutomaticTaskService } from './automatic-task.service';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
 import { toKeyValueDto } from 'src/shared/utilities/kv-config.util';
+import { ReassignTaskUseCase } from '../use-cases/reassign-task.use-case';
+import { CancelWorkflowUseCase } from '../use-cases/cancel-workflow.use-case';
 
 @Injectable()
 export class WorkflowService {
@@ -27,6 +29,8 @@ export class WorkflowService {
     private readonly completeTask: CompleteTaskUseCase,
     private readonly taskService: AutomaticTaskService,
     private readonly workflowDefService: WorkflowDefService,
+    private readonly reassignTaskUseCase: ReassignTaskUseCase,
+    private readonly cancelWorkflowUseCase: CancelWorkflowUseCase,
   ) { }
 
   async getWorkflows(filter: BaseFilter<WorkflowFilter>): Promise<PagedResult<WorkflowInstanceDto>> {
@@ -62,9 +66,10 @@ export class WorkflowService {
     const instance = await this.completeTask.execute({
       instanceId: id,
       taskId: taskId,
-      remarks: dto.remarks,
+      remarks: dto.remarks ?? '',
       status: dto.status,
       completedBy: { id: authUser.profile_id },
+      data: dto.resultData,
     })
     return WorkflowDtoMapper.taskDomainToDto(instance);
   }
@@ -87,7 +92,7 @@ export class WorkflowService {
   ): Promise<WorkflowTaskDto> {
     const workflow: WorkflowInstance | null = instance instanceof WorkflowInstance ? instance :
       await this.instanceRepository.findById(instance, true);
-    const step = workflow?.steps.find(s => s.stepId === workflow.currentStepId);
+    const step = workflow?.steps.find(s => s.stepDefId === workflow.currentStepDefId);
     const task = step?.tasks?.find(t => t.id == taskId);
 
     if (!task) {
@@ -100,10 +105,10 @@ export class WorkflowService {
 
     try {
       workflow?.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
-      await this.taskService.handleTask(task, workflow?.requestData);
-      workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
+      await this.taskService.handleTask(task, workflow?.context);
+      workflow?.updateTask(task.id, WorkflowTaskStatus.COMPLETED, undefined, undefined, task.resultData);
     } catch (error) {
-      workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);
+      workflow?.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message, task.resultData);
     }
 
     await this.instanceRepository.update(workflow?.id!, workflow!);
@@ -115,7 +120,6 @@ export class WorkflowService {
     return {
       workflowTypes: refData.workflowTypes.map(toKeyValueDto),
       visibleWorkflowTypes: refData.visibleWorkflowTypes.map(toKeyValueDto),
-      additionalFields: refData.additionalFields.map(toKeyValueDto),
       workflowStatuses: refData.workflowStatus.map(toKeyValueDto),
       workflowStepStatuses: refData.workflowStepStatus.map(toKeyValueDto),
       workflowTaskStatuses: refData.workflowTaskStatus.map(toKeyValueDto),
@@ -126,9 +130,31 @@ export class WorkflowService {
     }
   }
 
-  async getAdditionalFields(type: string) {
-    const additionalFields = await this.workflowDefService.getAdditionalFields(type);
+  async getAdditionalFields(type: string, stepId?: string, taskId?: string) {
+    const additionalFields = await this.workflowDefService.getAdditionalFields(type, stepId, taskId);
     return additionalFields.map(WorkflowDtoMapper.fieldAttributeDomainToDto);
+  }
+
+  async reassignTask(instanceId: string, taskId: string, userId?: string, fromDefinition?: boolean): Promise<WorkflowTaskDto> {
+    if (fromDefinition == false && !userId) {
+      throw new BusinessException('User is required for reassignment');
+    }
+    const task = await this.reassignTaskUseCase.execute({
+      instanceId,
+      taskId,
+      userId,
+      fromDefinition,
+    });
+    return WorkflowDtoMapper.taskDomainToDto(task);
+  }
+
+  async cancelWorkflow(instanceId: string, reason: string, authUser: AuthUser): Promise<WorkflowInstanceDto> {
+    const workflow = await this.cancelWorkflowUseCase.execute({
+      id: instanceId,
+      reason: reason,
+      userId: authUser.profile_id!,
+    });
+    return WorkflowDtoMapper.toDto(workflow);
   }
 
 }

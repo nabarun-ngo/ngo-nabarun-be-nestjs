@@ -17,8 +17,23 @@ import { CorrespondenceModule } from './modules/shared/correspondence/correspond
 import { CommunicationModule } from './modules/shared/communication/communication.module';
 import { CronModule } from './modules/shared/cron/cron.module';
 import { DocumentGeneratorModule } from './modules/shared/document-generator/document-generator.module';
-import { WorkflowEngineModule } from './modules/workflow-engine/workflow-engine.module';
 import { NotificationModule } from './modules/shared/notification/notification.module';
+import helpers from 'handlebars-helpers';
+import Handlebars from "handlebars";
+import { DateTime } from 'luxon';
+
+// Register all helpers
+helpers({ handlebars: Handlebars });
+//Custom helpers 
+Handlebars.registerHelper("formatDate", function (date, format) {
+  if (!date) return "";
+  return DateTime.fromISO(date.toString()).toFormat(format);
+});
+Handlebars.registerHelper("eq", (a, b) => a === b);
+Handlebars.registerHelper("and", (a, b) => a && b);
+Handlebars.registerHelper("or", (a, b) => a || b);
+Handlebars.registerHelper("not", (a) => !a);
+
 
 @Module({
   controllers: [],

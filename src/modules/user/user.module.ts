@@ -3,6 +3,7 @@ import { UserController } from './presentation/controllers/user.controller';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import UserRepository from './infrastructure/persistence/user.repository';
+import { SystemEventsHandler } from './application/handlers/system-events.handler';
 import { UserEventsHandler } from './application/handlers/user-events.handler';
 import { UserJobsHandler } from './application/handlers/user-jobs.handler';
 import { Auth0UserService } from './infrastructure/external/auth0-user.service';
@@ -13,6 +14,7 @@ import { UpdateUserUseCase } from './application/use-cases/update-user.use-case'
 import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
 import { DMSModule } from '../shared/dms/dms.module';
 import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
+import { DeleteUserUseCase } from './application/use-cases/delete-user.use-case';
 
 @Module({
   controllers: [UserController],
@@ -26,12 +28,14 @@ import { ChangePasswordUseCase } from './application/use-cases/change-password.u
     },
     Auth0UserService,
     UserEventsHandler,
+    SystemEventsHandler,
     UserJobsHandler,
     UserMetadataService,
     UserService,
     AssignRoleUseCase,
-    ChangePasswordUseCase
+    ChangePasswordUseCase,
+    DeleteUserUseCase
   ],
-  exports: [USER_REPOSITORY, CreateUserUseCase],
+  exports: [USER_REPOSITORY, CreateUserUseCase, DeleteUserUseCase],
 })
 export class UserModule { }

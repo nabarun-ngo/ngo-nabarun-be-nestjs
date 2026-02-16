@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { Donation, DonationStatus, DonationType } from '../../domain/model/donation.model';
+import { Donation, DonationStatus, DonationType, PaymentMethod } from '../../domain/model/donation.model';
 import { DONATION_REPOSITORY } from '../../domain/repositories/donation.repository.interface';
 import type { IDonationRepository } from '../../domain/repositories/donation.repository.interface';
 import { formatDate } from 'src/shared/utilities/common.util';
@@ -12,7 +12,7 @@ import { Configkey } from 'src/shared/config-keys';
 
 
 @Injectable()
-export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDate: Date, endDate: Date }, Buffer> {
+export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDate: Date, endDate: Date, on: 'paidOn' | 'confirmedOn' }, Buffer> {
   constructor(
     @Inject(DONATION_REPOSITORY)
     private readonly donationRepository: IDonationRepository,
@@ -21,7 +21,7 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
 
   ) { }
 
-  async execute(request: { startDate: Date, endDate: Date }): Promise<Buffer> {
+  async execute(request: { startDate: Date, endDate: Date, on: 'paidOn' | 'confirmedOn' }): Promise<Buffer> {
     const monthName = formatDate(request.startDate!, {
       format: 'MMM yyyy'
     })
@@ -29,8 +29,13 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
     const password = this.configService.get(Configkey.APP_SECRET);
 
     const paidDonations = await this.donationRepository.findAll({
-      startDate_confirmedOn: request.startDate,
-      endDate_confirmedOn: request.endDate,
+      ...request.on === 'paidOn' ? {
+        startDate_paidOn: request.startDate,
+        endDate_paidOn: request.endDate
+      } : {
+        startDate_confirmedOn: request.startDate,
+        endDate_confirmedOn: request.endDate
+      },
       status: [DonationStatus.PAID]
     });
 
@@ -56,6 +61,7 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
         donorName: donation.donorName,
         donationAmount: donation.amount,
         paidOn: formatDate(donation.paidOn!, { format: 'dd/MM/yyyy' }),
+        confirmedOn: formatDate(donation.confirmedOn!, { format: 'dd/MM/yyyy' }),
         paidToAccount: `${donation.paidToAccount?.id} - ${donation.paidToAccount?.name}`,
         paymentMethod: donation.paymentMethod,
         confirmedBy: donation.confirmedBy?.fullName,
@@ -85,6 +91,8 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
         accountType: donations[0].paidToAccount?.type,
         totalDonation: donations.reduce((acc, donation) => acc + donation.amount, 0),
         totalDonationsCount: donations.length,
+        cashDonation: donations.filter(d => d.paymentMethod === PaymentMethod.CASH).reduce((acc, donation) => acc + donation.amount, 0),
+        onlineDonation: donations.filter(d => d.paymentMethod !== PaymentMethod.CASH).reduce((acc, donation) => acc + donation.amount, 0),
       });
     }
 
@@ -126,6 +134,8 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
     summarySheet
       .setColumnWidth(leftPadding + 1, 30)
       .setColumnWidth(leftPadding + 2, 15)
+      .setColumnWidth(leftPadding + 3, 20)
+      .setColumnWidth(leftPadding + 4, 15)
       .setCell(1, leftPadding + 1, 'Donation Summary Report', { font: { bold: true, size: 18 } })
       .setCell(2, leftPadding + 1, `Period: ${formatDate(request.startDate, { format: 'dd/MM/yyyy' })} to ${formatDate(request.endDate, { format: 'dd/MM/yyyy' })}`, { font: { italic: true } })
 
@@ -141,15 +151,19 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
       .setCell(8, leftPadding + 2, summaryData.totalPendingCount, { border: allborder })
 
       .setCell(10, leftPadding + 1, 'Account Wise Summary', { font: { bold: true, size: 12 }, fill: { type: 'pattern', pattern: 'solid', fgColor: 'FFCC99' }, border: allborder })
-      .mergeCells(10, leftPadding + 1, 10, leftPadding + 2)
+      .mergeCells(10, leftPadding + 1, 10, leftPadding + 4)
       .setCell(11, leftPadding + 1, 'Account Name', { font: { bold: true }, border: allborder })
-      .setCell(11, leftPadding + 2, 'Total Amount', { font: { bold: true }, border: allborder })
+      .setCell(11, leftPadding + 2, 'Cash Donation', { font: { bold: true }, border: allborder })
+      .setCell(11, leftPadding + 3, 'Non-Cash Donation', { font: { bold: true }, border: allborder })
+      .setCell(11, leftPadding + 4, 'Total Amount', { font: { bold: true }, border: allborder })
 
     // Add account wise summary rows
     let summaryCurrentRow = 12;
     for (const acc of accountWisePaidDonationsData) {
       summarySheet.setCell(summaryCurrentRow, leftPadding + 1, `${acc.id} - ${acc.accountHolder}`, { alignment: { wrapText: true }, border: allborder });
-      summarySheet.setCell(summaryCurrentRow, leftPadding + 2, acc.totalDonation, { numFmt: '₹ #,##0.00', border: allborder });
+      summarySheet.setCell(summaryCurrentRow, leftPadding + 2, acc.cashDonation, { numFmt: '₹ #,##0.00', border: allborder });
+      summarySheet.setCell(summaryCurrentRow, leftPadding + 3, acc.onlineDonation, { numFmt: '₹ #,##0.00', border: allborder });
+      summarySheet.setCell(summaryCurrentRow, leftPadding + 4, acc.totalDonation, { numFmt: '₹ #,##0.00', border: allborder });
       summaryCurrentRow++;
     }
 
@@ -200,6 +214,10 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
           {
             header: 'Payment Method',
             key: 'paymentMethod',
+          },
+          {
+            header: 'Confirmed On',
+            key: 'confirmedOn',
           },
           {
             header: 'Confirmed By',

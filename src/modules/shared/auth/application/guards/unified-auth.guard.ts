@@ -11,9 +11,11 @@ import { USE_API_KEY } from '../decorators/use-api-key.decorator';
 import { JwtAuthService } from '../services/jwt-auth.service';
 import { IGNORE_CAPTCHA } from '../decorators/ignore-captcha.decorator';
 import { RecaptchaService } from '../services/google-recaptcha.service';
+import { traceStorage } from 'src/shared/utils/trace-context.util';
 
 @Injectable()
 export class UnifiedAuthGuard implements CanActivate {
+
   constructor(
     private authService: JwtAuthService,
     private apiKeyService: ApiKeyService,
@@ -65,6 +67,14 @@ export class UnifiedAuthGuard implements CanActivate {
     try {
       const user = await this.authService.verifyToken(token);
       request.user = user;
+
+      // Update trace context with user info
+      const store = traceStorage.getStore();
+      if (store && store.user) {
+        store.user.userId = user.profile_id || 'unknown';
+        store.user.userName = user.profile_name || user.email || 'unknown';
+      }
+
       return true;
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired JWT token.');
@@ -81,6 +91,15 @@ export class UnifiedAuthGuard implements CanActivate {
 
     const user = await this.apiKeyService.validateApiKey(apiKey);
     request.user = user;
+
+    // Update trace context with user info
+    const store = traceStorage.getStore();
+    if (store && store.user) {
+      store.user.userId = (user as any).sub || (user as any).user_id || 'unknown';
+      store.user.userName = user.profile_name || user.email || 'unknown';
+    }
+
+
     return true;
   }
 

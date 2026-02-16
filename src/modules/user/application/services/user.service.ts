@@ -76,6 +76,8 @@ export class UserService {
             detail: {
                 status: command.status,
                 loginMethods: command.loginMethods,
+                aadharNumber: command.aadharNumber,
+                panNumber: command.panNumber,
             },
         });
         return UserDtoMapper.toUserDTO(updatedUser);
@@ -156,10 +158,13 @@ export class UserService {
     async getReferenceData(filter?: UserRefDataFilterDto): Promise<UserRefDataDto> {
         const data = await this.metadataService.getReferenceData()
         return {
+            documentTypes: data.document_types.map(toKeyValueDto),
             userStatuses: data.status.map(toKeyValueDto),
             loginMethods: data.loginMethods.map(toKeyValueDto),
             userGenders: data.userGenders.map(toKeyValueDto),
             availableRoles: data.availableRoles.map(toKeyValueDto),
+            maxUserPerRole: data.maxUserPerRole.map(toKeyValueDto),
+            minUserPerRole: data.minUserPerRole.map(toKeyValueDto),
             userTitles: data.userTitles.map(toKeyValueDto),
             countries: data.countryData.map(toKeyValueDto),
             states: (filter?.countryCode ? await this.metadataService.getStates(filter.countryCode) : data.stateData).map(toKeyValueDto),

@@ -278,6 +278,16 @@ export class UserUpdateAdminDto {
   @IsEnum(LoginMethod, { each: true })
   loginMethods?: LoginMethod[];
 
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  aadharNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  panNumber?: string;
+
 }
 
 export class UserFilterDto {
@@ -318,6 +328,15 @@ export class UserFilterDto {
 
 }
 
+export class RoleHistoryDto {
+  @ApiProperty()
+  period: string;
+  @ApiProperty()
+  roleNames: string[];
+  @ApiProperty()
+  roles: RoleDto[];
+}
+
 export class UserDto {
 
   @ApiProperty()
@@ -345,6 +364,9 @@ export class UserDto {
   picture?: string;
   @ApiProperty({ type: () => [RoleDto] })
   roles: RoleDto[];
+
+  @ApiProperty({ type: () => [RoleHistoryDto] })
+  roleHistory?: RoleHistoryDto[]
   @ApiProperty()
   email: string;
   @ApiPropertyOptional({ type: () => PhoneNumberDto })
@@ -379,6 +401,8 @@ export class UserDto {
 
 export class UserRefDataDto {
   @ApiProperty()
+  documents?: KeyValueDto[];
+  @ApiProperty()
   userStatuses?: KeyValueDto[];
   @ApiProperty()
   loginMethods?: KeyValueDto[];
@@ -397,6 +421,12 @@ export class UserRefDataDto {
   @ApiProperty()
   phoneCodes?: KeyValueDto[];
 
+  @ApiProperty()
+  maxUserPerRole?: KeyValueDto[];
+  @ApiProperty()
+  minUserPerRole?: KeyValueDto[];
+  @ApiProperty()
+  documentTypes?: KeyValueDto[];
 }
 
 export class UserRefDataFilterDto {

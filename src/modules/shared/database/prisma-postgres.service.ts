@@ -6,6 +6,8 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { prismaAuditExtension } from './extensions/prisma-audit.extension';
+
 
 @Injectable()
 export class PrismaPostgresService
@@ -22,7 +24,16 @@ export class PrismaPostgresService
       },
       log: ['error', 'warn'],
     });
+
+    const extended = this.$extends(prismaAuditExtension);
+
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        return Reflect.get(prop in extended ? extended : target, prop, receiver);
+      },
+    }) as any;
   }
+
   async onApplicationShutdown(signal?: string) {
     this.logger.log(`Application shutdown: ${signal}`);
     await this.$disconnect();

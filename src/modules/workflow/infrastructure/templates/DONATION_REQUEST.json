@@ -1,0 +1,167 @@
+{
+    "name": "Donation Request",
+    "description": "Donation request from {{fullName}} for an amount of {{amount}}",
+    "fields": [
+        {
+            "key": "amount",
+            "defKey": "INPUT_NUMBER_FIELD",
+            "label": "Donation Amount",
+            "mandatory": true
+        },
+        {
+            "key": "fullName",
+            "defKey": "INPUT_TEXT_FIELD",
+            "label": "Full Name",
+            "mandatory": true
+        },
+        {
+            "key": "email",
+            "defKey": "INPUT_EMAIL_FIELD",
+            "label": "Email Address",
+            "mandatory": true
+        },
+        {
+            "key": "contactNumber",
+            "defKey": "INPUT_PHONE_FIELD",
+            "label": "Mobile Number",
+            "mandatory": true
+        }
+    ],
+    "preCreationTasks": [
+        {
+            "taskId": "validateinputs",
+            "type": "AUTOMATIC",
+            "handler": "ValidateInputs",
+            "description": ""
+        }
+    ],
+    "steps": [
+        {
+            "isDefault": true,
+            "stepId": "collection",
+            "name": "Donation Collection",
+            "description": "Connect with donor, share UPI, and collect donation of {{amount}}.",
+            "tasks": [
+                {
+                    "taskId": "collectdonation",
+                    "name": "Connect and Collect Donation from {{fullName}}",
+                    "description": "Amount: {{amount}} Contact: {{contactNumber}} Email: {{email}}",
+                    "type": "MANUAL",
+                    "etaHours": 24,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "CASHIER",
+                                "ASSISTANT_CASHIER",
+                                "TREASURER"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Connect with {{fullName}} at {{contactNumber}} or {{email}}.",
+                            "Share the appropriate UPI details.",
+                            "Verify the receipt of {{amount}} in the account.",
+                            "Collect reference details if available.",
+                            "Thank {{fullName}} for the donation."
+                        ],
+                        "fields": [
+                            {
+                                "key": "isCollected",
+                                "defKey": "SELECT_YES_NO_FIELD",
+                                "label": "Has the donation been collected successfully?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "paymentRef",
+                                "defKey": "INPUT_TEXT_FIELD",
+                                "label": "Payment Transaction Reference",
+                                "mandatory": false
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_collection_task_collectdonation.isCollected == 'Yes'",
+                    "nextStepId": "paymentcreate"
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": "collection"
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "paymentcreate",
+            "name": "Payment Create",
+            "description": "Create the payment record in the system.",
+            "tasks": [
+                {
+                    "taskId": "createguestdonation",
+                    "name": "Create Guest Donation",
+                    "type": "AUTOMATIC",
+                    "handler": "GuestDonationCreationHandler",
+                    "description": "Create the guest donation record in the system."
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "default",
+                    "nextStepId": "paymentupdate"
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "paymentupdate",
+            "name": "Payment Update",
+            "description": "Update the donation record in the system.",
+            "tasks": [
+                {
+                    "taskId": "markaspaid",
+                    "name": "Update Guest Donation as Paid",
+                    "description": "Update the guest donation record {{step_paymentcreate_task_createguestdonation.donationId}} as PAID.",
+                    "type": "MANUAL",
+                    "etaHours": 24,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "CASHIER",
+                                "ASSISTANT_CASHIER",
+                                "TREASURER"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Goto Guest Donation Tab under Donations Module",
+                            "Search the auto created guest donation {{step_paymentcreate_task_createguestdonation.donationId}} record.",
+                            "Update the status to PAID."
+                        ],
+                        "fields": [
+                            {
+                                "key": "isUpdated",
+                                "defKey": "SELECT_YES_NO_FIELD",
+                                "label": "Has the guest donation been updated to PAID?",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_paymentupdate_task_markaspaid.isUpdated == 'Yes'",
+                    "nextStepId": null
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": "paymentupdate"
+                }
+            ]
+        }
+    ]
+}

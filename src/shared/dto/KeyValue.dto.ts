@@ -6,6 +6,8 @@ export class KeyValueDto {
     @ApiProperty()
     displayValue: string;
     @ApiProperty()
+    value: any;
+    @ApiProperty()
     key: string;
     @ApiProperty()
     active: boolean;

@@ -7,6 +7,7 @@ import { WorkflowInfraMapper } from '../workflow-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { TaskFilter, WorkflowTask } from '../../domain/model/workflow-task.model';
+import { TaskAssignment, TaskAssignmentStatus } from '../../domain/model/task-assignment.model';
 
 export type PrismaWorkflowInstanceWithSteps = Prisma.WorkflowInstanceGetPayload<{
   include: { steps: true, initiatedBy: true, initiatedFor: true }
@@ -43,6 +44,20 @@ class WorkflowInstanceRepository
   implements IWorkflowInstanceRepository {
 
   constructor(private readonly prisma: PrismaPostgresService) { }
+  async findByTaskId(taskId: string): Promise<WorkflowTask | null> {
+    const task: PrismaWorkflowTasks | null = await this.prisma.workflowTask.findUnique({
+      where: { id: taskId },
+      include: {
+        completedBy: true,
+        assignments: {
+          include: {
+            assignedTo: true,
+          },
+        },
+      },
+    });
+    return task ? WorkflowInfraMapper.toWorkflowTask(task) : null;
+  }
 
   async count(filter: WorkflowFilter): Promise<number> {
     return await this.prisma.workflowInstance.count({
@@ -100,7 +115,16 @@ class WorkflowInstanceRepository
   private whereQueryTasks(filter: TaskFilter | undefined): Prisma.WorkflowTaskWhereInput {
     const where: Prisma.WorkflowTaskWhereInput = {
       ...(filter?.type ? { type: { in: filter.type } } : {}),
-      ...(filter?.assignedTo ? { assignments: { some: { assignedToId: filter.assignedTo } } } : {}),
+      ...(filter?.assignedTo ? {
+        assignments: {
+          some: {
+            assignedToId: filter.assignedTo,
+            status: {
+              in: TaskAssignment.pendingStatus
+            }
+          }
+        }
+      } : {}),
       ...(filter?.status ? { status: { in: filter.status } } : {}),
       ...(filter?.workflowId ? { workflowId: filter.workflowId } : {}),
       ...(filter?.taskId ? { id: filter.taskId } : {}),

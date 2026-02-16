@@ -5,6 +5,7 @@ import { Meeting, MeetingFilter } from '../../domain/model/meeting.model';
 import { MeetingMapper } from '../mapper/meeting-infra.mapper';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export default class MeetingRepository implements IMeetingRepository {
@@ -12,19 +13,26 @@ export default class MeetingRepository implements IMeetingRepository {
     async count(filter: MeetingFilter): Promise<number> {
         return await this.prisma.meeting.count({
             where: {
-                deletedAt: null
+                deletedAt: null,
+                ...this.whereQuery(filter)
             },
         });
     }
     async findPaged(filter?: BaseFilter<MeetingFilter> | undefined): Promise<PagedResult<Meeting>> {
         const entities = await this.prisma.meeting.findMany({
-            where: { deletedAt: null },
+            where: {
+                deletedAt: null,
+                ...this.whereQuery(filter?.props!)
+            },
             orderBy: { createdAt: 'desc' },
             take: filter?.pageSize,
             skip: filter?.pageIndex! * filter?.pageSize!
         });
         const totalItems = await this.prisma.meeting.count({
-            where: { deletedAt: null }
+            where: {
+                deletedAt: null,
+                ...this.whereQuery(filter?.props!)
+            }
         });
         return {
             content: entities.map(e => MeetingMapper.fromEntityToModel(e)),
@@ -32,6 +40,15 @@ export default class MeetingRepository implements IMeetingRepository {
             pageIndex: filter?.pageIndex!,
             pageSize: filter?.pageSize!,
         };
+    }
+
+    private whereQuery(filter: MeetingFilter): Prisma.MeetingWhereInput {
+        const where: Prisma.MeetingWhereInput = {
+            ...filter?.createdById ? { createdById: filter.createdById } : {},
+            ...filter?.participantId ? { attendees: { contains: filter.participantId } } : {},
+            ...filter?.participantEmail ? { attendees: { contains: filter.participantEmail } } : {},
+        }
+        return where;
     }
 
     async create(meeting: Meeting): Promise<Meeting> {
@@ -94,7 +111,10 @@ export default class MeetingRepository implements IMeetingRepository {
 
     async findAll(filter?: MeetingFilter): Promise<Meeting[]> {
         const entities = await this.prisma.meeting.findMany({
-            where: { deletedAt: null },
+            where: {
+                deletedAt: null,
+                ...this.whereQuery(filter!)
+            },
             orderBy: { createdAt: 'desc' },
         });
         return entities.map(e => MeetingMapper.fromEntityToModel(e));

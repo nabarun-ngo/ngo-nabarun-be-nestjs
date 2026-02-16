@@ -34,6 +34,46 @@ export class CreateMeetingUseCase implements IUseCase<{ request: CreateMeetingDt
                 guestsCanInviteOthers: true,
                 anyoneCanAddSelf: true
             },
+            defaultReminder: false,
+            reminders: request.type == MeetingType.ONLINE ? [
+                {
+                    method: 'popup',
+                    minutes: 10,
+                },
+                {
+                    method: 'popup',
+                    minutes: 30,
+                },
+                {
+                    method: 'popup',
+                    minutes: 60,
+                },
+                {
+                    method: 'email',
+                    minutes: 60,
+                },
+            ] : [
+                {
+                    method: 'popup',
+                    minutes: 1 * 60,
+                },
+                {
+                    method: 'popup',
+                    minutes: 2 * 60,
+                },
+                {
+                    method: 'popup',
+                    minutes: 4 * 60,
+                },
+                {
+                    method: 'popup',
+                    minutes: 6 * 60,
+                },
+                {
+                    method: 'email',
+                    minutes: 6 * 60,
+                },
+            ],
         });
 
         // 2. Create Domain Model

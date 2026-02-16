@@ -59,7 +59,7 @@ export class CorrespondenceService {
     return this.sendInternalEmail({
       html: request.html,
       subject: request.subject,
-      to: request.to,
+      to: request.to.split(','),
       cc: request.cc,
       bcc: request.bcc,
       from: request.from
@@ -186,18 +186,24 @@ export class CorrespondenceService {
       params.from ??
       this.configService.get<string>(Configkey.APP_NAME)!;
 
-    const recipients = this.resolveRecipients(params.to, params.cc, params.bcc);
+    try {
+      const recipients = this.resolveRecipients(params.to, params.cc, params.bcc);
 
-    return this.gmailService.sendEmail(
-      params.html,
-      {
-        subject: params.subject,
+      return this.gmailService.sendEmail(
+        params.html,
+        {
+          subject: params.subject,
 
-        recipients,
-        attachments: params.attachments
-      },
-      from
-    );
+          recipients,
+          attachments: params.attachments
+        },
+        from
+      );
+    } catch (err) {
+      this.logger.error(`Failed to send email: ${err}`);
+      return { success: false, error: err };
+    }
+
   }
 
 

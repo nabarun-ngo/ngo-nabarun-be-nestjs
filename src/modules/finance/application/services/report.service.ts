@@ -8,6 +8,7 @@ import { ReportParamsDto } from "../dto/report.dto";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
+import { Role } from "src/modules/user/domain/model/role.model";
 
 
 @Injectable()
@@ -21,14 +22,15 @@ export class FinanceReportService {
         private readonly userRepository: IUserRepository,
     ) { }
 
-    async generateReport(reportName: string, params: ReportParamsDto, authUserId: string): Promise<{
+    async generateReport(reportName: string, params: ReportParamsDto, authUserId: string, on?: 'paidOn' | 'confirmedOn'): Promise<{
         fileName: string,
         contentType: string,
         buffer: Buffer
     }> {
         const buffer = await this.donationSummaryUseCase.execute({
             startDate: params.startDate!,
-            endDate: params.endDate!
+            endDate: params.endDate!,
+            on: on ?? 'confirmedOn'
         });
         const startDate = formatDate(params.startDate!, { format: 'dd-MM-yyyy' });
         const endDate = formatDate(params.endDate!, { format: 'dd-MM-yyyy' });
@@ -50,7 +52,7 @@ export class FinanceReportService {
 
         if (params.sendEmail === 'Y') {
             const users = await this.userRepository.findAll({
-                roleCodes: ['CASHIER', 'ASSISTANT_CASHIER', 'TREASURER']
+                roleCodes: [Role.CASHIER, Role.ASSISTANT_CASHIER, Role.TREASURER]
             });
             if (users.length > 0) {
                 await this.correspondenceService.sendTemplatedEmail({

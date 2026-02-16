@@ -1,0 +1,102 @@
+{
+    "name": "Donation Amount Change Request",
+    "description": "Donation amount change request to {{newAmount}}",
+    "fields": [
+        {
+            "key": "newAmount",
+            "defKey": "INPUT_NUMBER_FIELD",
+            "label": "New Donation Amount",
+            "mandatory": true
+        },
+        {
+            "key": "reason",
+            "defKey": "TEXTAREA_FIELD",
+            "label": "Reason (if any)",
+            "mandatory": false
+        }
+    ],
+    "preCreationTasks": [
+        {
+            "taskId": "validateinputs",
+            "type": "AUTOMATIC",
+            "handler": "ValidateInputs",
+            "description": ""
+        }
+    ],
+    "steps": [
+        {
+            "isDefault": true,
+            "stepId": "treasurerapproval",
+            "name": "Treasurer Approval",
+            "description": "Review the donation amount change request and approve or reject it.",
+            "tasks": [
+                {
+                    "taskId": "reviewdonationamountchangerequest",
+                    "name": "Review Donation Amount Change Request",
+                    "description": "Review the donation amount change request and approve or reject it.",
+                    "type": "MANUAL",
+                    "etaHours": 24,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "TREASURER"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Review the donation amount change request.",
+                            "Approve or reject the donation pause request.",
+                            "Provide remarks if any."
+                        ],
+                        "fields": [
+                            {
+                                "key": "decision",
+                                "defKey": "SELECT_APPROVE_DECLINE_FIELD",
+                                "label": "Do you approve the donation amount change request?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "remarks",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Remarks",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_treasurerapproval_task_reviewdonationamountchangerequest.decision == 'Approve'",
+                    "nextStepId": "systemupdate"
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": null
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "systemupdate",
+            "name": "System Update",
+            "description": "Update the system with the donation amount change request.",
+            "tasks": [
+                {
+                    "taskId": "updateamountinfo",
+                    "name": "Update Amount Info",
+                    "type": "AUTOMATIC",
+                    "handler": "DonationAmountUpdateHandler",
+                    "description": "Update the system with the donation amount change request."
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "default",
+                    "nextStepId": null
+                }
+            ]
+        }
+    ]
+}

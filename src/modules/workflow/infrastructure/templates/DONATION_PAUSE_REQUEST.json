@@ -1,0 +1,108 @@
+{
+    "name": "Donation Pause Request",
+    "description": "Donation pause request from {{formatDate startDate 'dd/MM/yyyy'}} to {{formatDate endDate 'dd/MM/yyyy'}}",
+    "fields": [
+        {
+            "key": "startDate",
+            "defKey": "INPUT_DATE_FIELD",
+            "label": "Start Date",
+            "mandatory": true
+        },
+        {
+            "key": "endDate",
+            "defKey": "INPUT_DATE_FIELD",
+            "label": "End Date",
+            "mandatory": true
+        },
+        {
+            "key": "reason",
+            "defKey": "TEXTAREA_FIELD",
+            "label": "Reason (if any)",
+            "mandatory": false
+        }
+    ],
+    "preCreationTasks": [
+        {
+            "taskId": "validateinputs",
+            "type": "AUTOMATIC",
+            "handler": "ValidateInputs",
+            "description": ""
+        }
+    ],
+    "steps": [
+        {
+            "isDefault": true,
+            "stepId": "treasurerapproval",
+            "name": "Treasurer Approval",
+            "description": "Review the donation pause request and approve or reject it.",
+            "tasks": [
+                {
+                    "taskId": "reviewdonationpauserequest",
+                    "name": "Review Donation Pause Request",
+                    "description": "Review the donation pause request and approve or reject it.",
+                    "type": "MANUAL",
+                    "etaHours": 24,
+                    "taskDetail": {
+                        "assignedTo": {
+                            "roleGroups": [],
+                            "roleNames": [
+                                "TREASURER"
+                            ]
+                        },
+                        "isAutoCloseable": false,
+                        "checklist": [
+                            "Review the donation pause request.",
+                            "Approve or reject the donation pause request.",
+                            "Provide remarks if any."
+                        ],
+                        "fields": [
+                            {
+                                "key": "decision",
+                                "defKey": "SELECT_APPROVE_DECLINE_FIELD",
+                                "label": "Do you approve the donation pause request?",
+                                "mandatory": true
+                            },
+                            {
+                                "key": "remarks",
+                                "defKey": "TEXTAREA_FIELD",
+                                "label": "Remarks",
+                                "mandatory": true
+                            }
+                        ]
+                    }
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "step_treasurerapproval_task_reviewdonationpauserequest.decision == 'Approve'",
+                    "nextStepId": "systemupdate"
+                },
+                {
+                    "condition": "default",
+                    "nextStepId": null
+                }
+            ]
+        },
+        {
+            "isDefault": false,
+            "stepId": "systemupdate",
+            "name": "System Update",
+            "description": "Update the system with the donation pause request.",
+            "tasks": [
+                {
+                    "taskId": "updatepauseinfo",
+                    "name": "Update Pause Info",
+                    "type": "AUTOMATIC",
+                    "handler": "DonationPauseUpdateHandler",
+                    "description": "Update the system with the donation pause request."
+                }
+            ],
+            "transitions": [
+                {
+                    "condition": "default",
+                    "nextStepId": null
+                }
+            ]
+        }
+    ]
+}

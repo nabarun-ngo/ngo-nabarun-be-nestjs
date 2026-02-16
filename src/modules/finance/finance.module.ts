@@ -51,6 +51,7 @@ import { DocumentGeneratorModule } from '../shared/document-generator/document-g
 import { FinanceReportService } from './application/services/report.service';
 import { DMSModule } from '../shared/dms/dms.module';
 import { FinanceReportController } from './presentation/controllers/finance-report.controller';
+import { FixTransactionUseCase } from './application/use-cases/fix-transaction.use-case';
 
 
 /**
@@ -115,6 +116,7 @@ import { FinanceReportController } from './presentation/controllers/finance-repo
 
     // ===== TRANSACTION =====
     CreateTransactionUseCase,
+    FixTransactionUseCase,
     {
       provide: TRANSACTION_REPOSITORY,
       useClass: TransactionRepository,
@@ -142,6 +144,7 @@ import { FinanceReportController } from './presentation/controllers/finance-repo
     ACCOUNT_REPOSITORY,
     EXPENSE_REPOSITORY,
     EARNING_REPOSITORY,
+    CreateDonationUseCase,
   ],
 })
 export class FinanceModule { }

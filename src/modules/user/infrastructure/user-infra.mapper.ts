@@ -141,6 +141,7 @@ export class UserInfraMapper {
       aadharNumber: MapperUtils.undefinedToNull(user.aadharNumber),
       donationPauseStart: MapperUtils.undefinedToNull(user.donationPauseStart),
       donationPauseEnd: MapperUtils.undefinedToNull(user.donationPauseEnd),
+      donationAmount: MapperUtils.undefinedToNull(user.donationAmount),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       deletedAt: user.isDeleted ? new Date() : null,

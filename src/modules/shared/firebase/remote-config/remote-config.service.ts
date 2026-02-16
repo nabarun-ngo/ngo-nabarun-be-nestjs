@@ -13,6 +13,7 @@ export class RemoteConfigParam {
 
 @Injectable()
 export class RemoteConfigService {
+  private cacheTTL: number = 15 * 24 * 3600 * 1000;
   constructor(
     @Inject(FIREBASE_ADMIN) private readonly app: admin.app.App,
     @Inject(CACHE_MANAGER) private cacheManager: Cache
@@ -47,9 +48,9 @@ export class RemoteConfigService {
         };
       }
     }
-    await this.cacheManager.set('REMOTE_CONFIG_PARAMS', result);
+    await this.cacheManager.set('REMOTE_CONFIG_PARAMS', result, this.cacheTTL);
     return result;
   }
 
-  
+
 }

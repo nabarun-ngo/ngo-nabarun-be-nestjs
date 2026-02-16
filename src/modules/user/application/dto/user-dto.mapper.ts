@@ -5,6 +5,7 @@ import {
   LinkDto,
   PhoneNumberDto,
   RoleDto,
+  RoleHistoryDto,
   UserDto,
 } from './user.dto';
 import { PhoneNumber } from '../../domain/model/phone-number.model';
@@ -26,6 +27,7 @@ export class UserDtoMapper {
       roles: user.getRoles()
         .filter((role) => role != null)
         .map((role) => UserDtoMapper.toRoleDTO(role)),
+      roleHistory: UserDtoMapper.mapToRoleHistory(user.getRoleHistory()),
       loginMethod: user.loginMethod as LoginMethod[],
       email: user.email,
       primaryNumber: UserDtoMapper.toPhoneNumberDTO(user.primaryNumber!),
@@ -76,7 +78,7 @@ export class UserDtoMapper {
     return {
       roleCode: role.roleCode,
       roleName: role.roleName,
-      description: '',
+      description: role.authRoleCode,
     };
   }
   static toLinkDTO(link: Link): LinkDto {
@@ -85,5 +87,21 @@ export class UserDtoMapper {
       linkName: link.linkName,
       linkValue: link.linkValue,
     };
+  }
+
+  private static mapToRoleHistory(
+    input: Record<string, Role[]>
+  ): RoleHistoryDto[] {
+    const roleHistory: RoleHistoryDto[] = [];
+    Object.entries(input).forEach(([key, roles], index) => {
+      //if (index !== 0) {
+      roleHistory.push({
+        period: key,
+        roleNames: roles.map(m => m.roleName),
+        roles: roles.map(UserDtoMapper.toRoleDTO)
+      });
+      // }
+    });
+    return roleHistory;
   }
 }

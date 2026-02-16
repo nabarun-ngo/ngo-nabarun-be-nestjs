@@ -49,18 +49,14 @@ model UserProfile {
   version   Int       @default(0)
   deletedAt DateTime?
 
-  initiatedWorkflows       WorkflowInstance[]       @relation("InitiatedBy")
-  receivedWorkflows        WorkflowInstance[]       @relation("InitiatedFor")
-  taskAssignments          TaskAssignment[]         @relation("taskAssignments")
-  taskCompleted            WorkflowTask[]           @relation("taskCompletedBy")
-  engineInitiatedWorkflows EngineWorkflowInstance[] @relation("EngineInitiatedBy")
-  engineReceivedWorkflows  EngineWorkflowInstance[] @relation("EngineInitiatedFor")
-  engineTaskCompleted      EngineWorkflowTask[]     @relation("EngineTaskCompletedBy")
-  engineTaskAssignments    EngineTaskAssignment[]   @relation("EngineTaskAssignments")
-  noticesCreated           Notice[]                 @relation("NoticeCreator")
-  meetingsCreated          Meeting[]                @relation("MeetingCreator")
-  notifications            UserNotification[]       @relation("UserNotificationsFor")
-  fcmTokens                UserFcmToken[]           @relation("UserFcmTokens")
+  initiatedWorkflows WorkflowInstance[] @relation("InitiatedBy")
+  receivedWorkflows  WorkflowInstance[] @relation("InitiatedFor")
+  taskAssignments    TaskAssignment[]   @relation("taskAssignments")
+  taskCompleted      WorkflowTask[]     @relation("taskCompletedBy")
+  noticesCreated     Notice[]           @relation("NoticeCreator")
+  meetingsCreated    Meeting[]          @relation("MeetingCreator")
+  notifications      UserNotification[] @relation("UserNotificationsFor")
+  fcmTokens          UserFcmToken[]     @relation("UserFcmTokens")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -198,13 +194,14 @@ model ApiKey {
 }
 
 model WorkflowInstance {
-  id            String  @id @default(uuid())
-  name          String
-  type          String  @db.VarChar(50)
-  description   String  @db.Text
-  status        String  @db.VarChar(50) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
-  currentStepId String? @db.VarChar(100)
-  data          String? @db.Text
+  id               String  @id @default(uuid())
+  name             String
+  type             String  @db.VarChar(50)
+  description      String  @db.Text
+  status           String  @db.VarChar(50) // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  currentStepDefId String? @db.VarChar(100)
+  data             String? @db.Text
+  context          String? @db.Text
 
   initiatedBy   UserProfile? @relation(name: "InitiatedBy", fields: [initiatedById], references: [id])
   initiatedById String?      @db.VarChar(100)
@@ -232,21 +229,20 @@ model WorkflowInstance {
 }
 
 model WorkflowStep {
-  id              String           @id @default(uuid())
-  instanceId      String
-  instance        WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  stepId          String           @db.VarChar(50) // Step ID from definition
-  name            String           @db.VarChar(200)
-  description     String?          @db.Text
-  status          String           @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
-  orderIndex      Int
-  onSuccessStepId String?          @db.VarChar(50)
-  onFailureStepId String?          @db.VarChar(50)
-  remarks         String?          @db.Text
-  startedAt       DateTime? // When step was started
-  completedAt     DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id          String           @id @default(uuid())
+  instanceId  String
+  instance    WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  stepDefId   String           @db.VarChar(50) // Step ID from definition
+  name        String           @db.VarChar(200)
+  description String?          @db.Text
+  status      String           @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED, SKIPPED
+  orderIndex  Int
+  transitions String?          @db.Text
+  remarks     String?          @db.Text
+  startedAt   DateTime? // When step was started
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   tasks WorkflowTask[]
 
@@ -258,7 +254,8 @@ model WorkflowTask {
   id             String       @id @default(uuid())
   stepId         String
   step           WorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  taskId         String       @db.VarChar(50) // Task ID from definition
+  stepDefId      String       @default("NA") @db.VarChar(50)
+  taskDefId      String       @db.VarChar(50) // Task ID from definition
   workflowId     String       @db.VarChar(50) // Workflow ID 
   name           String       @db.VarChar(200)
   description    String?      @db.Text
@@ -315,7 +312,6 @@ model Account {
   id          String  @id @default(uuid())
   name        String  @db.VarChar(100)
   type        String  @db.VarChar(20) // PRINCIPAL, GENERAL, DONATION, PUBLIC_DONATION (legacy)
-  balance     Decimal @db.Decimal(15, 2)
   currency    String  @db.VarChar(3) // USD, INR, etc.
   status      String  @db.VarChar(20) // ACTIVE, INACTIVE, BLOCKED (legacy)
   description String? @db.Text
@@ -914,132 +910,6 @@ model ActivityExpense {
 }
 
 // ====================================
-// WORKFLOW ENGINE MODULE MODELS [LEGACY]
-// ====================================
-
-model EngineWorkflowDefinition {
-  id             String   @id @default(uuid())
-  type           String   @db.VarChar(100)
-  version        Int
-  name           String   @db.VarChar(200)
-  description    String?  @db.Text
-  definitionJson String   @db.Text
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  instances EngineWorkflowInstance[]
-
-  @@unique([type, version])
-  @@map("engine_workflow_definitions")
-}
-
-model EngineWorkflowInstance {
-  id                String                    @id @default(uuid())
-  definitionId      String?
-  definition        EngineWorkflowDefinition? @relation(fields: [definitionId], references: [id])
-  type              String                    @db.VarChar(100)
-  definitionVersion Int?
-  name              String                    @db.VarChar(200)
-  description       String?                   @db.Text
-  status            String                    @db.VarChar(50)
-  contextData       String?                   @db.Text
-  activeStepIds     String?                   @db.Text
-  initiatedById     String?                   @db.VarChar(100)
-  initiatedBy       UserProfile?              @relation("EngineInitiatedBy", fields: [initiatedById], references: [id])
-  initiatedForId    String?                   @db.VarChar(100)
-  initiatedFor      UserProfile?              @relation("EngineInitiatedFor", fields: [initiatedForId], references: [id])
-  requestData       String?                   @db.Text
-  completedAt       DateTime?
-  remarks           String?                   @db.Text
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-
-  steps EngineWorkflowStep[]
-
-  @@index([type])
-  @@index([status])
-  @@index([initiatedForId])
-  @@map("engine_workflow_instances")
-}
-
-model EngineWorkflowStep {
-  id               String                 @id @default(uuid())
-  instanceId       String
-  instance         EngineWorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  stepId           String                 @db.VarChar(100)
-  name             String                 @db.VarChar(200)
-  description      String?                @db.Text
-  status           String                 @db.VarChar(50)
-  orderIndex       Int
-  transitionConfig String?                @db.Text
-  startedAt        DateTime?
-  completedAt      DateTime?
-  remarks          String?                @db.Text
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-
-  tasks EngineWorkflowTask[]
-
-  @@index([instanceId])
-  @@map("engine_workflow_steps")
-}
-
-model EngineWorkflowTask {
-  id            String             @id @default(uuid())
-  stepId        String
-  step          EngineWorkflowStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  instanceId    String             @db.VarChar(100)
-  taskId        String             @db.VarChar(100)
-  name          String             @db.VarChar(200)
-  description   String?            @db.Text
-  type          String             @db.VarChar(20)
-  status        String             @db.VarChar(20)
-  handler       String?            @db.VarChar(255)
-  taskConfig    String?            @db.Text
-  resultData    String?            @db.Text
-  completedById String?            @db.VarChar(100)
-  completedBy   UserProfile?       @relation(name: "EngineTaskCompletedBy", fields: [completedById], references: [id])
-  completedAt   DateTime?
-  remarks       String?            @db.Text
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-
-  assignments EngineTaskAssignment[]
-
-  @@index([stepId])
-  @@index([status])
-  @@index([instanceId])
-  @@map("engine_workflow_tasks")
-}
-
-model EngineTaskAssignment {
-  id              String                 @id @default(uuid())
-  taskId          String
-  task            EngineWorkflowTask     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assigneeId      String                 @db.VarChar(100)
-  assignee        UserProfile            @relation(name: "EngineTaskAssignments", fields: [assigneeId], references: [id])
-  roleName        String?                @db.VarChar(50)
-  status          String                 @db.VarChar(20)
-  assignedById    String?                @db.VarChar(100)
-  acceptedAt      DateTime?
-  rejectedAt      DateTime?
-  rejectionReason String?                @db.Text
-  supersededById  String?                @db.VarChar(100)
-  supersededBy    EngineTaskAssignment?  @relation("SupersededBy", fields: [supersededById], references: [id])
-  supersedes      EngineTaskAssignment[] @relation("SupersededBy")
-  dueAt           DateTime?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-
-  @@index([taskId])
-  @@index([assigneeId])
-  @@index([status])
-  @@index([dueAt, status])
-  @@map("engine_task_assignments")
-}
-
-// ====================================
 // NOTIFICATION MODULE MODELS
 // ====================================
 
@@ -1081,7 +951,7 @@ model UserNotification {
   user   UserProfile @relation("UserNotificationsFor", fields: [userId], references: [id])
 
   notificationId String       @db.VarChar(255) // User who receives the notification
-  notification   Notification @relation(fields: [notificationId], references: [id])
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
   // Status
   isRead     Boolean   @default(false)
@@ -1123,4 +993,30 @@ model UserFcmToken {
   @@index([userId, isActive])
   @@index([token])
   @@map("user_fcm_tokens")
+}
+
+// ====================================
+// AUDIT MODULE MODELS
+// ====================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String   @db.VarChar(50) // e.g., 'Donation', 'Expense', 'Account', 'Transaction'
+  entityId   String   @db.VarChar(100)
+  action     String   @db.VarChar(20) // 'CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE'
+  userId     String?  @db.VarChar(100) // Who performed the action
+  userName   String?  @db.VarChar(100) // Name of the person for quick view
+  oldValues  Json? // Previous state
+  newValues  Json? // New state
+  remarks    String?  @db.Text
+  ipAddress  String?  @db.VarChar(50)
+  userAgent  String?  @db.Text
+  traceId    String?  @db.VarChar(100)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([traceId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

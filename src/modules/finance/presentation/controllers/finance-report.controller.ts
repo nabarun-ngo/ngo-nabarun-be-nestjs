@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Param, Query, Res, StreamableFile } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiProduces, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Response as ExpressResponse } from 'express';
 import { FinanceReportService } from "../../application/services/report.service";
 import { ReportParamsDto } from "../../application/dto/report.dto";
@@ -11,6 +11,7 @@ import { MetadataService } from "../../infrastructure/external/metadata.service"
 import { SuccessResponse } from "src/shared/models/response-model";
 import { toKeyValueDto } from "src/shared/utilities/kv-config.util";
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
+import { RequirePermissions } from "src/modules/shared/auth/application/decorators/require-permissions.decorator";
 
 @ApiTags(FinanceReportController.name)
 @Controller('finance-report')
@@ -23,6 +24,7 @@ export class FinanceReportController {
 
     @Get('list')
     @ApiOperation({ summary: 'Get list of reports' })
+    @RequirePermissions('read:reports')
     @ApiAutoResponse(KeyValueDto, { description: 'Get list of reports', isArray: true, wrapInSuccessResponse: true })
     async getReportList(): Promise<SuccessResponse<KeyValueDto[]>> {
         return new SuccessResponse(
@@ -33,8 +35,10 @@ export class FinanceReportController {
 
     @Get('generate/:reportName')
     @ApiOperation({ summary: 'Download a document file' })
+    @RequirePermissions('read:reports')
     @ApiParam({ name: 'reportName', description: 'Report name', type: String })
     @ApiProduces('application/octet-stream')
+    @ApiQuery({ name: 'on', description: 'Date on which the report should be generated', type: String, enum: ['paidOn', 'confirmedOn'], required: false })
     @ApiResponse({
         status: 200,
         description: 'File downloaded successfully',
@@ -59,7 +63,8 @@ export class FinanceReportController {
         const { fileName, contentType, buffer } = await this.financeReportService.generateReport(
             reportName,
             query,
-            authUser.profile_id!
+            authUser.profile_id!,
+            query.on
         );
         const stream = new Readable();
         stream.push(buffer);

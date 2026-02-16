@@ -32,7 +32,8 @@ export class WorkflowTask extends BaseDomain<string> {
   // 🔒 All private fields
   #step: WorkflowStep;
   #workflowId: string;
-  #taskId: string;
+  #stepDefId: string;
+  #taskDefId: string;
   #name: string;
   #description: string | null;
   #type: WorkflowTaskType;
@@ -45,6 +46,7 @@ export class WorkflowTask extends BaseDomain<string> {
   #completedAt?: Date;
   #completedBy?: Partial<User>;
   #remarks?: string;
+  #resultData?: Record<string, any>;
 
   #assignments: TaskAssignment[] = [];
 
@@ -52,7 +54,8 @@ export class WorkflowTask extends BaseDomain<string> {
     id: string,
     step: WorkflowStep,
     workflowId: string,
-    taskId: string,
+    stepDefId: string,
+    taskDefId: string,
     name: string,
     description: string | null,
     type: WorkflowTaskType,
@@ -65,6 +68,7 @@ export class WorkflowTask extends BaseDomain<string> {
     completedAt?: Date,
     completedBy?: User,
     remarks?: string,
+    resultData?: Record<string, any>,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
@@ -72,7 +76,8 @@ export class WorkflowTask extends BaseDomain<string> {
 
     this.#step = step;
     this.#workflowId = workflowId;
-    this.#taskId = taskId;
+    this.#stepDefId = stepDefId;
+    this.#taskDefId = taskDefId;
     this.#name = name;
     this.#description = description;
     this.#type = type;
@@ -85,6 +90,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#completedAt = completedAt;
     this.#completedBy = completedBy;
     this.#remarks = remarks;
+    this.#resultData = resultData;
   }
 
   static create(workflowId: string, step: WorkflowStep, task: TaskDef): WorkflowTask {
@@ -92,6 +98,7 @@ export class WorkflowTask extends BaseDomain<string> {
       `NWT${generateUniqueNDigitNumber(6)}`,
       step,
       workflowId,
+      step.stepDefId,
       task.taskId,
       task.name,
       task.description,
@@ -114,15 +121,27 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
+  reassign(assignments: TaskAssignment[]): void {
+    if (this.#status === WorkflowTaskStatus.COMPLETED) {
+      throw new BusinessException(`Cannot reassign a completed task: ${this.id}`);
+    }
+    this.#assignments.forEach(a => a.delete());
+    this.#assignments.push(...assignments);
+    this.#status = WorkflowTaskStatus.PENDING;
+    this.touch();
+  }
+
   start(starter?: Partial<User>): void {
     if (this.#status !== WorkflowTaskStatus.PENDING
       && this.#status !== WorkflowTaskStatus.FAILED
     ) {
       throw new BusinessException(`Cannot start task in status: ${this.#status}`);
     }
-    const assignment = this.assignments.find((a) => a.assignedTo.id == starter?.id);
+    const assignment = this.assignments
+      .filter(a => TaskAssignment.pendingStatus.includes(a.status))
+      .find((a) => a.assignedTo.id == starter?.id);
     if (this.requiresManualAction() && !assignment) {
-      throw new BusinessException(`User: ${starter?.id} cannot act on this task.`);
+      throw new BusinessException(`User: ${starter?.fullName} cannot act on this task.`);
     }
     assignment?.accept();
     this.#assignments.filter(f => f.assignedTo.id != starter?.id).forEach(a => a.remove());
@@ -131,7 +150,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.touch();
   }
 
-  complete(completedBy?: Partial<User>, remarks?: string): void {
+  complete(completedBy?: Partial<User>, remarks?: string, resultData?: Record<string, any>): void {
     if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
       throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
     }
@@ -143,6 +162,7 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#completedBy = completedBy;
     this.#completedAt = new Date();
     this.#remarks = remarks;
+    this.#resultData = resultData;
     this.touch();
   }
 
@@ -175,24 +195,29 @@ export class WorkflowTask extends BaseDomain<string> {
   }
 
   static get pendingTaskStatus(): WorkflowTaskStatus[] {
-    return [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS];
+    return [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS, WorkflowTaskStatus.FAILED];
   }
 
   static get completedTaskStatus(): WorkflowTaskStatus[] {
-    return [WorkflowTaskStatus.COMPLETED, WorkflowTaskStatus.FAILED];
+    return [WorkflowTaskStatus.COMPLETED];
+  }
+
+  get contextKey(): string {
+    return `step_${this.#stepDefId}_task_${this.#taskDefId}`;
   }
 
   // 🔓 Getters (Public Read-Only API)
-  get stepId(): string {
-    return this.#step.stepId;
-  }
 
   get workflowId(): string {
     return this.#workflowId;
   }
 
-  get taskId(): string {
-    return this.#taskId;
+  get stepDefId(): string {
+    return this.#stepDefId;
+  }
+
+  get taskDefId(): string {
+    return this.#taskDefId;
   }
 
   get name(): string {
@@ -249,5 +274,14 @@ export class WorkflowTask extends BaseDomain<string> {
 
   get remarks(): string | undefined {
     return this.#remarks;
+  }
+
+  get resultData(): Record<string, any> | undefined {
+    return this.#resultData ? { ...this.#resultData } : undefined;
+  }
+
+  set resultData(data: Record<string, any> | undefined) {
+    this.#resultData = { ...(this.#resultData ?? {}), ...(data ?? {}) };
+    this.touch();
   }
 }

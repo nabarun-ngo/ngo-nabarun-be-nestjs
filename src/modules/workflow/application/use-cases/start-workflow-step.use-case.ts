@@ -11,6 +11,12 @@ import { TaskAssignment } from '../../domain/model/task-assignment.model';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { AutomaticTaskService } from '../services/automatic-task.service';
 import { EmailTemplateName } from 'src/shared/email-keys';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SendNotificationRequestEvent } from 'src/modules/shared/notification/application/events/send-notification-request.event';
+import { NotificationKeys } from 'src/shared/notification-keys';
+import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/notification/domain/models/notification.model';
+import { TaskAssignmentCreatedEvent } from '../../domain/events/task-assignment-created.event';
+import { UserStatus } from 'src/modules/user/domain/model/user.model';
 
 @Injectable()
 export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstance> {
@@ -19,8 +25,8 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         private readonly instanceRepository: IWorkflowInstanceRepository,
         private readonly workflowDefService: WorkflowDefService,
         @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
-        private readonly corrService: CorrespondenceService,
         private readonly automaticTaskService: AutomaticTaskService,
+        private readonly eventEmitter: EventEmitter2,
     ) { }
 
     async execute(instanceId: string): Promise<WorkflowInstance> {
@@ -28,53 +34,41 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
         if (!workflow) {
             throw new BusinessException(`Workflow instance not found: ${instanceId}`);
         }
-        const data = {
-            requestData: workflow?.requestData
-        };
-        const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!, data);
+        const definition = await this.workflowDefService.findWorkflowByType(workflow?.type!, workflow?.context);
         if (!definition) {
             throw new BusinessException(`Workflow definition not found for type: ${workflow?.type}`);
         }
-        const taskDefs = definition.steps.find(f => f.stepId === workflow?.currentStepId)?.tasks;
-        const step = workflow?.steps.find(f => f.stepId === workflow?.currentStepId);
-        if (!step) {
-            throw new BusinessException(`Workflow step not found: ${workflow?.currentStepId}`);
-        }
+        const taskDefs = definition.steps.find(f => f.stepId === workflow?.currentStepDefId)?.tasks;
 
         if (taskDefs && taskDefs.length > 0) {
-            const tasks = taskDefs.map(td => WorkflowTask.create(workflow.id, step, td));
-            step?.setTasks(tasks);
+            const tasks = workflow.initCurrentStepTasks(taskDefs);
 
             for (const task of tasks) {
                 if (task.type === WorkflowTaskType.AUTOMATIC) {
                     try {
                         workflow.updateTask(task.id, WorkflowTaskStatus.IN_PROGRESS);
-                        await this.automaticTaskService.handleTask(task, workflow.requestData, definition);
-                        workflow.updateTask(task.id, WorkflowTaskStatus.COMPLETED);
+                        await this.automaticTaskService.handleTask(task, workflow.context, definition);
+                        workflow.updateTask(task.id, WorkflowTaskStatus.COMPLETED, undefined, undefined, task.resultData);
                     } catch (error) {
-                        workflow.updateTask(task.id, WorkflowTaskStatus.FAILED, undefined, error.message);
+                        workflow.updateTask(task.id, WorkflowTaskStatus.FAILED, error.message, error.message, task.resultData);
                     }
                 }
                 else {
-                    var roleCodes = taskDefs.find(td => td.taskId == task.taskId)?.taskDetail?.assignedTo?.roleNames;
-                    const users = await this.userRepository.findAll({ roleCodes: roleCodes });
-                    const assignments = users.map(u => TaskAssignment.create({
-                        taskId: task.id,
-                        assignedTo: u,
-                        roleName: u.roles.find(r => roleCodes?.includes(r.roleCode))?.roleCode!
-                    }));
-                    task.setAssignments(assignments);
-                    this.corrService.sendTemplatedEmail({
-                        templateName: EmailTemplateName.TASK_ASSIGNED,
-                        data: { ...task.toJson(), workflowId: workflow.id },
-                        options: {
-                            recipients: { to: users.map(user => user.email) }
-                        }
-                    })
+                    const taskDef = taskDefs.find(td => td.taskId == task.taskDefId);
+                    const roleCodes = taskDef?.taskDetail?.assignedTo?.roleNames || [];
+                    const users = await this.userRepository.findAll({ roleCodes, status: UserStatus.ACTIVE });
+                    if (users.length > 0) {
+                        workflow.assignTask(task.id, users, roleCodes);
+                    }
                 }
             }
             await this.instanceRepository.update(workflow.id, workflow!);
         }
+        // Emit domain events
+        for (const event of workflow.domainEvents) {
+            this.eventEmitter.emit(event.constructor.name, event);
+        }
+        workflow.clearEvents();
         return workflow!;
     }
 }

@@ -6,6 +6,7 @@ import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { JobDetail } from '../interfaces/job.interface';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
+import { RequirePermissions } from '../../auth/application/decorators/require-permissions.decorator';
 
 @ApiTags(JobController.name)
 @Controller('jobs')
@@ -23,6 +24,7 @@ export class JobController {
     name: 'status', required: false, description: 'Status of the failed jobs to return',
     enum: ['completed', 'failed', 'paused', 'delayed', 'paused', 'active']
   })
+  @RequirePermissions('read:jobs')
   @ApiAutoResponse(JobDetail, { status: 200, description: 'Failed jobs retrieved successfully', isArray: true, wrapInSuccessResponse: true })
   async getJobs(
     @Query('status') status?: 'completed' | 'failed' | 'paused' | 'delayed' | 'paused' | 'active',
@@ -35,6 +37,7 @@ export class JobController {
   @Get('details/:jobId')
   @ApiOperation({ summary: 'Get job details by ID' })
   @ApiParam({ name: 'jobId', description: 'ID of the job' })
+  @RequirePermissions('read:jobs')
   @ApiAutoResponse(JobDetail, { status: 200, description: 'Job details retrieved successfully', isArray: false, wrapInSuccessResponse: true })
   async getJobDetails(@Param('jobId') jobId: string) {
     return new SuccessResponse(
@@ -44,7 +47,8 @@ export class JobController {
 
   @Get('statistics')
   @ApiOperation({ summary: 'Get comprehensive queue statistics' })
-  @ApiResponse({ status: 200, description: 'Queue statistics retrieved successfully' })
+  @RequirePermissions('read:jobs')
+  @ApiAutoResponse(JobDetail, { status: 200, description: 'Queue statistics retrieved successfully', isArray: false, wrapInSuccessResponse: true })
   async getQueueStatistics() {
     return new SuccessResponse(
       await this.jobMonitoringService.getQueueStatistics()
@@ -54,7 +58,8 @@ export class JobController {
 
   @Post('clean')
   @ApiOperation({ summary: 'Clean old jobs (manual cleanup - TTL handles automatic cleanup)' })
-  @ApiResponse({ status: 200, description: 'Jobs cleaned successfully' })
+  @RequirePermissions('delete:jobs')
+  @ApiAutoResponse(JobDetail, { status: 200, description: 'Jobs cleaned successfully', isArray: false, wrapInSuccessResponse: true })
   async cleanOldJobs(@Body() options: { completed?: number; failed?: number; age?: number }) {
     return new SuccessResponse(
       await this.jobMonitoringService.cleanOldJobs(options)
@@ -63,7 +68,8 @@ export class JobController {
 
   @Post('queue/:operation')
   @ApiOperation({ summary: 'Pause the queue' })
-  @ApiResponse({ status: 200, description: 'Options : pause, resume' })
+  @RequirePermissions('update:jobs')
+  @ApiAutoResponse(JobDetail, { status: 200, description: 'Options : pause, resume', isArray: false, wrapInSuccessResponse: true })
   @ApiParam({ name: 'operation', required: true, description: 'Operation to trigger', enum: ['pause', 'resume'] })
   async pauseQueue(@Param('operation') operation: string) {
     console.log(operation)
@@ -84,7 +90,8 @@ export class JobController {
   @Delete(':jobId')
   @ApiOperation({ summary: 'Remove a job' })
   @ApiParam({ name: 'jobId', description: 'ID of the job to remove' })
-  @ApiResponse({ status: 200, description: 'Job removed successfully' })
+  @RequirePermissions('delete:jobs')
+  @ApiAutoResponse(JobDetail, { status: 200, description: 'Job removed successfully', isArray: false, wrapInSuccessResponse: true })
   async removeJob(@Param('jobId') jobId: string) {
     await this.jobProcessingService.removeJob(jobId);
     return new SuccessResponse({ message: `Job '${jobId}' removed successfully` });
@@ -93,9 +100,8 @@ export class JobController {
   @Post('retry/:jobId')
   @ApiOperation({ summary: 'Retry a failed job' })
   @ApiParam({ name: 'jobId', description: 'ID of the failed job to retry' })
-  @ApiResponse({ status: 200, description: 'Job queued for retry successfully' })
-  @ApiResponse({ status: 404, description: 'Job not found' })
-  @ApiResponse({ status: 400, description: 'Job is not in failed state' })
+  @RequirePermissions('update:jobs')
+  @ApiAutoResponse(JobDetail, { status: 200, description: 'Job queued for retry successfully', isArray: false, wrapInSuccessResponse: true })
   async retryJob(@Param('jobId') jobId: string) {
     await this.jobProcessingService.retryJob(jobId);
     return new SuccessResponse({
@@ -106,7 +112,8 @@ export class JobController {
 
   @Post('retry-all-failed')
   @ApiOperation({ summary: 'Retry all failed jobs' })
-  @ApiResponse({ status: 200, description: 'All failed jobs queued for retry' })
+  @RequirePermissions('update:jobs')
+  @ApiAutoResponse(JobDetail, { status: 200, description: 'All failed jobs queued for retry', isArray: false, wrapInSuccessResponse: true })
   async retryAllFailedJobs() {
     const result = await this.jobProcessingService.retryAllFailedJobs();
     return new SuccessResponse({

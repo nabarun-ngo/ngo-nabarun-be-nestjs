@@ -1,176 +1,314 @@
 {
-  "name": "User Onboarding Workflow",
-  "description": "Onboard {{requestData.firstName}} {{requestData.lastName}} to NABARUN.",
-  "version": 1,
-  "requiredFields": [
-    "firstName",
-    "lastName",
-    "email",
-    "dialCode",
-    "contactNumber",
-    "hometown"
-  ],
-  "optionalFields": [
-    "middleName",
-    "howDoUKnowAboutUs"
+  "name": "User Onboarding",
+  "description": "Onboard {{firstName}} {{lastName}} to NABARUN.",
+  "fields": [
+    {
+      "key": "firstName",
+      "defKey": "INPUT_TEXT_FIELD",
+      "label": "First Name",
+      "mandatory": true
+    },
+    {
+      "key": "lastName",
+      "defKey": "INPUT_TEXT_FIELD",
+      "label": "Last Name",
+      "mandatory": true
+    },
+    {
+      "key": "email",
+      "defKey": "INPUT_EMAIL_FIELD",
+      "label": "Email Address",
+      "mandatory": true
+    },
+    {
+      "key": "contactNumber",
+      "defKey": "INPUT_PHONE_FIELD",
+      "label": "Contact Number",
+      "mandatory": true
+    },
+    {
+      "key": "hometown",
+      "defKey": "INPUT_TEXT_FIELD",
+      "label": "Home Town",
+      "mandatory": true
+    },
+    {
+      "key": "howDoUKnowAboutUs",
+      "defKey": "TEXTAREA_FIELD",
+      "label": "How did the Requester hear about us?",
+      "mandatory": false
+    }
   ],
   "preCreationTasks": [
     {
-      "taskId": "check-duplicate-user",
-      "name": "Check duplicate user",
-      "description": "Ensure user is not already registered",
+      "taskId": "validateinputs",
       "type": "AUTOMATIC",
-      "handler": "UserNotRegisteredTaskHandler"
+      "handler": "ValidateInputs",
+      "description": ""
     },
     {
-      "taskId": "validate-inputs",
-      "name": "Validate required inputs",
-      "description": "Validate required fields before creating workflow",
+      "taskId": "checkduplicateuser",
       "type": "AUTOMATIC",
-      "handler": "ValidateInputs"
+      "handler": "UserNotRegisteredTaskHandler",
+      "description": "Ensure no existing user is registered with the same email address."
     }
   ],
   "steps": [
     {
+      "isDefault": true,
       "stepId": "verification",
-      "name": "Verification",
-      "description": "Verify applicant details and policy acceptance",
-      "orderIndex": 0,
+      "name": "Data Verification and Policy Acceptance",
+      "description": "Verify {{firstName}} {{lastName}} data, answer questions, and confirm that the {{firstName}} {{lastName}} understands and accepts Nabarun’s rules, regulations, and policies.",
       "tasks": [
         {
-          "taskId": "verify-info",
-          "name": "Verify information",
-          "description": "Verify {{requestData.firstName}} {{requestData.lastName}}'s details and that policy was accepted",
+          "taskId": "verifyinfo",
+          "name": "Verify {{firstName}} {{lastName}} data",
+          "description": "Ask {{firstName}} {{lastName}} to confirm that email address {{lastName}} and other personal details are correct.",
           "type": "MANUAL",
-          "requireAcceptance": true,
-          "dueInDays": 1,
+          "etaHours": 24,
           "taskDetail": {
             "assignedTo": {
-              "userId": "",
-              "roleNames": [
-                "GROUP_COORDINATOR"
-              ],
-              "roleGroup": ""
-            },
-            "isAutoCloseable": false,
-            "checklist": [
-              "Confirm identity document",
-              "Confirm contact details",
-              "Confirm policy acceptance"
-            ]
-          },
-          "outputKey": "verificationResult"
-        }
-      ],
-      "transitions": {
-        "onSuccess": "approval",
-        "onFailure": null,
-        "conditions": [
-          {
-            "expression": "context.verificationResult?.needsReview === true",
-            "nextStepId": "extra-review"
-          }
-        ]
-      }
-    },
-    {
-      "stepId": "approval",
-      "name": "Approval",
-      "description": "Leadership approval for onboarding",
-      "orderIndex": 1,
-      "tasks": [
-        {
-          "taskId": "approve-onboarding",
-          "name": "Approve onboarding",
-          "description": "Approve onboarding request for {{requestData.email}}",
-          "type": "MANUAL",
-          "requireAcceptance": true,
-          "etaHours": 48,
-          "taskDetail": {
-            "assignedTo": {
-              "userId": "",
-              "roleNames": [
-                "LEADERSHIP",
-                "ADMIN"
-              ],
-              "roleGroup": ""
-            },
-            "isAutoCloseable": false,
-            "checklist": [
-              "Review verification outcome",
-              "Confirm approval or rejection"
-            ]
-          },
-          "outputKey": "approvalResult"
-        }
-      ],
-      "transitions": {
-        "onSuccess": "account-creation",
-        "onFailure": null,
-        "conditions": []
-      }
-    },
-    {
-      "stepId": "extra-review",
-      "name": "Extra review",
-      "description": "Additional review when verification flagged needs_review",
-      "orderIndex": 2,
-      "tasks": [
-        {
-          "taskId": "extra-review-task",
-          "name": "Complete extra review",
-          "description": "Review flagged items for {{requestData.firstName}}",
-          "type": "MANUAL",
-          "requireAcceptance": false,
-          "dueInDays": 2,
-          "taskDetail": {
-            "assignedTo": {
-              "userId": "",
+              "roleGroups": [],
               "roleNames": [
                 "GROUP_COORDINATOR",
-                "ADMIN"
-              ],
-              "roleGroup": ""
+                "ASST_GROUP_COORDINATOR"
+              ]
             },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
             "checklist": [
-              "Address verification notes",
-              "Re-verify if needed"
+              "Confirm {{firstName}} {{lastName}} email address.",
+              "Verify {{firstName}} {{lastName}} name and contact details."
+            ],
+            "fields": [
+              {
+                "key": "correctionNeeded",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Is there any data correction needed? (if needed, update the remarks field with correct data)",
+                "mandatory": true
+              }
             ]
-          },
-          "outputKey": "extraReviewResult"
+          }
+        },
+        {
+          "taskId": "policyacceptance",
+          "name": "Confirm Policy Acceptance",
+          "description": "Explain Nabarun’s Rules & Regulations, and policies, and confirm that the {{firstName}} {{lastName}} agrees to comply.",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "GROUP_COORDINATOR",
+                "ASST_GROUP_COORDINATOR"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Explain Nabarun’s Goals, Mission and Activities.",
+              "Explain Nabarun’s Rules and Regulations.",
+              "Explain the monthly donation scheme.",
+              "Send all relevant documents with the {{firstName}} {{lastName}}."
+            ],
+            "fields": [
+              {
+                "key": "rulesAccepted",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Did requester agree to Nabarun’s Rules & Regulations?",
+                "mandatory": true
+              }
+            ]
+          }
         }
       ],
-      "transitions": {
-        "onSuccess": "approval",
-        "onFailure": null
-      }
+      "transitions": [
+        {
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'Yes' and step_verification_task_policyacceptance.rulesAccepted == 'Yes'",
+          "nextStepId": "correction"
+        },
+        {
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'Yes' and step_verification_task_policyacceptance.rulesAccepted == 'No'",
+          "nextStepId": null
+        },
+        {
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'No' and step_verification_task_policyacceptance.rulesAccepted == 'Yes'",
+          "nextStepId": "approval"
+        },
+        {
+          "condition": "step_verification_task_verifyinfo.correctionNeeded == 'No' and step_verification_task_policyacceptance.rulesAccepted == 'No'",
+          "nextStepId": null
+        },
+        {
+          "condition": "default",
+          "nextStepId": "verification"
+        }
+      ]
     },
     {
-      "stepId": "account-creation",
-      "name": "Account creation",
-      "description": "Create Auth0 user account",
-      "orderIndex": 3,
+      "isDefault": false,
+      "stepId": "approval",
+      "name": "Onboarding Approval",
+      "description": "Obtain final approval from authorized leadership before creating the member account.",
       "tasks": [
         {
-          "taskId": "create-auth0-user",
-          "name": "Create Auth0 user",
-          "description": "Create user account in Auth0 for {{requestData.email}}",
-          "type": "AUTOMATIC",
-          "handler": "Auth0UserCreationHandler",
-          "inputMapping": {
-            "email": "requestData.email",
-            "firstName": "requestData.firstName",
-            "lastName": "requestData.lastName",
-            "dialCode": "requestData.dialCode",
-            "contactNumber": "requestData.contactNumber"
-          },
-          "outputKey": "createdUser"
+          "taskId": "verifyapproval",
+          "name": "President/Secretary Approval",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "description": "President or Secretary reviews and approves the onboarding request.",
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroup": null,
+              "roleNames": [
+                "PRESIDENT",
+                "VICE_PRESIDENT",
+                "SECRETARY",
+                "ASST_SECRETARY"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Ensure all verification and policy acceptance steps are complete.",
+              "Approve the onboarding of the new member."
+            ],
+            "fields": [
+              {
+                "key": "decision",
+                "defKey": "SELECT_APPROVE_DECLINE_FIELD",
+                "label": "Do you approve the onboarding of the new member?",
+                "mandatory": true
+              }
+            ]
+          }
         }
       ],
-      "transitions": {
-        "onSuccess": null,
-        "onFailure": null
-      }
+      "transitions": [
+        {
+          "condition": "step_approval_task_verifyapproval.decision == 'Approve'",
+          "nextStepId": "accountcreation"
+        },
+        {
+          "condition": "step_approval_task_verifyapproval.decision == 'Decline'",
+          "nextStepId": null
+        },
+        {
+          "condition": "default",
+          "nextStepId": null
+        }
+      ]
+    },
+    {
+      "isDefault": false,
+      "stepId": "accountcreation",
+      "name": "Account Creation",
+      "description": "Automatically create the user account and assign the appropriate system roles.",
+      "tasks": [
+        {
+          "taskId": "createauth0user",
+          "name": "Create User Account",
+          "type": "AUTOMATIC",
+          "handler": "Auth0UserCreationHandler",
+          "description": "Create the user in the system and assign base roles."
+        },
+        {
+          "taskId": "addtowhatsapp",
+          "name": "Add {{firstName}} {{lastName}} to NABARUN'S Official WhatsApp Group",
+          "description": "Add {{firstName}} {{lastName}} ({{contactNumber}}) to NABARUN'S Official WhatsApp Group.",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "GROUP_COORDINATOR",
+                "ASST_GROUP_COORDINATOR",
+                "PRESIDENT",
+                "VICE_PRESIDENT",
+                "SECRETARY",
+                "ASST_SECRETARY"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Add {{contactNumber}} to NABARUN'S Official WhatsApp Group."
+            ],
+            "fields": [
+              {
+                "key": "userAdded",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Has this member been added to NABARUN'S Official WhatsApp Group?",
+                "mandatory": true
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_accountcreation_task_addtowhatsapp.userAdded == 'Yes'",
+          "nextStepId": null
+        },
+        {
+          "condition": "default",
+          "nextStepId": "accountcreation"
+        }
+      ]
+    },
+    {
+      "isDefault": false,
+      "stepId": "correction",
+      "name": "Data Correction",
+      "description": "Correct the data from backend system.",
+      "tasks": [
+        {
+          "taskId": "correctinfo",
+          "name": "Correct Data",
+          "description": "Correct the provided data from backend system.",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "TECHNICAL_SPECIALIST"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Collect the correct data from Workflow Context / From Coordinators / From Member",
+              "Update the correct data in the backend system",
+              "Notify the member about the correction"
+            ],
+            "fields": [
+              {
+                "key": "isCorrected",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Has the data been corrected?",
+                "mandatory": true
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_correction_task_correctinfo.isCorrected == 'Yes'",
+          "nextStepId": "approval"
+        },
+        {
+          "condition": "step_correction_task_correctinfo.isCorrected == 'No'",
+          "nextStepId": "correction"
+        },
+        {
+          "condition": "default",
+          "nextStepId": "correction"
+        }
+      ]
     }
   ]
 }
