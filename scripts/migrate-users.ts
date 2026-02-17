@@ -356,8 +356,10 @@ export async function migrateUsers() {
                         // Create user with all relations in a transaction
                         await prisma.$transaction(async (tx) => {
                             // Create user profile
-                            await tx.userProfile.create({
-                                data: mapToUserProfile(doc),
+                            await tx.userProfile.upsert({
+                                where: { id: mapToUserProfile(doc).id },
+                                update: mapToUserProfile(doc),
+                                create: mapToUserProfile(doc),
                             });
 
                             // Create roles

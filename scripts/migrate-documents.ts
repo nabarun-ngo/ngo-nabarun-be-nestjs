@@ -134,8 +134,10 @@ async function migrateDocumentReferences(db: Db): Promise<{ success: number; fai
             console.warn(`Bulk insert failed for batch, trying individual inserts: ${error.message}`);
             for (const doc of batch) {
                 try {
-                    await prisma.documentReference.create({
-                        data: mapToDocumentReference(doc),
+                    await prisma.documentReference.upsert({
+                        where: { id: mapToDocumentReference(doc).id },
+                        update: mapToDocumentReference(doc),
+                        create: mapToDocumentReference(doc),
                     });
                     success++;
                 } catch (individualError: any) {
@@ -211,8 +213,10 @@ async function migrateDocumentMappings(db: Db): Promise<{ success: number; faile
                     const mapping = mapToDocumentMapping(doc);
                     const docRefExists = await prisma.documentReference.findUnique({ where: { id: mapping.documentReferenceId } });
                     if (docRefExists) {
-                        await prisma.documentMapping.create({
-                            data: mapping,
+                        await prisma.documentMapping.upsert({
+                            where: { id: mapping.id },
+                            update: mapping,
+                            create: mapping,
                         });
                         success++;
                     } else {
