@@ -152,8 +152,8 @@ const mapTransactionType = (type: string): string => {
         'EXPENSE': 'EXPENSE',
         'EARNING': 'EARNING',
         'TRANSFER': 'TRANSFER',
-        'IN': 'TRANSFER',
-        'OUT': 'TRANSFER',
+        'IN': 'IN',
+        'OUT': 'OUT',
     };
     return typeMap[type] || 'TRANSFER';
 };
@@ -294,7 +294,6 @@ const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountUncheckedCreateInput 
         id: parseId(doc._id),
         name: doc.accountName || 'Unnamed Account',
         type: mapAccountType(doc.accountType),
-        balance: new Prisma.Decimal(parseDouble(doc.currentBalance)),
         currency: 'INR',
         status: mapAccountStatus(doc.accountStatus),
         description: null,
