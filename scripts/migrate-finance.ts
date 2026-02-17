@@ -152,8 +152,8 @@ const mapTransactionType = (type: string): string => {
         'EXPENSE': 'EXPENSE',
         'EARNING': 'EARNING',
         'TRANSFER': 'TRANSFER',
-        'IN': 'TRANSFER',
-        'OUT': 'TRANSFER',
+        'IN': 'IN',
+        'OUT': 'OUT',
     };
     return typeMap[type] || 'TRANSFER';
 };
@@ -294,7 +294,6 @@ const mapToAccount = (doc: MongoAccountDoc): Prisma.AccountUncheckedCreateInput 
         id: parseId(doc._id),
         name: doc.accountName || 'Unnamed Account',
         type: mapAccountType(doc.accountType),
-        balance: new Prisma.Decimal(parseDouble(doc.currentBalance)),
         currency: 'INR',
         status: mapAccountStatus(doc.accountStatus),
         description: null,
@@ -484,8 +483,10 @@ async function migrateAccounts(db: Db): Promise<{ success: number; failed: numbe
             for (const doc of batch) {
                 try {
                     const accountData = mapToAccount(doc);
-                    await prisma.account.create({
-                        data: accountData,
+                    await prisma.account.upsert({
+                        where: { id: accountData.id },
+                        update: accountData,
+                        create: accountData,
                     });
                     if (accountData.id) accountMapping.add(accountData.id);
                     success++;
@@ -554,8 +555,10 @@ async function migrateDonations(db: Db): Promise<{ success: number; failed: numb
             for (const doc of batch) {
                 try {
                     const donationData = mapToDonation(doc);
-                    await prisma.donation.create({
-                        data: donationData,
+                    await prisma.donation.upsert({
+                        where: { id: donationData.id },
+                        update: donationData,
+                        create: donationData,
                     });
                     success++;
                 } catch (individualError: any) {
@@ -665,8 +668,10 @@ async function migrateTransactions(db: Db): Promise<{ success: number; failed: n
                         continue;
                     }
 
-                    await prisma.transaction.create({
-                        data: transactionData,
+                    await prisma.transaction.upsert({
+                        where: { id: transactionData.id },
+                        update: transactionData,
+                        create: transactionData,
                     });
                     success++;
                 } catch (individualError: any) {
@@ -751,8 +756,10 @@ async function migrateExpenses(db: Db): Promise<{ success: number; failed: numbe
                 try {
                     const expenseData = mapToExpense(doc);
 
-                    await prisma.expense.create({
-                        data: expenseData,
+                    await prisma.expense.upsert({
+                        where: { id: expenseData.id },
+                        update: expenseData,
+                        create: expenseData,
                     });
                     success++;
                 } catch (individualError: any) {
