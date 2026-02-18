@@ -146,7 +146,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (status >= 500) {
       this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError(errorResponse));
       this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
-        message: `HTTP ${status} Error: ${errorResponse.messages.join(', ')} \n Stack : ${exception instanceof Error ? exception.stack : (exception as any)?.stack}`,
+        message: `HTTP ${status} TraceId: ${errorResponse.traceId} Error: ${errorResponse.messages.join(', ')} \n Stack : ${exception instanceof Error ? exception.stack : (exception as any)?.stack}`,
         type: 'error',
       });
     }
