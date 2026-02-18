@@ -8,7 +8,6 @@ export class AccountDtoMapper {
   static toDto(account: Account, options: {
     includeBankDetail?: boolean,
     includeUpiDetail?: boolean,
-    includeBalance?: boolean,
   }): AccountDetailDto {
     return {
       id: account.id,
