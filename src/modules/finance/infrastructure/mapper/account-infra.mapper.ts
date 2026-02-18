@@ -34,6 +34,7 @@ export class AccountInfraMapper {
             type: domain.type,
             currency: domain.currency,
             status: domain.status,
+            balance: 0,
             description: MapperUtils.undefinedToNull(domain.description),
             createdAt: domain.createdAt,
             updatedAt: domain.updatedAt,
