@@ -16,6 +16,7 @@ import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoVoidResponse } from 'src/
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { UseApiKey } from 'src/modules/shared/auth/application/decorators/use-api-key.decorator';
 
 @ApiTags(UserController.name)
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
@@ -27,6 +28,7 @@ export class UserController {
   @ApiOperation({ summary: 'Create a new user' })
   @ApiAutoResponse(UserDto, { status: 201, description: 'User created successfully', wrapInSuccessResponse: true })
   @RequirePermissions('create:user')
+  @UseApiKey()
   async create(@Body() dto: CreateUserDto): Promise<SuccessResponse<UserDto>> {
     return new SuccessResponse<UserDto>(
       await this.userService.create(dto),
