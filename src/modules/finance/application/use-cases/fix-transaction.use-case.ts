@@ -63,7 +63,7 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                 data: {
                     status: DonationStatus.PAID,
                     paidToAccountId: request.newAccountId!,
-                    transactionRef: newTransaction.id
+                    transactionRef: newTransaction
                 }
             })
             await this.transactionRepository.delete(oldTransaction.id);
@@ -103,7 +103,7 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                 data: {
                     status: ExpenseStatus.SETTLED,
                     accountId: request.newAccountId!,
-                    transactionRef: newTransaction.id
+                    transactionRef: newTransaction
                 }
             })
             await this.transactionRepository.delete(oldTransaction.id);

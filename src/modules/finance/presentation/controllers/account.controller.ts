@@ -135,18 +135,6 @@ export class AccountController {
     return new SuccessResponse(result);
   }
 
-
-  @Get(':id/balance')
-  @ApiOperation({ summary: 'Get account balance' })
-  @RequirePermissions('read:accounts')
-  @ApiAutoPrimitiveResponse('number', { description: 'OK' })
-  async accountBalance(
-    @Param('id') accountId: string,
-  ): Promise<SuccessResponse<number>> {
-    const result = await this.accountService.calculateBalance(accountId);
-    return new SuccessResponse(result);
-  }
-
   @Get(':id/transactions/me')
   @ApiOperation({ summary: 'List own transactions for account' })
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
@@ -172,7 +160,7 @@ export class AccountController {
     @Param('id') accountId: string,
     @Body() dto: TransferDto,
     @CurrentUser() user?: AuthUser,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
+  ): Promise<SuccessResponse<string>> {
     const result = await this.accountService.transferAmount(accountId, dto, user?.profile_id);
     return new SuccessResponse(result);
   }
@@ -184,7 +172,7 @@ export class AccountController {
     @Param('id') accountId: string,
     @Body() dto: AddFundDto,
     @CurrentUser() user?: AuthUser,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
+  ): Promise<SuccessResponse<string>> {
     const result = await this.accountService.addFundToAccount(accountId, dto, user?.profile_id);
     return new SuccessResponse(result);
   }
@@ -197,9 +185,9 @@ export class AccountController {
   async reverseTransaction(
     @Param('id') id: string,
     @Body() dto: ReverseTransactionDto,
-  ): Promise<SuccessResponse<TransactionDetailDto>> {
-    const result = await this.accountService.reverseTransaction(id, dto);
-    return new SuccessResponse(result);
+  ): Promise<SuccessResponse<void>> {
+    await this.accountService.reverseTransaction(id, dto);
+    return new SuccessResponse();
   }
 
   @Post('transaction/fix')

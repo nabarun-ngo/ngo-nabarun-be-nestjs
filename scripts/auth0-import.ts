@@ -18,6 +18,7 @@ interface Auth0User {
     name?: string;
     phone_number?: string;
     email_verified: boolean;
+    user_metadata: Record<string, string>;
 }
 
 /**
@@ -114,7 +115,7 @@ async function createLocalUser(user: Auth0User) {
     const name = user.given_name
         ? { firstName: user.given_name, lastName: user.family_name || "" }
         : splitName(user.name);
-
+    console.log(`Profile Id : ${user.user_metadata['profile_id'] ?? 'Not Found'}`)
     try {
         await prisma.userProfile.upsert({
             where: { email: user.email },
@@ -122,22 +123,13 @@ async function createLocalUser(user: Auth0User) {
                 authUserId: user.user_id,
             },
             create: {
-                id: randomUUID(),
+                id: user.user_metadata['profile_id'] ?? randomUUID(),
                 firstName: name.firstName,
                 lastName: name.lastName,
                 email: user.email,
                 status: 'ACTIVE',
                 isTemporary: false,
                 authUserId: user.user_id,
-                phoneNumbers: {
-                    create: [
-                        {
-                            phoneCode: '91',
-                            phoneNumber: user.phone_number ?? '9123899870',
-                            primary: true
-                        }
-                    ]
-                }
             }
         });
 

@@ -1,22 +1,23 @@
 import { Prisma } from "@prisma/client";
 import { Account, AccountStatus, AccountType } from "../../domain/model/account.model";
-import { OnlyAccount } from "../persistence/account.repository";
 import { MapperUtils } from "src/modules/shared/database/mapper-utils";
+import { TransactionInfraMapper } from "./transaction-infra.mapper";
+import { AccountWithTransactions } from "../persistence/account.repository";
 
 export class AccountInfraMapper {
     // ===== ACCOUNT MAPPERS =====
 
-    static toAccountDomain(p: OnlyAccount): Account | null {
+    static toAccountDomain(p: AccountWithTransactions): Account | null {
         if (!p) return null;
 
         return new Account(
             p.id,
             p.name,
             p.type as AccountType,
-            0,
             p.currency,
             p.status as AccountStatus,
             MapperUtils.nullToUndefined(p.description),
+            p.transactions?.map((t) => TransactionInfraMapper.toTransactionDomain(t as any)!) ?? [],
             `${p.accountHolder?.firstName} ${p.accountHolder?.lastName}`,
             MapperUtils.nullToUndefined(p.accountHolderId),
             MapperUtils.nullToUndefined(p.activatedOn),

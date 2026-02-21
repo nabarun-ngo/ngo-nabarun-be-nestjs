@@ -44,6 +44,7 @@ export class AccountService {
         id: filter.props?.accountId,
         status: filter.props?.status,
         type: filter.props?.type,
+        includeBalance: filter?.props?.includeBalance === 'Y'
       }
     });
 
@@ -75,7 +76,8 @@ export class AccountService {
   async payableAccount(isTransfer: boolean): Promise<AccountDetailDto[]> {
     const account = await this.accountRepository.findAll({
       type: isTransfer === true ? [] : [AccountType.PRINCIPAL, AccountType.DONATION, AccountType.PUBLIC_DONATION],
-      status: [AccountStatus.ACTIVE]
+      status: [AccountStatus.ACTIVE],
+      includeBalance: false
     });
     return account.map(a => AccountDtoMapper.toDto(a, {
       includeBankDetail: true,
@@ -83,24 +85,18 @@ export class AccountService {
     }));
   }
 
-  async calculateBalance(accountId: string): Promise<number> {
-    const transactions = await this.transactionRepository.findAll({ accountIds: [accountId] });
-    const balance = transactions.reduce((acc, t) => acc + (t.txnType === TransactionType.IN ? t.txnAmount : -t.txnAmount), 0);
-    return balance;
-  }
-
   async update(id: string, dto: UpdateAccountDto, userId?: string): Promise<AccountDetailDto> {
     const account = await this.updateAccountUseCase.execute({ id, dto });
     return AccountDtoMapper.toDto(account, { includeBankDetail: true, includeUpiDetail: true });
   }
 
-  async createTransaction(accountId: string, dto: CreateTransactionDto): Promise<TransactionDetailDto> {
+  async createTransaction(accountId: string, dto: CreateTransactionDto): Promise<string> {
     const transaction = await this.createTransactionUseCase.execute({
       ...dto,
       accountId,
       currency: 'INR',
     });
-    return TransactionDtoMapper.toDto(transaction, accountId);
+    return transaction;
   }
 
   async listTransactions(accountId: string, filter: BaseFilter<TransactionDetailFilterDto>, userId?: string): Promise<PagedResult<TransactionDetailDto>> {
@@ -109,9 +105,17 @@ export class AccountService {
     if (userId && account?.accountHolderId !== userId) {
       throw new BusinessException('Account does not belongs to user.')
     }
-    const result = await this.transactionRepository.findPaged({ ...filter, props: { ...filter.props, accountIds: [accountId] } });
+    const result = await this.transactionRepository.findPaged({
+      pageIndex: filter.pageIndex,
+      pageSize: filter.pageSize,
+      props: {
+        accountIds: [accountId],
+        transactionRef: filter.props?.transactionRef,
+        ...filter.props
+      }
+    });
     return new PagedResult(
-      result.content.map(t => TransactionDtoMapper.toDto(t, accountId)),
+      result.content.map(t => TransactionDtoMapper.toDto(t)),
       result.totalSize,
       result.pageIndex,
       result.pageSize,
@@ -132,12 +136,12 @@ export class AccountService {
       txnAmount: dto.amount,
       txnDescription: dto.description,
       txnDate: dto.transferDate,
-      txnType: TransactionType.TRANSFER,
+      txnType: 'TRANSFER',
       currency: 'INR',
       txnRefType: TransactionRefType.NONE,
       txnParticulars: 'Transfer to ' + dto.toAccountId,
     });
-    return TransactionDtoMapper.toDto(transaction, accountId);
+    return transaction;
   }
 
   async addFundToAccount(accountId: string, dto: AddFundDto, profile_id: string | undefined) {
@@ -160,16 +164,16 @@ export class AccountService {
       txnDate: dto.transferDate,
       txnType: TransactionType.IN,
     });
-    return TransactionDtoMapper.toDto(transaction, accountId);
+    return transaction;
   }
 
   async reverseTransaction(accountId: string, dto: ReverseTransactionDto) {
     const transaction = await this.reverseTransactionUseCase.execute({
       accountId: accountId,
       reason: dto.comment,
-      txnId: dto.transactionId,
+      transactionRef: dto.transactionRef,
     });
-    return TransactionDtoMapper.toDto(transaction, accountId);
+    return transaction;
   }
 
 

@@ -5,21 +5,16 @@ import type { IWorkflowInstanceRepository } from '../../domain/repositories/work
 import { WorkflowInstance } from '../../domain/model/workflow-instance.model';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { WorkflowDefService } from '../../infrastructure/external/workflow-def.service';
-import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
+import { WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
-import { TaskAssignment } from '../../domain/model/task-assignment.model';
-import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { AutomaticTaskService } from '../services/automatic-task.service';
-import { EmailTemplateName } from 'src/shared/email-keys';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SendNotificationRequestEvent } from 'src/modules/shared/notification/application/events/send-notification-request.event';
-import { NotificationKeys } from 'src/shared/notification-keys';
-import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/notification/domain/models/notification.model';
-import { TaskAssignmentCreatedEvent } from '../../domain/events/task-assignment-created.event';
 import { UserStatus } from 'src/modules/user/domain/model/user.model';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstance> {
+    private readonly logger = new Logger(StartWorkflowStepUseCase.name);
     constructor(
         @Inject(WORKFLOW_INSTANCE_REPOSITORY)
         private readonly instanceRepository: IWorkflowInstanceRepository,
@@ -59,6 +54,9 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                     const users = await this.userRepository.findAll({ roleCodes, status: UserStatus.ACTIVE });
                     if (users.length > 0) {
                         workflow.assignTask(task.id, users, roleCodes);
+                        this.logger.log(`Task assigned to users: ${users.map(u => u.id).join(', ')}`);
+                    } else {
+                        this.logger.warn(`No users found for task: ${task.id}`);
                     }
                 }
             }

@@ -5,12 +5,10 @@ import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 export enum TransactionType {
   IN = 'IN',                  // Legacy: Money coming in
   OUT = 'OUT',                // Legacy: Money going out
-  TRANSFER = 'TRANSFER',      // Transfer between accounts
 }
 
 export enum TransactionStatus {
   SUCCESS = 'SUCCESS',        // Legacy: SUCCESS instead of COMPLETED
-  FAILURE = 'FAILURE',        // Legacy: FAILURE instead of FAILED
   REVERSED = 'REVERSED',         // Legacy: REVERT instead of REVERSED
 }
 
@@ -19,9 +17,11 @@ export enum TransactionRefType {
   NONE = 'NONE',
   EXPENSE = 'EXPENSE',
   EARNING = 'EARNING',
+  TXN_REVERSE = "TXN_REVERSE",
 }
 
 export class TransactionFilter {
+  transactionRef?: string;
   type?: TransactionType[];
   status?: TransactionStatus[];
   referenceType?: TransactionRefType[];
@@ -37,8 +37,6 @@ export class TransactionFilter {
  * All business logic and validations are in this domain model
  */
 export class Transaction extends BaseDomain<string> {
-
-
   // Private fields for encapsulation
   #currency: string;
   #referenceId: string | undefined;
@@ -46,25 +44,18 @@ export class Transaction extends BaseDomain<string> {
   #description: string;
   #metadata: Record<string, any> | undefined;
   #transactionDate: Date;
-
-  // Legacy fields
-  #txnId: string; // Legacy alias for id
-  #txnDate: Date; // Legacy alias for transactionDate
-  #txnAmount: number; // Legacy alias for amount
-  #txnType: TransactionType; // Legacy alias
-  #txnStatus: TransactionStatus; // Legacy alias
-  #txnDescription: string; // Legacy alias
-  #txnParticulars: string | undefined;
-  #txnRefId: string | undefined; // Legacy alias
-  #txnRefType: TransactionRefType | undefined; // Legacy alias
-  #transferFromAccountId: string | undefined;
-  #transferToAccountId: string | undefined;
-  #comment: string | undefined;
-  #toAccBalance: number | undefined; // Account balance after transaction
-  #fromAccBalance: number | undefined; // Account balance after transaction
+  #amount: number;
+  #type: TransactionType;
+  #status: TransactionStatus;
+  #particulars: string | undefined;
+  #accountId: string | undefined;
+  #refAccountId: string | undefined;
+  #balanceAfterTxn: number | undefined; // Account balance after transaction
+  #transactionRef: string;
 
   constructor(
     id: string,
+    transactionRef: string,
     type: TransactionType,
     amount: number,
     currency: string,
@@ -75,35 +66,27 @@ export class Transaction extends BaseDomain<string> {
     metadata: Record<string, any> | undefined,
     transactionDate: Date,
     txnParticulars?: string,
-    transferFromAccountId?: string,
-    transferToAccountId?: string,
-    toAccountBalance?: number,
-    fromAccountBalance?: number,
-    comment?: string,
+    accountId?: string,
+    balanceAfterTxn?: number,
+    refAccountId?: string,
     createdAt?: Date,
     updatedAt?: Date,
   ) {
     super(id, createdAt, updatedAt);
+    this.#transactionRef = transactionRef;
     this.#currency = currency;
     this.#referenceId = referenceId;
     this.#referenceType = referenceType;
     this.#description = description;
     this.#metadata = metadata;
     this.#transactionDate = transactionDate;
-    this.#txnId = id; // Legacy alias
-    this.#txnDate = transactionDate; // Legacy alias
-    this.#txnAmount = amount; // Legacy alias
-    this.#txnType = type; // Legacy alias
-    this.#txnStatus = status; // Legacy alias
-    this.#txnDescription = description; // Legacy alias
-    this.#txnParticulars = txnParticulars;
-    this.#txnRefId = referenceId; // Legacy alias
-    this.#txnRefType = referenceType; // Legacy alias
-    this.#transferFromAccountId = transferFromAccountId;
-    this.#transferToAccountId = transferToAccountId;
-    this.#toAccBalance = toAccountBalance;
-    this.#fromAccBalance = fromAccountBalance;
-    this.#comment = comment;
+    this.#amount = amount; // Legacy alias
+    this.#type = type; // Legacy alias
+    this.#status = status; // Legacy alias
+    this.#particulars = txnParticulars;
+    this.#accountId = accountId;
+    this.#balanceAfterTxn = balanceAfterTxn;
+    this.#refAccountId = refAccountId;
   }
 
   /**
@@ -111,14 +94,16 @@ export class Transaction extends BaseDomain<string> {
    * Business validation: amount must be positive, accountId required
    */
   static createIn(props: {
+    txnRef: string;
     amount: number;
     currency: string;
     accountId: string;
     description: string;
+    balanceAfterTxn: number;
     referenceId?: string;
     referenceType?: TransactionRefType;
     txnParticulars?: string;
-    comment?: string;
+    sourceAccountId?: string;
     transactionDate?: Date;
     metadata?: Record<string, any>;
   }): Transaction {
@@ -137,6 +122,7 @@ export class Transaction extends BaseDomain<string> {
 
     const transaction = new Transaction(
       `NTXN${generateUniqueNDigitNumber(10)}IN`,
+      props.txnRef,
       TransactionType.IN,
       props.amount,
       props.currency,
@@ -147,11 +133,9 @@ export class Transaction extends BaseDomain<string> {
       props.metadata,
       props.transactionDate || new Date(),
       props.txnParticulars,
-      undefined, // transferFromAccountId
-      props.accountId, // transferToAccountId
-      undefined,
-      undefined,
-      props.comment,
+      props.accountId,
+      props.balanceAfterTxn,
+      props.sourceAccountId,
       new Date(),
       new Date(),
     );
@@ -163,14 +147,16 @@ export class Transaction extends BaseDomain<string> {
    * Business validation: amount must be positive, accountId required
    */
   static createOut(props: {
+    txnRef: string;
     amount: number;
     currency: string;
     accountId: string;
     description: string;
+    balanceAfterTxn: number;
     referenceId?: string;
     referenceType?: TransactionRefType;
     txnParticulars?: string;
-    comment?: string;
+    destAccountId?: string;
     transactionDate?: Date;
     metadata?: Record<string, any>;
   }): Transaction {
@@ -189,6 +175,7 @@ export class Transaction extends BaseDomain<string> {
 
     const transaction = new Transaction(
       `NTXN${generateUniqueNDigitNumber(10)}OU`,
+      props.txnRef,
       TransactionType.OUT,
       props.amount,
       props.currency,
@@ -199,107 +186,29 @@ export class Transaction extends BaseDomain<string> {
       props.metadata,
       props.transactionDate || new Date(),
       props.txnParticulars,
-      props.accountId, // transferFromAccountId
-      undefined, // transferToAccountId
-      undefined,
-      undefined,
-      props.comment
+      props.accountId,
+      props.balanceAfterTxn,
+      props.destAccountId
     );
 
     return transaction;
-  }
-
-  /**
-   * Factory method to create a transfer transaction
-   * Business validation: amount must be positive, both accounts required
-   */
-  static createTransfer(props: {
-    amount: number;
-    currency: string;
-    fromAccountId: string;
-    toAccountId: string;
-    description: string;
-    referenceId?: string;
-    referenceType?: TransactionRefType;
-    txnParticulars?: string;
-    comment?: string;
-    transactionDate?: Date;
-    metadata?: Record<string, any>;
-  }): Transaction {
-    if (!props.amount || props.amount <= 0) {
-      throw new BusinessException('Transaction amount must be greater than zero');
-    }
-    if (!props.currency) {
-      throw new BusinessException('Currency is required');
-    }
-    if (!props.fromAccountId || !props.toAccountId) {
-      throw new BusinessException('Both from and to account IDs are required for transfer');
-    }
-    if (props.fromAccountId === props.toAccountId) {
-      throw new BusinessException('Cannot transfer to the same account');
-    }
-
-    const transaction = new Transaction(
-      `NTXN${generateUniqueNDigitNumber(10)}TR`,
-      TransactionType.TRANSFER,
-      props.amount,
-      props.currency,
-      TransactionStatus.SUCCESS,
-      undefined, // referenceId
-      TransactionRefType.NONE,
-      props.description,
-      props.metadata,
-      props.transactionDate || new Date(),
-      props.txnParticulars,
-      props.fromAccountId,
-      props.toAccountId,
-      undefined,
-      undefined,
-      props.comment,
-    );
-
-    return transaction;
-  }
-
-  /**
-   * Mark transaction as failed
-   * Business validation: Cannot mark successful transaction as failed
-   */
-  markAsFailed(): void {
-    if (this.#txnStatus === TransactionStatus.SUCCESS) {
-      throw new BusinessException('Cannot mark successful transaction as failed');
-    }
-    this.#txnStatus = TransactionStatus.FAILURE;
-    this.touch();
   }
 
   /**
    * Revert a transaction
    * Business validation: Can only revert successful transactions
    */
-  revert(): void {
-    if (this.#txnStatus !== TransactionStatus.SUCCESS) {
+  reverse(): void {
+    if (this.#status !== TransactionStatus.SUCCESS) {
       throw new BusinessException('Can only revert successful transactions');
     }
-    this.#txnStatus = TransactionStatus.REVERSED;
+    this.#status = TransactionStatus.REVERSED;
     this.touch();
   }
 
-  /**
-   * Set account balance after transaction
-   */
-  setToAccountBalance(balance: number): void {
-    this.#toAccBalance = balance;
-  }
-
-  setFromAccountBalance(balance: number): void {
-    this.#fromAccBalance = balance;
-  }
-
-  isEligibleForReverse(accountId?: string) {
-    return this.#txnStatus === TransactionStatus.SUCCESS
-      //&& this.getTxnTypeForAccount(accountId) === 'DEBIT'//TODO: Check this later why it has been added earlier
-      && this.txnDate >= new Date(new Date().setDate(new Date().getDate() - 10));
+  get isEligibleForReverse(): boolean {
+    return this.#status === TransactionStatus.SUCCESS
+      && this.transactionDate >= new Date(new Date().setDate(new Date().getDate() - 10));
   }
 
   // Getters
@@ -309,40 +218,12 @@ export class Transaction extends BaseDomain<string> {
   get description(): string { return this.#description; }
   get metadata(): Record<string, any> | undefined { return this.#metadata; }
   get transactionDate(): Date { return this.#transactionDate; }
-  get txnId(): string { return this.#txnId; }
-  get txnDate(): Date { return this.#txnDate; }
-  get txnAmount(): number { return this.#txnAmount; }
-  get txnType(): TransactionType { return this.#txnType; }
-  get txnStatus(): TransactionStatus { return this.#txnStatus; }
-  get txnDescription(): string { return this.#txnDescription; }
-  get txnParticulars(): string | undefined { return this.#txnParticulars; }
-  get txnRefId(): string | undefined { return this.#txnRefId; }
-  get txnRefType(): TransactionRefType | undefined { return this.#txnRefType; }
-  get transferFromAccountId(): string | undefined {
-    return this.#txnType == TransactionType.IN ? undefined : this.#transferFromAccountId;
-  }
-  get transferToAccountId(): string | undefined {
-    return this.#txnType == TransactionType.OUT ? undefined : this.#transferToAccountId;
-  }
-  get comment(): string | undefined { return this.#comment; }
-  get toAccBalance(): number | undefined { return this.#toAccBalance; }
-  get fromAccBalance(): number | undefined { return this.#fromAccBalance; }
-
-  getAccountBalance(accId?: string): number | undefined {
-    if (this.txnType === TransactionType.IN) return this.toAccBalance;
-    if (this.txnType === TransactionType.OUT) return this.fromAccBalance;
-    if (accId === this.transferFromAccountId) return this.#fromAccBalance;
-    if (accId === this.transferToAccountId) return this.#toAccBalance;
-    return undefined;
-  }
-
-  getTxnTypeForAccount(accId?: string): 'DEBIT' | 'CREDIT' | undefined {
-    if (this.txnType === TransactionType.IN) return 'CREDIT';
-    if (this.txnType === TransactionType.OUT) return 'DEBIT';
-    if (accId === this.transferFromAccountId) return 'DEBIT';
-    if (accId === this.transferToAccountId) return 'CREDIT';
-    return undefined;
-  }
-
-
+  get amount(): number { return this.#amount; }
+  get type(): TransactionType { return this.#type; }
+  get status(): TransactionStatus { return this.#status; }
+  get particulars(): string | undefined { return this.#particulars; }
+  get transactionRef(): string { return this.#transactionRef; }
+  get accountId(): string | undefined { return this.#accountId; }
+  get balanceAfterTxn(): number | undefined { return this.#balanceAfterTxn; }
+  get refAccountId(): string | undefined { return this.#refAccountId; }
 }
