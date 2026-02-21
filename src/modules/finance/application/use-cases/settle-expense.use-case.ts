@@ -56,7 +56,7 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
     expense.settle({
       settledBy: { id: request.settledById },
       accountId: request.accountId,
-      transactionId: transaction.id,
+      transactionId: transaction,
     });
 
     const updatedExpense = await this.expenseRepository.update(expense.id, expense);

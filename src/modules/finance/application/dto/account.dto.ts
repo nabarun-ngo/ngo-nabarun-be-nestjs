@@ -76,6 +76,9 @@ export class AccountDetailDto {
   @ApiPropertyOptional()
   accountHolder?: string; // UserDetail reference
 
+  @ApiPropertyOptional()
+  balance?: number;
+
   @ApiProperty({ enum: AccountStatus })
   accountStatus: AccountStatus;
 
@@ -130,6 +133,11 @@ export class AccountDetailFilterDto {
   @IsOptional()
   @IsEnum(['Y', 'N'])
   includePaymentDetail?: 'Y' | 'N';
+
+  @ApiPropertyOptional({ enum: ['Y', 'N'] })
+  @IsOptional()
+  @IsEnum(['Y', 'N'])
+  includeBalance?: 'Y' | 'N';
 
   @ApiPropertyOptional()
   @IsOptional()
