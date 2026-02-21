@@ -11,6 +11,7 @@ export class AccountDtoMapper {
   }): AccountDetailDto {
     return {
       id: account.id,
+      balance: account.balance,
       accountHolderName: account.accountHolderName,
       accountHolder: account.accountHolderId, // UserDetail reference - would need to fetch
       accountStatus: account.status,

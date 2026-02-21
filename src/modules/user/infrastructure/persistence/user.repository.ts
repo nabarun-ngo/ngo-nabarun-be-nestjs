@@ -141,18 +141,46 @@ class UserRepository
     const now = new Date();
     const data = UserInfraMapper.toUserCreatePersistence(user);
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Update core profile
-      await tx.userProfile.update({
-        where: { id },
-        data,
-      });
+    // Filter phone numbers
+    const phoneNumbers = [user.primaryNumber, user.secondaryNumber].filter(Boolean);
 
-      // 2. Upsert phone numbers
-      const phoneNumbers = [user.primaryNumber, user.secondaryNumber].filter(Boolean);
-      await Promise.all(
-        phoneNumbers.map((phone, index) =>
-          tx.phoneNumber.upsert({
+    // Build addresses array
+    const addressesData: (Omit<Prisma.AddressUncheckedCreateInput, 'userId'> & { addressType: string })[] = [];
+    if (user.presentAddress) {
+      addressesData.push({
+        id: user.presentAddress.id,
+        addressLine1: user.presentAddress.addressLine1,
+        addressLine2: user.presentAddress.addressLine2 ?? null,
+        addressLine3: user.presentAddress.addressLine3 ?? null,
+        hometown: user.presentAddress.hometown,
+        zipCode: user.presentAddress.zipCode,
+        state: user.presentAddress.state,
+        district: user.presentAddress.district,
+        country: user.presentAddress.country,
+        addressType: 'present',
+      });
+    }
+    if (user.permanentAddress) {
+      addressesData.push({
+        id: user.permanentAddress.id,
+        addressLine1: user.permanentAddress.addressLine1,
+        addressLine2: user.permanentAddress.addressLine2 ?? null,
+        addressLine3: user.permanentAddress.addressLine3 ?? null,
+        hometown: user.permanentAddress.hometown,
+        zipCode: user.permanentAddress.zipCode,
+        state: user.permanentAddress.state,
+        district: user.permanentAddress.district,
+        country: user.permanentAddress.country,
+        addressType: 'permanent',
+      });
+    }
+
+    const updated = await this.prisma.userProfile.update({
+      where: { id },
+      data: {
+        ...data,
+        phoneNumbers: {
+          upsert: phoneNumbers.map((phone, index) => ({
             where: { id: phone!.id },
             update: {
               phoneCode: phone!.phoneCode,
@@ -162,66 +190,43 @@ class UserRepository
             },
             create: {
               id: phone!.id,
-              userId: id,
               phoneCode: phone!.phoneCode,
               phoneNumber: phone!.phoneNumber,
               hidden: phone!.hidden,
               primary: index === 0,
             },
-          }),
-        ),
-      );
-
-      // 3. Upsert addresses
-      const addresses: Address[] = [];
-      if (user.presentAddress) {
-        addresses.push({
-          id: user.presentAddress.id,
-          userId: id,
-          addressLine1: user.presentAddress.addressLine1 ?? null,
-          addressLine2: user.presentAddress.addressLine2 ?? null,
-          addressLine3: user.presentAddress.addressLine3 ?? null,
-          hometown: user.presentAddress.hometown ?? null,
-          zipCode: user.presentAddress.zipCode ?? null,
-          state: user.presentAddress.state ?? null,
-          district: user.presentAddress.district ?? null,
-          country: user.presentAddress.country ?? null,
-          addressType: 'present',
-          version: Number(1),
-        });
-      }
-
-      if (user.permanentAddress) {
-        addresses.push({
-          id: user.permanentAddress.id,
-          userId: id,
-          addressLine1: user.permanentAddress.addressLine1 ?? null,
-          addressLine2: user.permanentAddress.addressLine2 ?? null,
-          addressLine3: user.permanentAddress.addressLine3 ?? null,
-          hometown: user.permanentAddress.hometown ?? null,
-          zipCode: user.permanentAddress.zipCode ?? null,
-          state: user.permanentAddress.state ?? null,
-          district: user.permanentAddress.district ?? null,
-          country: user.permanentAddress.country ?? null,
-          addressType: 'permanent',
-          version: Number(1),
-        });
-      }
-
-      await Promise.all(
-        addresses.map((addr) =>
-          tx.address.upsert({
+          })),
+        },
+        addresses: {
+          upsert: addressesData.map((addr) => ({
             where: { id: addr.id },
-            update: { ...addr },
-            create: { ...addr },
-          }),
-        ),
-      );
-
-      // 4. Upsert social links
-      await Promise.all(
-        user.socialMediaLinks.map((link) =>
-          tx.link.upsert({
+            update: {
+              addressLine1: addr.addressLine1,
+              addressLine2: addr.addressLine2,
+              addressLine3: addr.addressLine3,
+              hometown: addr.hometown,
+              zipCode: addr.zipCode,
+              state: addr.state,
+              district: addr.district,
+              country: addr.country,
+              addressType: addr.addressType,
+            },
+            create: {
+              id: addr.id,
+              addressLine1: addr.addressLine1,
+              addressLine2: addr.addressLine2,
+              addressLine3: addr.addressLine3,
+              hometown: addr.hometown,
+              zipCode: addr.zipCode,
+              state: addr.state,
+              district: addr.district,
+              country: addr.country,
+              addressType: addr.addressType,
+            },
+          })),
+        },
+        socialMediaLinks: {
+          upsert: user.socialMediaLinks.map((link) => ({
             where: { id: link.id },
             update: {
               linkName: link.linkName,
@@ -231,61 +236,50 @@ class UserRepository
             },
             create: {
               id: link.id,
-              userId: id,
               linkName: link.linkName,
               linkType: link.linkType,
               linkValue: link.linkValue,
               createdAt: now,
               updatedAt: now,
             },
-          }),
-        ),
-      );
-
-      // 5. Return updated profile
-      const updated = await tx.userProfile.findUnique({
-        where: { id },
-        include: {
-          roles: true,
-          phoneNumbers: true,
-          addresses: true,
-          socialMediaLinks: true,
+          })),
         },
-      });
-
-      const mappedUser = UserInfraMapper.toUserDomain(updated);
-      if (!mappedUser) {
-        throw new Error('Failed to map updated user');
-      }
-      return mappedUser;
+      },
+      include: {
+        roles: true,
+        phoneNumbers: true,
+        addresses: true,
+        socialMediaLinks: true,
+      },
     });
+
+    const mappedUser = UserInfraMapper.toUserDomain(updated);
+    if (!mappedUser) {
+      throw new Error('Failed to map updated user');
+    }
+    return mappedUser;
   }
 
   async updateRoles(id: string, roles: Role[]): Promise<void> {
     const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      // Expire old roles
-      await tx.userRole.updateMany({
-        where: { userId: id, expireAt: null },
-        data: { expireAt: now },
-      });
-
-      await Promise.all(
-        // Create new roles
-        roles.map((role) =>
-          tx.userRole.create({
-            data: {
-              id: role.id,
-              userId: id,
-              roleCode: role.roleCode,
-              roleName: role.roleName,
-              authRoleCode: role.authRoleCode,
-              isDefault: role.isDefault,
-              createdAt: now,
-            },
-          }),
-        )
-      );
+    await this.prisma.userProfile.update({
+      where: { id },
+      data: {
+        roles: {
+          updateMany: {
+            where: { expireAt: null },
+            data: { expireAt: now },
+          },
+          create: roles.map((role) => ({
+            id: role.id,
+            roleCode: role.roleCode,
+            roleName: role.roleName,
+            authRoleCode: role.authRoleCode,
+            isDefault: role.isDefault,
+            createdAt: now,
+          })),
+        },
+      },
     });
   }
 
@@ -333,7 +327,7 @@ class UserRepository
         _sum: { amount: true }
       }),
       this.prisma.transaction.findMany({
-        where: { OR: [{ fromAccountId: { in: accountIds } }, { toAccountId: { in: accountIds } }] },
+        where: { accountId: { in: accountIds } },
         select: { amount: true, type: true }
       }),
       this.prisma.workflowTask.count({

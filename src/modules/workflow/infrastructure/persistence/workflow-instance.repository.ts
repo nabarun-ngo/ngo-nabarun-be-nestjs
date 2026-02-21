@@ -253,92 +253,101 @@ class WorkflowInstanceRepository
 
   async update(id: string, instance: WorkflowInstance): Promise<WorkflowInstance> {
     const data = WorkflowInfraMapper.toWorkflowInstanceUpdatePersistence(instance);
-    return this.prisma.$transaction(async (tx) => {
-      // Update workflow instance
-      await tx.workflowInstance.update({ where: { id }, data });
 
-      // Upsert steps
-      await Promise.all(
-        instance.steps.map((step) => {
-          const stepData = WorkflowInfraMapper.toWorkflowStepPersistence(step);
-          return tx.workflowStep.upsert({
-            where: { id: step.id },
-            update: stepData,
-            create: { ...stepData, instanceId: id },
-          });
-        }),
-      );
-
-      // Upsert tasks for each step
-      await Promise.all(
-        instance.steps.map((step) => {
-          return Promise.all(
-            step.tasks.map((task) => {
-              const taskData = WorkflowInfraMapper.toPrismaWorkflowTaskPersistance(task, step.id);
-              return tx.workflowTask.upsert({
-                where: { id: task.id },
-                update: taskData,
-                create: { ...taskData },
-              });
-            }),
-          );
-        }),
-      );
-
-      // Upsert task assignments for each task
-      await Promise.all(
-        instance.steps.map((step) => {
-          return Promise.all(
-            step.tasks.map((task) => {
-              return Promise.all(
-                task.assignments.map((assignment) => {
-                  const assignmentData = WorkflowInfraMapper.toPrismaTaskAssignment(assignment);
-                  return tx.taskAssignment.upsert({
-                    where: { id: assignment.id },
-                    update: assignmentData,
-                    create: { ...assignmentData },
-                  });
-                }),
-              );
-            }),
-          );
-        }),
-      );
-
-      // Retrieve the updated instance with all relations
-      const updated: PrismaWorkflowInstanceWithTasks | null = await tx.workflowInstance.findUnique({
-        where: { id },
-        include: {
-          steps: {
-            include: {
-              tasks: {
-                include: {
-                  assignments: {
-                    include: {
-                      assignedTo: true,
-                    },
+    const updated = await this.prisma.workflowInstance.update({
+      where: { id },
+      data: {
+        ...data,
+        steps: {
+          upsert: instance.steps.map((step) => {
+            const stepData = WorkflowInfraMapper.toWorkflowStepPersistence(step);
+            return {
+              where: { id: step.id },
+              update: {
+                ...stepData,
+                tasks: {
+                  upsert: step.tasks.map((task) => {
+                    const taskPersistence = WorkflowInfraMapper.toPrismaWorkflowTaskPersistance(task, step.id);
+                    const { step: _, ...taskData } = taskPersistence;
+                    return {
+                      where: { id: task.id },
+                      update: {
+                        ...taskData,
+                        assignments: {
+                          upsert: task.assignments.map((assignment) => {
+                            const assignmentPersistence = WorkflowInfraMapper.toPrismaTaskAssignment(assignment);
+                            const { task: __, ...assignmentData } = assignmentPersistence;
+                            return {
+                              where: { id: assignment.id },
+                              update: assignmentData,
+                              create: assignmentData,
+                            };
+                          }),
+                        },
+                      },
+                      create: {
+                        ...taskData,
+                        assignments: {
+                          create: task.assignments.map((assignment) => {
+                            const { task: __, ...assignmentData } = WorkflowInfraMapper.toPrismaTaskAssignment(assignment);
+                            return assignmentData;
+                          }),
+                        },
+                      },
+                    };
+                  }),
+                },
+              },
+              create: {
+                ...stepData,
+                tasks: {
+                  create: step.tasks.map((task) => {
+                    const { step: _, ...taskData } = WorkflowInfraMapper.toPrismaWorkflowTaskPersistance(task, step.id);
+                    return {
+                      ...taskData,
+                      assignments: {
+                        create: task.assignments.map((assignment) => {
+                          const { task: __, ...assignmentData } = WorkflowInfraMapper.toPrismaTaskAssignment(assignment);
+                          return assignmentData;
+                        }),
+                      },
+                    };
+                  }),
+                },
+              },
+            };
+          }),
+        },
+      },
+      // Include EVERYTHING here so we don't need a second query
+      include: {
+        steps: {
+          include: {
+            tasks: {
+              include: {
+                completedBy: true,
+                assignments: {
+                  include: {
+                    assignedTo: true,
                   },
                 },
               },
             },
           },
-          initiatedBy: true,
-          initiatedFor: true,
         },
-      });
-
-      if (!updated) {
-        throw new Error('Failed to retrieve updated workflow instance');
-      }
-
-      const mappedInstance = WorkflowInfraMapper.toDomainWithTasks(updated);
-      if (!mappedInstance) {
-        throw new Error('Failed to map updated workflow instance');
-      }
-
-      return mappedInstance;
+        initiatedBy: true,
+        initiatedFor: true,
+      },
     });
+
+    const mappedInstance = WorkflowInfraMapper.toDomainWithTasks(updated as PrismaWorkflowInstanceWithTasks);
+    if (!mappedInstance) {
+      throw new Error('Failed to map updated workflow instance');
+    }
+
+    return mappedInstance;
   }
+
 
   async delete(id: string): Promise<void> {
     await this.prisma.workflowInstance.delete({ where: { id } });

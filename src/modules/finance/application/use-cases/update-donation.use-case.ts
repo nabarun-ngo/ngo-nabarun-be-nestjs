@@ -62,7 +62,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
           await this.reverseTransactionUseCase.execute({
             accountId: donation.paidToAccount?.id!,
             reason: request.remarks || 'Update mistake',
-            txnId: donation.transactionRef!,
+            transactionRef: donation.transactionRef!,
           });
           break;
         case DonationStatus.PENDING:
@@ -77,7 +77,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
             paidDate: request.paidOn!,
           });
 
-          const transaction = await this.transactionUseCase.execute({
+          const transactionRef = await this.transactionUseCase.execute({
             accountId: donation.paidToAccount?.id!,
             txnAmount: donation.amount!,
             currency: 'INR',
@@ -88,7 +88,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
             txnRefType: TransactionRefType.DONATION,
             txnParticulars: `Donation amount for ${donation.id}`,
           })
-          donation.linkTransaction(transaction.id)
+          donation.linkTransaction(transactionRef)
           break;
         default:
           break;

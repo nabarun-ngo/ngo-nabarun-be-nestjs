@@ -74,10 +74,9 @@ export class TransactionDetailDto {
   @IsString()
   transferTo?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsString()
-  comment?: string;
+  transactionRef: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -113,12 +112,7 @@ export class TransactionDetailFilterDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  txnRefId?: string;
-
-  @ApiPropertyOptional({ enum: TransactionRefType })
-  @IsOptional()
-  @IsEnum(TransactionRefType)
-  txnRefType?: TransactionRefType;
+  transactionRef?: string;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
@@ -184,7 +178,7 @@ export class CreateTransactionDto {
 export class ReverseTransactionDto {
   @ApiProperty()
   @IsString()
-  transactionId: string;
+  transactionRef: string;
 
   @ApiProperty()
   @IsString()

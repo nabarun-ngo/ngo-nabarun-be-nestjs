@@ -2,6 +2,8 @@ import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { AccountCreatedEvent } from '../events/account-created.event';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
+import { Transaction, TransactionRefType, TransactionType } from './transaction.model';
+import { TransactionCreatedEvent } from '../events/transaction-created.event';
 
 export enum AccountType {
   PRINCIPAL = 'PRINCIPAL',    // Legacy: Principal account
@@ -29,6 +31,15 @@ export class BankDetail {
   ) { }
 }
 
+class TxnDetail {
+  transactionRef: string;
+  referenceId?: string;
+  referenceType?: TransactionRefType;
+  particulars: string;
+  txnDate: Date;
+  refAccountId?: string;
+}
+
 /**
  * UPI Detail Value Object
  */
@@ -47,6 +58,7 @@ export interface AccountFilter {
   status?: AccountStatus[];
   accountHolderName?: string;
   accountHolderId?: string;
+  includeBalance?: boolean
 }
 
 /**
@@ -58,7 +70,6 @@ export class Account extends AggregateRoot<string> {
   // Private fields for encapsulation
   #name: string;
   #type: AccountType;
-  #balance: number;
   #currency: string;
   #status: AccountStatus;
   #description: string | undefined;
@@ -67,15 +78,16 @@ export class Account extends AggregateRoot<string> {
   #activatedOn: Date | undefined;
   #bankDetail: BankDetail | undefined;
   #upiDetail: UPIDetail | undefined;
+  #transactions: Transaction[] = [];
 
   constructor(
     id: string,
     name: string,
     type: AccountType,
-    balance: number,
     currency: string,
     status: AccountStatus,
     description: string | undefined,
+    transactions: Transaction[] = [],
     accountHolderName?: string,
     accountHolderId?: string,
     activatedOn?: Date,
@@ -87,7 +99,6 @@ export class Account extends AggregateRoot<string> {
     super(id, createdAt, updatedAt);
     this.#name = name;
     this.#type = type;
-    this.#balance = balance;
     this.#currency = currency;
     this.#status = status;
     this.#description = description;
@@ -96,6 +107,7 @@ export class Account extends AggregateRoot<string> {
     this.#activatedOn = activatedOn;
     this.#bankDetail = bankDetail;
     this.#upiDetail = upiDetail;
+    this.#transactions = transactions;
   }
 
   /**
@@ -128,10 +140,10 @@ export class Account extends AggregateRoot<string> {
       `NACC${generateUniqueNDigitNumber(8)}`,
       props.name,
       props.type,
-      props.initialBalance || 0,
       props.currency,
       AccountStatus.ACTIVE,
       props.description,
+      [],
       props.accountHolderName,
       props.accountHolderId,
       now, // activatedOn
@@ -140,6 +152,13 @@ export class Account extends AggregateRoot<string> {
       now,
       now,
     );
+    if (props.initialBalance) {
+      account.credit(props.initialBalance, {
+        transactionRef: `TXR${generateUniqueNDigitNumber(10)}`,
+        particulars: 'Initial balance',
+        txnDate: now,
+      });
+    }
     account.addDomainEvent(new AccountCreatedEvent(account));
     return account;
   }
@@ -148,7 +167,7 @@ export class Account extends AggregateRoot<string> {
    * Credit amount to account (add money)
    * Business validation: amount must be positive, account must be active
    */
-  credit(amount: number): void {
+  credit(amount: number, txnDetail: TxnDetail): void {
     if (amount <= 0) {
       throw new BusinessException('Credit amount must be positive');
     }
@@ -157,7 +176,22 @@ export class Account extends AggregateRoot<string> {
       throw new BusinessException('Cannot credit to inactive or blocked account');
     }
 
-    this.#balance += amount;
+    const transaction = Transaction.createIn({
+      txnRef: txnDetail.transactionRef,
+      amount: amount,
+      currency: this.#currency,
+      accountId: this.id,
+      description: `Credit ${this.#currency} ${amount} to account ${this.id} for ${txnDetail.particulars}`,
+      referenceId: txnDetail.referenceId,
+      referenceType: txnDetail.referenceType,
+      txnParticulars: txnDetail.particulars,
+      transactionDate: txnDetail.txnDate,
+      balanceAfterTxn: this.balance + amount,
+      sourceAccountId: txnDetail.refAccountId,
+    });
+
+    this.#transactions.push(transaction);
+    this.addDomainEvent(new TransactionCreatedEvent(transaction));
     this.touch();
   }
 
@@ -165,7 +199,7 @@ export class Account extends AggregateRoot<string> {
    * Debit amount from account (remove money)
    * Business validation: amount must be positive, account must be active, sufficient balance
    */
-  debit(amount: number): void {
+  debit(amount: number, txnDetail: TxnDetail): void {
     if (amount <= 0) {
       throw new BusinessException('Debit amount must be positive');
     }
@@ -178,7 +212,22 @@ export class Account extends AggregateRoot<string> {
       throw new BusinessException('You dont have sufficiend balance.');
     }
 
-    this.#balance -= amount;
+    const transaction = Transaction.createOut({
+      txnRef: txnDetail.transactionRef,
+      amount: amount,
+      currency: this.#currency,
+      accountId: this.id,
+      description: `Debit ${this.#currency} ${amount} from account ${this.id} for ${txnDetail.particulars}`,
+      referenceId: txnDetail.referenceId,
+      referenceType: txnDetail.referenceType,
+      txnParticulars: txnDetail.particulars,
+      transactionDate: txnDetail.txnDate,
+      balanceAfterTxn: this.balance - amount,
+      destAccountId: txnDetail.refAccountId,
+    });
+
+    this.#transactions.push(transaction);
+    this.addDomainEvent(new TransactionCreatedEvent(transaction));
     this.touch();
   }
 
@@ -190,7 +239,7 @@ export class Account extends AggregateRoot<string> {
     if (this.#status === AccountStatus.CLOSED) {
       throw new BusinessException('Cannot close a already closed account');
     }
-    if (this.#balance !== 0) {
+    if (this.balance !== 0) {
       throw new BusinessException('Cannot close an account with balance');
     }
     this.#status = AccountStatus.CLOSED;
@@ -247,7 +296,15 @@ export class Account extends AggregateRoot<string> {
   // Getters
   get name(): string { return this.#name; }
   get type(): AccountType { return this.#type; }
-  get balance(): number { return this.#balance; }
+  get balance(): number {
+    return this.#transactions.reduce((acc, txn) => {
+      if (txn.type === TransactionType.IN) {
+        return acc + (txn.amount ?? 0);
+      } else {
+        return acc - (txn.amount ?? 0);
+      }
+    }, 0);
+  }
   get currency(): string { return this.#currency; }
   get status(): AccountStatus { return this.#status; }
   get description(): string | undefined { return this.#description; }
@@ -256,12 +313,13 @@ export class Account extends AggregateRoot<string> {
   get activatedOn(): Date | undefined { return this.#activatedOn; }
   get bankDetail(): BankDetail | undefined { return this.#bankDetail; }
   get upiDetail(): UPIDetail | undefined { return this.#upiDetail; }
+  get transactions(): ReadonlyArray<Transaction> { return this.#transactions; }
 
   /**
    * Check if account has sufficient funds
    */
   hasSufficientFunds(amount: number): boolean {
-    return this.#balance >= amount;
+    return this.balance >= amount;
   }
 
   /**
