@@ -2,8 +2,10 @@ export interface JobData {
   [key: string]: any;
 }
 
+import { ApiProperty } from '@nestjs/swagger';
 // Import BullMQ's types
 import { JobsOptions as BullMQJobOptions, Job as BullMQJob } from 'bullmq';
+import { IsDate, IsNumber, IsObject, IsString } from 'class-validator';
 
 // Re-export BullMQ's types as our types
 export type JobOptions = BullMQJobOptions;
@@ -65,18 +67,46 @@ export interface JobQueue {
 
 
 export class JobDetail {
+  @ApiProperty()
+  @IsString()
   id: string;
+  @ApiProperty()
+  @IsString()
   name: string;
+  @ApiProperty()
+  @IsObject()
   data: JobData;
+  @ApiProperty()
+  @IsObject()
   opts: JobOptions;
+  @ApiProperty()
+  @IsString()
   state: string;
+  @ApiProperty()
+  @IsNumber()
   progress: number;
+  @ApiProperty()
+  @IsObject()
   returnvalue: any;
+  @ApiProperty()
+  @IsString()
   failedReason: string;
+  @ApiProperty()
+  @IsDate()
   processedOn: Date;
+  @ApiProperty()
+  @IsDate()
   finishedOn: Date;
+  @ApiProperty()
+  @IsDate()
   timestamp: Date;
+  @ApiProperty()
+  @IsNumber()
   attemptsMade: number;
+  @ApiProperty()
+  @IsNumber()
   delay: number;
+  @ApiProperty()
+  @IsNumber()
   ttl: number;
 }

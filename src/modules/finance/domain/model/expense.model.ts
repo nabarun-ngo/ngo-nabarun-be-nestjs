@@ -246,8 +246,8 @@ export class Expense extends AggregateRoot<string> {
    * Business validation: Can only reject submitted expenses
    */
   reject(rejectedBy: Partial<User>, remarks?: string): void {
-    if (this.#status !== ExpenseStatus.SUBMITTED) {
-      throw new BusinessException('Can only reject submitted expenses');
+    if (this.#status !== ExpenseStatus.SUBMITTED && this.#status !== ExpenseStatus.FINALIZED) {
+      throw new BusinessException('Can only reject submitted or finalized expenses');
     }
     this.#status = ExpenseStatus.REJECTED;
     this.#rejectedBy = rejectedBy;

@@ -56,6 +56,7 @@ class TransactionRepository implements ITransactionRepository {
 
   private whereQuery(props?: TransactionFilter): Prisma.TransactionWhereInput {
     const where: Prisma.TransactionWhereInput = {
+      ...(props?.id ? { id: props.id } : {}),
       ...(props?.type ? { type: { in: props.type } } : {}),
       ...(props?.status ? { status: { in: props.status } } : {}),
       ...(props?.accountIds ? { accountId: { in: props.accountIds } } : {}),
