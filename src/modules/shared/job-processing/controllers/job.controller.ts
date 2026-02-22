@@ -4,9 +4,9 @@ import { JobProcessingService } from '../services/job-processing.service';
 import { JobMonitoringService } from '../services/job-monitoring.service';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { JobDetail } from '../interfaces/job.interface';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { RequirePermissions } from '../../auth/application/decorators/require-permissions.decorator';
+import { JobDetail } from '../dto/job.dto';
 
 @ApiTags(JobController.name)
 @Controller('jobs')

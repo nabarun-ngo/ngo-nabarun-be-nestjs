@@ -5,7 +5,6 @@ import { DonationPaidEvent } from "../../domain/events/donation-paid.event";
 import { DONATION_REPOSITORY, type IDonationRepository } from "../../domain/repositories/donation.repository.interface";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
-import { CronLogger } from "src/shared/utils/trace-context.util";
 import { JobName } from "src/shared/job-names";
 import { UserStatus } from "src/modules/user/domain/model/user.model";
 import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
@@ -21,16 +20,15 @@ import { NotificationCategory, NotificationPriority, NotificationType } from "sr
 import { NotificationKeys } from "src/shared/notification-keys";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
+import { RootEvent } from "src/shared/models/root-event";
 
-export class TriggerMonthlyDonationEvent { }
-export class TriggerMarkDonationAsPendingEvent { }
-export class TriggerRemindPendingDonationsEvent { }
-export class GenerateDonationSummaryReportEvent { }
+export class TriggerMonthlyDonationEvent extends RootEvent { }
+export class TriggerMarkDonationAsPendingEvent extends RootEvent { }
+export class TriggerRemindPendingDonationsEvent extends RootEvent { }
+export class GenerateDonationSummaryReportEvent extends RootEvent { }
 
 @Injectable()
 export class DonationsEventHandler {
-    private readonly logger = new CronLogger(DonationsEventHandler.name);
-
     constructor(
         @Inject(DONATION_REPOSITORY)
         private readonly donationRepository: IDonationRepository,
@@ -45,12 +43,12 @@ export class DonationsEventHandler {
 
     @OnEvent(DonationRaisedEvent.name, { async: true })
     async handleDonationRaisedEvent(event: DonationRaisedEvent) {
-        this.logger.log(`Donation raised event start: ${event.donation.id}`);
+        event.log(`Donation raised event start: ${event.donation.id}`);
         try {
 
             const donation = await this.donationRepository.findById(event.donation.id);
             if (!donation?.donorEmail) {
-                this.logger.warn(`No donor email found for donation ${donation?.id}`);
+                event.log(`No donor email found for donation ${donation?.id}`);
                 return;
             }
 
@@ -87,19 +85,19 @@ export class DonationsEventHandler {
             }
 
         } catch (error) {
-            this.logger.error(`Failed to send email for donation ${event.donation.id}`, error);
+            event.error(`Failed to send email for donation ${event.donation.id}`, error);
             throw error;
         }
-        this.logger.log(`Donation raised event end: ${event.donation.id}`);
+        event.log(`Donation raised event end: ${event.donation.id}`);
     }
 
     @OnEvent(DonationPaidEvent.name, { async: true })
     async handleDonationPaidEvent(event: DonationPaidEvent) {
-        this.logger.log(`Donation paid event start: ${event.donation.id}`);
+        event.log(`Donation paid event start: ${event.donation.id}`);
         try {
             const donation = await this.donationRepository.findById(event.donation.id);
             if (!donation?.donorEmail) {
-                this.logger.warn(`No donor email found for donation ${donation?.id}`);
+                event.warn(`No donor email found for donation ${donation?.id}`);
                 return;
             }
             await this.correspondenceService.sendTemplatedEmail({
@@ -134,23 +132,23 @@ export class DonationsEventHandler {
                     }));
             }
         } catch (error) {
-            this.logger.error(`Failed to send email for donation ${event.donation.id}`, error);
+            event.error(`Failed to send email for donation ${event.donation.id}`, error);
             throw error;
         }
-        this.logger.log(`Donation paid event end: ${event.donation.id}`);
+        event.log(`Donation paid event end: ${event.donation.id}`);
     }
 
     @OnEvent(TriggerMonthlyDonationEvent.name)
     @ApplyTryCatch()
     async handleTriggerMonthlyDonationEvent(event: TriggerMonthlyDonationEvent) {
-        this.logger.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
+        event.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
         const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
         const defaultAmount = Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT));
         const today = new Date();
         for (const user of users) {
             if (user.donationPauseStart && user.donationPauseEnd &&
                 user.donationPauseStart <= today && user.donationPauseEnd >= today) {
-                this.logger.warn(`Donation pause period (${user.donationPauseStart}-${user.donationPauseEnd}) found for user ${user.id}. Skipping donation creation.`);
+                event.warn(`Donation pause period (${user.donationPauseStart}-${user.donationPauseEnd}) found for user ${user.id}. Skipping donation creation.`);
                 continue;
             }
 
@@ -174,26 +172,26 @@ export class DonationsEventHandler {
             );
         }
 
-        this.logger.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs (concurrency: 4 will process them)`);
+        event.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs (concurrency: 4 will process them)`);
     }
 
     @OnEvent(TriggerMarkDonationAsPendingEvent.name, { async: true })
     @ApplyTryCatch()
-    async markPendingDonations(): Promise<void> {
-        this.logger.log('[PendingDonationsJob] Starting mark pending donations process...');
+    async markPendingDonations(event: TriggerMarkDonationAsPendingEvent): Promise<void> {
+        event.log('[PendingDonationsJob] Starting mark pending donations process...');
         const raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] })
         for (const donation of raisedDonations) {
             donation.markAsPending();
             await this.donationRepository.update(donation.id, donation);
-            this.logger.log(`[PendingDonationsJob] Donation ${donation.id} marked as pending...`);
+            event.log(`[PendingDonationsJob] Donation ${donation.id} marked as pending...`);
         }
-        this.logger.log('[PendingDonationsJob] Completed mark pending donations process...');
+        event.log('[PendingDonationsJob] Completed mark pending donations process...');
     }
 
     @OnEvent(TriggerRemindPendingDonationsEvent.name, { async: true })
     @ApplyTryCatch()
-    async remindPendingDonations(): Promise<void> {
-        this.logger.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
+    async remindPendingDonations(event: TriggerRemindPendingDonationsEvent): Promise<void> {
+        event.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
         const donations = await this.donationRepository.findAll({ status: [DonationStatus.PENDING], isGuest: false });
         const userDonations = groupBy(donations, (donation) => donation.donorId);
 
@@ -220,13 +218,13 @@ export class DonationsEventHandler {
             );
         }
 
-        this.logger.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs (concurrency will process them)`);
+        event.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs (concurrency will process them)`);
     }
 
     @OnEvent(GenerateDonationSummaryReportEvent.name, { async: true })
     @ApplyTryCatch()
-    async generateDonationSummaryReport(): Promise<void> {
-        this.logger.log('[GenerateDonationSummaryReportJob] Triggering donation summary report generation...');
+    async generateDonationSummaryReport(event: GenerateDonationSummaryReportEvent): Promise<void> {
+        event.log('[GenerateDonationSummaryReportJob] Triggering donation summary report generation...');
         const now = new Date();
         // First date: set day to 1 (of previous month)
         const firstDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -255,20 +253,20 @@ export class DonationsEventHandler {
             }
         );
 
-        this.logger.log('[GenerateDonationSummaryReportJob] Jon Scheduled for donation summary report generation ...');
+        event.log('[GenerateDonationSummaryReportJob] Jon Scheduled for donation summary report generation ...');
     }
 
     @OnEvent(UserDeletedEvent.name, { async: true })
     async handleUserDeletedEvent(event: UserDeletedEvent) {
         const user = event.user;
-        this.logger.log(`Processing user deletion for user: ${user.id}`);
+        event.log(`Processing user deletion for user: ${user.id}`);
         const donations = await this.donationRepository.findAll({ donorId: user.id, status: Donation.outstandingStatus });
-        this.logger.log(`Found ${donations.length} outstanding donations for user: ${user.id}`);
+        event.log(`Found ${donations.length} outstanding donations for user: ${user.id}`);
         for (const donation of donations) {
             donation.cancel();
             await this.donationRepository.update(donation.id, donation);
-            this.logger.log(`Cancelled donation: ${donation.id}`);
+            event.log(`Cancelled donation: ${donation.id}`);
         }
-        this.logger.log(`Processed user deletion for user: ${user.id}`);
+        event.log(`Processed user deletion for user: ${user.id}`);
     }
 }

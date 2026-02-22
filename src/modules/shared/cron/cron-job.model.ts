@@ -6,6 +6,7 @@ export interface CronExecutionLog {
     status: 'SUCCESS' | 'FAILED' | 'TRIGGERED';
     error?: string;
     result?: any;
+
 }
 
 export interface CronJob {

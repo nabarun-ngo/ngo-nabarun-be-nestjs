@@ -1,27 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { JobState, JobType, Queue } from 'bullmq';
-import { jobFailureResponse2 } from 'src/shared/utilities/common.util';
-import { JobDetail } from '../interfaces/job.interface';
-import { stat } from 'fs';
+import { Job, JobType, Queue } from 'bullmq';
+import { JobDetail, JobMetrics, JobPerformanceMetrics } from '../dto/job.dto';
+import { PagedResult } from 'src/shared/models/paged-result';
 
-export class JobMetrics {
-  total: number;
-  completed: number;
-  failed: number;
-  active: number;
-  waiting: number;
-  delayed: number;
-  successRate: number;
-  failureRate: number;
-}
 
-export interface JobPerformanceMetrics {
-  averageProcessingTime: number;
-  fastestJob: number;
-  slowestJob: number;
-  totalProcessingTime: number;
-}
 
 @Injectable()
 export class JobMonitoringService {
@@ -58,7 +41,7 @@ export class JobMonitoringService {
       const successRate = total > 0 ? (completed / total) * 100 : 0;
       const failureRate = total > 0 ? (failed / total) * 100 : 0;
 
-      const metrics = {
+      const metrics: JobMetrics = {
         total,
         completed,
         failed,
@@ -93,13 +76,13 @@ export class JobMonitoringService {
           fastestJob: 0,
           slowestJob: 0,
           totalProcessingTime: 0,
-        };
+        } as JobPerformanceMetrics;
       }
 
       const processingTimes = completedJobs
         .map((job) => {
-          const finishedOn = (job as any).finishedOn;
-          const processedOn = (job as any).processedOn;
+          const finishedOn = job.finishedOn;
+          const processedOn = job.processedOn;
           return finishedOn && processedOn ? finishedOn - processedOn : 0;
         })
         .filter((time) => time > 0);
@@ -110,7 +93,7 @@ export class JobMonitoringService {
           fastestJob: 0,
           slowestJob: 0,
           totalProcessingTime: 0,
-        };
+        } as JobPerformanceMetrics;
       }
 
       const totalProcessingTime = processingTimes.reduce(
@@ -127,7 +110,7 @@ export class JobMonitoringService {
         fastestJob,
         slowestJob,
         totalProcessingTime,
-      };
+      } as JobPerformanceMetrics;
     } catch (error) {
       this.logger.error('Failed to get job performance metrics', error);
       throw error;
@@ -148,29 +131,40 @@ export class JobMonitoringService {
       const start = page * size;
       const end = start + size;
       const jobs = await this.defaultQueue.getJobs(filter.status, start, end);
+      const count = await this.defaultQueue.getJobCounts(filter.status!);
 
-      return jobs
+      const jobDetails = await Promise.all(jobs
         .filter((job) => filter?.name ? job.name === filter.name : true)
-        .map((job) => ({
-          id: job.id,
-          name: job.name,
-          data: job.data,
-          opts: job.opts,
-          state: filter.status,
-          progress: job.progress,
-          returnvalue: (job as any).returnvalue,
-          failedReason: (job as any).failedReason,
-          processedOn: (job as any).processedOn,
-          finishedOn: (job as any).finishedOn,
-          timestamp: (job as any).timestamp,
-          attemptsMade: (job as any).attemptsMade,
-          delay: (job as any).delay,
-          ttl: (job as any).ttl,
-        } as JobDetail));
+        .map(async (job) => await this.toJobDetail(job)));
+      return new PagedResult(
+        jobDetails,
+        page,
+        size,
+        count[filter.status!]
+      )
     } catch (error) {
       this.logger.error('Failed to get jobs', error);
       throw error;
     }
+  }
+
+  private async toJobDetail(job: Job<any, any, string>): Promise<JobDetail> {
+    return {
+      id: job.id,
+      name: job.name,
+      data: job.data,
+      opts: job.opts,
+      state: await job.getState(),
+      progress: job.progress ?? 0,
+      returnvalue: job.returnvalue,
+      failedReason: job.failedReason ?? '',
+      processedOn: job.processedOn ? new Date(job.processedOn) : undefined,
+      finishedOn: job.finishedOn ? new Date(job.finishedOn) : undefined,
+      timestamp: job.timestamp ? new Date(job.timestamp) : undefined,
+      attemptsMade: job.attemptsMade,
+      delay: job.delay,
+      stacktrace: job.stacktrace,
+    };
   }
 
   /**
@@ -183,25 +177,7 @@ export class JobMonitoringService {
       if (!job) {
         throw new Error('Job not found');
       }
-
-      const state = await job.getState();
-
-      return {
-        id: job.id,
-        name: job.name,
-        data: job.data,
-        opts: job.opts,
-        state,
-        progress: job.progress,
-        returnvalue: (job as any).returnvalue,
-        failedReason: (job as any).failedReason,
-        processedOn: (job as any).processedOn,
-        finishedOn: (job as any).finishedOn,
-        timestamp: (job as any).timestamp,
-        attemptsMade: (job as any).attemptsMade,
-        delay: (job as any).delay,
-        ttl: (job as any).ttl,
-      } as JobDetail;
+      return this.toJobDetail(job);
     } catch (error) {
       this.logger.error(`Failed to get job details: ${jobId}`, error);
       throw error;

@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CronExecutionLog } from './cron-job.model';
-import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { RedisHashCacheService } from '../database/redis-hash-cache.service';
 
 @Injectable()
 export class CronLogStorageService {
-    private readonly logger = new CronLogger(CronLogStorageService.name);
+    private readonly logger = new Logger(CronLogStorageService.name);
     private readonly LOG_PREFIX = 'cron:logs';
     private readonly LOG_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 

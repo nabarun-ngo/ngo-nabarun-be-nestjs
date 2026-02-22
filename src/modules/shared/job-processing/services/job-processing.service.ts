@@ -1,10 +1,10 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { JobData, JobOptions, JobResult, Job } from '../interfaces/job.interface';
 import { JobName } from 'src/shared/job-names';
 import { ProcessJobOptions } from '../decorators/process-job.decorator';
 import { JobProcessorRegistry } from './job-processor-registry.service';
+import { Job, JobOptions } from '../dto/job.dto';
 
 @Injectable()
 export class JobProcessingService {
@@ -19,7 +19,7 @@ export class JobProcessingService {
   /**
    * Add a job to the default queue
    */
-  async addJob<T = JobData>(
+  async addJob<T>(
     name: JobName,
     data: T,
     options?: JobOptions,
@@ -55,7 +55,7 @@ export class JobProcessingService {
   /**
    * Add a job to a specific queue
    */
-  async addJobToQueue<T = JobData>(
+  async addJobToQueue<T>(
     queueName: string,
     name: string,
     data: T,
@@ -88,7 +88,7 @@ export class JobProcessingService {
   /**
    * Get a job by ID
    */
-  async getJob<T = JobData>(jobId: string): Promise<Job<T> | undefined> {
+  async getJob<T>(jobId: string): Promise<Job<T> | undefined> {
     try {
       const job = await this.defaultQueue.getJob(jobId);
       return job as Job<T> | undefined;
@@ -101,7 +101,7 @@ export class JobProcessingService {
   /**
    * Get a job from a specific queue
    */
-  async getJobFromQueue<T = JobData>(
+  async getJobFromQueue<T>(
     queueName: string,
     jobId: string,
   ): Promise<Job<T> | undefined> {

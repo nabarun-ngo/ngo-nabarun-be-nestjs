@@ -7,9 +7,6 @@ import { BusinessException } from '../../../../shared/exceptions/business-except
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { JobProcessingService } from 'src/modules/shared/job-processing/services/job-processing.service';
-import { ProcessJob } from 'src/modules/shared/job-processing/decorators/process-job.decorator';
-import { JobName } from 'src/shared/job-names';
-import { type Job } from 'src/modules/shared/job-processing/interfaces/job.interface';
 
 interface CreateTeansaction {
   txnType: TransactionType | 'TRANSFER';
@@ -31,7 +28,6 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, str
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
     private readonly eventBus: EventEmitter2,
-    private readonly jobProcessingService: JobProcessingService
   ) { }
 
   async execute(request: CreateTeansaction): Promise<string> {
