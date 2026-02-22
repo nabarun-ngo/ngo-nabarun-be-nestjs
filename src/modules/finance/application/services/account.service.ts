@@ -173,7 +173,6 @@ export class AccountService {
 
   async reverseTransaction(accountId: string, dto: ReverseTransactionDto) {
     const transaction = await this.reverseTransactionUseCase.execute({
-      accountId: accountId,
       reason: dto.comment,
       transactionRef: dto.transactionRef,
     });

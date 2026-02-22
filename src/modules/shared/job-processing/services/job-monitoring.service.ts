@@ -8,6 +8,7 @@ import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 export class JobMonitoringService {
+
   private readonly logger = new Logger(JobMonitoringService.name);
 
   // Cache for metrics to reduce Redis calls
@@ -148,7 +149,7 @@ export class JobMonitoringService {
     }
   }
 
-  private async toJobDetail(job: Job<any, any, string>): Promise<JobDetail> {
+  private async toJobDetail(job: Job<any, any, string>, logs?: string[]): Promise<JobDetail> {
     return {
       id: job.id,
       name: job.name,
@@ -164,6 +165,7 @@ export class JobMonitoringService {
       attemptsMade: job.attemptsMade,
       delay: job.delay,
       stacktrace: job.stacktrace,
+      logs: logs,
     };
   }
 
@@ -173,11 +175,12 @@ export class JobMonitoringService {
   async getJobDetails(jobId: string) {
     try {
       const job = await this.defaultQueue.getJob(jobId);
+      const jobLogs = await this.defaultQueue.getJobLogs(jobId);
 
       if (!job) {
         throw new Error('Job not found');
       }
-      return this.toJobDetail(job);
+      return this.toJobDetail(job, jobLogs.logs);
     } catch (error) {
       this.logger.error(`Failed to get job details: ${jobId}`, error);
       throw error;

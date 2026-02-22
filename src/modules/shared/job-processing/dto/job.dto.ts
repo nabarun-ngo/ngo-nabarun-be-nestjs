@@ -118,4 +118,9 @@ export class JobDetail {
   @IsOptional()
   @IsArray()
   stacktrace: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  logs?: string[];
 }

@@ -1,58 +1,42 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CronExecutionLog } from './cron-job.model';
-import { RedisHashCacheService } from '../database/redis-hash-cache.service';
-
+import { Injectable } from '@nestjs/common';
+import { CronExecution } from './cron-job.model';
+import { PageResult, RedisStoreService } from '../database/redis-store.service';
 @Injectable()
 export class CronLogStorageService {
-    private readonly logger = new Logger(CronLogStorageService.name);
-    private readonly LOG_PREFIX = 'cron:logs';
-    private readonly LOG_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+    private readonly NS = 'cron:jobs';
+    private readonly GLOBAL_KEY = 'global';
+    private readonly INDEXED_FIELDS: (keyof CronExecution)[] = ['status', 'id', 'jobName'];
 
-    constructor(private readonly redisService: RedisHashCacheService) { }
 
-    async getLogs(jobName: string): Promise<CronExecutionLog[]> {
-        try {
-            return await this.redisService.getList<CronExecutionLog>(this.LOG_PREFIX, jobName);
-        } catch (error) {
-            this.logger.error(`Failed to retrieve cached logs for ${jobName}: ${error.stack}`);
-            return [];
-        }
+    constructor(private readonly store: RedisStoreService) { }
+
+    // Execution logs — stored as bounded list on the job's hash key
+    async addLog(log: CronExecution): Promise<void> {
+        await this.store.save(this.NS, log, {
+            indexes: this.INDEXED_FIELDS
+        });
     }
 
-    async addLog(log: CronExecutionLog) {
-        try {
-            await this.redisService.pushToList(
-                this.LOG_PREFIX,
-                log.jobName,
-                log,
-                100, // Max 100 logs
-                this.LOG_TTL
-            );
-        } catch (error) {
-            this.logger.error(`Failed to cache cron log for ${log.jobName}: ${error.stack}`, error.stack);
-        }
+    async getLogs(jobName?: string): Promise<PageResult<CronExecution>> {
+        return this.store.findAll(this.NS, {
+            filter: jobName ? { field: 'jobName', value: jobName } : undefined,
+            sortBy: 'desc'
+        });
     }
 
-    async addCronLog(log: { triggerAt: Date; executedJobs: string[]; skippedJobs: string[]; }) {
-        try {
-            await this.redisService.pushToList(
-                this.LOG_PREFIX,
-                'global',
-                { ...log, triggerAt: log.triggerAt.toISOString() },
-                100, // Keep last 100 execution summaries
-                this.LOG_TTL
-            );
-        } catch (error) {
-            this.logger.error(`Failed to cache global cron log: ${error.stack}`, error.stack);
-        }
+    async getLog(id: string): Promise<CronExecution | null> {
+        return await this.store.findById(this.NS, id);
     }
 
-    async getGlobalLogs(): Promise<{ triggerAt: string; executedJobs: string[]; skippedJobs: string[]; }[]> {
-        try {
-            return await this.redisService.getList(this.LOG_PREFIX, 'global');
-        } catch (error) {
-            this.logger.error(`Failed to retrieve global cron logs: ${error.stack}`);
-            return [];
-        }
+    // Global execution summaries
+    async addCronLog(log: { triggerAt: Date; executedJobs: string[]; skippedJobs: string[] }): Promise<void> {
+        await this.store.pushToTimeline(this.NS, this.GLOBAL_KEY, {
+            ...log,
+            triggerAt: log.triggerAt.toISOString(),
+        });
+    }
+
+    async getGlobalLogs() {
+        return this.store.getTimeline(this.NS, this.GLOBAL_KEY);
     }
 }

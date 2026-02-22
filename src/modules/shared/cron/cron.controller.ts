@@ -42,12 +42,21 @@ export class CronController {
             await this.schedulerService.getScheduledJobs()
         );
     }
-    @Get('logs/:name')
+    @Get('executions/:name')
     @RequirePermissions('read:cron')
     @ApiAutoResponse(SuccessResponse, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
     async getCronLogs(@Param('name') name: string) {
         return new SuccessResponse(
             await this.schedulerService.getCronLogs(name)
+        );
+    }
+
+    @Get('trigger-logs')
+    @RequirePermissions('read:cron')
+    @ApiAutoResponse(SuccessResponse, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
+    async getTriggerLogs() {
+        return new SuccessResponse(
+            await this.schedulerService.getGlobalCronLogs()
         );
     }
 }

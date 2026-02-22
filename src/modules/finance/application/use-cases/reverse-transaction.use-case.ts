@@ -6,9 +6,10 @@ import type { ITransactionRepository } from '../../domain/repositories/transacti
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { ACCOUNT_REPOSITORY, type IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LockingService } from 'src/modules/shared/database/locking.service';
 
 interface ReverseTransaction {
-    accountId: string;
+    //  accountId: string;
     transactionRef: string;
     reason: string;
 }
@@ -20,7 +21,9 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
         private readonly transactionRepository: ITransactionRepository,
         @Inject(ACCOUNT_REPOSITORY)
         private readonly accountRepository: IAccountRepository,
-        private readonly eventEmitter: EventEmitter2
+        private readonly eventEmitter: EventEmitter2,
+        private readonly lockingService: LockingService,
+
     ) { }
 
     async execute(request: ReverseTransaction): Promise<void> {
@@ -31,40 +34,46 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
         if (!transactions) {
             throw new BusinessException(`Transactions not found with Ref Id: ${request.transactionRef}`);
         }
+        const lockKeys = transactions.filter(t => t.accountId != null).map(t => t.accountId!);
 
-        for (const transaction of transactions) {
-            const account = await this.accountRepository.findById(transaction.accountId!);
-            if (!account) {
-                throw new BusinessException(`Account not found with id: ${transaction.accountId}`);
-            }
+        return await this.lockingService.withLocks(lockKeys, async () => {
+            for (const transaction of transactions) {
+                if (!transaction.accountId) {
+                    continue;
+                }
+                const account = await this.accountRepository.findById(transaction.accountId);
+                if (!account) {
+                    throw new BusinessException(`Account not found with id: ${transaction.accountId}`);
+                }
 
-            if (transaction.type == TransactionType.IN) {
-                account.debit(transaction.amount, {
-                    transactionRef: transaction.transactionRef,
-                    particulars: `Reversed transaction ${transaction.id}`,
-                    txnDate: new Date(),
-                    referenceId: transaction.id,
-                    referenceType: TransactionRefType.TXN_REVERSE,
-                    refAccountId: transaction.refAccountId,
-                });
+                if (transaction.type == TransactionType.IN) {
+                    account.debit(transaction.amount, {
+                        transactionRef: transaction.transactionRef,
+                        particulars: `Reversed transaction ${transaction.id} due to ${request.reason}`,
+                        txnDate: new Date(),
+                        referenceId: transaction.id,
+                        referenceType: TransactionRefType.TXN_REVERSE,
+                        refAccountId: transaction.refAccountId,
+                    });
+                }
+                else if (transaction.type == TransactionType.OUT) {
+                    account.credit(transaction.amount, {
+                        transactionRef: transaction.transactionRef,
+                        particulars: `Reversed transaction ${transaction.id} due to ${request.reason}`,
+                        txnDate: new Date(),
+                        referenceId: transaction.id,
+                        referenceType: TransactionRefType.TXN_REVERSE,
+                        refAccountId: transaction.refAccountId,
+                    });
+                }
+                account.transactions.find(t => t.id == transaction.id)?.reverse();
+                await this.accountRepository.update(account.id, account);
+                for (const event of account.domainEvents) {
+                    this.eventEmitter.emit(event.constructor.name, event);
+                }
+                account.clearEvents();
             }
-            else if (transaction.type == TransactionType.OUT) {
-                account.credit(transaction.amount, {
-                    transactionRef: transaction.transactionRef,
-                    particulars: `Reversed transaction ${transaction.id}`,
-                    txnDate: new Date(),
-                    referenceId: transaction.id,
-                    referenceType: TransactionRefType.TXN_REVERSE,
-                    refAccountId: transaction.refAccountId,
-                });
-            }
-            account.transactions.find(t => t.id == transaction.id)?.reverse();
-            await this.accountRepository.update(account.id, account);
-            for (const event of account.domainEvents) {
-                this.eventEmitter.emit(event.constructor.name, event);
-            }
-            account.clearEvents();
-        }
+        });
 
     }
 }

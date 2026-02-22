@@ -8,9 +8,11 @@ import { CronJob } from './cron-job.model';
 import { RemoteConfigService } from '../firebase/remote-config/remote-config.service';
 import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
 import { CronLogStorageService } from './cron-log-storage.service';
+import { RootEvent } from 'src/shared/models/root-event';
 
 @Injectable()
 export class CronSchedulerService {
+
     private readonly logger = new Logger(CronSchedulerService.name);
     constructor(
         private eventEmitter: EventEmitter2,
@@ -86,6 +88,10 @@ export class CronSchedulerService {
         return await this.logStorage.getLogs(jobName);
     }
 
+    async getGlobalCronLogs() {
+        return await this.logStorage.getGlobalLogs();
+    }
+
     /**
    * Check if a cron expression should execute at the given time
    */
@@ -120,16 +126,20 @@ export class CronSchedulerService {
 
     private async runJob(job: CronJob, triggerType: "MANUAL" | "AUTOMATIC") {
         const startTime = new Date();
+        const payload = new class extends RootEvent { }();
 
         try {
             // Bypass emitAsync because NestJS @OnEvent wrapper swallows errors (logging them as [Event] ERROR)
             // We fetch and execute listeners manually to ensure we catch exceptions.
             const listeners = this.eventEmitter.listeners(job.handler);
-            const payload = job.inputData || {};
 
             this.logger.log(`Job ${job.name}: Found ${listeners.length} listeners. Executing manually...`);
-
             const results: any[] = [];
+
+            // Merge any existing input data into this instance
+            if (job.inputData) {
+                Object.assign(payload, job.inputData);
+            }
 
             for (const listener of listeners) {
                 const result = await (listener as Function).apply(this.eventEmitter, [payload]);
@@ -154,7 +164,8 @@ export class CronSchedulerService {
                 executedAt: new Date(),
                 trigger: triggerType,
                 status: 'SUCCESS',
-                result: results
+                result: results,
+                executionLogs: payload.logs
             });
             return results;
         } catch (error) {
@@ -166,7 +177,8 @@ export class CronSchedulerService {
                 executedAt: new Date(),
                 trigger: triggerType,
                 status: 'FAILED',
-                error: error.message || 'Unknown error'
+                error: error.message || 'Unknown error',
+                executionLogs: payload.logs
             });
             if (triggerType == 'MANUAL') {
                 throw error;
