@@ -1,7 +1,7 @@
 import { IRepository } from 'src/shared/interfaces/repository.interface';
-import { ApiKey } from '../models/api-key.model';
+import { ApiKey, ApiKeyFilter } from '../models/api-key.model';
 
-export interface IApiKeyRepository extends IRepository<ApiKey, string, any> {
+export interface IApiKeyRepository extends IRepository<ApiKey, string, ApiKeyFilter> {
   findByKeyId(key: string): Promise<ApiKey | null>;
 }
 
