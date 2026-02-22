@@ -330,8 +330,8 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     }
 
     return {
-      isRunning: await this.worker.isRunning(),
-      isPaused: await this.worker.isPaused(),
+      isRunning: this.worker.isRunning(),
+      isPaused: this.worker.isPaused(),
       totalProcessors: this.processors.size,
       processors: this.getRegisteredProcessors(),
     };
@@ -352,7 +352,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
    */
   async resume() {
     if (this.worker && !this.isShuttingDown) {
-      await this.worker.resume();
+      this.worker.resume();
       this.logger.log('Worker resumed');
     }
   }

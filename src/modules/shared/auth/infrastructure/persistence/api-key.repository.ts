@@ -48,8 +48,8 @@ export class ApiKeyRepository implements IApiKeyRepository {
 
     private whereQuery(filter: ApiKeyFilter) {
         return {
-            ...(filter.name ? { name: { contains: filter.name, mode: "insensitive" } } : {}),
-            ...(filter.permissions && { permissions: { hasSome: filter.permissions } }),
+            ...(filter?.name ? { name: { contains: filter.name, mode: "insensitive" } } : {}),
+            ...(filter?.permissions && { permissions: { hasSome: filter.permissions } }),
         } as Prisma.ApiKeyWhereInput;
     }
 

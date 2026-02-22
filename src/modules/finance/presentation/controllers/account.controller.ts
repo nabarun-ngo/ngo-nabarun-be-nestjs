@@ -101,6 +101,8 @@ export class AccountController {
 
   @Get('list/me')
   @ApiOperation({ summary: 'List own accounts' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listSelfAccounts(
     @Query('pageIndex') pageIndex?: number,
@@ -119,6 +121,8 @@ export class AccountController {
 
   @Get(':id/transactions')
   @ApiOperation({ summary: 'List transactions for account' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @RequirePermissions('read:transactions')
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listAccountTransactions(
@@ -190,7 +194,7 @@ export class AccountController {
     return new SuccessResponse('Transaction reversed successfully');
   }
 
-  @Post('transaction/fix')
+  @Post('support/transaction-fix')
   @ApiOperation({ summary: 'Fix transaction for account' })
   @RequirePermissions('update:transactions')
   @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })

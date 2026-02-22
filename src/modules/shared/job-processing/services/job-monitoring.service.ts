@@ -137,26 +137,36 @@ export class JobMonitoringService {
   /**
    * Get failed jobs with error details
    */
-  async getJobs(status?: JobType, limit: number = 50) {
+  async getJobs(pageIndex: number, pageSize: number, filter: {
+    status?: JobType;
+    name?: string;
+  }) {
     try {
-      const jobs = await this.defaultQueue.getJobs(status, 0, limit - 1);;
 
-      return jobs.map((job) => ({
-        id: job.id,
-        name: job.name,
-        data: job.data,
-        opts: job.opts,
-        state: status,
-        progress: job.progress,
-        returnvalue: (job as any).returnvalue,
-        failedReason: (job as any).failedReason,
-        processedOn: (job as any).processedOn,
-        finishedOn: (job as any).finishedOn,
-        timestamp: (job as any).timestamp,
-        attemptsMade: (job as any).attemptsMade,
-        delay: (job as any).delay,
-        ttl: (job as any).ttl,
-      } as JobDetail));
+      const page = pageIndex || 0;
+      const size = pageSize || 10;
+      const start = page * size;
+      const end = start + size;
+      const jobs = await this.defaultQueue.getJobs(filter.status, start, end);
+
+      return jobs
+        .filter((job) => filter?.name ? job.name === filter.name : true)
+        .map((job) => ({
+          id: job.id,
+          name: job.name,
+          data: job.data,
+          opts: job.opts,
+          state: filter.status,
+          progress: job.progress,
+          returnvalue: (job as any).returnvalue,
+          failedReason: (job as any).failedReason,
+          processedOn: (job as any).processedOn,
+          finishedOn: (job as any).finishedOn,
+          timestamp: (job as any).timestamp,
+          attemptsMade: (job as any).attemptsMade,
+          delay: (job as any).delay,
+          ttl: (job as any).ttl,
+        } as JobDetail));
     } catch (error) {
       this.logger.error('Failed to get jobs', error);
       throw error;

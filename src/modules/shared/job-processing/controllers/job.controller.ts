@@ -19,18 +19,22 @@ export class JobController {
 
   @Get()
   @ApiOperation({ summary: 'Get failed jobs' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of failed jobs to return' })
+  @ApiQuery({ name: 'pageIndex', required: true, description: 'Page index of the failed jobs to return' })
+  @ApiQuery({ name: 'pageSize', required: true, description: 'Page size of the failed jobs to return' })
   @ApiQuery({
     name: 'status', required: false, description: 'Status of the failed jobs to return',
     enum: ['completed', 'failed', 'paused', 'delayed', 'paused', 'active']
   })
+  @ApiQuery({ name: 'name', required: false, description: 'Name of the failed jobs to return' })
   @RequirePermissions('read:jobs')
   @ApiAutoResponse(JobDetail, { status: 200, description: 'Failed jobs retrieved successfully', isArray: true, wrapInSuccessResponse: true })
   async getJobs(
+    @Query('pageIndex') pageIndex: number,
+    @Query('pageSize') pageSize: number,
     @Query('status') status?: 'completed' | 'failed' | 'paused' | 'delayed' | 'paused' | 'active',
-    @Query('limit') limit?: number) {
+    @Query('name') name?: string) {
     return new SuccessResponse(
-      await this.jobMonitoringService.getJobs(status, limit)
+      await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status, name })
     );
   }
 
