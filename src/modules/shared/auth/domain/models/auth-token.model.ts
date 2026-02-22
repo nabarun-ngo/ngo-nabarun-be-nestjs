@@ -2,6 +2,13 @@ import { randomUUID } from 'crypto';
 import { AggregateRoot } from 'src/shared/models/aggregate-root';
 import { encryptText, decryptText } from 'src/shared/utilities/crypto.util';
 
+export class AuthTokenFilter {
+  provider?: string;
+  clientId?: string;
+  scope?: string;
+  email?: string;
+}
+
 export class AuthToken extends AggregateRoot<string> {
   private readonly _clientId: string;
   private readonly _provider: string;

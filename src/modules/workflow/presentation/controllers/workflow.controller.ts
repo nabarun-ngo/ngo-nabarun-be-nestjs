@@ -78,18 +78,18 @@ export class WorkflowController {
   @Get('instances/forMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully', wrapInSuccessResponse: true })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
-  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Count of content to load per page' })
   async listInstancesForMe(
-    @Query('page') page?: number,
-    @Query('size') size?: number,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
     @CurrentUser() user?: AuthUser,
     @Query() filter?: WorkflowFilterDto,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
     const instances =
       await this.workflowService.getWorkflows({
-        pageIndex: page,
-        pageSize: size,
+        pageIndex: pageIndex,
+        pageSize: pageSize,
         props: {
           initiatedFor: user?.profile_id,
           ...filter,
@@ -103,18 +103,18 @@ export class WorkflowController {
   @Get('instances/byMe')
   @ApiOperation({ summary: 'List workflow instances' })
   @ApiAutoPagedResponse(WorkflowInstanceDto, { description: 'Workflow instances retrieved successfully' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
-  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Count of content to load per page' })
   async listInstancesByMe(
-    @Query('page') page?: number,
-    @Query('size') size?: number,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
     @Query() filter?: WorkflowFilterDto,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowInstanceDto>>> {
     const instances =
       await this.workflowService.getWorkflows({
-        pageIndex: page,
-        pageSize: size,
+        pageIndex: pageIndex,
+        pageSize: pageSize,
         props: {
           initiatedBy: user?.profile_id,
           ...filter,
@@ -128,19 +128,19 @@ export class WorkflowController {
   @Get('tasks/forMe')
   @ApiOperation({ summary: 'List workflow tasks', description: 'Filter by completed (set true to get completed tasks, set false to get pending tasks)' })
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
-  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Count of content to load per page' })
   async listTasks(
     @Query() filter: TaskFilterDto,
-    @Query('page') page?: number,
-    @Query('size') size?: number,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
     @CurrentUser() user?: AuthUser,
   ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
 
     const instances =
       await this.workflowService.getWorkflowTasks({
-        pageIndex: page,
-        pageSize: size,
+        pageIndex: pageIndex,
+        pageSize: pageSize,
         props: {
           assignedTo: user?.profile_id,
           status: filter.completed === 'Y' ? WorkflowTask.completedTaskStatus : WorkflowTask.pendingTaskStatus,
@@ -156,16 +156,16 @@ export class WorkflowController {
   @Get('tasks/automatic')
   @ApiOperation({ summary: 'List automatic workflow tasks' })
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Index of the page to retrieve' })
-  @ApiQuery({ name: 'size', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number, description: 'Index of the page to retrieve' })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Count of content to load per page' })
   async listAutomaticTasks(
-    @Query('page') page?: number,
-    @Query('size') size?: number,
+    @Query('pageIndex') pageIndex?: number,
+    @Query('pageSize') pageSize?: number,
   ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
     const instances =
       await this.workflowService.getWorkflowTasks({
-        pageIndex: page,
-        pageSize: size,
+        pageIndex: pageIndex,
+        pageSize: pageSize,
         props: {
           type: [WorkflowTaskType.AUTOMATIC],
         }

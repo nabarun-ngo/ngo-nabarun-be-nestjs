@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { OAuth2Client, } from 'google-auth-library';
 import { Configkey } from 'src/shared/config-keys';
 import { TOKEN_REPOSITORY, type ITokenRepository } from '../../domain/repository/token.repository.interface';
-import { AuthToken } from '../../domain/models/auth-token.model';
+import { AuthToken, AuthTokenFilter } from '../../domain/models/auth-token.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { randomBytes } from 'crypto';
@@ -11,6 +11,8 @@ import { OauthMapper } from '../dto/mapper/oauth.mapper';
 import { SlackNotificationRequestEvent } from 'src/modules/shared/correspondence/events/slack-notification-request.event';
 import { GOOGLE_SCOPES } from '../../scopes';
 import { AppTechnicalError } from 'src/shared/exceptions/app-tech-error';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @Injectable()
 export class GoogleOAuthService {
@@ -67,8 +69,19 @@ export class GoogleOAuthService {
 
   }
 
-  async getTokens() {
-    return (await this.tokenRepository.findAll()).map(OauthMapper.toDto)
+  async getTokens(filter?: BaseFilter<AuthTokenFilter>) {
+    const result = await this.tokenRepository.findPaged({
+      pageIndex: filter?.pageIndex,
+      pageSize: filter?.pageSize,
+      props: filter?.props
+    })
+    return new PagedResult(
+      result.content.map(t => OauthMapper.toDto(t)),
+      result.totalSize,
+      result.pageIndex,
+      result.pageSize,
+    );
+
   }
 
   /**
@@ -371,10 +384,10 @@ export class GoogleOAuthService {
   /**
    * Revoke tokens for a user
    */
-  async revokeTokens(id: string, email: string): Promise<void> {
+  async revokeTokens(id: string): Promise<void> {
     const tokenRecord = await this.tokenRepository.findById(id);
     if (!tokenRecord) {
-      return;
+      throw new Error(`Token not found with id ${id}`);
     }
 
     // Decrypt access token to revoke

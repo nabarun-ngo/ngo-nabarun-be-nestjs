@@ -4,6 +4,7 @@ import {
   Query,
   BadRequestException,
   Inject,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,9 +14,11 @@ import {
 } from '@nestjs/swagger';
 import { GoogleOAuthService } from '../../application/services/google-oauth.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoPagedResponse, ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { AuthTokenDto } from '../../application/dto/oauth..dto';
+import { RequirePermissions } from '../../application/decorators/require-permissions.decorator';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 
 
@@ -24,10 +27,8 @@ import { AuthTokenDto } from '../../application/dto/oauth..dto';
 @Controller('auth/oauth')
 export class OAuthController {
 
-
   constructor(
     private readonly oAuthService: GoogleOAuthService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) { }
 
 
@@ -50,6 +51,7 @@ export class OAuthController {
     type: String,
   })
   @ApiAutoResponse(String, { description: 'OAuth URL', wrapInSuccessResponse: true })
+  @RequirePermissions('create:oauth_token')
   async getGmailAuthUrl(
     @Query('scopes') scopes?: string,
     @Query('state') state?: string,
@@ -83,13 +85,27 @@ export class OAuthController {
 
   @Get('tokens')
   @ApiOperation({ summary: 'Get available OAuth tokens' })
-  @ApiAutoResponse(AuthTokenDto, { description: 'OAuth tokens', wrapInSuccessResponse: true, isArray: true })
-  async getGoogleTokens(): Promise<SuccessResponse<Array<AuthTokenDto>>> {
+  @RequirePermissions('read:oauth_token')
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiAutoPagedResponse(AuthTokenDto, { description: 'OAuth tokens', wrapInSuccessResponse: true })
+  async getGoogleTokens(
+    @Query('pageIndex') pageIndex: number,
+    @Query('pageSize') pageSize: number,
+  ): Promise<SuccessResponse<PagedResult<AuthTokenDto>>> {
     return new SuccessResponse(
-      await this.oAuthService.getTokens()
+      await this.oAuthService.getTokens({ pageIndex, pageSize, props: {} })
     );
   }
 
+  @Get('tokens/:id/revoke')
+  @ApiOperation({ summary: 'Revoke OAuth tokens' })
+  @ApiAutoResponse(String, { description: 'OAuth tokens', wrapInSuccessResponse: true })
+  @RequirePermissions('delete:oauth_token')
+  async revokeGoogleTokens(@Param('id') id: string): Promise<SuccessResponse<string>> {
+    await this.oAuthService.revokeTokens(id)
+    return new SuccessResponse('Token revoked successfully.');
+  }
 
 }
 
