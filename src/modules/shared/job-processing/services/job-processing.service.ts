@@ -1,21 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { JobData, JobOptions, JobResult, Job } from '../interfaces/job.interface';
 import { JobName } from 'src/shared/job-names';
+import { ProcessJobOptions } from '../decorators/process-job.decorator';
+import { JobProcessorRegistry } from './job-processor-registry.service';
+import { Job, JobOptions } from '../dto/job.dto';
+import { config } from 'src/config/app.config';
 
 @Injectable()
 export class JobProcessingService {
   private readonly logger = new Logger(JobProcessingService.name);
 
   constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
+    @InjectQueue(config.jobProcessing.queueName) private readonly defaultQueue: Queue,
+    @Inject(forwardRef(() => JobProcessorRegistry))
+    private readonly registry: JobProcessorRegistry,
   ) { }
 
   /**
    * Add a job to the default queue
    */
-  async addJob<T = JobData>(
+  async addJob<T>(
     name: JobName,
     data: T,
     options?: JobOptions,
@@ -23,8 +28,22 @@ export class JobProcessingService {
     try {
       this.logger.log(`Adding job: ${name} with data: ${JSON.stringify(data)}`);
 
-      // Set TTL based on job type and configuration
-      const jobOptions = this.setJobTTL(options);
+      // 1. Get default options from the processor decorator
+      const processorData = this.registry.getProcessor(name);
+      const defaults: Partial<ProcessJobOptions> = processorData?.options || {};
+
+      // 2. Merge options: Instance Override > Decorator Default > Service Defaults
+      const mergedOptions: JobOptions = {
+        attempts: options?.attempts ?? defaults.attempts,
+        backoff: options?.backoff ?? (defaults.backoff as any),
+        priority: options?.priority ?? defaults.priority,
+        // timeout is handled manually by the registry/worker during processing
+        ...options,
+      };
+
+      // 3. Set TTL based on job type and configuration
+      const jobOptions = this.setJobTTL(mergedOptions);
+
       const job = await this.defaultQueue.add(name, data, jobOptions);
       this.logger.log(`Job added successfully with ID: ${job.id}`);
       return job as Job<T>;
@@ -37,7 +56,7 @@ export class JobProcessingService {
   /**
    * Add a job to a specific queue
    */
-  async addJobToQueue<T = JobData>(
+  async addJobToQueue<T>(
     queueName: string,
     name: string,
     data: T,
@@ -46,7 +65,19 @@ export class JobProcessingService {
     try {
       this.logger.log(`Adding job: ${name} to queue: ${queueName}`);
       const queue = this.getQueue(queueName);
-      const job = await queue.add(name, data, options);
+
+      // Try to get defaults if it's a known JobName
+      const processorData = this.registry.getProcessor(name);
+      const defaults: Partial<ProcessJobOptions> = processorData?.options || {};
+
+      const mergedOptions: JobOptions = {
+        attempts: options?.attempts ?? defaults.attempts,
+        backoff: options?.backoff ?? (defaults.backoff as any),
+        priority: options?.priority ?? defaults.priority,
+        ...options,
+      };
+
+      const job = await queue.add(name, data, mergedOptions);
       this.logger.log(`Job added successfully with ID: ${job.id}`);
       return job as Job<T>;
     } catch (error) {
@@ -58,7 +89,7 @@ export class JobProcessingService {
   /**
    * Get a job by ID
    */
-  async getJob<T = JobData>(jobId: string): Promise<Job<T> | undefined> {
+  async getJob<T>(jobId: string): Promise<Job<T> | undefined> {
     try {
       const job = await this.defaultQueue.getJob(jobId);
       return job as Job<T> | undefined;
@@ -71,7 +102,7 @@ export class JobProcessingService {
   /**
    * Get a job from a specific queue
    */
-  async getJobFromQueue<T = JobData>(
+  async getJobFromQueue<T>(
     queueName: string,
     jobId: string,
   ): Promise<Job<T> | undefined> {
@@ -182,42 +213,6 @@ export class JobProcessingService {
   }
 
   /**
-   * Get jobs by status
-   */
-  async getJobsByStatus(
-    status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed',
-    start = 0,
-    end = -1,
-  ): Promise<Job[]> {
-    try {
-      let jobs: Job[];
-      switch (status) {
-        case 'waiting':
-          jobs = await this.defaultQueue.getWaiting(start, end);
-          break;
-        case 'active':
-          jobs = await this.defaultQueue.getActive(start, end);
-          break;
-        case 'completed':
-          jobs = await this.defaultQueue.getCompleted(start, end);
-          break;
-        case 'failed':
-          jobs = await this.defaultQueue.getFailed(start, end);
-          break;
-        case 'delayed':
-          jobs = await this.defaultQueue.getDelayed(start, end);
-          break;
-        default:
-          throw new Error(`Invalid status: ${status}`);
-      }
-      return jobs;
-    } catch (error) {
-      this.logger.error(`Failed to get jobs with status: ${status}`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Clean completed and failed jobs
    */
   async cleanJobs(grace: number = 0, status: 'completed' | 'failed' = 'completed'): Promise<void> {
@@ -316,28 +311,11 @@ export class JobProcessingService {
    * Set TTL for jobs based on configuration
    */
   private setJobTTL(options?: JobOptions): JobOptions {
-    // Get retention settings from environment variables
-    const completedJobsDays = parseInt(process.env.JOB_RETENTION_COMPLETED_DAYS || '2');
-    const failedJobsDays = parseInt(process.env.JOB_RETENTION_FAILED_DAYS || '7');
-    const completedJobsCount = parseInt(process.env.JOB_RETENTION_COMPLETED_COUNT || '100');
-    const failedJobsCount = parseInt(process.env.JOB_RETENTION_FAILED_COUNT || '50');
-
-    // Convert days to seconds for BullMQ
-    const completedAge = completedJobsDays * 24 * 60 * 60;
-    const failedAge = failedJobsDays * 24 * 60 * 60;
 
     return {
       ...options,
-      // Set TTL for completed jobs (2 days by default)
-      removeOnComplete: {
-        age: completedAge,
-        count: completedJobsCount
-      },
-      // Set TTL for failed jobs (7 days by default)
-      removeOnFail: {
-        age: failedAge,
-        count: failedJobsCount
-      },
+      removeOnComplete: options?.removeOnComplete ?? config.jobProcessing.removeOnComplete,
+      removeOnFail: options?.removeOnFail ?? config.jobProcessing.removeOnFail,
     };
   }
 

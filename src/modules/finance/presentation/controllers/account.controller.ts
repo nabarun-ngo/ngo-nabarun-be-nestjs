@@ -101,6 +101,8 @@ export class AccountController {
 
   @Get('list/me')
   @ApiOperation({ summary: 'List own accounts' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiAutoPagedResponse(AccountDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listSelfAccounts(
     @Query('pageIndex') pageIndex?: number,
@@ -119,6 +121,8 @@ export class AccountController {
 
   @Get(':id/transactions')
   @ApiOperation({ summary: 'List transactions for account' })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @RequirePermissions('read:transactions')
   @ApiAutoPagedResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
   async listAccountTransactions(
@@ -155,7 +159,7 @@ export class AccountController {
 
   @Post(':id/transfer/me')
   @ApiOperation({ summary: 'Transfer amount to another account' })
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
   async transferAmountSelf(
     @Param('id') accountId: string,
     @Body() dto: TransferDto,
@@ -167,7 +171,7 @@ export class AccountController {
 
   @Post(':id/addFund/me')
   @ApiOperation({ summary: 'Add fund to account' })
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
   async addFundSelf(
     @Param('id') accountId: string,
     @Body() dto: AddFundDto,
@@ -181,24 +185,24 @@ export class AccountController {
   @Post(':id/transaction/reverse')
   @ApiOperation({ summary: 'Reverse transaction for account' })
   @RequirePermissions('update:transactions')
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
   async reverseTransaction(
     @Param('id') id: string,
     @Body() dto: ReverseTransactionDto,
-  ): Promise<SuccessResponse<void>> {
+  ): Promise<SuccessResponse<string>> {
     await this.accountService.reverseTransaction(id, dto);
-    return new SuccessResponse();
+    return new SuccessResponse('Transaction reversed successfully');
   }
 
-  @Post('transaction/fix')
+  @Post('support/transaction-fix')
   @ApiOperation({ summary: 'Fix transaction for account' })
   @RequirePermissions('update:transactions')
-  @ApiAutoResponse(TransactionDetailDto, { description: 'OK', wrapInSuccessResponse: true })
+  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
   async fixTransactions(
     @Body() dto: FixTransactionDto,
-  ): Promise<SuccessResponse<void>> {
+  ): Promise<SuccessResponse<string>> {
     await this.fixTransaction.execute(dto);
-    return new SuccessResponse();
+    return new SuccessResponse('Transaction fixed successfully');
   }
 
 

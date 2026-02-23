@@ -1,10 +1,11 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnApplicationBootstrap } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Worker, Job as BullJob } from 'bullmq';
-import { JobProcessor, Job, JobResult } from '../interfaces/job.interface';
 import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.decorator';
 import { JobName } from 'src/shared/job-names';
+import { JobProcessor, Job } from '../dto/job.dto';
+import { config } from 'src/config/app.config';
 
 @Injectable()
 export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBootstrap {
@@ -14,7 +15,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   private isShuttingDown = false;
 
   constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
+    @InjectQueue(config.jobProcessing.queueName) private readonly defaultQueue: Queue,
     private readonly moduleRef: ModuleRef,
     private readonly reflector: Reflector,
   ) { }
@@ -106,20 +107,11 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
    */
   private async initializeWorker() {
     if (this.worker) return;
-
-    // Calculate optimal concurrency based on processors
-    const totalConcurrency = Array.from(this.processors.values()).reduce(
-      (sum, { options }) => sum + (options.concurrency || 1),
-      0
-    );
-    const concurrency = Math.max(totalConcurrency, 5);
-
     this.worker = new Worker(
-      'default',
+      config.jobProcessing.queueName,
       async (job: BullJob) => this.processJob(job),
       {
         connection: this.defaultQueue.opts.connection,
-        concurrency,
         // Optimize for in-process execution
         lockDuration: 30000, // 30 seconds
         lockRenewTime: 15000, // Renew every 15 seconds
@@ -128,24 +120,14 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
         settings: {
         },
         // Aggressive cleanup for in-process workers
-        removeOnComplete: {
-          age: 3600 * 24 * 1, // 1 Day
-          count: 1000,
-        },
-        removeOnFail: {
-          age: 3600 * 24 * 7, // 7 Days
-          count: 500,
-        },
-        limiter: {
-          max: 1,
-          duration: 2000
-        }
+        removeOnComplete: config.jobProcessing.removeOnComplete,
+        removeOnFail: config.jobProcessing.removeOnFail
       },
     );
 
     // Event handlers with minimal overhead
     this.worker.on('completed', (job) => {
-      this.logger.debug(`✓ ${job.name}:${job.id}`);
+      this.logger.log(`✓ Completed: ${job.name}:${job.id}`);
     });
 
     this.worker.on('failed', (job, error) => {
@@ -156,7 +138,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
       this.logger.error(`Worker error: ${error.message}`);
     });
 
-    this.logger.log(`Worker initialized with concurrency: ${concurrency}`);
+    this.logger.log(`Worker initialized`);
   }
 
   /**
@@ -179,9 +161,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     const maxAttempts = job.opts.attempts || 3;
 
     try {
-      this.logger.log(
-        `Processing: ${job.name}:${job.id} (attempt ${attemptNumber}/${maxAttempts})`
-      );
+      this.logger.log(`Starting Processing: ${job.name}:${job.id} (attempt ${attemptNumber}/${maxAttempts})`);
 
       // Apply timeout if configured
       const timeout = processorData.options.timeout;
@@ -198,47 +178,17 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
       }
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Completed: ${job.name}:${job.id} in ${duration}ms`);
-
-      // Call onSuccess callback if defined
-      if (processorData.options.onRetry && attemptNumber > 1) {
-        // This was a retry that succeeded
-        this.logger.log(
-          `Job ${job.name}:${job.id} succeeded after ${attemptNumber} attempts`
-        );
-      }
-
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
+      this.logger.error(`Failed: ${job.name}:${job.id} after ${duration}ms - ${attemptNumber}:${error.message}`);
 
-      this.logger.error(
-        `Failed: ${job.name}:${job.id} after ${duration}ms (attempt ${attemptNumber}/${maxAttempts}) - ${error.message}`,
-        error.stack
-      );
-
-      // Call onRetry callback if defined and not final attempt
+      // Call retry/failed callbacks
       if (processorData.options.onRetry && attemptNumber < maxAttempts) {
-        try {
-          await processorData.options.onRetry(attemptNumber, error);
-        } catch (callbackError) {
-          this.logger.error(
-            `Error in onRetry callback for ${job.name}:${job.id}`,
-            callbackError
-          );
-        }
+        try { await processorData.options.onRetry(attemptNumber, error); } catch { }
       }
-
-      // Call onFailed callback if this is the final attempt
       if (processorData.options.onFailed && attemptNumber >= maxAttempts) {
-        try {
-          await processorData.options.onFailed(error, attemptNumber);
-        } catch (callbackError) {
-          this.logger.error(
-            `Error in onFailed callback for ${job.name}:${job.id}`,
-            callbackError
-          );
-        }
+        try { await processorData.options.onFailed(error, attemptNumber); } catch { }
       }
 
       throw error;
@@ -274,7 +224,11 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   ) {
     const processorOptions: ProcessJobOptions = {
       name,
-      concurrency: options.concurrency || 1,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
     };
 
     this.processors.set(name, {
@@ -330,8 +284,8 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     }
 
     return {
-      isRunning: await this.worker.isRunning(),
-      isPaused: await this.worker.isPaused(),
+      isRunning: this.worker.isRunning(),
+      isPaused: this.worker.isPaused(),
       totalProcessors: this.processors.size,
       processors: this.getRegisteredProcessors(),
     };
@@ -352,7 +306,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
    */
   async resume() {
     if (this.worker && !this.isShuttingDown) {
-      await this.worker.resume();
+      this.worker.resume();
       this.logger.log('Worker resumed');
     }
   }

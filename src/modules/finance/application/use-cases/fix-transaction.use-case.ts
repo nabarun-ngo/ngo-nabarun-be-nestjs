@@ -16,8 +16,6 @@ import { EXPENSE_REPOSITORY, type IExpenseRepository } from '../../domain/reposi
 @Injectable()
 export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> {
     constructor(
-        @Inject(TRANSACTION_REPOSITORY)
-        private readonly transactionRepository: ITransactionRepository,
         @Inject(DONATION_REPOSITORY)
         private readonly donationRepository: IDonationRepository,
         @Inject(ACCOUNT_REPOSITORY)
@@ -42,11 +40,6 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                 throw new BusinessException(`Account not found with id: ${request.newAccountId}`);
             }
 
-            const oldTransaction = await this.transactionRepository.findById(donation.transactionRef!);
-            if (!oldTransaction) {
-                throw new BusinessException(`Transaction not found with id: ${donation.transactionRef}`);
-            }
-
             const newTransaction = await this.transactionUseCase.execute({
                 accountId: request.newAccountId!,
                 txnAmount: donation.amount!,
@@ -66,7 +59,6 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                     transactionRef: newTransaction
                 }
             })
-            await this.transactionRepository.delete(oldTransaction.id);
         }
 
         if (request.itemType == 'EXPENSE') {
@@ -81,12 +73,6 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
             if (!account) {
                 throw new BusinessException(`Account not found with id: ${request.newAccountId}`);
             }
-
-            const oldTransaction = await this.transactionRepository.findById(expense.transactionId!);
-            if (!oldTransaction) {
-                throw new BusinessException(`Transaction not found with id: ${expense.transactionId}`);
-            }
-
             const newTransaction = await this.transactionUseCase.execute({
                 txnAmount: expense.amount,
                 currency: expense.currency,
@@ -106,7 +92,6 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                     transactionRef: newTransaction
                 }
             })
-            await this.transactionRepository.delete(oldTransaction.id);
         }
     }
 }

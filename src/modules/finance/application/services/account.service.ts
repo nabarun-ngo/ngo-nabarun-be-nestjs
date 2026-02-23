@@ -111,7 +111,11 @@ export class AccountService {
       props: {
         accountIds: [accountId],
         transactionRef: filter.props?.transactionRef,
-        ...filter.props
+        type: filter.props?.txnType,
+        status: filter.props?.txnStatus,
+        startDate: filter.props?.startDate,
+        endDate: filter.props?.endDate,
+        id: filter.props?.txnId,
       }
     });
     return new PagedResult(
@@ -169,7 +173,6 @@ export class AccountService {
 
   async reverseTransaction(accountId: string, dto: ReverseTransactionDto) {
     const transaction = await this.reverseTransactionUseCase.execute({
-      accountId: accountId,
       reason: dto.comment,
       transactionRef: dto.transactionRef,
     });

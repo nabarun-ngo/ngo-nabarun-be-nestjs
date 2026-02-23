@@ -1,11 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
-import type { Job } from '../../../shared/job-processing/interfaces/job.interface';
+import { type Job } from '../../../shared/job-processing/dto/job.dto';
 import { WorkflowStep } from '../../domain/model/workflow-step.model';
 import { StartWorkflowStepUseCase } from '../use-cases/start-workflow-step.use-case';
 import { JobName } from 'src/shared/job-names';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
-import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { formatDate } from 'src/shared/utilities/common.util';
@@ -21,7 +20,6 @@ export interface WorkflowAutomaticTaskJobData {
 
 @Injectable()
 export class WorkflowJobProcessor {
-  private readonly logger = new CronLogger(WorkflowJobProcessor.name);
 
 
   constructor(
@@ -32,7 +30,12 @@ export class WorkflowJobProcessor {
   ) { }
 
   @ProcessJob({
-    name: JobName.START_WORKFLOW_STEP
+    name: JobName.START_WORKFLOW_STEP,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
   })
   async processStartWorkflowStep(job: Job<{ instanceId: string; step: WorkflowStep }>): Promise<void> {
     const data = job.data;
@@ -41,11 +44,16 @@ export class WorkflowJobProcessor {
 
 
   @ProcessJob({
-    name: JobName.SEND_TASK_REMINDER_EMAIL
+    name: JobName.SEND_TASK_REMINDER_EMAIL,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 30 * 1000,
+    },
   })
   async processSendTaskReminderEmail(job: Job<{ assigneeId: string, assigneeName: string, assigneeEmail: string }>): Promise<void> {
 
-    this.logger.log(`Processing ${JobName.SEND_TASK_REMINDER_EMAIL} for user ${job.data.assigneeEmail}`);
+    job.log(`Processing ${JobName.SEND_TASK_REMINDER_EMAIL} for user ${job.data.assigneeEmail}`);
     try {
       const allPendingTasks = await this.workflowInstanceRepository.findAllTasks({
         status: WorkflowTask.pendingTaskStatus,
@@ -53,7 +61,7 @@ export class WorkflowJobProcessor {
       });
 
       if (allPendingTasks.length === 0) {
-        this.logger.log(`No valid tasks found for reminder job ${job.id}`);
+        job.log(`No valid tasks found for reminder job ${job.id}`);
         return;
       }
 
@@ -81,9 +89,9 @@ export class WorkflowJobProcessor {
         templateData,
       });
 
-      this.logger.log(`Reminder email SENT to user ${job.data.assigneeEmail} for ${allPendingTasks.length} tasks`);
+      job.log(`Reminder email SENT to user ${job.data.assigneeEmail} for ${allPendingTasks.length} tasks`);
     } catch (error) {
-      this.logger.error(`Failed to send task reminder email for user ${job.data.assigneeEmail}`, error);
+      job.log(`Failed to send task reminder email for user ${job.data.assigneeEmail} : ${error}`);
       throw error;
     }
   }

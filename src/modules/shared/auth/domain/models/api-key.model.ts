@@ -3,6 +3,10 @@ import { AggregateRoot } from "src/shared/models/aggregate-root";
 import * as crypto from 'crypto';
 import { hashText } from "src/shared/utilities/crypto.util";
 
+export class ApiKeyFilter {
+    name?: string;
+    permissions?: string[];
+}
 
 export class ApiKey extends AggregateRoot<string> {
     private readonly _key: string;

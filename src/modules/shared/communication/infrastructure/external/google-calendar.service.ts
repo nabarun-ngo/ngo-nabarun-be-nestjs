@@ -1,8 +1,8 @@
 import { calendar_v3 } from '@googleapis/calendar';
-import { Injectable, Logger } from '@nestjs/common';
-import { GoogleOAuthService } from '../../../auth/application/services/google-oauth.service';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { MeetingMapper } from '../mapper/meeting-infra.mapper';
 import { GOOGLE_SCOPES } from 'src/modules/shared/auth/scopes';
+import { GOOGLE_OAUTH_SERVICE, OAuthService } from 'src/modules/shared/auth/application/services';
 
 export interface EventData {
     summary?: string;
@@ -37,7 +37,10 @@ export class GoogleCalendarService {
     private readonly logger = new Logger(GoogleCalendarService.name);
     private readonly scope = GOOGLE_SCOPES.calendar;
 
-    constructor(private readonly googleOAuthService: GoogleOAuthService) { }
+    constructor(
+        @Inject(GOOGLE_OAUTH_SERVICE)
+        private readonly googleOAuthService: OAuthService
+    ) { }
 
     /**
      * Create a calendar event with optional Google Meet link

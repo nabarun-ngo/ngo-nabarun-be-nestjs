@@ -1,56 +1,65 @@
 import { Injectable } from '@nestjs/common';
 import { ITokenRepository } from '../../domain/repository/token.repository.interface';
-import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { AuthToken } from '../../domain/models/auth-token.model';
+import { AuthToken, AuthTokenFilter } from '../../domain/models/auth-token.model';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TokenRepository implements ITokenRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
-    async count(filter: any): Promise<number> {
+    async count(filter: AuthTokenFilter): Promise<number> {
         return await this.prisma.oAuthToken.count({
-
+            where: this.whereQuery(filter)
         });
     }
-    findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<AuthToken>> {
-        throw new Error('Method not implemented.');
+    async findPaged(filter?: BaseFilter<AuthTokenFilter> | undefined): Promise<PagedResult<AuthToken>> {
+        const where = this.whereQuery(filter?.props!);
+        const [data, total] = await Promise.all([
+            this.prisma.oAuthToken.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+                take: filter?.pageSize ?? 1000,
+            }),
+            this.prisma.oAuthToken.count({ where }),
+        ]);
+
+        return new PagedResult<AuthToken>(
+            data.map(m => this.toToken(m)!),
+            total,
+            filter?.pageIndex ?? 0,
+            filter?.pageSize ?? 1000,
+        );
     }
 
-    async findByAttribute(attribute: {
-        provider: string,
-        clientId: string,
-        scope: string,
-    }
-
-    ): Promise<AuthToken | null> {
+    async findByAttribute(filter: Partial<AuthTokenFilter>): Promise<AuthToken | null> {
         const token = await this.prisma.oAuthToken.findFirst({
-            where: {
-                provider: attribute.provider,
-                clientId: attribute.clientId,
-                scope: {
-                    contains: attribute.scope,
-                }
-            }
+            where: this.whereQuery(filter)
         });
         return token ? this.toToken(token) : null;
     }
-    async findAll(filter: any): Promise<AuthToken[]> {
+    async findAll(filter: AuthTokenFilter): Promise<AuthToken[]> {
         return (await this.prisma.oAuthToken.findMany({
-            where: {
-                ...(filter?.provider ? { provider: filter.provider } : {}),
-                ...(filter?.clientId ? { clientId: filter.clientId } : {}),
-                ...(filter?.scope ? {
-                    scope: {
-                        contains: filter.scope,
-                    }
-                } : {}),
-            },
+            where: this.whereQuery(filter),
             orderBy: {
                 createdAt: "desc"
             }
         })).map(this.toToken);
+    }
+
+    private whereQuery(filter: AuthTokenFilter) {
+        return {
+            ...(filter?.email ? { email: filter.email } : {}),
+            ...(filter?.provider ? { provider: filter.provider } : {}),
+            ...(filter?.clientId ? { clientId: filter.clientId } : {}),
+            ...(filter?.scope ? {
+                scope: {
+                    contains: filter.scope,
+                }
+            } : {}),
+        } as Prisma.OAuthTokenWhereInput
     }
 
     async findById(id: string): Promise<AuthToken | null> {
@@ -98,8 +107,12 @@ export class TokenRepository implements ITokenRepository {
         return this.toToken(updatedToken);
     }
 
-    delete(id: string): Promise<void> {
-        throw new Error('Method not implemented.');
+    async delete(id: string): Promise<void> {
+        await this.prisma.oAuthToken.delete({
+            where: {
+                id: id
+            }
+        });
     }
 
     private toToken(data: {

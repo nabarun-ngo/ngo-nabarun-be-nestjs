@@ -1,4 +1,6 @@
-export interface CronExecutionLog {
+import { BaseEntity } from "../database/redis-store.service";
+
+export interface CronExecution extends BaseEntity {
     jobName: string;
     executedAt: Date;
     duration: number;
@@ -6,6 +8,7 @@ export interface CronExecutionLog {
     status: 'SUCCESS' | 'FAILED' | 'TRIGGERED';
     error?: string;
     result?: any;
+    executionLogs: string[]
 }
 
 export interface CronJob {
