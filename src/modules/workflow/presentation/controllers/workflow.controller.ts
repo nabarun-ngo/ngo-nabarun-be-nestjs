@@ -15,7 +15,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
 import { PagedResult } from 'src/shared/models/paged-result';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { WorkflowTask, WorkflowTaskType } from '../../domain/model/workflow-task.model';
+import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 
 @ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
@@ -158,9 +158,11 @@ export class WorkflowController {
   @ApiAutoPagedResponse(WorkflowTaskDto, { description: 'Workflow tasks retrieved successfully' })
   @ApiQuery({ name: 'pageIndex', required: false, type: Number, description: 'Index of the page to retrieve' })
   @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Count of content to load per page' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'Status of the task' })
   async listAutomaticTasks(
     @Query('pageIndex') pageIndex?: number,
     @Query('pageSize') pageSize?: number,
+    @Query('status') status?: WorkflowTaskStatus,
   ): Promise<SuccessResponse<PagedResult<WorkflowTaskDto>>> {
     const instances =
       await this.workflowService.getWorkflowTasks({
@@ -168,6 +170,7 @@ export class WorkflowController {
         pageSize: pageSize,
         props: {
           type: [WorkflowTaskType.AUTOMATIC],
+          status: status ? [status] : undefined,
         }
       })
     return new SuccessResponse<PagedResult<WorkflowTaskDto>>(instances);

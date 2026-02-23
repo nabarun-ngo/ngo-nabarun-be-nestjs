@@ -21,6 +21,7 @@ import { NotificationKeys } from "src/shared/notification-keys";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
 import { RootEvent } from "src/shared/models/root-event";
+import { generateUniqueNDigitNumber } from "src/shared/utilities/password-util";
 
 export class TriggerMonthlyDonationEvent extends RootEvent { }
 export class TriggerMarkDonationAsPendingEvent extends RootEvent { }
@@ -158,6 +159,9 @@ export class DonationsEventHandler {
                 {
                     userId: user.id,
                     amount: amount,
+                },
+                {
+                    delay: generateUniqueNDigitNumber(5),
                 }
             );
         }
@@ -194,6 +198,9 @@ export class DonationsEventHandler {
                     donorId: userId,
                     donorEmail: userDonationsList[0].donorEmail,
                     donorName: userDonationsList[0].donorName,
+                },
+                {
+                    delay: generateUniqueNDigitNumber(5),
                 }
             );
         }

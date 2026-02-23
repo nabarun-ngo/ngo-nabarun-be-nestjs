@@ -20,6 +20,7 @@ import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.ev
 import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
 import { RootEvent } from "src/shared/models/root-event";
+import { generateUniqueNDigitNumber } from "src/shared/utilities/password-util";
 
 export class TriggerRemindPendingTasksEvent extends RootEvent { }
 
@@ -123,6 +124,9 @@ export class WorkflowEventsHandler {
             assigneeName: user.fullName,
             assigneeEmail: user.email,
           },
+          {
+            delay: generateUniqueNDigitNumber(5),
+          }
         );
 
         successCount++;

@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface BaseEntity {
     id?: string;
     createdAt?: string;
+    executionLogs: string[];
     updatedAt?: string;
 }
 
@@ -21,11 +23,11 @@ export interface FilterOptions<T> {
     value: string | number;
 }
 
-export interface PageResult<T> {
-    items: T[];
-    cursor: string;
-    hasMore: boolean;
-}
+// export interface PageResult<T> {
+//     items: T[];
+//     cursor: string;
+//     hasMore: boolean;
+// }
 
 export interface SaveOptions<T> {
     ttl?: number;
@@ -184,7 +186,7 @@ export class RedisStoreService {
      * Paginate all entities in a namespace, with optional filtering
      * via a secondary index and sort direction.
      */
-    async findAll<T>(ns: string, options: PageOptions<T> = {}): Promise<PageResult<T>> {
+    async findAll<T>(ns: string, options: PageOptions<T> = {}): Promise<PagedResult<T>> {
         const { cursor = '0', count = 20, filter, sortBy = 'asc' } = options;
         const offset = parseInt(cursor, 10);
 
@@ -201,11 +203,12 @@ export class RedisStoreService {
         const nextOffset = offset + ids.length;
         const items = ids.length ? await this.findByIds<T>(ns, ids) : [];
 
-        return {
-            items: items.filter((i): i is T => i !== null),
-            cursor: String(nextOffset),
-            hasMore: nextOffset < total,
-        };
+        return new PagedResult<T>(
+            items.filter((i): i is T => i !== null),
+            total,
+            offset,
+            count
+        );
     }
 
     /**

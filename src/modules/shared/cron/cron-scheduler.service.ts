@@ -2,13 +2,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CronExpressionParser } from 'cron-parser';
-import { CronJobDto } from './cron-job.dto';
+import { CronJobDto, SchedulerLogDto } from './cron-job.dto';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CronJob } from './cron-job.model';
 import { RemoteConfigService } from '../firebase/remote-config/remote-config.service';
 import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
 import { CronLogStorageService } from './cron-log-storage.service';
 import { RootEvent } from 'src/shared/models/root-event';
+import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 
 @Injectable()
 export class CronSchedulerService {
@@ -20,32 +21,34 @@ export class CronSchedulerService {
         private readonly logStorage: CronLogStorageService
     ) { }
 
-    async triggerScheduledJobs(timestamp?: string): Promise<{ executed: string[], skipped: string[] }> {
+    async triggerScheduledJobs(timestamp?: string): Promise<{ triggerId: string, executed: string[], skipped: string[] }> {
         const now = timestamp ? new Date(timestamp) : new Date();
         const istTime = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         this.logger.log(`[CRON] Triggering scheduled jobs. Trigger DateTime: ${timestamp} -> Server DateTime: ${now.toISOString()} -> IST (interpreted): ${istTime}`);
         const executed: string[] = [];
         const skipped: string[] = [];
         const CRON_JOBS = await this.fetchCronJobs();
+        const triggerId = `T${generateUniqueNDigitNumber(4)}`;
 
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
                 this.logger.log(`[CRON] Triggered job: ${job.name}`);
-                executed.push(job.name);
-                this.runJob(job, 'AUTOMATIC');
+                executed.push(`${job.name}`);
+                this.runJob(job, 'AUTOMATIC', triggerId);
             } else {
                 this.logger.log(`[CRON] Skipped job: ${job.name}`);
-                skipped.push(job.name);
+                skipped.push(`${job.name}`);
             }
         }
 
         await this.logStorage.addCronLog({
+            triggerId: triggerId,
             triggerAt: new Date(),
             executedJobs: executed,
             skippedJobs: skipped
         });
 
-        return { executed, skipped };
+        return { triggerId, executed, skipped };
     }
 
     async fetchCronJobs(): Promise<CronJob[]> {
@@ -84,11 +87,11 @@ export class CronSchedulerService {
         await this.runJob(job, 'MANUAL');
     }
 
-    async getCronLogs(jobName: string) {
-        return await this.logStorage.getLogs(jobName);
+    async getCronLogs(jobName: string, pageIndex?: number, pageSize?: number) {
+        return await this.logStorage.getLogs(jobName, pageIndex, pageSize);
     }
 
-    async getGlobalCronLogs() {
+    async getGlobalCronLogs(): Promise<SchedulerLogDto[]> {
         return await this.logStorage.getGlobalLogs();
     }
 
@@ -124,16 +127,17 @@ export class CronSchedulerService {
         }
     }
 
-    private async runJob(job: CronJob, triggerType: "MANUAL" | "AUTOMATIC") {
+    private async runJob(job: CronJob, triggerType: "MANUAL" | "AUTOMATIC", triggerId?: string) {
         const startTime = new Date();
         const payload = new class extends RootEvent { }();
-
+        const runId = `R${generateUniqueNDigitNumber(6)}`;
+        const id = triggerId ? `${triggerId}-${runId}` : runId;
         try {
             // Bypass emitAsync because NestJS @OnEvent wrapper swallows errors (logging them as [Event] ERROR)
             // We fetch and execute listeners manually to ensure we catch exceptions.
             const listeners = this.eventEmitter.listeners(job.handler);
 
-            this.logger.log(`Job ${job.name}: Found ${listeners.length} listeners. Executing manually...`);
+            this.logger.log(`Job ${job.name} (${triggerId}) Found ${listeners.length} listeners. Executing manually...`);
             const results: any[] = [];
 
             // Merge any existing input data into this instance
@@ -159,6 +163,7 @@ export class CronSchedulerService {
 
 
             await this.logStorage.addLog({
+                id,
                 jobName: job.name,
                 duration: new Date().getTime() - startTime.getTime(),
                 executedAt: new Date(),
@@ -172,6 +177,7 @@ export class CronSchedulerService {
             this.logger.error(`Job ${job.name} FAILED: ${error.message}`, error.stack);
 
             await this.logStorage.addLog({
+                id,
                 jobName: job.name,
                 duration: new Date().getTime() - startTime.getTime(),
                 executedAt: new Date(),

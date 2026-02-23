@@ -311,28 +311,11 @@ export class JobProcessingService {
    * Set TTL for jobs based on configuration
    */
   private setJobTTL(options?: JobOptions): JobOptions {
-    // Get retention settings from environment variables
-    const completedJobsDays = parseInt(process.env.JOB_RETENTION_COMPLETED_DAYS || '2');
-    const failedJobsDays = parseInt(process.env.JOB_RETENTION_FAILED_DAYS || '7');
-    const completedJobsCount = parseInt(process.env.JOB_RETENTION_COMPLETED_COUNT || '100');
-    const failedJobsCount = parseInt(process.env.JOB_RETENTION_FAILED_COUNT || '50');
-
-    // Convert days to seconds for BullMQ
-    const completedAge = completedJobsDays * 24 * 60 * 60;
-    const failedAge = failedJobsDays * 24 * 60 * 60;
 
     return {
       ...options,
-      // Set TTL for completed jobs (2 days by default)
-      removeOnComplete: options?.removeOnComplete ?? {
-        age: completedAge,
-        count: completedJobsCount
-      },
-      // Set TTL for failed jobs (7 days by default)
-      removeOnFail: options?.removeOnFail ?? {
-        age: failedAge,
-        count: failedJobsCount
-      },
+      removeOnComplete: options?.removeOnComplete ?? config.jobProcessing.removeOnComplete,
+      removeOnFail: options?.removeOnFail ?? config.jobProcessing.removeOnFail,
     };
   }
 

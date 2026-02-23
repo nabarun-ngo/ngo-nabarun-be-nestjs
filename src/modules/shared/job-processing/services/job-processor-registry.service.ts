@@ -178,7 +178,6 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
       }
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Completed: ${job.name}:${job.id} in ${duration}ms`);
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;

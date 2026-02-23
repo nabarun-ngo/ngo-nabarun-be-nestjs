@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CronExecution } from './cron-job.model';
-import { PageResult, RedisStoreService } from '../database/redis-store.service';
+import { RedisStoreService } from '../database/redis-store.service';
+import { SchedulerLogDto } from './cron-job.dto';
+import { config } from 'src/config/app.config';
+import { PagedResult } from 'src/shared/models/paged-result';
 @Injectable()
 export class CronLogStorageService {
     private readonly NS = 'cron:jobs';
@@ -13,12 +16,15 @@ export class CronLogStorageService {
     // Execution logs — stored as bounded list on the job's hash key
     async addLog(log: CronExecution): Promise<void> {
         await this.store.save(this.NS, log, {
-            indexes: this.INDEXED_FIELDS
+            indexes: this.INDEXED_FIELDS,
+            ttl: log.status === 'SUCCESS' ? config.jobProcessing.removeOnComplete.age : config.jobProcessing.removeOnFail.age
         });
     }
 
-    async getLogs(jobName?: string): Promise<PageResult<CronExecution>> {
+    async getLogs(jobName?: string, pageIndex: number = 0, pageSize: number = 10): Promise<PagedResult<CronExecution>> {
         return this.store.findAll(this.NS, {
+            cursor: `${pageIndex * pageSize}`,
+            count: pageSize,
             filter: jobName ? { field: 'jobName', value: jobName } : undefined,
             sortBy: 'desc'
         });
@@ -29,14 +35,14 @@ export class CronLogStorageService {
     }
 
     // Global execution summaries
-    async addCronLog(log: { triggerAt: Date; executedJobs: string[]; skippedJobs: string[] }): Promise<void> {
+    async addCronLog(log: { triggerId: string; triggerAt: Date; executedJobs: string[]; skippedJobs: string[] }): Promise<void> {
         await this.store.pushToTimeline(this.NS, this.GLOBAL_KEY, {
             ...log,
             triggerAt: log.triggerAt.toISOString(),
-        });
+        }, 1000);
     }
 
-    async getGlobalLogs() {
-        return this.store.getTimeline(this.NS, this.GLOBAL_KEY);
+    async getGlobalLogs(start: number = 0, end?: number): Promise<SchedulerLogDto[]> {
+        return this.store.getTimeline(this.NS, this.GLOBAL_KEY, { start, end });
     }
 }

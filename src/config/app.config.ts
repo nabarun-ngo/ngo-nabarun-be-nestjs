@@ -42,11 +42,11 @@ export const config = {
     queueName: 'default',
     removeOnComplete: {
       age: 3600 * 24 * 7, // 7 Days
-      count: 1000,
+      count: 100000,
     },
     removeOnFail: {
       age: 3600 * 24 * 30, // 30 Days
-      count: 500,
+      count: 10000,
     }
   }
 };

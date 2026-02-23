@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, JobType, Queue } from 'bullmq';
-import { JobDetail, JobMetrics, JobPerformanceMetrics } from '../dto/job.dto';
+import { JobDetail, JobMetrics, JobPerformanceMetrics, QueueHealth } from '../dto/job.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { config } from 'src/config/app.config';
 
@@ -192,12 +192,12 @@ export class JobMonitoringService {
   /**
    * Get queue health status
    */
-  async getQueueHealth() {
+  async getQueueHealth(): Promise<QueueHealth> {
     try {
       const metrics = await this.getJobMetrics();
       const isPaused = await this.defaultQueue.isPaused();
 
-      const healthStatus = {
+      const healthStatus: QueueHealth = {
         status: 'healthy',
         isPaused,
         issues: [] as string[],
@@ -209,7 +209,7 @@ export class JobMonitoringService {
         healthStatus.issues.push('High failure rate detected');
       }
 
-      if (metrics.waiting > 1000) {
+      if (metrics.waiting > 100) {
         healthStatus.status = 'degraded';
         healthStatus.issues.push('High number of waiting jobs');
       }
@@ -225,7 +225,6 @@ export class JobMonitoringService {
       return {
         status: 'error',
         isPaused: false,
-        metrics: null,
         issues: ['Failed to retrieve queue health data'],
       };
     }
@@ -234,42 +233,23 @@ export class JobMonitoringService {
   /**
    * Clean old jobs based on criteria (manual cleanup - TTL handles automatic cleanup)
    */
-  async cleanOldJobs(options?: {
-    completed?: number;
-    failed?: number;
-    age?: number; // in milliseconds
-  }) {
+  async cleanOldJobs() {
     try {
       // Get retention settings from environment variables
-      const completedJobsDays = parseInt(
-        process.env.JOB_RETENTION_COMPLETED_DAYS || '2',
-      );
-      const failedJobsDays = parseInt(
-        process.env.JOB_RETENTION_FAILED_DAYS || '7',
-      );
-      const completedJobsCount = parseInt(
-        process.env.JOB_RETENTION_COMPLETED_COUNT || '100',
-      );
-      const failedJobsCount = parseInt(
-        process.env.JOB_RETENTION_FAILED_COUNT || '50',
-      );
-
-      // Use provided options or fall back to environment defaults
-      const completedCount = options?.completed ?? completedJobsCount;
-      const failedCount = options?.failed ?? failedJobsCount;
-
+      const completedJobsCount = config.jobProcessing.removeOnComplete.count;
       // Convert days to seconds for BullMQ
-      const completedAge = options?.age ?? completedJobsDays * 24 * 60 * 60;
-      const failedAge = options?.age ?? failedJobsDays * 24 * 60 * 60;
+      const completedAge = config.jobProcessing.removeOnComplete.age;
+      const failedJobsCount = config.jobProcessing.removeOnFail.count;
+      const failedAge = config.jobProcessing.removeOnFail.age;
 
       await Promise.all([
-        this.defaultQueue.clean(completedAge, completedCount, 'completed'),
-        this.defaultQueue.clean(failedAge, failedCount, 'failed'),
+        this.defaultQueue.clean(completedAge, completedJobsCount, 'completed'),
+        this.defaultQueue.clean(failedAge, failedJobsCount, 'failed'),
       ]);
 
-      this.logger.log(
-        `Manually cleaned old jobs - completed: ${completedCount} (${completedJobsDays} days), failed: ${failedCount} (${failedJobsDays} days). Note: TTL handles automatic cleanup.`,
-      );
+      const message = `Manually cleaned old jobs`;
+      this.logger.log(message);
+      return message;
     } catch (error) {
       this.logger.error('Failed to clean old jobs', error);
       throw error;
