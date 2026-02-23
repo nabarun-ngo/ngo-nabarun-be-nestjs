@@ -66,7 +66,7 @@ export function applyConfig(app: INestApplication) {
   app.setGlobalPrefix('api', {
     exclude: [
       {
-        path: '/callback/oauth/google',
+        path: '/callback/oauth/:provider',
         method: RequestMethod.GET
       }
     ]

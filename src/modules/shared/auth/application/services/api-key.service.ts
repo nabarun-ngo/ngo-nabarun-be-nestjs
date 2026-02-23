@@ -7,9 +7,10 @@ import { ApiKeyMapper } from '../dto/mapper/api-key.mapper';
 import { ApiKeyDto } from '../dto/api-key.dto';
 import { Configkey } from 'src/shared/config-keys';
 import { ConfigService } from '@nestjs/config';
-import { Auth0ResourceServerService } from '../../infrastructure/external/auth0-resource-server.service';
+import { Auth0OAuthService } from '../../infrastructure/external/auth0-oauth.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { AUTH0_OAUTH_SERVICE } from './oauth.service';
 
 @Injectable()
 export class ApiKeyService {
@@ -21,7 +22,8 @@ export class ApiKeyService {
     private readonly eventEmitter: EventEmitter2,
     @Inject(API_KEY_REPOSITORY) private readonly apiKeyRepository: IApiKeyRepository,
     private readonly configService: ConfigService,
-    private readonly auth0ResourceServerService: Auth0ResourceServerService,
+    @Inject(AUTH0_OAUTH_SERVICE)
+    private readonly auth0OAuthService: Auth0OAuthService,
   ) {
   }
 
@@ -110,7 +112,6 @@ export class ApiKeyService {
 
   async listApiScopes(): Promise<string[]> {
     const identifier = this.configService.get(Configkey.AUTH0_RESOURCE_API_AUDIENCE);
-    const scopes = await this.auth0ResourceServerService.getScopes(identifier);
-    return scopes?.map(scope => scope.value) ?? [];
+    return await this.auth0OAuthService.getOAuthScopes(identifier);
   }
 }

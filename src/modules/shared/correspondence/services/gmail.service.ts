@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { GoogleOAuthService } from '../../auth/application/services/google-oauth.service';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { gmail as googleMail } from '@googleapis/gmail';
 import { EmailOptions, SendEmailResult } from '../dtos/email.dto';
 import { GOOGLE_SCOPES } from '../../auth/scopes';
+import { GOOGLE_OAUTH_SERVICE, OAuthService } from '../../auth/application/services';
 
 
 
@@ -11,7 +11,9 @@ export class GmailService {
   private readonly logger = new Logger(GmailService.name);
   private readonly scope = GOOGLE_SCOPES.gmail;
 
-  constructor(private readonly googleOAuthService: GoogleOAuthService) { }
+  constructor(
+    @Inject(GOOGLE_OAUTH_SERVICE)
+    private readonly googleOAuthService: OAuthService) { }
 
   /**
    * Send an email using Gmail API
