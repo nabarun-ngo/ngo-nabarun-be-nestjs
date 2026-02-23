@@ -5,6 +5,7 @@ import { Queue, Worker, Job as BullJob } from 'bullmq';
 import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.decorator';
 import { JobName } from 'src/shared/job-names';
 import { JobProcessor, Job } from '../dto/job.dto';
+import { config } from 'src/config/app.config';
 
 @Injectable()
 export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBootstrap {
@@ -14,7 +15,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   private isShuttingDown = false;
 
   constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
+    @InjectQueue(config.jobProcessing.queueName) private readonly defaultQueue: Queue,
     private readonly moduleRef: ModuleRef,
     private readonly reflector: Reflector,
   ) { }
@@ -107,7 +108,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   private async initializeWorker() {
     if (this.worker) return;
     this.worker = new Worker(
-      'default',
+      config.jobProcessing.queueName,
       async (job: BullJob) => this.processJob(job),
       {
         connection: this.defaultQueue.opts.connection,
@@ -119,14 +120,8 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
         settings: {
         },
         // Aggressive cleanup for in-process workers
-        removeOnComplete: {
-          age: 3600 * 24 * 1, // 1 Day
-          count: 1000,
-        },
-        removeOnFail: {
-          age: 3600 * 24 * 7, // 7 Days
-          count: 500,
-        }
+        removeOnComplete: config.jobProcessing.removeOnComplete,
+        removeOnFail: config.jobProcessing.removeOnFail
       },
     );
 
@@ -230,6 +225,11 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   ) {
     const processorOptions: ProcessJobOptions = {
       name,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
     };
 
     this.processors.set(name, {

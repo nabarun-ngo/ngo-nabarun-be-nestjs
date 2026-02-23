@@ -30,7 +30,12 @@ export class WorkflowJobProcessor {
   ) { }
 
   @ProcessJob({
-    name: JobName.START_WORKFLOW_STEP
+    name: JobName.START_WORKFLOW_STEP,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
   })
   async processStartWorkflowStep(job: Job<{ instanceId: string; step: WorkflowStep }>): Promise<void> {
     const data = job.data;
@@ -39,7 +44,12 @@ export class WorkflowJobProcessor {
 
 
   @ProcessJob({
-    name: JobName.SEND_TASK_REMINDER_EMAIL
+    name: JobName.SEND_TASK_REMINDER_EMAIL,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 30 * 1000,
+    },
   })
   async processSendTaskReminderEmail(job: Job<{ assigneeId: string, assigneeName: string, assigneeEmail: string }>): Promise<void> {
 

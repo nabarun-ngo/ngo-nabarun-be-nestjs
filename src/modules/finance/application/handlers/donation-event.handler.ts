@@ -158,16 +158,6 @@ export class DonationsEventHandler {
                 {
                     userId: user.id,
                     amount: amount,
-                },
-                {
-                    attempts: 3,
-                    backoff: {
-                        type: 'exponential',
-                        delay: 2000,
-                    },
-                    removeOnComplete: false,
-                    removeOnFail: false,
-                    delay: 2000, // All jobs will become ready after 2 seconds
                 }
             );
         }
@@ -204,16 +194,6 @@ export class DonationsEventHandler {
                     donorId: userId,
                     donorEmail: userDonationsList[0].donorEmail,
                     donorName: userDonationsList[0].donorName,
-                },
-                {
-                    attempts: 1,
-                    backoff: {
-                        type: 'exponential',
-                        delay: 2000,
-                    },
-                    removeOnComplete: true,
-                    removeOnFail: false,
-                    delay: 2000, // All jobs will become ready after 2 seconds
                 }
             );
         }
@@ -238,18 +218,9 @@ export class DonationsEventHandler {
                     startDate: firstDate,
                     endDate: lastDate,
                     uploadFile: 'Y',
-                    sendEmail: 'Y'
+                    sendEmail: 'Y',
+                    on: 'paidOn'
                 }
-            },
-            {
-                attempts: 3,
-                backoff: {
-                    type: 'exponential',
-                    delay: 2000,
-                },
-                removeOnComplete: false,
-                removeOnFail: false,
-                delay: 2000, // All jobs will become ready after 2 seconds
             }
         );
 

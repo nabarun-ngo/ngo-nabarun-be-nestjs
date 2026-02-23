@@ -5,13 +5,14 @@ import { JobName } from 'src/shared/job-names';
 import { ProcessJobOptions } from '../decorators/process-job.decorator';
 import { JobProcessorRegistry } from './job-processor-registry.service';
 import { Job, JobOptions } from '../dto/job.dto';
+import { config } from 'src/config/app.config';
 
 @Injectable()
 export class JobProcessingService {
   private readonly logger = new Logger(JobProcessingService.name);
 
   constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
+    @InjectQueue(config.jobProcessing.queueName) private readonly defaultQueue: Queue,
     @Inject(forwardRef(() => JobProcessorRegistry))
     private readonly registry: JobProcessorRegistry,
   ) { }

@@ -26,6 +26,12 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.CREATE_DONATION,
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 2000,
+        },
+        priority: 1
     })
     async createDonationForUser(job: Job<{ userId: string; amount: number }, Donation>) {
         job.log(`Processing ${JobName.CREATE_DONATION} for user ${job.data.userId}`);
@@ -57,6 +63,11 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.SEND_DONATION_REMINDER_EMAIL,
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 30 * 1000,
+        },
     })
     async sendDonationReminderEmail(job: Job<{
         donorEmail: string;
@@ -111,6 +122,11 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.GENERATE_REPORT,
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 30 * 1000,
+        }
     })
     async generateReport(job: Job<{
         reportName: string;

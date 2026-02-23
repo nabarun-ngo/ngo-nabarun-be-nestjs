@@ -22,12 +22,12 @@ export interface ProcessJobOptions {
    * Number of times to retry a failed job.
    * Handled internally by BullMQ.
    */
-  attempts?: number;
+  attempts: number;
 
   /**
    * Backoff strategy for retries.
    */
-  backoff?: {
+  backoff: {
     type: 'fixed' | 'exponential' | 'linear';
     delay: number;
   };

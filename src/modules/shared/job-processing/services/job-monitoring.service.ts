@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Job, JobType, Queue } from 'bullmq';
 import { JobDetail, JobMetrics, JobPerformanceMetrics } from '../dto/job.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { config } from 'src/config/app.config';
 
 
 
@@ -15,7 +16,7 @@ export class JobMonitoringService {
   private metricsCache: { data: JobMetrics; timestamp: number } | null = null;
   private readonly METRICS_CACHE_TTL = 60000; // 1 minute cache
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) { }
+  constructor(@InjectQueue(config.jobProcessing.queueName) private readonly defaultQueue: Queue) { }
 
   /**
    * Get comprehensive job metrics (optimized with caching and count methods)
@@ -133,16 +134,16 @@ export class JobMonitoringService {
       const end = (page * size) + size - 1;
       const jobs = await this.defaultQueue.getJobs(filter.status, start, end);
       const count = await this.defaultQueue.getJobCounts(filter.status);
-      console.log(`Start: ${start}, End: ${end}, Count: ${jobs.length}, Total Count: ${count[filter.status!]}`);
+      //console.log(`Start: ${start}, End: ${end}, Count: ${jobs.length}, Total Count: ${count[filter.status!]}`);
 
       const jobDetails = await Promise.all(jobs
         .filter((job) => filter?.name ? job.name === filter.name : true)
         .map(async (job) => await this.toJobDetail(job)));
       return new PagedResult(
         jobDetails,
+        count[filter.status!],
         page,
         size,
-        count[filter.status!]
       )
     } catch (error) {
       this.logger.error('Failed to get jobs', error);

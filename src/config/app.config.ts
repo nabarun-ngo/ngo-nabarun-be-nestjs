@@ -38,6 +38,17 @@ export const config = {
     },
     disableErrorMessages: process.env.NODE_ENV === 'prod',
   }),
+  jobProcessing: {
+    queueName: 'default',
+    removeOnComplete: {
+      age: 3600 * 24 * 7, // 7 Days
+      count: 1000,
+    },
+    removeOnFail: {
+      age: 3600 * 24 * 30, // 30 Days
+      count: 500,
+    }
+  }
 };
 
 export function applyConfig(app: INestApplication) {
