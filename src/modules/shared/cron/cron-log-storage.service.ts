@@ -1,59 +1,48 @@
 import { Injectable } from '@nestjs/common';
-import { CronExecutionLog } from './cron-job.model';
-import { CronLogger } from 'src/shared/utils/trace-context.util';
-import { RedisHashCacheService } from '../database/redis-hash-cache.service';
-
+import { CronExecution } from './cron-job.model';
+import { RedisStoreService } from '../database/redis-store.service';
+import { SchedulerLogDto } from './cron-job.dto';
+import { config } from 'src/config/app.config';
+import { PagedResult } from 'src/shared/models/paged-result';
 @Injectable()
 export class CronLogStorageService {
-    private readonly logger = new CronLogger(CronLogStorageService.name);
-    private readonly LOG_PREFIX = 'cron:logs';
-    private readonly LOG_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+    private readonly NS = 'cron:jobs';
+    private readonly GLOBAL_KEY = 'global';
+    private readonly INDEXED_FIELDS: (keyof CronExecution)[] = ['status', 'id', 'jobName'];
 
-    constructor(private readonly redisService: RedisHashCacheService) { }
 
-    async getLogs(jobName: string): Promise<CronExecutionLog[]> {
-        try {
-            return await this.redisService.getList<CronExecutionLog>(this.LOG_PREFIX, jobName);
-        } catch (error) {
-            this.logger.error(`Failed to retrieve cached logs for ${jobName}: ${error.stack}`);
-            return [];
-        }
+    constructor(private readonly store: RedisStoreService) { }
+
+    // Execution logs — stored as bounded list on the job's hash key
+    async addLog(log: CronExecution): Promise<void> {
+        await this.store.save(this.NS, log, {
+            indexes: this.INDEXED_FIELDS,
+            ttl: log.status === 'SUCCESS' ? config.jobProcessing.removeOnComplete.age : config.jobProcessing.removeOnFail.age
+        });
     }
 
-    async addLog(log: CronExecutionLog) {
-        try {
-            await this.redisService.pushToList(
-                this.LOG_PREFIX,
-                log.jobName,
-                log,
-                100, // Max 100 logs
-                this.LOG_TTL
-            );
-        } catch (error) {
-            this.logger.error(`Failed to cache cron log for ${log.jobName}: ${error.stack}`, error.stack);
-        }
+    async getLogs(jobName?: string, pageIndex: number = 0, pageSize: number = 10): Promise<PagedResult<CronExecution>> {
+        return this.store.findAll(this.NS, {
+            cursor: `${pageIndex * pageSize}`,
+            count: pageSize,
+            filter: jobName ? { field: 'jobName', value: jobName } : undefined,
+            sortBy: 'desc'
+        });
     }
 
-    async addCronLog(log: { triggerAt: Date; executedJobs: string[]; skippedJobs: string[]; }) {
-        try {
-            await this.redisService.pushToList(
-                this.LOG_PREFIX,
-                'global',
-                { ...log, triggerAt: log.triggerAt.toISOString() },
-                100, // Keep last 100 execution summaries
-                this.LOG_TTL
-            );
-        } catch (error) {
-            this.logger.error(`Failed to cache global cron log: ${error.stack}`, error.stack);
-        }
+    async getLog(id: string): Promise<CronExecution | null> {
+        return await this.store.findById(this.NS, id);
     }
 
-    async getGlobalLogs(): Promise<{ triggerAt: string; executedJobs: string[]; skippedJobs: string[]; }[]> {
-        try {
-            return await this.redisService.getList(this.LOG_PREFIX, 'global');
-        } catch (error) {
-            this.logger.error(`Failed to retrieve global cron logs: ${error.stack}`);
-            return [];
-        }
+    // Global execution summaries
+    async addCronLog(log: { triggerId: string; triggerAt: Date; executedJobs: string[]; skippedJobs: string[] }): Promise<void> {
+        await this.store.pushToTimeline(this.NS, this.GLOBAL_KEY, {
+            ...log,
+            triggerAt: log.triggerAt.toISOString(),
+        }, 1000);
+    }
+
+    async getGlobalLogs(start: number = 0, end?: number): Promise<SchedulerLogDto[]> {
+        return this.store.getTimeline(this.NS, this.GLOBAL_KEY, { start, end });
     }
 }

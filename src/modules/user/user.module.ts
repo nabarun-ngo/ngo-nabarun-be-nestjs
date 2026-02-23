@@ -15,10 +15,11 @@ import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case'
 import { DMSModule } from '../shared/dms/dms.module';
 import { ChangePasswordUseCase } from './application/use-cases/change-password.use-case';
 import { DeleteUserUseCase } from './application/use-cases/delete-user.use-case';
+import { AuthModule } from '../shared/auth/auth.module';
 
 @Module({
   controllers: [UserController],
-  imports: [FirebaseModule, DMSModule],
+  imports: [FirebaseModule, DMSModule, AuthModule],
   providers: [
     CreateUserUseCase,
     UpdateUserUseCase,

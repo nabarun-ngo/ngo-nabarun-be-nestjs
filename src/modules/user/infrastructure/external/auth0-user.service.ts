@@ -7,41 +7,30 @@ import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { Role } from '../../domain/model/role.model';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { AUTH0_OAUTH_SERVICE, OAuthService } from 'src/modules/shared/auth/application/services';
 
 export type Auth0User = Awaited<ReturnType<ManagementClient['users']['get']>>;
 export type Auth0Role = Awaited<ReturnType<ManagementClient['roles']['get']>>;
 
 @Injectable()
 export class Auth0UserService {
-
+  private readonly scope = 'management';
 
   private readonly logger = new Logger(Auth0UserService.name);
-  private readonly managementClient: ManagementClient;
 
   constructor(private readonly configService: ConfigService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(AUTH0_OAUTH_SERVICE) private auth0OAuthService: OAuthService
   ) {
-    const domain = this.configService.get<string>(Configkey.AUTH0_DOMAIN)!;
-    const clientId = this.configService.get<string>(Configkey.AUTH0_MANAGEMENT_CLIENT_ID)!;
-    const clientSecret = this.configService.get<string>(Configkey.AUTH0_MANAGEMENT_CLIENT_SECRET)!;
-    const audience = `https://${domain}/api/v2/`;
 
-    if (!domain || !clientId || !clientSecret || !audience) {
-      throw new Error('Auth0 Management API configuration is incomplete.');
-    }
-
-    this.managementClient = new ManagementClient({
-      domain: domain,
-      clientId: clientId,
-      clientSecret: clientSecret,
-      audience,
-    });
   }
 
   async getUserByEmail(email: string): Promise<User[]> {
     try {
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+
       const users: Auth0User[] =
-        await this.managementClient.users.listUsersByEmail({
+        await managementClient.users.listUsersByEmail({
           email: email,
         });
       return users.map((user) => UserInfraMapper.toAuthUser(user));
@@ -53,7 +42,8 @@ export class Auth0UserService {
 
   async getUsers(): Promise<User[]> {
     try {
-      const users: Auth0User[] = (await this.managementClient.users.list())
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      const users: Auth0User[] = (await managementClient.users.list())
         .data;
       return users.map((user) => UserInfraMapper.toAuthUser(user));
     } catch (e) {
@@ -64,7 +54,8 @@ export class Auth0UserService {
 
   async getUser(id: string): Promise<User> {
     try {
-      const user = await this.managementClient.users.get(id);
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      const user = await managementClient.users.get(id);
       return UserInfraMapper.toAuthUser(user);
     } catch (e) {
       this.logger.error(`Failed to get user ${id}: ${e}`);
@@ -85,7 +76,9 @@ export class Auth0UserService {
     }
   }
   private async createUserForLogin(newUser: User, lm: LoginMethod, emailVerified: boolean) {
-    await this.managementClient.users.create({
+    const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+
+    await managementClient.users.create({
       email: newUser.email,
       connection: UserInfraMapper.loginMethod2Connection(lm),
       given_name: newUser.firstName,
@@ -106,8 +99,9 @@ export class Auth0UserService {
   }
 
   async linkAllAccountsForUser(email: string): Promise<User> {
+    const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
 
-    const users = await this.managementClient.users.listUsersByEmail({
+    const users = await managementClient.users.listUsersByEmail({
       email: email.toLowerCase(),
     });
 
@@ -128,13 +122,13 @@ export class Auth0UserService {
       if (!provider) continue;
 
       Object.assign(mergedMetadata, secondary.user_metadata ?? {});
-      await this.managementClient.users.identities.link(primaryId, {
+      await managementClient.users.identities.link(primaryId, {
         user_id: secondaryId,
         provider,
       });
     }
 
-    const updated = await this.managementClient.users.update(primaryId, {
+    const updated = await managementClient.users.update(primaryId, {
       user_metadata: mergedMetadata
     });
     this.logger.log(`Linked ${users.length} Auth0 identities for user ${email}`);
@@ -143,7 +137,8 @@ export class Auth0UserService {
 
   async updateUser(id: string, user: Partial<User>, password?: string,): Promise<User> {
     try {
-      const response = await this.managementClient.users.update(
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      const response = await managementClient.users.update(
         id,
         {
           email: user.email,
@@ -187,7 +182,8 @@ export class Auth0UserService {
 
   async deleteUser(id: string): Promise<void> {
     try {
-      await this.managementClient.users.delete(id);
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      await managementClient.users.delete(id);
     } catch (e) {
       this.logger.error(`Failed to delete user ${id}: ${e.message}`, e.stack);
       throw new ThirdPartyException('auth0', e);
@@ -196,7 +192,8 @@ export class Auth0UserService {
 
   async assignRolesToUser(userId: string, roleIds: string[]): Promise<void> {
     try {
-      await this.managementClient.users.roles.assign(userId, {
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      await managementClient.users.roles.assign(userId, {
         roles: roleIds
       });
       this.logger.log(`Assigned roles ${roleIds} to user ${userId}`);
@@ -211,7 +208,8 @@ export class Auth0UserService {
 
   async removeRolesFromUser(userId: string, roleIds: string[]): Promise<void> {
     try {
-      await this.managementClient.users.roles.delete(userId,
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      await managementClient.users.roles.delete(userId,
         { roles: roleIds }
       );
     } catch (e) {
@@ -225,7 +223,8 @@ export class Auth0UserService {
 
   async assignUsersToRole(roleId: string, userIds: string[]): Promise<void> {
     try {
-      await this.managementClient.roles.users.assign(
+      const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+      await managementClient.roles.users.assign(
         roleId,
         { users: userIds },
       );
@@ -240,7 +239,8 @@ export class Auth0UserService {
 
   async getRoles(): Promise<Role[]> {
     const cachedRoles = await this.cacheManager.get<Auth0Role[]>('ALL_ROLES');
-    var allRoles = cachedRoles ?? (await this.managementClient.roles.list()).data;
+    const managementClient = await this.auth0OAuthService.getAuthenticatedClient(this.scope);
+    var allRoles = cachedRoles ?? (await managementClient.roles.list()).data;
     if (!cachedRoles) {
       await this.cacheManager.set<Auth0Role[]>('ALL_ROLES', allRoles, 90 * 24 * 3600 * 1000);
     }

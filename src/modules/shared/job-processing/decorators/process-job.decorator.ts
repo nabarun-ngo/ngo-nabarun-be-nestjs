@@ -13,26 +13,49 @@ export enum JobPriority {
 }
 
 export interface ProcessJobOptions {
+  /**
+   * Unique name of the job to process.
+   */
   name: JobName;
-  concurrency?: number;
 
-  // Retry configuration (handled by BullMQ)
-  attempts?: number;
-  backoff?: {
+  /**
+   * Number of times to retry a failed job.
+   * Handled internally by BullMQ.
+   */
+  attempts: number;
+
+  /**
+   * Backoff strategy for retries.
+   */
+  backoff: {
     type: 'fixed' | 'exponential' | 'linear';
     delay: number;
   };
 
-  // Timeout configuration
-  timeout?: number; // Job timeout in milliseconds
+  /**
+   * Maximum time the job is allowed to run (in milliseconds).
+   */
+  timeout?: number;
 
-  // Callbacks
+  /**
+   * Callback executed on each retry attempt.
+   */
   onRetry?: (attemptNumber: number, error: Error) => void | Promise<void>;
+
+  /**
+   * Callback executed when the job has exhausted all retry attempts.
+   */
   onFailed?: (error: Error, attemptsMade: number) => void | Promise<void>;
 
-  // Priority (for future use)
+  /**
+   * Job priority (1 = highest, 5 = lowest).
+   */
   priority?: JobPriority;
 }
 
+/**
+ * Decorator to register a method as a BullMQ job processor.
+ * The decorated method should accept a BullMQ Job object as its only argument.
+ */
 export const ProcessJob = (options: ProcessJobOptions) =>
   SetMetadata(PROCESS_JOB_KEY, options);

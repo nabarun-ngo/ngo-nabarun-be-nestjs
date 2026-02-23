@@ -6,19 +6,22 @@ import {
   Delete,
   Param,
   Patch,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { ApiKeyService } from '../../application/services/api-key.service';
 import { ApiKeyDto, CreateApiKeyDto } from '../../application/dto/api-key.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiKey } from '../../domain/models/api-key.model';
-import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { RequirePermissions } from '../../application/decorators/require-permissions.decorator';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 
 @ApiBearerAuth('jwt')
@@ -46,29 +49,21 @@ export class ApiKeyController {
       create.permissions,
       create.expireAt,
     );
-    return new SuccessResponse<ApiKeyDto>(this.toApiKeyDto(result.keyInfo, result.token));
-  }
-
-  private toApiKeyDto(apiKey: ApiKey, token?: string): ApiKeyDto {
-    return {
-      id: apiKey.id,
-      name: apiKey.name,
-      permissions: apiKey.permissions,
-      expiresAt: apiKey.expiresAt,
-      lastUsedAt: apiKey.lastUsedAt,
-      createdAt: apiKey.createdAt,
-      updatedAt: apiKey.updatedAt,
-      apiToken: token,
-    };
+    return new SuccessResponse<ApiKeyDto>(result);
   }
 
   @Get('list')
   @ApiOperation({ summary: 'List all API keys' })
   @RequirePermissions('read:api_keys')
-  @ApiAutoResponse(ApiKeyDto, { description: 'List of API keys', wrapInSuccessResponse: true, isArray: true })
-  async listApiKeys(): Promise<SuccessResponse<Array<ApiKeyDto>>> {
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiAutoPagedResponse(ApiKeyDto, { description: 'List of API keys', wrapInSuccessResponse: true, isArray: true })
+  async listApiKeys(
+    @Query('pageIndex') pageIndex: number,
+    @Query('pageSize') pageSize: number,
+  ): Promise<SuccessResponse<PagedResult<ApiKeyDto>>> {
     return new SuccessResponse(
-      await this.apiKeyService.listApiKeys()
+      await this.apiKeyService.listApiKeys({ pageIndex, pageSize })
     );
   }
 

@@ -60,7 +60,6 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
         case DonationStatus.UPDATE_MISTAKE:
           donation.markForUpdateMistake();
           await this.reverseTransactionUseCase.execute({
-            accountId: donation.paidToAccount?.id!,
             reason: request.remarks || 'Update mistake',
             transactionRef: donation.transactionRef!,
           });

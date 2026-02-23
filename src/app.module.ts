@@ -65,6 +65,7 @@ Handlebars.registerHelper("not", (a) => !a);
     }),
     DatabaseModule.forRoot({
       postgresUrl: config.database.postgresUrl,
+      redisUrl: config.database.redisUrl,
     }),
     UserModule,
     AuthModule,

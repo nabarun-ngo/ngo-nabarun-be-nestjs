@@ -1,13 +1,16 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { API_KEY_REPOSITORY, type IApiKeyRepository } from '../../domain/repository/api-key.repository.interface';
-import { ApiKey } from '../../domain/models/api-key.model';
+import { ApiKey, ApiKeyFilter } from '../../domain/models/api-key.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthUser } from '../../domain/models/api-user.model';
 import { ApiKeyMapper } from '../dto/mapper/api-key.mapper';
 import { ApiKeyDto } from '../dto/api-key.dto';
 import { Configkey } from 'src/shared/config-keys';
 import { ConfigService } from '@nestjs/config';
-import { Auth0ResourceServerService } from '../../infrastructure/external/auth0-resource-server.service';
+import { Auth0OAuthService } from '../../infrastructure/external/auth0-oauth.service';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { AUTH0_OAUTH_SERVICE } from './oauth.service';
 
 @Injectable()
 export class ApiKeyService {
@@ -19,7 +22,8 @@ export class ApiKeyService {
     private readonly eventEmitter: EventEmitter2,
     @Inject(API_KEY_REPOSITORY) private readonly apiKeyRepository: IApiKeyRepository,
     private readonly configService: ConfigService,
-    private readonly auth0ResourceServerService: Auth0ResourceServerService,
+    @Inject(AUTH0_OAUTH_SERVICE)
+    private readonly auth0OAuthService: Auth0OAuthService,
   ) {
   }
 
@@ -62,7 +66,7 @@ export class ApiKeyService {
     name: string,
     permissions: string[],
     expiresAt?: Date,
-  ): Promise<{ keyInfo: ApiKey, token: string }> {
+  ): Promise<ApiKeyDto> {
 
     // Generate secure random key
     const { keyInfo, token } = await ApiKey.create({
@@ -73,7 +77,7 @@ export class ApiKeyService {
 
     this.apiKeys.set(keyInfo.key, keyInfo);
     await this.apiKeyRepository.create(keyInfo);
-    return { keyInfo, token };
+    return ApiKeyMapper.toDto(keyInfo, token);
   }
 
   async updateApiKeyPermissions(id: string, permissions: string[]): Promise<ApiKeyDto> {
@@ -92,13 +96,22 @@ export class ApiKeyService {
     return this.apiKeys.delete(apiKeyInfo?.key!);
   }
 
-  async listApiKeys(): Promise<ApiKeyDto[]> {
-    return (await this.apiKeyRepository.findAll()).map(ApiKeyMapper.toDto);
+  async listApiKeys(filter: BaseFilter<ApiKeyFilter>): Promise<PagedResult<ApiKeyDto>> {
+    const result = await this.apiKeyRepository.findPaged({
+      pageIndex: filter.pageIndex,
+      pageSize: filter.pageSize,
+      props: filter.props
+    })
+    return new PagedResult<ApiKeyDto>(
+      result.content.map(m => ApiKeyMapper.toDto(m)),
+      result.totalSize,
+      filter?.pageIndex ?? 0,
+      filter?.pageSize ?? 1000,
+    );
   }
 
   async listApiScopes(): Promise<string[]> {
     const identifier = this.configService.get(Configkey.AUTH0_RESOURCE_API_AUDIENCE);
-    const scopes = await this.auth0ResourceServerService.getScopes(identifier);
-    return scopes?.map(scope => scope.value) ?? [];
+    return await this.auth0OAuthService.getOAuthScopes(identifier);
   }
 }

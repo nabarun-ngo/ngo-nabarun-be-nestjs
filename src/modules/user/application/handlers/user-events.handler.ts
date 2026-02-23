@@ -37,15 +37,6 @@ export class UserEventsHandler {
         fullName: event.user.fullName,
         email: event.user.email,
         password: event.user.password,
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
       }
     );
     await this.jobProcessingService.addJob(
@@ -53,13 +44,6 @@ export class UserEventsHandler {
       {
         userId: event.user.id,
         newRoles: []
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
       }
     );
   }

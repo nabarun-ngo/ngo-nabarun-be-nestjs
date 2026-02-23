@@ -4,15 +4,33 @@ import { ApiKey } from "../../domain/models/api-key.model";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
 import { IApiKeyRepository } from "../../domain/repository/api-key.repository.interface";
+import { ApiKeyFilter } from "../../domain/models/api-key.model";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class ApiKeyRepository implements IApiKeyRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
-    async count(filter: any): Promise<number> {
-        return await this.prisma.apiKey.count({});
+    async count(filter: ApiKeyFilter): Promise<number> {
+        return await this.prisma.apiKey.count({ where: this.whereQuery(filter) });
     }
-    async findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<ApiKey>> {
-        throw new Error("Method not implemented.");
+    async findPaged(filter?: BaseFilter<ApiKeyFilter>): Promise<PagedResult<ApiKey>> {
+        const [apiKeys, count] = await Promise.all([
+            this.prisma.apiKey.findMany({
+                where: this.whereQuery(filter?.props!),
+                orderBy: {
+                    createdAt: "desc"
+                },
+                skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+                take: filter?.pageSize ?? 1000,
+            }),
+            this.prisma.apiKey.count({ where: this.whereQuery(filter?.props!) })
+        ])
+        return new PagedResult<ApiKey>(
+            apiKeys.map(key => this.toApiKey(key)),
+            count,
+            filter?.pageIndex ?? 0,
+            filter?.pageSize ?? 1000,
+        );
     }
     async findByKeyId(key: string): Promise<ApiKey | null> {
         const apiKey = await this.prisma.apiKey.findUnique({
@@ -21,13 +39,21 @@ export class ApiKeyRepository implements IApiKeyRepository {
         return apiKey ? this.toApiKey(apiKey!) : null;
     }
 
-    async findAll(filter: any): Promise<ApiKey[]> {
+    async findAll(filter: ApiKeyFilter): Promise<ApiKey[]> {
         const apiKeys = await this.prisma.apiKey.findMany({
+            where: this.whereQuery(filter),
             orderBy: {
                 createdAt: "desc"
             }
         })
         return apiKeys.map(key => this.toApiKey(key));
+    }
+
+    private whereQuery(filter: ApiKeyFilter) {
+        return {
+            ...(filter?.name ? { name: { contains: filter.name, mode: "insensitive" } } : {}),
+            ...(filter?.permissions && { permissions: { hasSome: filter.permissions } }),
+        } as Prisma.ApiKeyWhereInput;
     }
 
     async findById(id: string): Promise<ApiKey | null> {

@@ -29,6 +29,7 @@ export class TransactionFilter {
   accountIds?: string[];
   startDate?: Date;
   endDate?: Date;
+  id?: string;
 }
 
 /**

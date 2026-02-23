@@ -6,16 +6,14 @@ import { DONATION_REPOSITORY, type IDonationRepository } from '../../domain/repo
 import { JobName } from 'src/shared/job-names';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
-import { DonationStatus, DonationType } from '../../domain/model/donation.model';
+import { Donation, DonationStatus, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
-import { CronLogger } from 'src/shared/utils/trace-context.util';
 import { formatDate } from 'src/shared/utilities/common.util';
 import { ReportParamsDto } from '../dto/report.dto';
 import { FinanceReportService } from '../services/report.service';
 
 @Injectable()
 export class DonationJobsHandler {
-    private readonly logger = new CronLogger(DonationJobsHandler.name);
 
     constructor(
         private readonly correspondenceService: CorrespondenceService,
@@ -28,10 +26,15 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.CREATE_DONATION,
-        concurrency: 4
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 2000,
+        },
+        priority: 1
     })
-    async createDonationForUser(job: Job<{ userId: string; amount: number }>) {
-        this.logger.log(`Processing ${JobName.CREATE_DONATION} for user ${job.data.userId}`);
+    async createDonationForUser(job: Job<{ userId: string; amount: number }, Donation>) {
+        job.log(`Processing ${JobName.CREATE_DONATION} for user ${job.data.userId}`);
         const now = new Date();
         // First date: set day to 1
         const firstDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -46,12 +49,13 @@ export class DonationJobsHandler {
                 endDate: lastDate,
                 isGuest: false,
             });
-            this.logger.log(`[MonthlyDonationsJob] Monthly donation ${donation.id} raised successfully for user: ${job.data.userId}`);
+            job.log(`[MonthlyDonationsJob] Monthly donation ${donation.id} raised successfully for user: ${job.data.userId}`);
+            return donation.toJson();
         } catch (error) {
             if (error instanceof BusinessException) {
-                this.logger.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: ${error.message}.`);
+                job.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: ${error.message}.`);
             } else {
-                this.logger.error(`[MonthlyDonationsJob] Error raising monthly donation for user: ${job.data.userId} Error : ${error}`);
+                job.log(`[MonthlyDonationsJob] Error raising monthly donation for user: ${job.data.userId} Error : ${error}`);
                 throw error;
             }
         }
@@ -59,13 +63,18 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.SEND_DONATION_REMINDER_EMAIL,
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 30 * 1000,
+        },
     })
     async sendDonationReminderEmail(job: Job<{
         donorEmail: string;
         donorId: string;
         donorName: string
     }>) {
-        this.logger.log(`Processing ${JobName.SEND_DONATION_REMINDER_EMAIL} for user ${job.data.donorEmail}`);
+        job.log(`Processing ${JobName.SEND_DONATION_REMINDER_EMAIL} for user ${job.data.donorEmail}`);
         try {
             const pendingDonations = await this.donationRepository.findAll({
                 status: [DonationStatus.PENDING],
@@ -74,7 +83,7 @@ export class DonationJobsHandler {
             });
 
             if (pendingDonations.length === 0) {
-                this.logger.log(`No valid donations found for reminder job ${job.id}`);
+                job.log(`No valid donations found for reminder job ${job.id}`);
                 return;
             }
 
@@ -103,9 +112,9 @@ export class DonationJobsHandler {
                 templateData,
             });
 
-            this.logger.log(`Reminder email SENT to user ${job.data.donorEmail} for ${pendingDonations.length} donations`);
+            job.log(`Reminder email SENT to user ${job.data.donorEmail} for ${pendingDonations.length} donations`);
         } catch (error) {
-            this.logger.error(`Failed to send reminder email for user ${job.data.donorEmail}`, error);
+            job.log(`Failed to send reminder email for user ${job.data.donorEmail} : ${error.message}`);
             throw error;
         }
     }
@@ -113,12 +122,17 @@ export class DonationJobsHandler {
 
     @ProcessJob({
         name: JobName.GENERATE_REPORT,
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 30 * 1000,
+        }
     })
     async generateReport(job: Job<{
         reportName: string;
         reportParams: ReportParamsDto;
     }>) {
-        this.logger.log(`Processing ${JobName.GENERATE_REPORT} for report ${job.data.reportName}`);
+        job.log(`Processing ${JobName.GENERATE_REPORT} for report ${job.data.reportName}`);
         try {
             const report = await this.financeReportService.generateReport(
                 job.data.reportName,
@@ -126,9 +140,9 @@ export class DonationJobsHandler {
                 'System'
             );
 
-            this.logger.log(`Report ${job.data.reportName} generated successfully`);
+            job.log(`Report ${job.data.reportName} generated successfully`);
         } catch (error) {
-            this.logger.error(`Failed to generate report ${job.data.reportName}`, error);
+            job.log(`Failed to generate report ${job.data.reportName} : ${error.message}`);
             throw error;
         }
     }

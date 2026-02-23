@@ -1,11 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { BaseRepository } from "src/shared/models/repository.base";
 import { Document, DocumentProps } from "../domain/document.model";
 import { PrismaPostgresService } from "../../database";
 import { BaseFilter } from "src/shared/models/base-filter-props";
 import { PagedResult } from "src/shared/models/paged-result";
-import { DocumentReference, Prisma, PrismaClient } from "@prisma/client";
-import { DocumentMapping, DocumentMappingRefType } from "../domain/mapping.model";
+import { Prisma } from "@prisma/client";
+import { DocumentMappingRefType } from "../domain/mapping.model";
 import { IDocumentRepository } from "../domain/document.repository.interface";
 import { DocumentInfraMapper } from "./document-infra.mapper";
 

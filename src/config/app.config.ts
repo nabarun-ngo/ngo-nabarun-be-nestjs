@@ -38,6 +38,17 @@ export const config = {
     },
     disableErrorMessages: process.env.NODE_ENV === 'prod',
   }),
+  jobProcessing: {
+    queueName: 'default',
+    removeOnComplete: {
+      age: 3600 * 24 * 7, // 7 Days
+      count: 100000,
+    },
+    removeOnFail: {
+      age: 3600 * 24 * 30, // 30 Days
+      count: 10000,
+    }
+  }
 };
 
 export function applyConfig(app: INestApplication) {
@@ -66,7 +77,7 @@ export function applyConfig(app: INestApplication) {
   app.setGlobalPrefix('api', {
     exclude: [
       {
-        path: '/callback/oauth/google',
+        path: '/callback/oauth/:provider',
         method: RequestMethod.GET
       }
     ]

@@ -27,7 +27,12 @@ export class UserJobsHandler {
 
 
   @ProcessJob({
-    name: JobName.UPDATE_USER_ROLE
+    name: JobName.UPDATE_USER_ROLE,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
   })
   async updateUserRole(job: Job<{ userId: string; newRoles: Role[]; }>) {
     await this.assignRoleUseCase.execute({
@@ -38,7 +43,12 @@ export class UserJobsHandler {
 
 
   @ProcessJob({
-    name: JobName.SEND_ONBOARDING_EMAIL
+    name: JobName.SEND_ONBOARDING_EMAIL,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 30 * 1000,
+    },
   })
   async sendOnboardingEmail(job: Job<{ fullName: string; email: string; password: string; attachmentUrl?: string }>) {
     const policyLink = await this.staticDocs.getStaticLink('POLICY_RULES_AND_REGULATIONS');

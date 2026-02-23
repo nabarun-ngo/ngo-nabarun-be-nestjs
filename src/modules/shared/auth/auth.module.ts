@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { PermissionsGuard } from './application/guards/permissions.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { OAuthController } from './presentation/controllers/oauth.controller';
-import { GoogleOAuthService } from './application/services/google-oauth.service';
+import { GoogleOAuthService } from './infrastructure/external/google-oauth.service';
 import { TokenRepository } from './infrastructure/persistence/token.repository';
 import { TOKEN_REPOSITORY } from './domain/repository/token.repository.interface';
 import { JwtAuthService } from './application/services/jwt-auth.service';
@@ -14,7 +14,9 @@ import { ApiKeyEventsHandler } from './application/handler/api-key-events.handle
 import { API_KEY_REPOSITORY } from './domain/repository/api-key.repository.interface';
 import { HttpModule } from '@nestjs/axios';
 import { RecaptchaService } from './application/services/google-recaptcha.service';
-import { Auth0ResourceServerService } from './infrastructure/external/auth0-resource-server.service';
+import { Auth0OAuthService } from './infrastructure/external/auth0-oauth.service';
+import { AUTH0_OAUTH_SERVICE, GOOGLE_OAUTH_SERVICE } from './application/services';
+
 
 @Module({
   imports: [
@@ -38,16 +40,24 @@ import { Auth0ResourceServerService } from './infrastructure/external/auth0-reso
       provide: API_KEY_REPOSITORY,
       useClass: ApiKeyRepository,
     },
+    {
+      provide: GOOGLE_OAUTH_SERVICE,
+      useClass: GoogleOAuthService,
+    },
+    {
+      provide: AUTH0_OAUTH_SERVICE,
+      useClass: Auth0OAuthService,
+    },
     GoogleOAuthService,
+    Auth0OAuthService,
     JwtAuthService,
     ApiKeyService,
     PermissionsGuard,
     UnifiedAuthGuard,
     ApiKeyEventsHandler,
     RecaptchaService,
-    Auth0ResourceServerService
   ],
-  exports: [GoogleOAuthService],
+  exports: [GOOGLE_OAUTH_SERVICE, AUTH0_OAUTH_SERVICE],
 })
 export class AuthModule { }
 

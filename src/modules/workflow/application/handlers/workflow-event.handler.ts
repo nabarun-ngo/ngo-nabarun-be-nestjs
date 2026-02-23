@@ -9,23 +9,23 @@ import { WorkflowInstance } from "../../domain/model/workflow-instance.model";
 import { StepCompletedEvent } from "../../domain/events/step-completed.event";
 import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
 import { JobName } from "src/shared/job-names";
-import { CronLogger } from "src/shared/utils/trace-context.util";
 import { WorkflowTask, WorkflowTaskType } from "../../domain/model/workflow-task.model";
 import { TaskAssignmentCreatedEvent } from "../../domain/events/task-assignment-created.event";
 import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
 import { NotificationKeys } from "src/shared/notification-keys";
 import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
 import { TaskStartedEvent } from "../../domain/events/task-started.event";
-import { TaskAssignment, TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
+import { TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
 import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
+import { RootEvent } from "src/shared/models/root-event";
+import { generateUniqueNDigitNumber } from "src/shared/utilities/password-util";
 
-export class TriggerRemindPendingTasksEvent { }
+export class TriggerRemindPendingTasksEvent extends RootEvent { }
 
 @Injectable()
 export class WorkflowEventsHandler {
-  private readonly logger = new CronLogger(WorkflowEventsHandler.name);
 
   constructor(
     private readonly jobProcessingService: JobProcessingService,
@@ -86,9 +86,9 @@ export class WorkflowEventsHandler {
 
   @OnEvent(TriggerRemindPendingTasksEvent.name, { async: true })
   @ApplyTryCatch()
-  async remindPendingTasks(): Promise<void> {
+  async remindPendingTasks(event: TriggerRemindPendingTasksEvent): Promise<void> {
     const startedAt = Date.now();
-    this.logger.log('Remind pending tasks started');
+    event.log('Remind pending tasks started');
 
     try {
       const tasks =
@@ -96,7 +96,7 @@ export class WorkflowEventsHandler {
           status: WorkflowTask.pendingTaskStatus,
         });
 
-      this.logger.log(
+      event.log(
         `Found ${tasks.length} pending tasks`,
       );
 
@@ -106,14 +106,14 @@ export class WorkflowEventsHandler {
           .map(a => [a.assignedTo.id, a.assignedTo]),
       );
 
-      this.logger.log(
+      event.log(
         `Unique assignees count: ${assignees.size}`,
       );
 
       let successCount = 0;
 
       for (const user of assignees.values()) {
-        this.logger.debug(
+        event.log(
           `Queueing reminder | userId=${user.id} | email=${user.email}`,
         );
 
@@ -124,18 +124,21 @@ export class WorkflowEventsHandler {
             assigneeName: user.fullName,
             assigneeEmail: user.email,
           },
+          {
+            delay: generateUniqueNDigitNumber(5),
+          }
         );
 
         successCount++;
       }
 
-      this.logger.log(
+      event.log(
         `Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
       );
     } catch (error) {
-      this.logger.error(
+      event.error(
         'Failed to process pending task reminders',
-        error?.stack ?? error,
+        error,
       );
     }
   }
@@ -182,7 +185,7 @@ export class WorkflowEventsHandler {
         referenceId: task.id,
         referenceType: 'task',
       }));
-    this.logger.warn(`TODO : Send email to user ${task.assignments.map(assignment => assignment.assignedTo.email)} about task started`)
+    event.warn(`TODO : Send email to user ${task.assignments.map(assignment => assignment.assignedTo.email)} about task started`)
 
     // this.corrService.sendTemplatedEmail({
     //   templateName: EmailTemplateName.TASK_STARTED,
@@ -195,22 +198,22 @@ export class WorkflowEventsHandler {
 
   @OnEvent(UserDeletedEvent.name, { async: true })
   async handleUserDeletedEvent(event: UserDeletedEvent) {
-    this.logger.log(`Processing user deletion for user: ${event.user.id}`);
+    event.log(`Processing user deletion for user: ${event.user.id}`);
     const user = event.user;
     const tasks = await this.workflowInstanceRepository.findAllTasks({
       assignedTo: user.id,
       status: WorkflowTask.pendingTaskStatus,
       type: [WorkflowTaskType.MANUAL]
     })
-    this.logger.log(`Found ${tasks.length} pending tasks for user: ${event.user.id}`);
+    event.log(`Found ${tasks.length} pending tasks for user: ${event.user.id}`);
     for (const task of tasks) {
-      this.logger.log(`Reassigning task: ${task.id} for user: ${event.user.id}`);
+      event.log(`Reassigning task: ${task.id} for user: ${event.user.id}`);
       await this.reassignTaskUseCase.execute({
         taskId: task.id,
         instanceId: task.workflowId,
         fromDefinition: true
       })
-      this.logger.log(`Reassigned task: ${task.id} for user: ${event.user.id}`);
+      event.log(`Reassigned task: ${task.id} for user: ${event.user.id}`);
     }
 
   }

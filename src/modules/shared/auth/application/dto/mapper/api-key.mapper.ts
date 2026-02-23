@@ -2,7 +2,7 @@ import { ApiKeyDto } from "../api-key.dto";
 import { ApiKey } from "../../../domain/models/api-key.model";
 
 export class ApiKeyMapper {
-    static toDto(token: ApiKey): ApiKeyDto {
+    static toDto(token: ApiKey, tokenString?: string): ApiKeyDto {
         return {
             id: token.id,
             name: token.name,
@@ -11,6 +11,7 @@ export class ApiKeyMapper {
             lastUsedAt: token.lastUsedAt,
             createdAt: token.createdAt,
             updatedAt: token.updatedAt,
+            apiToken: tokenString
         };
     }
 }

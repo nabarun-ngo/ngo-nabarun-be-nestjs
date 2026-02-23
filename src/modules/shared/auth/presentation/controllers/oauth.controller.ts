@@ -4,39 +4,55 @@ import {
   Query,
   BadRequestException,
   Inject,
+  Param,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiQuery,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
-import { GoogleOAuthService } from '../../application/services/google-oauth.service';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { GoogleOAuthService } from '../../infrastructure/external/google-oauth.service';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { AuthTokenDto } from '../../application/dto/oauth..dto';
-
-
+import { RequirePermissions } from '../../application/decorators/require-permissions.decorator';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { OAuthService } from '../../application/services';
+import { Auth0OAuthService } from '../../infrastructure/external/auth0-oauth.service';
 
 @ApiTags(OAuthController.name)
 @ApiBearerAuth('jwt')
 @Controller('auth/oauth')
 export class OAuthController {
-
+  private readonly serviceMap: Map<string, OAuthService>;
 
   constructor(
-    private readonly oAuthService: GoogleOAuthService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+    private readonly googleOAuthService: GoogleOAuthService,
+    private readonly auth0OAuthService: Auth0OAuthService,
+  ) {
+    this.serviceMap = new Map<string, OAuthService>([
+      ['google', this.googleOAuthService],
+      ['auth0', this.auth0OAuthService],
+    ]);
+  }
 
+  private getService(provider: string): OAuthService {
+    const service = this.serviceMap.get(provider.toLowerCase());
+    if (!service) {
+      throw new NotFoundException(`OAuth provider "${provider}" is not supported.`);
+    }
+    return service;
+  }
 
-  @Get('google/auth-url')
+  @Get(':provider/auth-url')
   @ApiOperation({
-    summary: 'Get Gmail OAuth authorization URL',
-    description:
-      'Returns the OAuth URL to redirect users to for Gmail authentication. State parameter is automatically generated server-side for security.',
+    summary: 'Get OAuth authorization URL',
+    description: 'Returns the OAuth URL to redirect users to for authentication. State parameter is automatically generated server-side for security.',
   })
+  @ApiParam({ name: 'provider', description: 'OAuth provider (e.g., google)', type: String })
   @ApiQuery({
     name: 'scopes',
     required: false,
@@ -50,46 +66,81 @@ export class OAuthController {
     type: String,
   })
   @ApiAutoResponse(String, { description: 'OAuth URL', wrapInSuccessResponse: true })
-  async getGmailAuthUrl(
+  @RequirePermissions('create:oauth_token')
+  async getAuthUrl(
+    @Param('provider') provider: string,
     @Query('scopes') scopes?: string,
     @Query('state') state?: string,
   ): Promise<SuccessResponse<string>> {
-    // Input validation
+    const service = this.getService(provider);
+
     if (scopes && scopes.length > 1000) {
       throw new BadRequestException('Scopes parameter is too long. Maximum 1000 characters allowed.');
     }
 
-    // Parse and validate scopes
     const scopeList = scopes
       ? scopes.split(' ').filter(s => s.trim().length > 0)
       : [];
 
-    // Validate scope format (basic check)
     for (const scope of scopeList) {
       if (scope.length > 200) {
-        throw new BadRequestException(`Scope "${scope.substring(0, 50)}..." is too long. Maximum 200 characters per scope.`);
+        throw new BadRequestException(`Scope "${scope.substring(0, 50)}..." is too long.`);
       }
     }
-    const response = await this.oAuthService.getAuthUrl(scopeList, state);
+
+    const response = await service.getAuthUrl(scopeList, state);
     return new SuccessResponse<string>(response.url);
   }
 
-  @Get('google/scopes')
-  @ApiOperation({ summary: 'Get available Google OAuth scopes' })
+  @Get(':provider/scopes')
+  @ApiOperation({ summary: 'Get available OAuth scopes for provider' })
+  @ApiParam({ name: 'provider', description: 'OAuth provider (e.g., google)', type: String })
   @ApiAutoResponse(String, { description: 'OAuth scopes', wrapInSuccessResponse: true, isArray: true })
-  async getGoogleScopes(): Promise<SuccessResponse<string[]>> {
-    return new SuccessResponse<string[]>(this.oAuthService.getOAuthScopes());
+  async getScopes(@Param('provider') provider: string): Promise<SuccessResponse<string[]>> {
+    const service = this.getService(provider);
+    return new SuccessResponse<string[]>(await service.getOAuthScopes());
   }
 
-  @Get('tokens')
-  @ApiOperation({ summary: 'Get available OAuth tokens' })
-  @ApiAutoResponse(AuthTokenDto, { description: 'OAuth tokens', wrapInSuccessResponse: true, isArray: true })
-  async getGoogleTokens(): Promise<SuccessResponse<Array<AuthTokenDto>>> {
+  @Get(':provider/tokens')
+  @ApiOperation({ summary: 'Get available OAuth tokens for provider' })
+  @RequirePermissions('read:oauth_token')
+  @ApiParam({ name: 'provider', description: 'OAuth provider (e.g., google)', type: String })
+  @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiAutoPagedResponse(AuthTokenDto, { description: 'OAuth tokens', wrapInSuccessResponse: true })
+  async getTokens(
+    @Param('provider') provider: string,
+    @Query('pageIndex') pageIndex: number,
+    @Query('pageSize') pageSize: number,
+  ): Promise<SuccessResponse<PagedResult<AuthTokenDto>>> {
+    const service = this.getService(provider);
     return new SuccessResponse(
-      await this.oAuthService.getTokens()
+      await service.getTokens({ pageIndex, pageSize, props: {} })
     );
   }
 
+  @Get(':provider/tokens/:id/revoke')
+  @ApiOperation({ summary: 'Revoke OAuth tokens' })
+  @ApiParam({ name: 'provider', description: 'OAuth provider (e.g., google)', type: String })
+  @ApiParam({ name: 'id', description: 'Token ID to revoke', type: String })
+  @ApiAutoResponse(String, { description: 'Success message', wrapInSuccessResponse: true })
+  @RequirePermissions('delete:oauth_token')
+  async revokeTokens(
+    @Param('provider') provider: string,
+    @Param('id') id: string
+  ): Promise<SuccessResponse<string>> {
+    const service = this.getService(provider);
+    await service.revokeTokens(id);
+    return new SuccessResponse('Token revoked successfully.');
+  }
+
+  @Get('providers')
+  @ApiOperation({ summary: 'Get available OAuth providers' })
+  @ApiAutoResponse(String, { description: 'OAuth providers', wrapInSuccessResponse: true, isArray: true })
+  async getProviders(): Promise<SuccessResponse<string[]>> {
+    return new SuccessResponse(
+      Array.from(this.serviceMap.keys())
+    );
+  }
 
 }
-
