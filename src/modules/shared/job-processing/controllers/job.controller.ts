@@ -3,10 +3,11 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth }
 import { JobProcessingService } from '../services/job-processing.service';
 import { JobMonitoringService } from '../services/job-monitoring.service';
 import { SuccessResponse } from 'src/shared/models/response-model';
-import { ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { RequirePermissions } from '../../auth/application/decorators/require-permissions.decorator';
 import { JobDetail } from '../dto/job.dto';
+import { PagedResult } from 'src/shared/models/paged-result';
 
 @ApiTags(JobController.name)
 @Controller('jobs')
@@ -22,19 +23,20 @@ export class JobController {
   @ApiQuery({ name: 'pageIndex', required: true, description: 'Page index of the failed jobs to return' })
   @ApiQuery({ name: 'pageSize', required: true, description: 'Page size of the failed jobs to return' })
   @ApiQuery({
-    name: 'status', required: false, description: 'Status of the failed jobs to return',
+    name: 'status', required: true, description: 'Status of the failed jobs to return',
     enum: ['completed', 'failed', 'paused', 'delayed', 'paused', 'active']
   })
   @ApiQuery({ name: 'name', required: false, description: 'Name of the failed jobs to return' })
   @RequirePermissions('read:jobs')
-  @ApiAutoResponse(JobDetail, { status: 200, description: 'Failed jobs retrieved successfully', isArray: true, wrapInSuccessResponse: true })
+  @ApiAutoPagedResponse(JobDetail, { status: 200, description: 'Failed jobs retrieved successfully', isArray: true, wrapInSuccessResponse: true })
   async getJobs(
     @Query('pageIndex') pageIndex: number,
     @Query('pageSize') pageSize: number,
-    @Query('status') status?: 'completed' | 'failed' | 'paused' | 'delayed' | 'paused' | 'active',
+    @Query('status') status: 'completed' | 'failed' | 'paused' | 'delayed' | 'paused' | 'active',
     @Query('name') name?: string) {
+    const result = await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status, name });
     return new SuccessResponse(
-      await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status, name })
+      result
     );
   }
 

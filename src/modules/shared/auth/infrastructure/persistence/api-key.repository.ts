@@ -14,19 +14,22 @@ export class ApiKeyRepository implements IApiKeyRepository {
         return await this.prisma.apiKey.count({ where: this.whereQuery(filter) });
     }
     async findPaged(filter?: BaseFilter<ApiKeyFilter>): Promise<PagedResult<ApiKey>> {
-        const apiKeys = await this.prisma.apiKey.findMany({
-            where: this.whereQuery(filter?.props!),
-            orderBy: {
-                createdAt: "desc"
-            },
-            skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
-            take: filter?.pageSize ?? 1000,
-        })
+        const [apiKeys, count] = await Promise.all([
+            this.prisma.apiKey.findMany({
+                where: this.whereQuery(filter?.props!),
+                orderBy: {
+                    createdAt: "desc"
+                },
+                skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
+                take: filter?.pageSize ?? 1000,
+            }),
+            this.prisma.apiKey.count({ where: this.whereQuery(filter?.props!) })
+        ])
         return new PagedResult<ApiKey>(
             apiKeys.map(key => this.toApiKey(key)),
+            count,
             filter?.pageIndex ?? 0,
             filter?.pageSize ?? 1000,
-            await this.count(filter?.props!)
         );
     }
     async findByKeyId(key: string): Promise<ApiKey | null> {

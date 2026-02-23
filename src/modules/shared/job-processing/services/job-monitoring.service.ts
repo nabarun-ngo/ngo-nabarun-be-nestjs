@@ -122,7 +122,7 @@ export class JobMonitoringService {
    * Get failed jobs with error details
    */
   async getJobs(pageIndex: number, pageSize: number, filter: {
-    status?: JobType;
+    status: JobType;
     name?: string;
   }) {
     try {
@@ -130,9 +130,10 @@ export class JobMonitoringService {
       const page = pageIndex || 0;
       const size = pageSize || 10;
       const start = page * size;
-      const end = start + size;
+      const end = (page * size) + size - 1;
       const jobs = await this.defaultQueue.getJobs(filter.status, start, end);
-      const count = await this.defaultQueue.getJobCounts(filter.status!);
+      const count = await this.defaultQueue.getJobCounts(filter.status);
+      console.log(`Start: ${start}, End: ${end}, Count: ${jobs.length}, Total Count: ${count[filter.status!]}`);
 
       const jobDetails = await Promise.all(jobs
         .filter((job) => filter?.name ? job.name === filter.name : true)
@@ -165,7 +166,7 @@ export class JobMonitoringService {
       attemptsMade: job.attemptsMade,
       delay: job.delay,
       stacktrace: job.stacktrace,
-      logs: logs,
+      logs: logs ?? (await this.defaultQueue.getJobLogs(job.id!)).logs,
     };
   }
 

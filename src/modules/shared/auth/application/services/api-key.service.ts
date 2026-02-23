@@ -102,9 +102,9 @@ export class ApiKeyService {
     })
     return new PagedResult<ApiKeyDto>(
       result.content.map(m => ApiKeyMapper.toDto(m)),
+      result.totalSize,
       filter?.pageIndex ?? 0,
       filter?.pageSize ?? 1000,
-      result.totalSize
     );
   }
 
