@@ -27,71 +27,113 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
     ) { }
 
     async execute(request: FixTransactionDto): Promise<void> {
-        if (request.itemType == 'DONATION') {
-            const donation = await this.donationRepository.findById(request.itemId);
-            if (!donation) {
-                throw new BusinessException(`Donation not found with id: ${request.itemId}`);
-            }
-            if (donation.status != DonationStatus.PAID) {
-                throw new BusinessException(`Donation is not in paid state`);
-            }
-            const account = await this.accountRepository.findById(request.newAccountId);
-            if (!account) {
-                throw new BusinessException(`Account not found with id: ${request.newAccountId}`);
-            }
-
-            const newTransaction = await this.transactionUseCase.execute({
-                accountId: request.newAccountId!,
-                txnAmount: donation.amount!,
-                currency: 'INR',
-                txnDescription: `Donation amount for ${donation.id}, Payment method: ${donation.paymentMethod}, Paid using UPI: ${donation.paidUsingUPI}`,
-                txnType: TransactionType.IN,
-                txnDate: donation.paidOn,
-                txnRefId: donation.id,
-                txnRefType: TransactionRefType.DONATION,
-                txnParticulars: `Donation amount for ${donation.id}`,
-            })
-            await this.prisma.donation.update({
-                where: { id: donation.id },
-                data: {
-                    status: DonationStatus.PAID,
-                    paidToAccountId: request.newAccountId!,
-                    transactionRef: newTransaction
+        for (const itemId of request.itemIds) {
+            if (request.itemType == 'DONATION') {
+                const donation = await this.donationRepository.findById(itemId);
+                if (!donation) {
+                    throw new BusinessException(`Donation not found with id: ${itemId}`);
                 }
-            })
-        }
+                if (donation.status != DonationStatus.PAID) {
+                    throw new BusinessException(`Donation is not in paid state`);
+                }
+                const account = await this.accountRepository.findById(request.newAccountId);
+                if (!account) {
+                    throw new BusinessException(`Account not found with id: ${request.newAccountId}`);
+                }
 
-        if (request.itemType == 'EXPENSE') {
-            const expense = await this.expenseRepository.findById(request.itemId);
-            if (!expense) {
-                throw new BusinessException(`Expense not found with id: ${request.itemId}`);
-            }
-            if (expense.status != ExpenseStatus.SETTLED) {
-                throw new BusinessException(`Expense is not in settled state`);
-            }
-            const account = await this.accountRepository.findById(request.newAccountId);
-            if (!account) {
-                throw new BusinessException(`Account not found with id: ${request.newAccountId}`);
-            }
-            const newTransaction = await this.transactionUseCase.execute({
-                txnAmount: expense.amount,
-                currency: expense.currency,
-                accountId: request.newAccountId!,
-                txnDescription: `Expense settlement: ${expense.name}`,
-                txnRefId: expense.id,
-                txnRefType: TransactionRefType.EXPENSE,
-                txnType: TransactionType.OUT,
-                txnDate: new Date(),
-                txnParticulars: 'Expense settlement',
-            });
-            await this.prisma.expense.update({
-                where: { id: expense.id },
-                data: {
-                    status: ExpenseStatus.SETTLED,
+                const newTransaction = await this.transactionUseCase.execute({
                     accountId: request.newAccountId!,
-                    transactionRef: newTransaction
+                    txnAmount: donation.amount!,
+                    currency: 'INR',
+                    txnDescription: `Donation amount for ${donation.id}, Payment method: ${donation.paymentMethod}, Paid using UPI: ${donation.paidUsingUPI}`,
+                    txnType: TransactionType.IN,
+                    txnDate: donation.paidOn,
+                    txnRefId: donation.id,
+                    txnRefType: TransactionRefType.DONATION,
+                    txnParticulars: `Donation amount for ${donation.id}`,
+                })
+                await this.prisma.donation.update({
+                    where: { id: donation.id },
+                    data: {
+                        status: DonationStatus.PAID,
+                        paidToAccountId: request.newAccountId!,
+                        transactionRef: newTransaction
+                    }
+                })
+                const doc = await this.prisma.documentMapping.findFirst({
+                    where: {
+                        entityId: donation.id,
+                        entityType: 'DONATION'
+                    },
+                    select: {
+                        documentReferenceId: true
+                    }
+                })
+                if (doc) {
+                    await this.prisma.documentMapping.updateMany({
+                        where: {
+                            documentReferenceId: doc.documentReferenceId,
+                            entityType: 'TRANSACTION'
+                        },
+                        data: {
+                            entityId: newTransaction,
+                        }
+                    })
                 }
-            })
+            }
+
+            if (request.itemType == 'EXPENSE') {
+                const expense = await this.expenseRepository.findById(itemId);
+                if (!expense) {
+                    throw new BusinessException(`Expense not found with id: ${itemId}`);
+                }
+                if (expense.status != ExpenseStatus.SETTLED) {
+                    throw new BusinessException(`Expense is not in settled state`);
+                }
+                const account = await this.accountRepository.findById(request.newAccountId);
+                if (!account) {
+                    throw new BusinessException(`Account not found with id: ${request.newAccountId}`);
+                }
+                const newTransaction = await this.transactionUseCase.execute({
+                    txnAmount: expense.amount,
+                    currency: expense.currency,
+                    accountId: request.newAccountId!,
+                    txnDescription: `Expense settlement: ${expense.name}`,
+                    txnRefId: expense.id,
+                    txnRefType: TransactionRefType.EXPENSE,
+                    txnType: TransactionType.OUT,
+                    txnDate: new Date(),
+                    txnParticulars: 'Expense settlement',
+                });
+                await this.prisma.expense.update({
+                    where: { id: expense.id },
+                    data: {
+                        status: ExpenseStatus.SETTLED,
+                        accountId: request.newAccountId!,
+                        transactionRef: newTransaction
+                    }
+                })
+                const doc = await this.prisma.documentMapping.findFirst({
+                    where: {
+                        entityId: expense.id,
+                        entityType: 'EXPENSE'
+                    },
+                    select: {
+                        documentReferenceId: true
+                    }
+                })
+                if (doc) {
+                    await this.prisma.documentMapping.updateMany({
+                        where: {
+                            documentReferenceId: doc.documentReferenceId,
+                            entityType: 'TRANSACTION'
+                        },
+                        data: {
+                            entityId: newTransaction,
+                        }
+                    })
+                }
+            }
         }
     }
 }

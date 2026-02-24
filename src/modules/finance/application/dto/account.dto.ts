@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsEnum, ValidateNested, IsDate } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, ValidateNested, IsDate, IsArray } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { AccountStatus, AccountType } from '../../domain/model/account.model';
 
@@ -273,8 +273,8 @@ export class AddFundDto {
 
 export class FixTransactionDto {
   @ApiProperty()
-  @IsString()
-  itemId: string;
+  @IsArray()
+  itemIds: string[];
 
   @ApiProperty({ enum: ['EXPENSE', 'DONATION'] })
   @IsEnum(['EXPENSE', 'DONATION'])
