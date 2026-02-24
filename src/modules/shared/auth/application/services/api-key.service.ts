@@ -111,7 +111,7 @@ export class ApiKeyService {
   }
 
   async listApiScopes(): Promise<string[]> {
-    const identifier = this.configService.get(Configkey.AUTH0_RESOURCE_API_AUDIENCE);
-    return await this.auth0OAuthService.getOAuthScopes(identifier);
+    const audience = this.configService.get(Configkey.AUTH0_RESOURCE_API_AUDIENCE);
+    return await this.auth0OAuthService.getOAuthScopes({ audience });
   }
 }

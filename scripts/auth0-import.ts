@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+    datasourceUrl: process.env.MIG_POSTGRES_URL,
+});
 
 
 const {

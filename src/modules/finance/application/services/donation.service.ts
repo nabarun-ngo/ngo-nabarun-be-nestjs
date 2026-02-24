@@ -34,6 +34,7 @@ export class DonationService {
       props: {
         donationId: filter.props?.donationId,
         donorId: filter.props?.donorId,
+        donorName: filter.props?.donorName,
         status: filter.props?.status,
         type: filter.props?.type,
         isGuest: filter.props?.isGuest ? (filter.props?.isGuest === 'Y') : undefined,

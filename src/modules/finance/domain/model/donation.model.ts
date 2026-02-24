@@ -39,6 +39,7 @@ export enum UPIPaymentType {
 export class DonationFilter {
   donationId?: string;
   donorId?: string;
+  donorName?: string;
   status?: DonationStatus[];
   type?: DonationType[];
   isGuest?: boolean;
