@@ -81,6 +81,18 @@ class DonationRepository implements IDonationRepository {
       ...(props?.type && props.type.length > 0 ? { type: { in: props.type } } : {}),
       ...(props?.status && props.status.length > 0 ? { status: { in: props.status } } : {}),
       ...(props?.donorId ? { donorId: props.donorId } : {}),
+      ...(props?.donorName ? {
+        OR: [
+          { donorName: { contains: props.donorName, mode: 'insensitive' } },
+          {
+            donor: {
+              AND: props.donorName.trim().split(/\s+/).map((word) => ({
+                OR: [{ firstName: { contains: word, mode: 'insensitive' } }, { lastName: { contains: word, mode: 'insensitive' } }],
+              })),
+            }
+          },
+        ],
+      } : {}),
       ...(props?.donationId ? { id: props.donationId } : {}),
       ...(props?.isGuest ? { isGuest: props.isGuest } : {}),
       ...(props?.startDate_raisedOn || props?.endDate_raisedOn
