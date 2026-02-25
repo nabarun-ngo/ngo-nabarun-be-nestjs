@@ -166,7 +166,7 @@ export class DonationsEventHandler {
             );
         }
 
-        event.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs (concurrency: 4 will process them)`);
+        event.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs.`);
     }
 
     @OnEvent(TriggerMarkDonationAsPendingEvent.name, { async: true })
@@ -205,7 +205,7 @@ export class DonationsEventHandler {
             );
         }
 
-        event.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs (concurrency will process them)`);
+        event.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs`);
     }
 
     @OnEvent(GenerateDonationSummaryReportEvent.name, { async: true })

@@ -39,8 +39,11 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
       status: [DonationStatus.PAID]
     });
 
+    //TODO: pending donations are not filtered by date, should be take data till enddate, and no start date
     const pendingDonations = await this.donationRepository.findAll({
       status: Donation.outstandingStatus,
+      //startDate_lte: request.endDate,
+      //endDate_gte: request.startDate
     });
     const accountWisePaidDonations = groupBy(paidDonations, (donation) => donation.paidToAccount?.id);
     const memberWisePendingDonations = groupBy(pendingDonations.filter(f => !f.isGuest), (donation) => donation.donorId);

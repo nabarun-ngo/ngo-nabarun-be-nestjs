@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
-import { Transaction, TransactionFilter } from '../../domain/model/transaction.model';
+import { Transaction, TransactionFilter, TransactionStatus } from '../../domain/model/transaction.model';
 import { Prisma } from '@prisma/client';
 import { PrismaPostgresService } from 'src/modules/shared/database/prisma-postgres.service';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
@@ -21,19 +21,37 @@ class TransactionRepository implements ITransactionRepository {
   }
 
   async findPaged(filter?: BaseFilter<TransactionFilter>): Promise<PagedResult<Transaction>> {
-    const where = this.whereQuery(filter?.props);
+    const limit = filter?.pageSize ?? 1000;
+    const offset = (filter?.pageIndex ?? 0) * limit;
 
-    const [data, total] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-        },
-        skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
-        take: filter?.pageSize ?? 1000,
-      }),
-      this.prisma.transaction.count({ where }),
-    ]);
+    const accountCteFilter = filter?.props?.accountIds && filter.props.accountIds.length > 0
+      ? Prisma.sql`AND "accountId" IN (${Prisma.join(filter.props.accountIds)})`
+      : Prisma.empty;
+
+    const conditions = this.getRawConditions(filter?.props);
+    const whereClause = conditions.length > 0
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+      : Prisma.empty;
+
+    const data = await this.prisma.$queryRaw<any[]>`
+      WITH balance_cte AS (
+        SELECT 
+          id,
+          SUM(CASE WHEN type = 'IN' THEN amount ELSE -amount END) 
+          OVER (PARTITION BY "accountId" ORDER BY "createdAt" ASC, id ASC) as "balanceAfter"
+        FROM transactions
+        WHERE "deletedAt" IS NULL
+        ${accountCteFilter}
+      )
+      SELECT t.*, b."balanceAfter", COUNT(*) OVER() as "totalCount"
+      FROM transactions t
+      JOIN balance_cte b ON t.id = b.id
+      ${whereClause}
+      ORDER BY t."createdAt" DESC, t.id DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const total = data.length > 0 ? Number(data[0].totalCount) : 0;
 
     return new PagedResult<Transaction>(
       data.map(m => TransactionInfraMapper.toTransactionDomain(m)!),
@@ -44,14 +62,47 @@ class TransactionRepository implements ITransactionRepository {
   }
 
   async findAll(filter?: TransactionFilter): Promise<Transaction[]> {
-    const transactions = await this.prisma.transaction.findMany({
-      where: this.whereQuery(filter),
-      orderBy: { createdAt: 'desc' },
-      include: {
-      },
-    });
+    const accountCteFilter = filter?.accountIds && filter.accountIds.length > 0
+      ? Prisma.sql`AND "accountId" IN (${Prisma.join(filter.accountIds)})`
+      : Prisma.empty;
 
-    return transactions.map(m => TransactionInfraMapper.toTransactionDomain(m)!);
+    const conditions = this.getRawConditions(filter);
+    const whereClause = conditions.length > 0
+      ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+      : Prisma.empty;
+
+    const data = await this.prisma.$queryRaw<any[]>`
+      WITH balance_cte AS (
+        SELECT 
+          id,
+          SUM(CASE WHEN type = 'IN' THEN amount ELSE -amount END) 
+          OVER (PARTITION BY "accountId" ORDER BY "createdAt" ASC, id ASC) as "balanceAfter"
+        FROM transactions
+        WHERE "deletedAt" IS NULL
+        ${accountCteFilter}
+      )
+      SELECT t.*, b."balanceAfter"
+      FROM transactions t
+      JOIN balance_cte b ON t.id = b.id
+      ${whereClause}
+      ORDER BY t."createdAt" DESC, t.id DESC
+    `;
+
+    return data.map(m => TransactionInfraMapper.toTransactionDomain(m)!);
+  }
+
+  private getRawConditions(props?: TransactionFilter): Prisma.Sql[] {
+    const conditions: Prisma.Sql[] = [Prisma.sql`t."deletedAt" IS NULL`];
+    if (props?.id) conditions.push(Prisma.sql`t.id = ${props.id}`);
+    if (props?.type && props.type.length > 0) conditions.push(Prisma.sql`t.type IN (${Prisma.join(props.type)})`);
+    if (props?.status && props.status.length > 0) conditions.push(Prisma.sql`t.status IN (${Prisma.join(props.status)})`);
+    if (props?.accountIds && props.accountIds.length > 0) conditions.push(Prisma.sql`t."accountId" IN (${Prisma.join(props.accountIds)})`);
+    if (props?.referenceType && props.referenceType.length > 0) conditions.push(Prisma.sql`t."referenceType" IN (${Prisma.join(props.referenceType)})`);
+    if (props?.referenceId) conditions.push(Prisma.sql`t."referenceId" = ${props.referenceId}`);
+    if (props?.transactionRef) conditions.push(Prisma.sql`t."transactionRef" = ${props.transactionRef}`);
+    if (props?.startDate) conditions.push(Prisma.sql`t."transactionDate" >= ${props.startDate}`);
+    if (props?.endDate) conditions.push(Prisma.sql`t."transactionDate" <= ${props.endDate}`);
+    return conditions;
   }
 
   private whereQuery(props?: TransactionFilter): Prisma.TransactionWhereInput {
@@ -125,6 +176,8 @@ class TransactionRepository implements ITransactionRepository {
       },
     });
   }
+
+
 }
 
 export default TransactionRepository;
