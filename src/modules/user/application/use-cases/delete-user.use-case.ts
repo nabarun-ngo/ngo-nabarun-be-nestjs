@@ -23,6 +23,9 @@ export class DeleteUserUseCase implements IUseCase<string, void> {
     if (!existingUser) {
       throw new BusinessException('User with this id does not exist');
     }
+    existingUser.getCurrentRoles().map(role => {
+      role.expire();
+    });
     existingUser.delete();
     await this.auth0User.deleteUser(existingUser.authUserId!);
 

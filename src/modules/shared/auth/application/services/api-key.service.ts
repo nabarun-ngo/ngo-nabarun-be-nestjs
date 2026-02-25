@@ -87,6 +87,7 @@ export class ApiKeyService {
     }
     apiKey.updatePermissions(permissions);
     await this.apiKeyRepository.update(id, apiKey);
+    this.apiKeys.set(apiKey.key, apiKey);
     return ApiKeyMapper.toDto(apiKey);
   }
 

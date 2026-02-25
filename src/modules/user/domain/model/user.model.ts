@@ -352,7 +352,7 @@ export class User extends AggregateRoot<string> {
   }
 
   // Getters (read-only views)
-  public getRoles(): ReadonlyArray<Role> {
+  public getCurrentRoles(): ReadonlyArray<Role> {
     return this.#roles.filter((r) => !r.expireAt);
   }
 
