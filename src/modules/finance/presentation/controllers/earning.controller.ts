@@ -9,7 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse, } from 'src/shared/models/response-model';
 import {
@@ -31,6 +31,7 @@ import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
 @ApiTags(EarningController.name)
 @Controller('earning')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
+@ApiSecurity('api-key')
 export class EarningController {
   constructor(
     private readonly earningService: EarningService,

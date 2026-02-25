@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { ProjectService } from '../../application/services/project.service';
 import { CreateProjectDto, UpdateProjectDto, ProjectDetailDto, ProjectDetailFilterDto, ProjectRefDataDto } from '../../application/dto/project.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
@@ -13,6 +13,7 @@ import { RequirePermissions } from 'src/modules/shared/auth/application/decorato
 @ApiTags(ProjectController.name)
 @Controller('projects')
 @ApiBearerAuth('jwt')
+@ApiSecurity('api-key')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) { }
   @Get()

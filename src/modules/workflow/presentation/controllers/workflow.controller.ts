@@ -16,10 +16,12 @@ import { PagedResult } from 'src/shared/models/paged-result';
 import { RequireAllPermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 import { ApiAutoResponse, ApiAutoPagedResponse, ApiAutoPrimitiveResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
+import { ApiSecurity } from '@nestjs/swagger';
 
 @ApiTags(WorkflowController.name)
 @ApiBearerAuth('jwt')
 @Controller('workflows')
+@ApiSecurity('api-key')
 export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,

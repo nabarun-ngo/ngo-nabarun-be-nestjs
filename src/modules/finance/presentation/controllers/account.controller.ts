@@ -9,7 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiAutoPagedResponse, ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import {
@@ -39,6 +39,7 @@ import { deprecate } from 'node:util';
 @ApiTags(AccountController.name)
 @Controller('account')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
+@ApiSecurity('api-key')
 export class AccountController {
   constructor(
     private readonly accountService: AccountService,

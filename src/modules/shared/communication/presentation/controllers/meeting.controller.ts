@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Put, Param, Query, Post } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { UpdateEventDto, MeetingDto, CreateMeetingDto } from "../../application/dto/meetings.dto";
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
 import { SuccessResponse } from "src/shared/models/response-model";
@@ -12,6 +12,7 @@ import { RequirePermissions } from "src/modules/shared/auth/application/decorato
 @ApiTags(MeetingController.name)
 @ApiBearerAuth('jwt')
 @Controller('communication/meeting')
+@ApiSecurity('api-key')
 export class MeetingController {
     constructor(
         private readonly meetingService: MeetingService,

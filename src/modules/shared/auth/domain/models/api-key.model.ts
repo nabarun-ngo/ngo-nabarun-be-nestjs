@@ -16,6 +16,8 @@ export class ApiKey extends AggregateRoot<string> {
     private _rateLimit?: number;
     private _expiresAt?: Date;
     private _lastUsedAt?: Date;
+    private _userId?: string;
+    private _userName?: string;
 
     constructor(data: {
         id: string;
@@ -26,6 +28,8 @@ export class ApiKey extends AggregateRoot<string> {
         rateLimit?: number;
         expiresAt?: Date;
         lastUsedAt?: Date;
+        userId?: string;
+        userName?: string;
         createdAt?: Date;
         updatedAt?: Date;
     }) {
@@ -37,12 +41,16 @@ export class ApiKey extends AggregateRoot<string> {
         this._rateLimit = data.rateLimit;
         this._expiresAt = data.expiresAt;
         this._lastUsedAt = data.lastUsedAt;
+        this._userId = data.userId;
+        this._userName = data.userName;
     }
 
     static async create(data: {
         name: string;
         permissions: string[];
         expiresAt?: Date;
+        userId?: string;
+        userName?: string;
     }): Promise<{ keyInfo: ApiKey, token: string }> {
         const apiKey = this.generateSecureKey();
         const hashedToken = await hashText(apiKey);
@@ -53,6 +61,8 @@ export class ApiKey extends AggregateRoot<string> {
             name: data.name,
             permissions: data.permissions,
             expiresAt: data.expiresAt,
+            userId: data.userId,
+            userName: data.userName,
         });
         return { keyInfo: keyInfo, token: apiKey };
     }
@@ -121,6 +131,12 @@ export class ApiKey extends AggregateRoot<string> {
     }
     get keyId(): string {
         return this._keyId;
+    }
+    get userId(): string | undefined {
+        return this._userId;
+    }
+    get userName(): string | undefined {
+        return this._userName;
     }
 
 

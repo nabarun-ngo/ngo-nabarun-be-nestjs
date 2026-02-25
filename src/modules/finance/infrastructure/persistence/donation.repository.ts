@@ -119,7 +119,12 @@ class DonationRepository implements IDonationRepository {
           },
         }
         : {}),
-      ...(props?.startDate_lte ? { startDate: { lte: props.startDate_lte } } : {}),
+      ...(props?.startDate_lte ? {
+        OR: [
+          { startDate: { lte: props.startDate_lte } },
+          { AND: [{ startDate: null }, { raisedOn: { lte: props.startDate_lte } }] }
+        ]
+      } : {}),
       ...(props?.endDate_gte ? { endDate: { gte: props.endDate_gte } } : {}),
       deletedAt: null,
     };
