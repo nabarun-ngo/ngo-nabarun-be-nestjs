@@ -185,15 +185,6 @@ export class WorkflowEventsHandler {
         referenceId: task.id,
         referenceType: 'task',
       }));
-    event.warn(`TODO : Send email to user ${task.assignments.map(assignment => assignment.assignedTo.email)} about task started`)
-
-    // this.corrService.sendTemplatedEmail({
-    //   templateName: EmailTemplateName.TASK_STARTED,
-    //   data: { ...task.toJson(), workflowId: task.workflowId },
-    //   options: {
-    //     recipients: { to: task.assignments.map(assignment => assignment.assignedTo.email) }
-    //   }
-    // })
   }
 
   @OnEvent(UserDeletedEvent.name, { async: true })

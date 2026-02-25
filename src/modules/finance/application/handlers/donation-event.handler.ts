@@ -161,7 +161,7 @@ export class DonationsEventHandler {
                     amount: amount,
                 },
                 {
-                    delay: generateUniqueNDigitNumber(5),
+                    delay: generateUniqueNDigitNumber(3),
                 }
             );
         }
@@ -200,7 +200,7 @@ export class DonationsEventHandler {
                     donorName: userDonationsList[0].donorName,
                 },
                 {
-                    delay: generateUniqueNDigitNumber(5),
+                    delay: generateUniqueNDigitNumber(3),
                 }
             );
         }
