@@ -41,6 +41,7 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
 
     const pendingDonations = await this.donationRepository.findAll({
       status: Donation.outstandingStatus,
+      startDate_lte: request.endDate,
     });
     const accountWisePaidDonations = groupBy(paidDonations, (donation) => donation.paidToAccount?.id);
     const memberWisePendingDonations = groupBy(pendingDonations.filter(f => !f.isGuest), (donation) => donation.donorId);

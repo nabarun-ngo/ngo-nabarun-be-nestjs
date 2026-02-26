@@ -29,6 +29,7 @@ export class SystemEventsHandler {
             <div>
               <h1>App Technical Error</h1>
               <p>${JSON.stringify(event.error, null, 2)}</p>
+              <p>Please review slack <a href="https://app.slack.com/client">#prod_errors</a> channel for more details.</p>
             </div>
             `,
                     to: users.map(m => m.email).join(',')

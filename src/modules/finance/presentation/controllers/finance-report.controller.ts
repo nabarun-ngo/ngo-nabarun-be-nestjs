@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Param, Query, Res, StreamableFile } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiResponse, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import type { Response as ExpressResponse } from 'express';
 import { FinanceReportService } from "../../application/services/report.service";
 import { ReportParamsDto } from "../../application/dto/report.dto";
@@ -16,6 +16,7 @@ import { RequirePermissions } from "src/modules/shared/auth/application/decorato
 @ApiTags(FinanceReportController.name)
 @Controller('finance-report')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
+@ApiSecurity('api-key')
 export class FinanceReportController {
     constructor(
         private readonly financeReportService: FinanceReportService,

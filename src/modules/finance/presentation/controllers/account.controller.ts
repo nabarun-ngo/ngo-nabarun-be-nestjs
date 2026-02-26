@@ -9,7 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiAutoPagedResponse, ApiAutoPrimitiveResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import {
@@ -39,6 +39,7 @@ import { deprecate } from 'node:util';
 @ApiTags(AccountController.name)
 @Controller('account')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
+@ApiSecurity('api-key')
 export class AccountController {
   constructor(
     private readonly accountService: AccountService,
@@ -169,6 +170,19 @@ export class AccountController {
     return new SuccessResponse(result);
   }
 
+  @Post(':id/transfer')
+  @RequirePermissions('update:accounts', 'update:transactions')
+  @ApiOperation({ summary: 'Transfer amount to another account' })
+  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
+  async transferAmount(
+    @Param('id') accountId: string,
+    @Body() dto: TransferDto,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<SuccessResponse<string>> {
+    const result = await this.accountService.transferAmount(accountId, dto, undefined);
+    return new SuccessResponse(result);
+  }
+
   @Post(':id/addFund/me')
   @ApiOperation({ summary: 'Add fund to account' })
   @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
@@ -181,30 +195,17 @@ export class AccountController {
     return new SuccessResponse(result);
   }
 
-
-  @Post(':id/transaction/reverse')
-  @ApiOperation({ summary: 'Reverse transaction for account' })
-  @RequirePermissions('update:transactions')
+  @Post(':id/addFund')
+  @RequirePermissions('update:accounts', 'update:transactions')
+  @ApiOperation({ summary: 'Add fund to account' })
   @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
-  async reverseTransaction(
-    @Param('id') id: string,
-    @Body() dto: ReverseTransactionDto,
+  async addFund(
+    @Param('id') accountId: string,
+    @Body() dto: AddFundDto,
   ): Promise<SuccessResponse<string>> {
-    await this.accountService.reverseTransaction(id, dto);
-    return new SuccessResponse('Transaction reversed successfully');
+    const result = await this.accountService.addFundToAccount(accountId, dto, undefined);
+    return new SuccessResponse(result);
   }
-
-  @Post('support/transaction-fix')
-  @ApiOperation({ summary: 'Fix transaction for account' })
-  @RequirePermissions('update:transactions')
-  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
-  async fixTransactions(
-    @Body() dto: FixTransactionDto,
-  ): Promise<SuccessResponse<string>> {
-    await this.fixTransaction.execute(dto);
-    return new SuccessResponse('Transaction fixed successfully');
-  }
-
 
   @Get('payable-account')
   @ApiOperation({ summary: 'Get account data for payable' })
@@ -222,6 +223,19 @@ export class AccountController {
     return new SuccessResponse<AccountRefDataDto>(
       await this.accountService.getReferenceData()
     );
+  }
+
+
+
+  @Post('support/transaction-fix')
+  @ApiOperation({ summary: 'Fix transaction for account' })
+  @RequirePermissions('update:transactions')
+  @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
+  async fixTransactions(
+    @Body() dto: FixTransactionDto,
+  ): Promise<SuccessResponse<string>> {
+    await this.fixTransaction.execute(dto);
+    return new SuccessResponse('Transaction fixed successfully');
   }
 
 }

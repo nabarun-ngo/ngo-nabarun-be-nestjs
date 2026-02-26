@@ -56,8 +56,8 @@ export class ApiKeyService {
       sub: `apikey:${keyInfo.id}`,
       name: keyInfo.name,
       permissions: keyInfo.permissions,
-      profile_name: keyInfo.name,
-      user_id: keyInfo.id,
+      profile_name: keyInfo.userName,
+      user_id: keyInfo.userId,
       type: 'jwt',
     } as AuthUser;
   }
@@ -87,6 +87,7 @@ export class ApiKeyService {
     }
     apiKey.updatePermissions(permissions);
     await this.apiKeyRepository.update(id, apiKey);
+    this.apiKeys.set(apiKey.key, apiKey);
     return ApiKeyMapper.toDto(apiKey);
   }
 

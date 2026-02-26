@@ -186,7 +186,6 @@ export class Account extends AggregateRoot<string> {
       referenceType: txnDetail.referenceType,
       txnParticulars: txnDetail.particulars,
       transactionDate: txnDetail.txnDate,
-      balanceAfterTxn: this.balance + amount,
       sourceAccountId: txnDetail.refAccountId,
     });
 
@@ -222,7 +221,6 @@ export class Account extends AggregateRoot<string> {
       referenceType: txnDetail.referenceType,
       txnParticulars: txnDetail.particulars,
       transactionDate: txnDetail.txnDate,
-      balanceAfterTxn: this.balance - amount,
       destAccountId: txnDetail.refAccountId,
     });
 
