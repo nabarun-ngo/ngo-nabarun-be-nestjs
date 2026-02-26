@@ -8,6 +8,8 @@ import { CreateTransactionUseCase } from './create-transaction.use-case';
 import { TransactionRefType, TransactionType } from '../../domain/model/transaction.model';
 import { ReverseTransactionUseCase } from './reverse-transaction.use-case';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DocumentMappingRefType } from 'src/modules/shared/dms/domain/mapping.model';
+import { DmsService } from 'src/modules/shared/dms/application/services/dms.service';
 
 interface UpdateDonation {
   paidOn: Date | undefined;
@@ -31,7 +33,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
     private readonly transactionUseCase: CreateTransactionUseCase,
     private readonly reverseTransactionUseCase: ReverseTransactionUseCase,
     private readonly eventEmitter: EventEmitter2,
-
+    private readonly documentService: DmsService,
   ) { }
 
   async execute(request: UpdateDonation): Promise<Donation> {
@@ -63,6 +65,10 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
             reason: request.remarks || 'Update mistake',
             transactionRef: donation.transactionRef!,
           });
+          const documents = await this.documentService.getDocuments(DocumentMappingRefType.DONATION, donation.id);
+          for (const doc of documents) {
+            await this.documentService.deleteFile(doc.id);
+          }
           break;
         case DonationStatus.PENDING:
           donation.markAsPending();

@@ -7,6 +7,8 @@ import { BusinessException } from '../../../../shared/exceptions/business-except
 import { ACCOUNT_REPOSITORY, type IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LockingService } from 'src/modules/shared/database/locking.service';
+import { DocumentMappingRefType } from 'src/modules/shared/dms/domain/mapping.model';
+import { DmsService } from 'src/modules/shared/dms/application/services/dms.service';
 
 interface ReverseTransaction {
     //  accountId: string;
@@ -23,7 +25,7 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
         private readonly accountRepository: IAccountRepository,
         private readonly eventEmitter: EventEmitter2,
         private readonly lockingService: LockingService,
-
+        private readonly documentService: DmsService,
     ) { }
 
     async execute(request: ReverseTransaction): Promise<void> {
@@ -50,7 +52,7 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
                     account.debit(transaction.amount, {
                         transactionRef: transaction.transactionRef,
                         particulars: `Reversed transaction ${transaction.id} due to ${request.reason}`,
-                        txnDate: new Date(),
+                        txnDate: transaction.transactionDate,
                         referenceId: transaction.id,
                         referenceType: TransactionRefType.TXN_REVERSE,
                         refAccountId: transaction.refAccountId,
@@ -60,7 +62,7 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
                     account.credit(transaction.amount, {
                         transactionRef: transaction.transactionRef,
                         particulars: `Reversed transaction ${transaction.id} due to ${request.reason}`,
-                        txnDate: new Date(),
+                        txnDate: transaction.transactionDate,
                         referenceId: transaction.id,
                         referenceType: TransactionRefType.TXN_REVERSE,
                         refAccountId: transaction.refAccountId,
@@ -72,6 +74,11 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
                     this.eventEmitter.emit(event.constructor.name, event);
                 }
                 account.clearEvents();
+
+                const documents = await this.documentService.getDocuments(DocumentMappingRefType.TRANSACTION, transaction.id);
+                for (const doc of documents) {
+                    await this.documentService.deleteFile(doc.id);
+                }
             }
         });
 

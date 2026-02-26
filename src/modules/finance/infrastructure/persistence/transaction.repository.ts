@@ -38,7 +38,7 @@ class TransactionRepository implements ITransactionRepository {
         SELECT 
           id,
           SUM(CASE WHEN type = 'IN' THEN amount ELSE -amount END) 
-          OVER (PARTITION BY "accountId" ORDER BY "createdAt" ASC, id ASC) as "balanceAfter"
+          OVER (PARTITION BY "accountId" ORDER BY "transactionDate" ASC, id ASC) as "balanceAfter"
         FROM transactions
         WHERE "deletedAt" IS NULL
         ${accountCteFilter}
@@ -47,7 +47,7 @@ class TransactionRepository implements ITransactionRepository {
       FROM transactions t
       JOIN balance_cte b ON t.id = b.id
       ${whereClause}
-      ORDER BY t."createdAt" DESC, t.id DESC
+      ORDER BY t."transactionDate" DESC, t.id DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
 
@@ -76,7 +76,7 @@ class TransactionRepository implements ITransactionRepository {
         SELECT 
           id,
           SUM(CASE WHEN type = 'IN' THEN amount ELSE -amount END) 
-          OVER (PARTITION BY "accountId" ORDER BY "createdAt" ASC, id ASC) as "balanceAfter"
+          OVER (PARTITION BY "accountId" ORDER BY "transactionDate" ASC, id ASC) as "balanceAfter"
         FROM transactions
         WHERE "deletedAt" IS NULL
         ${accountCteFilter}
@@ -85,7 +85,7 @@ class TransactionRepository implements ITransactionRepository {
       FROM transactions t
       JOIN balance_cte b ON t.id = b.id
       ${whereClause}
-      ORDER BY t."createdAt" DESC, t.id DESC
+      ORDER BY t."transactionDate" DESC, t.id DESC
     `;
 
     return data.map(m => TransactionInfraMapper.toTransactionDomain(m)!);

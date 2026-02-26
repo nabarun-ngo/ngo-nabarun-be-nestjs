@@ -225,7 +225,7 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
             key: 'confirmedBy',
           },
           {
-            header: 'Transaction Id',
+            header: 'Transaction Reference',
             key: 'txnId',
           }
         ]
