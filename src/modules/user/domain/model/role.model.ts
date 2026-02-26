@@ -9,7 +9,10 @@ export class Role extends BaseDomain<string> {
   public static readonly TREASURER = 'TREASURER';
   public static readonly MEMBER = 'MEMBER';
   public static readonly TECHNICAL_SPECIALIST = 'TECHNICAL_SPECIALIST';
-
+  public static readonly PRESIDENT = 'PRESIDENT';
+  public static readonly VICE_PRESIDENT = 'VICE_PRESIDENT';
+  public static readonly SECRETARY = 'SECRETARY';
+  public static readonly ASSISTANT_SECRETARY = 'ASSISTANT_SECRETARY';
   // 🔒 TRUE PRIVATE FIELDS
   #roleCode: string;
   #roleName: string;
@@ -17,6 +20,7 @@ export class Role extends BaseDomain<string> {
   #expireAt?: Date;
   #createdBy?: User;
   #isDefault: boolean;
+
 
   constructor(
     id: string,

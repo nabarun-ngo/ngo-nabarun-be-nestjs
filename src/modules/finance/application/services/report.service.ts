@@ -62,7 +62,15 @@ export class FinanceReportService {
 
         if (params.sendEmail === 'Y') {
             const users = await this.userRepository.findAll({
-                roleCodes: [Role.CASHIER, Role.ASSISTANT_CASHIER, Role.TREASURER]
+                roleCodes: [
+                    Role.CASHIER,
+                    Role.ASSISTANT_CASHIER,
+                    Role.TREASURER,
+                    Role.PRESIDENT,
+                    Role.VICE_PRESIDENT,
+                    Role.SECRETARY,
+                    Role.ASSISTANT_SECRETARY,
+                ]
             });
             if (users.length > 0) {
                 await this.correspondenceService.sendTemplatedEmail({
