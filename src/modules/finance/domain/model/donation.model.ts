@@ -346,6 +346,13 @@ export class Donation extends AggregateRoot<string> {
       throw new BusinessException('The donation must be paid to mark for update mistake');
     }
     this.#status = DonationStatus.UPDATE_MISTAKE;
+    this.#transactionRef = undefined;
+    this.#paidOn = undefined;
+    this.#paidToAccount = undefined;
+    this.#paymentMethod = undefined;
+    this.#paidUsingUPI = undefined;
+    this.#confirmedBy = undefined;
+    this.#confirmedOn = undefined;
     this.touch();
   }
 
