@@ -47,7 +47,7 @@ export class UnifiedAuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
 
-    if (useApiKey) {
+    if (useApiKey || this.extractApiKey(request)) {
       // API Key authentication
       return this.validateApiKey(request);
     } else {
@@ -95,7 +95,7 @@ export class UnifiedAuthGuard implements CanActivate {
     // Update trace context with user info
     const store = traceStorage.getStore();
     if (store && store.user) {
-      store.user.userId = (user as any).sub || (user as any).user_id || 'unknown';
+      store.user.userId = (user as any).user_id || (user as any).sub || 'unknown';
       store.user.userName = user.profile_name || user.email || 'unknown';
     }
 
@@ -135,7 +135,7 @@ export class UnifiedAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     if (authHeader) {
       const [type, key] = authHeader.split(' ');
-      if ((type === 'Bearer' || type === 'ApiKey') && key?.startsWith('sk_')) {
+      if (type.toLowerCase() === 'apikey') {
         return key;
       }
     }

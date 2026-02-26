@@ -8,7 +8,7 @@ export class TransactionInfraMapper {
 
     // ===== TRANSACTION MAPPERS =====
 
-    static toTransactionDomain(p: TransactionPersistence): Transaction | null {
+    static toTransactionDomain(p: TransactionPersistence & { balanceAfter?: number }): Transaction | null {
         if (!p) return null;
 
         return new Transaction(
@@ -25,10 +25,10 @@ export class TransactionInfraMapper {
             p.transactionDate,
             MapperUtils.nullToUndefined(p.particulars),
             MapperUtils.nullToUndefined(p.accountId),
-            MapperUtils.nullToUndefined(Number(p.balanceAfter)),
             MapperUtils.nullToUndefined(p.refAccountId),
             p.createdAt,
             p.updatedAt,
+            p.balanceAfter !== undefined ? Number(p.balanceAfter) : undefined,
         );
     }
 
@@ -41,7 +41,6 @@ export class TransactionInfraMapper {
             currency: domain.currency,
             status: domain.status,
             accountId: domain.accountId || null,
-            balanceAfter: Number(domain.balanceAfterTxn),
             referenceId: MapperUtils.undefinedToNull(domain.referenceId),
             referenceType: MapperUtils.undefinedToNull(domain.referenceType),
             description: domain.description,

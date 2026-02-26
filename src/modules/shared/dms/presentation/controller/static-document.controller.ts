@@ -1,5 +1,5 @@
 import { Controller, Get, Query } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { StaticDocsService } from "../../application/services/static-docs.service";
 import { StaticDocumentDto } from "../dto/static-docs.dto";
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
@@ -10,6 +10,7 @@ import { RequirePermissions } from "src/modules/shared/auth/application/decorato
 @ApiTags(StaticDocsController.name)
 @ApiBearerAuth('jwt')
 @Controller('static-docs')
+@ApiSecurity('api-key')
 export class StaticDocsController {
     constructor(private readonly statDocsService: StaticDocsService) { }
 

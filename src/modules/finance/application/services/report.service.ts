@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { DateTime } from 'luxon';
 import { GenerateDonationSummaryReportUseCase } from "../use-cases/generate-donation-summary.use-case";
 import { DmsService } from "src/modules/shared/dms/application/services/dms.service";
 import { DocumentMappingRefType } from "src/modules/shared/dms/domain/mapping.model";
@@ -32,9 +33,18 @@ export class FinanceReportService {
             endDate: params.endDate!,
             on: on ?? 'confirmedOn'
         });
-        const startDate = formatDate(params.startDate!, { format: 'dd-MM-yyyy' });
-        const endDate = formatDate(params.endDate!, { format: 'dd-MM-yyyy' });
-        const fileName = `Donation_Summary_Report_${startDate}_${endDate}.xlsx`;
+        const startDt = DateTime.fromJSDate(params.startDate!).setZone('Asia/Kolkata');
+        const endDt = DateTime.fromJSDate(params.endDate!).setZone('Asia/Kolkata');
+
+        const startDate = startDt.toFormat('dd-MM-yyyy');
+        const endDate = endDt.toFormat('dd-MM-yyyy');
+
+        // Check if period is exactly one full month
+        const isExactFullMonth = startDt.day === 1 && endDt.toFormat('yyyy-MM-dd') === startDt.endOf('month').toFormat('yyyy-MM-dd');
+
+        const fileName = isExactFullMonth
+            ? `Donation_Summary_Report-${startDt.toFormat('MMMM_yyyy')}.xlsx`
+            : `Donation_Summary_Report-${startDate}_${endDate}.xlsx`;
         const fileType = (await fileTypeFromBuffer(buffer))?.mime ?? 'application/octet-stream';
         if (params.uploadFile === 'Y') {
             await this.dmsService.uploadFile({

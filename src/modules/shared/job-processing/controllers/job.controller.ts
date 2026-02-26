@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Param, Query, Body, Delete } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Param, Query, Delete } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { JobProcessingService } from '../services/job-processing.service';
 import { JobMonitoringService } from '../services/job-monitoring.service';
 import { SuccessResponse } from 'src/shared/models/response-model';
@@ -7,12 +7,11 @@ import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { RequirePermissions } from '../../auth/application/decorators/require-permissions.decorator';
 import { JobDetail, QueueStatistics } from '../dto/job.dto';
-import { PagedResult } from 'src/shared/models/paged-result';
-import { StringDecoder } from 'string_decoder';
 
 @ApiTags(JobController.name)
 @Controller('jobs')
 @ApiBearerAuth('jwt') // Matches the 'jwt' security definition from main.ts
+@ApiSecurity('api-key')
 export class JobController {
   constructor(
     private readonly jobProcessingService: JobProcessingService,

@@ -23,10 +23,12 @@ import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.mo
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoPagedResponse, ApiAutoResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { ApiSecurity } from '@nestjs/swagger';
 
 @ApiTags(NotificationController.name)
 @ApiBearerAuth('jwt')
 @Controller('notifications')
+@ApiSecurity('api-key')
 export class NotificationController {
     constructor(private readonly notificationService: NotificationService) { }
 

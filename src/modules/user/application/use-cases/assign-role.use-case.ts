@@ -56,7 +56,7 @@ export class AssignRoleUseCase implements IUseCase<AssignUserRolesProps, void> {
         }
 
         if (roleIdsToAdd?.length > 0 || roleIdsToRemove?.length > 0) {
-            await this.userRepository.updateRoles(user?.id!, user.getRoles() as Role[]);
+            await this.userRepository.updateRoles(user?.id!, user.getCurrentRoles() as Role[]);
 
         }
 

@@ -12,10 +12,12 @@ import { CurrentUser } from 'src/modules/shared/auth/application/decorators/curr
 import { type AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { StreamableFile } from '@nestjs/common';
 import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
+import { ApiSecurity } from '@nestjs/swagger';
 
 @ApiTags(DmsController.name)
 @ApiBearerAuth('jwt')
 @Controller('dms')
+@ApiSecurity('api-key')
 export class DmsController {
     constructor(private readonly dmsService: DmsService) { }
 

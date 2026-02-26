@@ -51,8 +51,8 @@ export class Transaction extends BaseDomain<string> {
   #particulars: string | undefined;
   #accountId: string | undefined;
   #refAccountId: string | undefined;
-  #balanceAfterTxn: number | undefined; // Account balance after transaction
   #transactionRef: string;
+  #balanceAfter: number | undefined;
 
   constructor(
     id: string,
@@ -68,10 +68,10 @@ export class Transaction extends BaseDomain<string> {
     transactionDate: Date,
     txnParticulars?: string,
     accountId?: string,
-    balanceAfterTxn?: number,
     refAccountId?: string,
     createdAt?: Date,
     updatedAt?: Date,
+    balanceAfter?: number,
   ) {
     super(id, createdAt, updatedAt);
     this.#transactionRef = transactionRef;
@@ -86,8 +86,8 @@ export class Transaction extends BaseDomain<string> {
     this.#status = status; // Legacy alias
     this.#particulars = txnParticulars;
     this.#accountId = accountId;
-    this.#balanceAfterTxn = balanceAfterTxn;
     this.#refAccountId = refAccountId;
+    this.#balanceAfter = balanceAfter;
   }
 
   /**
@@ -100,7 +100,6 @@ export class Transaction extends BaseDomain<string> {
     currency: string;
     accountId: string;
     description: string;
-    balanceAfterTxn: number;
     referenceId?: string;
     referenceType?: TransactionRefType;
     txnParticulars?: string;
@@ -135,7 +134,6 @@ export class Transaction extends BaseDomain<string> {
       props.transactionDate || new Date(),
       props.txnParticulars,
       props.accountId,
-      props.balanceAfterTxn,
       props.sourceAccountId,
       new Date(),
       new Date(),
@@ -153,7 +151,6 @@ export class Transaction extends BaseDomain<string> {
     currency: string;
     accountId: string;
     description: string;
-    balanceAfterTxn: number;
     referenceId?: string;
     referenceType?: TransactionRefType;
     txnParticulars?: string;
@@ -188,7 +185,6 @@ export class Transaction extends BaseDomain<string> {
       props.transactionDate || new Date(),
       props.txnParticulars,
       props.accountId,
-      props.balanceAfterTxn,
       props.destAccountId
     );
 
@@ -225,6 +221,6 @@ export class Transaction extends BaseDomain<string> {
   get particulars(): string | undefined { return this.#particulars; }
   get transactionRef(): string { return this.#transactionRef; }
   get accountId(): string | undefined { return this.#accountId; }
-  get balanceAfterTxn(): number | undefined { return this.#balanceAfterTxn; }
   get refAccountId(): string | undefined { return this.#refAccountId; }
+  get balanceAfter(): number | undefined { return this.#balanceAfter; }
 }

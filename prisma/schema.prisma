@@ -405,8 +405,6 @@ model Transaction {
   currency       String  @db.VarChar(3)
   status         String  @db.VarChar(20) // PENDING, COMPLETED, FAILED, REVERSED
 
-  balanceAfter Decimal @db.Decimal(15, 2)
-
   // Reference to source
   referenceId   String? @db.VarChar(255) // Donation ID, Expense ID, etc.
   referenceType String? @db.VarChar(50) // Donation, Expense, Earning
@@ -428,7 +426,7 @@ model Transaction {
   accountId    String?   @db.VarChar(255)
   account      Account?  @relation(fields: [accountId], references: [id])
 
-  @@index([accountId])
+  @@index([accountId, createdAt, id])
   @@index([type, status])
   @@index([referenceId, referenceType])
   @@map("transactions")

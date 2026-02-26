@@ -58,10 +58,10 @@ export class UserEventsHandler {
         templateName: EmailTemplateName.ROLE_ASSIGNED,
         data: {
           assigneeName: user.fullName,
-          roleNames: user.getRoles().map(role => role.roleName).join(', '),
+          roleNames: user.getCurrentRoles().map(role => role.roleName).join(', '),
           addedRoles: event.toAdd.map(role => role.roleName).join(', '),
           removedRoles: event.toRemove.map(role => role.roleName).join(', '),
-          effectiveDate: user.getRoles().length > 0 ? formatDate(user.getRoles()[0].createdAt) : 'Not Applicable',
+          effectiveDate: user.getCurrentRoles().length > 0 ? formatDate(user.getCurrentRoles()[0].createdAt) : 'Not Applicable',
           rulesDoc: policyLink?.VALUE
         },
         options: {
@@ -94,6 +94,18 @@ export class UserEventsHandler {
   @OnEvent(UserDeletedEvent.name, { async: true })
   async handleUserDeletedEvent(event: UserDeletedEvent) {
     this.logger.warn(`TODO : Send final email to user ${event.user.email} about account deactivation`)
+    // await this.corrService.sendTemplatedEmail({
+    //   templateName: EmailTemplateName.USER_DELETED,
+    //   data: {
+    //     userName: event.user.fullName,
+    //     email: event.user.email,
+    //   },
+    //   options: {
+    //     recipients: {
+    //       to: event.user.email,
+    //     }
+    //   }
+    // })
 
   }
 

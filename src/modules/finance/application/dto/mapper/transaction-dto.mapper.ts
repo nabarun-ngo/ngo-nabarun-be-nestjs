@@ -16,7 +16,7 @@ export class TransactionDtoMapper {
       txnParticulars: transaction.particulars,
       txnRefId: transaction.referenceId,
       txnRefType: transaction.referenceType,
-      accBalance: transaction.balanceAfterTxn,
+      accBalance: transaction.balanceAfter,
       accTxnType: transaction.type == 'IN' ? 'Credit' : 'Debit',
       transferFrom: transaction.refAccountId,
       transferTo: transaction.accountId,

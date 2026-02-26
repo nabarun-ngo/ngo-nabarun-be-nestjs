@@ -24,7 +24,7 @@ export class UserDtoMapper {
       blocked: false,
       status: user.status,
       createdOn: user.createdAt,
-      roles: user.getRoles()
+      roles: user.getCurrentRoles()
         .filter((role) => role != null)
         .map((role) => UserDtoMapper.toRoleDTO(role)),
       roleHistory: UserDtoMapper.mapToRoleHistory(user.getRoleHistory()),
