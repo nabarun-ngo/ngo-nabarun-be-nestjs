@@ -74,8 +74,8 @@ export class GoogleCalendarService {
                     timeZone: eventData?.timeZone || 'Asia/Kolkata',
                 },
                 reminders: {
-                    useDefault: eventData?.defaultReminder || true,
-                    overrides: eventData?.reminders,
+                    ...(eventData?.defaultReminder == true ? { useDefault: true } : { useDefault: false }),
+                    ...(eventData?.defaultReminder == true ? {} : { overrides: eventData?.reminders }),
                 },
             };
 
