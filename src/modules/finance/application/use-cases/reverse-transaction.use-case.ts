@@ -48,11 +48,14 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
                     throw new BusinessException(`Account not found with id: ${transaction.accountId}`);
                 }
 
+                const transactionDate = transaction.transactionDate;
+                const reverseDate = new Date(transactionDate.getTime() + (60 * 60 * 1000));
+
                 if (transaction.type == TransactionType.IN) {
                     account.debit(transaction.amount, {
                         transactionRef: transaction.transactionRef,
-                        particulars: `Reversed transaction ${transaction.id} due to ${request.reason}`,
-                        txnDate: transaction.transactionDate,
+                        description: `Reversed transaction ${transaction.id} due to ${request.reason}`,
+                        txnDate: reverseDate,
                         referenceId: transaction.id,
                         referenceType: TransactionRefType.TXN_REVERSE,
                         refAccountId: transaction.refAccountId,
@@ -61,8 +64,8 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
                 else if (transaction.type == TransactionType.OUT) {
                     account.credit(transaction.amount, {
                         transactionRef: transaction.transactionRef,
-                        particulars: `Reversed transaction ${transaction.id} due to ${request.reason}`,
-                        txnDate: transaction.transactionDate,
+                        description: `Reversed transaction ${transaction.id} due to ${request.reason}`,
+                        txnDate: reverseDate,
                         referenceId: transaction.id,
                         referenceType: TransactionRefType.TXN_REVERSE,
                         refAccountId: transaction.refAccountId,

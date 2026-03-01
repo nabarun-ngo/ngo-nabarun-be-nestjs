@@ -91,7 +91,6 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
             txnDate: donation.paidOn,
             txnRefId: donation.id,
             txnRefType: TransactionRefType.DONATION,
-            txnParticulars: `Donation amount for ${donation.id}`,
           })
           donation.linkTransaction(transactionRef)
           break;

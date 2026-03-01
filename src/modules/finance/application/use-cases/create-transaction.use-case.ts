@@ -15,7 +15,6 @@ interface CreateTeansaction {
   accountId: string;// from Account Id
   transferToAccountId?: string;// to Account Id
   txnDescription: string;
-  txnParticulars?: string;
   txnRefId?: string;
   txnRefType?: TransactionRefType;
   txnDate?: Date;
@@ -55,7 +54,7 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, str
         // Debit account
         fromAccount.debit(request.txnAmount, {
           transactionRef,
-          particulars: request.txnParticulars ?? 'Debit',
+          description: request.txnDescription,
           txnDate: request.txnDate ?? new Date(),
           referenceId: request.txnRefId,
           referenceType: request.txnRefType,
@@ -65,7 +64,7 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, str
         // Credit to account
         toAccount.credit(request.txnAmount, {
           transactionRef,
-          particulars: request.txnParticulars ?? 'Credit',
+          description: request.txnDescription,
           txnDate: request.txnDate ?? new Date(),
           referenceId: request.txnRefId,
           referenceType: request.txnRefType,
@@ -92,7 +91,7 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, str
           // Credit account
           account.credit(request.txnAmount, {
             transactionRef,
-            particulars: request.txnParticulars ?? 'Credit',
+            description: request.txnDescription,
             txnDate: request.txnDate ?? new Date(),
             referenceId: request.txnRefId,
             referenceType: request.txnRefType,
@@ -101,7 +100,7 @@ export class CreateTransactionUseCase implements IUseCase<CreateTeansaction, str
           // Debit account
           account.debit(request.txnAmount, {
             transactionRef,
-            particulars: request.txnParticulars ?? 'Debit',
+            description: request.txnDescription,
             txnDate: request.txnDate ?? new Date(),
             referenceId: request.txnRefId,
             referenceType: request.txnRefType,

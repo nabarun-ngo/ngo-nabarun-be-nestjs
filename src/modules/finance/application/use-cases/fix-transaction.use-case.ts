@@ -1,7 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
-import { TRANSACTION_REPOSITORY } from '../../domain/repositories/transaction.repository.interface';
-import type { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { BusinessException } from '../../../../shared/exceptions/business-exception';
 import { FixTransactionDto } from '../dto/account.dto';
 import { DONATION_REPOSITORY, type IDonationRepository } from '../../domain/repositories/donation.repository.interface';
@@ -50,7 +48,6 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                     txnDate: donation.paidOn,
                     txnRefId: donation.id,
                     txnRefType: TransactionRefType.DONATION,
-                    txnParticulars: `Donation amount for ${donation.id}`,
                 })
                 await this.prisma.donation.update({
                     where: { id: donation.id },
@@ -103,7 +100,6 @@ export class FixTransactionUseCase implements IUseCase<FixTransactionDto, void> 
                     txnRefType: TransactionRefType.EXPENSE,
                     txnType: TransactionType.OUT,
                     txnDate: new Date(),
-                    txnParticulars: 'Expense settlement',
                 });
                 await this.prisma.expense.update({
                     where: { id: expense.id },
