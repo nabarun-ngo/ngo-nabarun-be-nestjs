@@ -34,7 +34,6 @@ export class CreateMeetingUseCase implements IUseCase<{ request: CreateMeetingDt
                 guestsCanInviteOthers: true,
                 anyoneCanAddSelf: true
             },
-            defaultReminder: false,
             reminders: request.type == MeetingType.ONLINE ? [
                 {
                     method: 'popup',

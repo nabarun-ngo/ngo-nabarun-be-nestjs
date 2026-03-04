@@ -46,8 +46,7 @@ export class CreateEarningUseCase implements IUseCase<CreateEarning, Earning> {
     await this.createTransactionUseCase.execute({
       txnAmount: request.amount,
       currency: request.currency,
-      txnDescription: request.description,
-      txnParticulars: `Earning - ${request.category}`,
+      txnDescription: `Earning - ${request.category} - ${request.description}`,
       txnRefId: request.referenceId,
       txnRefType: TransactionRefType.EARNING,
       accountId: request.accountId,

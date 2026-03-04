@@ -35,7 +35,7 @@ class TxnDetail {
   transactionRef: string;
   referenceId?: string;
   referenceType?: TransactionRefType;
-  particulars: string;
+  description: string;
   txnDate: Date;
   refAccountId?: string;
 }
@@ -155,7 +155,7 @@ export class Account extends AggregateRoot<string> {
     if (props.initialBalance) {
       account.credit(props.initialBalance, {
         transactionRef: `TXR${generateUniqueNDigitNumber(10)}`,
-        particulars: 'Initial balance',
+        description: 'Initial balance',
         txnDate: now,
       });
     }
@@ -181,10 +181,10 @@ export class Account extends AggregateRoot<string> {
       amount: amount,
       currency: this.#currency,
       accountId: this.id,
-      description: `Credit ${this.#currency} ${amount} to account ${this.id} for ${txnDetail.particulars}`,
+      txnParticulars: `Credit ${this.#currency} ${amount} to account ${this.id} for ${txnDetail.description}`,
       referenceId: txnDetail.referenceId,
       referenceType: txnDetail.referenceType,
-      txnParticulars: txnDetail.particulars,
+      description: txnDetail.description,
       transactionDate: txnDetail.txnDate,
       sourceAccountId: txnDetail.refAccountId,
     });
@@ -216,10 +216,10 @@ export class Account extends AggregateRoot<string> {
       amount: amount,
       currency: this.#currency,
       accountId: this.id,
-      description: `Debit ${this.#currency} ${amount} from account ${this.id} for ${txnDetail.particulars}`,
+      txnParticulars: `Debit ${this.#currency} ${amount} from account ${this.id} for ${txnDetail.description}`,
       referenceId: txnDetail.referenceId,
       referenceType: txnDetail.referenceType,
-      txnParticulars: txnDetail.particulars,
+      description: txnDetail.description,
       transactionDate: txnDetail.txnDate,
       destAccountId: txnDetail.refAccountId,
     });

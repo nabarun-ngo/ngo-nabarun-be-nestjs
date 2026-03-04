@@ -85,7 +85,6 @@ export class CreateAccountUseCase implements IUseCase<CreateAccountDto, Account>
         txnType: TransactionType.IN,
         txnDate: account.createdAt,
         txnRefType: TransactionRefType.NONE,
-        txnParticulars: `Initial Balance for Account`,
       })
     }
 

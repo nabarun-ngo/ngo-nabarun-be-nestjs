@@ -28,6 +28,7 @@ export class DeleteUserUseCase implements IUseCase<string, void> {
 
     // Save to repository
     await this.userRepository.updateRoles(existingUser.id, []);
+    existingUser.delete()
     await this.userRepository.update(existingUser.id, existingUser);
 
     // Emit domain events

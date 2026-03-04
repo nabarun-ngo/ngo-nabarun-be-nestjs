@@ -170,6 +170,7 @@ export class GenerateDonationSummaryReportUseCase implements IUseCase<{ startDat
 
     // Add footer
     summarySheet.setCell(summaryCurrentRow + 2, leftPadding + 1, `Generated on ${formatDate(new Date(), { format: 'dd/MM/yyyy HH:mm:ss' })}`, { font: { size: 8, italic: true } });
+    summarySheet.setCell(summaryCurrentRow + 3, leftPadding + 1, `NOTE: This report is based on Donation ${request.on === 'paidOn' ? 'Payment Date' : 'Confirmation Date'}.`, { font: { size: 8, italic: true } });
 
     return await summarySheet
       .endSheet()
