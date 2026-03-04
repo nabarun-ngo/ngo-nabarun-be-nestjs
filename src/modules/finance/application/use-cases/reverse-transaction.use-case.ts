@@ -29,6 +29,9 @@ export class ReverseTransactionUseCase implements IUseCase<ReverseTransaction, v
     ) { }
 
     async execute(request: ReverseTransaction): Promise<void> {
+        if (!request.transactionRef || !request.reason) {
+            throw new BusinessException(`Transaction Ref Id and Reason are required`);
+        }
         const transactions = await this.transactionRepository.findAll({
             transactionRef: request.transactionRef,
             status: [TransactionStatus.SUCCESS]

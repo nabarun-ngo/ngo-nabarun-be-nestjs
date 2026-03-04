@@ -346,6 +346,10 @@ export class Donation extends AggregateRoot<string> {
       throw new BusinessException('The donation must be paid to mark for update mistake');
     }
     this.#status = DonationStatus.UPDATE_MISTAKE;
+    this.touch();
+  }
+
+  resetPaymentDetails(): void {
     this.#transactionRef = undefined;
     this.#paidOn = undefined;
     this.#paidToAccount = undefined;
@@ -355,7 +359,6 @@ export class Donation extends AggregateRoot<string> {
     this.#confirmedOn = undefined;
     this.touch();
   }
-
   /**
    * Update donation details
    * Business validation: Cannot update paid donations (except through specific flows)
