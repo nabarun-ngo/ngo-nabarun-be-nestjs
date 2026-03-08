@@ -19,10 +19,10 @@ export class Auth0UserCreationHandler implements IAutomaticTaskHandler {
     async handle(task: WorkflowTask | TaskDef, requestData?: Record<string, any>, definition?: WorkflowDefinition): Promise<void> {
         const data = requestData as SignUpDto;
         let phoneNumber: string = data.contactNumber;
-        let phoneCode: string = '+91';
+        let phoneCode: string = '91';
 
         if (data.contactNumber.split("-").length > 1) {
-            phoneCode = data.contactNumber.split("-")[0];
+            phoneCode = data.contactNumber.split("-")[0].replace('+', '');
             phoneNumber = data.contactNumber.split("-")[1];
         }
         const user = await this.createUserUseCase.execute({

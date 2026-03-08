@@ -266,7 +266,6 @@ export class Expense extends AggregateRoot<string> {
     settledBy: Partial<User>;
     accountId: string;
     transactionId: string;
-    txnNumber?: string;
   }): void {
     if (this.#status !== ExpenseStatus.FINALIZED) {
       throw new BusinessException('Can only settle finalized expenses');
@@ -277,9 +276,6 @@ export class Expense extends AggregateRoot<string> {
     this.#settledDate = new Date();
     this.#accountId = props.accountId;
     this.#transactionId = props.transactionId;
-    if (props.txnNumber) {
-      this.#txnNumber = props.txnNumber;
-    }
     this.touch();
   }
 
@@ -353,7 +349,6 @@ export class Expense extends AggregateRoot<string> {
   get settledDate(): Date | undefined { return this.#settledDate; }
   get rejectedDate(): Date | undefined { return this.#rejectedDate; }
   get expenseItems(): ExpenseItem[] { return [...this.#expenseItems]; }
-  get txnNumber(): string | undefined { return this.#txnNumber; }
   get remarks(): string | undefined { return this.#remarks; }
   get isDelegated(): boolean { return this.#isDelegated; }
 

@@ -143,7 +143,6 @@ export class AccountService {
       txnType: 'TRANSFER',
       currency: 'INR',
       txnRefType: TransactionRefType.NONE,
-      txnParticulars: 'Transfer to ' + dto.toAccountId,
     });
     return transaction;
   }
@@ -160,8 +159,7 @@ export class AccountService {
     const transaction = await this.createTransactionUseCase.execute({
       txnAmount: dto.amount,
       currency: 'INR',
-      txnDescription: dto.description,
-      txnParticulars: `Add fund ${dto.amount} to ${accountId}`,
+      txnDescription: `Add fund : ${dto.description}`,
       txnRefId: accountId,
       txnRefType: TransactionRefType.NONE,
       accountId: accountId,

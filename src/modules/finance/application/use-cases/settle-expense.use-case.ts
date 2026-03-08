@@ -44,12 +44,11 @@ export class SettleExpenseUseCase implements IUseCase<{ id: string; accountId: s
       txnAmount: expense.amount,
       currency: expense.currency,
       accountId: request.accountId,
-      txnDescription: `Expense settlement: ${expense.name}`,
+      txnDescription: `Expense settlement: ${expense.id}`,
       txnRefId: expense.id,
       txnRefType: TransactionRefType.EXPENSE,
       txnType: TransactionType.OUT,
-      txnDate: new Date(),
-      txnParticulars: 'Expense settlement',
+      txnDate: new Date(expense.expenseDate.getTime() + 2 * 60 * 60 * 1000),
     });
 
     // Settle expense

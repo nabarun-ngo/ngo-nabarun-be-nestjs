@@ -23,6 +23,12 @@ interface Auth0User {
     user_metadata: Record<string, string>;
 }
 
+interface Auth0Role {
+    id: string;
+    name: string;
+    description?: string;
+}
+
 /**
 
 * STEP 1 — Get Auth0 Management Token
@@ -92,6 +98,27 @@ async function fetchAllUsers(token: string): Promise<Auth0User[]> {
     return users;
 }
 
+/**
+ * STEP 2.5 — Fetch roles for a specific user
+ */
+async function fetchUserRoles(token: string, userId: string): Promise<Auth0Role[]> {
+    const url = `https://${AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(userId)}/roles`;
+
+    const res = await fetch(url, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+
+    if (!res.ok) {
+        const error = await res.text();
+        console.error(`Failed to fetch roles for user ${userId}: ${res.status} ${error}`);
+        return [];
+    }
+
+    return await res.json();
+}
+
 
 /**
 
@@ -113,11 +140,18 @@ function splitName(name?: string) {
 
 * STEP 3 — Send user to your backend
   */
-async function createLocalUser(user: Auth0User) {
+async function createLocalUser(user: Auth0User, token: string) {
     const name = user.given_name
         ? { firstName: user.given_name, lastName: user.family_name || "" }
         : splitName(user.name);
-    console.log(`Profile Id : ${user.user_metadata['profile_id'] ?? 'Not Found'}`)
+
+    const profileId = user.user_metadata['profile_id'];
+    console.log(`Profile Id : ${profileId ?? 'Not Found'}`)
+
+    if (!profileId) {
+        console.error(`✖ Failed: ${user.email} `);
+        return;
+    }
     try {
         await prisma.userProfile.upsert({
             where: { email: user.email },
@@ -125,7 +159,7 @@ async function createLocalUser(user: Auth0User) {
                 authUserId: user.user_id,
             },
             create: {
-                id: user.user_metadata['profile_id'] ?? randomUUID(),
+                id: profileId,
                 firstName: name.firstName,
                 lastName: name.lastName,
                 email: user.email,
@@ -137,9 +171,30 @@ async function createLocalUser(user: Auth0User) {
 
         console.log(`✔ Created/Updated: ${user.email} `);
 
+        // --- Fetch and Sync Roles ---
+        const roles = await fetchUserRoles(token, user.user_id);
+
+        // Delete existing roles for this user to avoid duplicates
+        await prisma.userRole.deleteMany({
+            where: { userId: profileId }
+        });
+
+        if (roles.length > 0) {
+            await prisma.userRole.createMany({
+                data: roles.map(role => ({
+                    userId: profileId,
+                    roleCode: role.name,
+                    roleName: role.name,
+                    authRoleCode: role.name,
+                    isDefault: false
+                }))
+            });
+            console.log(`  └─ Synced ${roles.length} roles: ${roles.map(r => r.name).join(', ')}`);
+        }
+
     } catch (err: any) {
-        console.log(`✖ Failed: ${user.email} `);
-        console.log(err.message);
+        console.error(`✖ Failed: ${user.email} `);
+        console.error(err.message);
     }
 }
 
@@ -155,7 +210,7 @@ async function main() {
 
         for (const user of users) {
             if (!user.email) continue;
-            await createLocalUser(user);
+            await createLocalUser(user, token);
         }
 
         console.log("SYNC COMPLETED");

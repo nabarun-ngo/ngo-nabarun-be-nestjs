@@ -65,6 +65,7 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
             reason: request.remarks || 'Update mistake',
             transactionRef: donation.transactionRef!,
           });
+          donation.resetPaymentDetails();
           const documents = await this.documentService.getDocuments(DocumentMappingRefType.DONATION, donation.id);
           for (const doc of documents) {
             await this.documentService.deleteFile(doc.id);
@@ -91,7 +92,6 @@ export class UpdateDonationUseCase implements IUseCase<UpdateDonation, Donation>
             txnDate: donation.paidOn,
             txnRefId: donation.id,
             txnRefType: TransactionRefType.DONATION,
-            txnParticulars: `Donation amount for ${donation.id}`,
           })
           donation.linkTransaction(transactionRef)
           break;
