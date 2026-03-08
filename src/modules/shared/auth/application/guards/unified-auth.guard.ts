@@ -106,7 +106,8 @@ export class UnifiedAuthGuard implements CanActivate {
   private async validateCaptcha(request: any): Promise<boolean> {
     const { token, action } = this.extractCaptchaToken(request);
     if (token && action) {
-      return await this.recaptchaService.verifyToken(token, action, 0.7)
+      const threshold = process.env.GOOGLE_RECAPTCHA_THRESHOLD || 0.7;
+      return await this.recaptchaService.verifyToken(token, action, Number(threshold))
 
     }
     throw new UnauthorizedException('Captcha token and action is required');
