@@ -32,6 +32,13 @@ export class RecaptchaService {
    * @returns true if token is valid
    */
   async verifyToken(token: string, action?: string, threshold = 0.5): Promise<boolean> {
+    // Harden threshold validation
+    let validatedThreshold = threshold;
+    if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
+      this.logger.warn(`Invalid reCAPTCHA threshold: ${threshold}. Using default 0.5`);
+      validatedThreshold = 0.5;
+    }
+
     try {
       const params = new URLSearchParams();
       params.append('secret', this.recaptchaSecret);
@@ -45,7 +52,7 @@ export class RecaptchaService {
       const { data } = await firstValueFrom(response$);
 
       if (!data.success) return false;
-      if (typeof data.score === 'number' && data.score < threshold) return false;
+      if (typeof data.score === 'number' && data.score < validatedThreshold) return false;
       if (action && data.action !== action) return false;
 
       return true;
