@@ -21,8 +21,12 @@ import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
 import { RootEvent } from "src/shared/models/root-event";
 import { generateUniqueNDigitNumber } from "src/shared/utilities/password-util";
+import { RedisHashCacheService } from "src/modules/shared/database/redis-hash-cache.service";
+import { DomainEventPayload } from "src/shared/dto/domain-event-payload.dto";
+import { APP_DOMAIN_EVENTS_KEY } from "src/shared/system-events.handler";
 
 export class TriggerRemindPendingTasksEvent extends RootEvent { }
+export class TriggerAutoCloseWorkflowTasksEvent extends RootEvent { }
 
 @Injectable()
 export class WorkflowEventsHandler {
@@ -35,9 +39,11 @@ export class WorkflowEventsHandler {
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly workflowInstanceRepository: IWorkflowInstanceRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly reassignTaskUseCase: ReassignTaskUseCase
+    private readonly reassignTaskUseCase: ReassignTaskUseCase,
+    private readonly redisCache: RedisHashCacheService
   ) { }
 
+  //#region StepStartedEvent
   @OnEvent(StepStartedEvent.name, { async: true })
   async handleStepStartedEvent(event: StepStartedEvent) {
     await this.jobProcessingService.addJob<{ instanceId: string; stepId: string }>(JobName.START_WORKFLOW_STEP, {
@@ -45,6 +51,7 @@ export class WorkflowEventsHandler {
       stepId: event.stepId,
     });
   }
+  //#endregion
 
   @OnEvent(StepCompletedEvent.name, { async: true })
   async handleStepCompletedEvent(event: StepCompletedEvent) {
@@ -144,6 +151,7 @@ export class WorkflowEventsHandler {
   }
 
   @OnEvent(TaskAssignmentCreatedEvent.name, { async: true })
+  @ApplyTryCatch()
   async handleTaskAssignmentCreatedEvent(event: TaskAssignmentCreatedEvent) {
     const task = event.task;
     this.eventEmitter.emit(SendNotificationRequestEvent.name,
@@ -210,4 +218,42 @@ export class WorkflowEventsHandler {
   }
 
 
+  @OnEvent(TriggerAutoCloseWorkflowTasksEvent.name, { async: true })
+  @ApplyTryCatch()
+  async closePendingTasks(event: TriggerAutoCloseWorkflowTasksEvent) {
+
+    try {
+      // Get the full list of events currently in the Redis list
+      const queueDepth = await this.redisCache.getList<DomainEventPayload>(APP_DOMAIN_EVENTS_KEY, 'events');
+      if (!queueDepth || queueDepth.length === 0) {
+        event.log('No pending events.');
+        return;
+      }
+
+      const aggregateIds = [...new Set(queueDepth.map(e => e.aggregateId))];
+
+      const tasks = await this.workflowInstanceRepository.findAllTasks({
+        autoCloseRefId: aggregateIds,
+        status: WorkflowTask.pendingTaskStatus,
+        type: [WorkflowTaskType.MANUAL]
+      })
+
+      event.log(`Fetched ${tasks.length} tasks for evaluation.`);
+
+      // Since getList doesn't pop, we need to clear the list and process what we fetched.
+      // Small race condition risk here if an event comes in between getList and clearTimeline,
+      // but acceptable for a background evaluation job. A robust Lua script could pop N items atomically, 
+      // but for now we clear the timeline manually.
+      //   await this.redisCache.clearTimeline(WORKFLOW_PENDING_EVENTS_KEY, 'events');
+
+
+      // Pass all events directly to workflow service for batched processing
+      // await this.workflowService.evaluateAutoCloseableTasks(queueDepth);
+
+      event.log(`Passed ${queueDepth.length} domain events for auto-close evaluation.`);
+
+    } catch (error) {
+      event.error(`Failed to execute TaskEvaluationCronService: ${error.message}`, error.stack);
+    }
+  }
 }

@@ -3,7 +3,6 @@ import { UserController } from './presentation/controllers/user.controller';
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case';
 import { USER_REPOSITORY } from './domain/repositories/user.repository.interface';
 import UserRepository from './infrastructure/persistence/user.repository';
-import { SystemEventsHandler } from './application/handlers/system-events.handler';
 import { UserEventsHandler } from './application/handlers/user-events.handler';
 import { UserJobsHandler } from './application/handlers/user-jobs.handler';
 import { Auth0UserService } from './infrastructure/external/auth0-user.service';
@@ -29,7 +28,6 @@ import { AuthModule } from '../shared/auth/auth.module';
     },
     Auth0UserService,
     UserEventsHandler,
-    SystemEventsHandler,
     UserJobsHandler,
     UserMetadataService,
     UserService,
