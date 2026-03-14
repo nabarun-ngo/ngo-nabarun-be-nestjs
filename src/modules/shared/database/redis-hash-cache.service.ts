@@ -520,4 +520,14 @@ export class RedisHashCacheService {
       return r;
     }
   }
+
+  /**
+   * Clears a Redis List
+   * @param prefix - Namespace prefix
+   * @param id - Unique identifier
+   */
+  async clearTimeline(prefix: string, id: string | number): Promise<void> {
+    const key = this.getKey(prefix, id);
+    await this.redis.del(key);
+  }
 }

@@ -139,7 +139,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#currentStepDefId = this.steps.find(s => s.orderIndex === 0)?.stepDefId;
     const step = this.steps.find(s => s.stepDefId === this.#currentStepDefId);
     step?.start();
-    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
+    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!, this));
     this.touch();
   }
 
@@ -179,7 +179,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     // If the revisited step is already then handle it some way
     nextStep.currentOrderIndex = currentStep.orderIndex + 1;
     nextStep.start();
-    this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id));
+    this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id, this));
     this.touch();
   }
 
@@ -278,7 +278,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     if (step?.isAllTasksCompleted()) {
       step.complete();
       this.moveToNextStep();
-      this.addDomainEvent(new StepCompletedEvent(this.id, step?.id!));
+      this.addDomainEvent(new StepCompletedEvent(this.id, step?.id!, this));
       return task;
     }
 
@@ -329,7 +329,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
           this.addDomainEvent(new TaskCompletedEvent(this.id, task));
         }
       });
-      this.addDomainEvent(new StepCompletedEvent(this.id, step.id));
+      this.addDomainEvent(new StepCompletedEvent(this.id, step.id, this));
     }
     this.touch();
   }

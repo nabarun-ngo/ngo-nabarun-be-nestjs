@@ -9,6 +9,6 @@ export class RoleAssignedEvent extends DomainEvent {
     public readonly toAdd: Role[],
     public readonly toRemove: Role[],
   ) {
-    super(aggregateId);
+    super(aggregateId, user);
   }
 }

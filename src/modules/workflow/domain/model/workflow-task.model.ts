@@ -25,6 +25,7 @@ export class TaskFilter {
   readonly type?: WorkflowTaskType[];
   readonly workflowId?: string;
   readonly taskId?: string;
+  readonly autoCloseRefId?: string | string[];
 }
 
 export class WorkflowTask extends BaseDomain<string> {

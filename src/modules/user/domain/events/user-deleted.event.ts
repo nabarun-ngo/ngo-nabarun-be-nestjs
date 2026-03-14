@@ -6,6 +6,6 @@ export class UserDeletedEvent extends DomainEvent {
     aggregateId: string,
     public readonly user: User,
   ) {
-    super(aggregateId);
+    super(aggregateId, user);
   }
 }
