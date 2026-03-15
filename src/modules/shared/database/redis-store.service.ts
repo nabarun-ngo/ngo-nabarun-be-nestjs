@@ -388,9 +388,15 @@ export class RedisStoreService {
             } else if (v instanceof Date) {
                 out[key] = v.toISOString();
             } else if (Array.isArray(v)) {
-                out[key] = JSON.stringify(v);
+                out[key] = this.safeJsonStringify(v);
             } else if (typeof v === 'object') {
-                Object.assign(out, this.flatten(v, key));
+                // If it's a plain object, we try to recurse
+                if (v.constructor === Object) {
+                    Object.assign(out, this.flatten(v, key));
+                } else {
+                    // For complex objects (potential circularity), stringify it
+                    out[key] = this.safeJsonStringify(v);
+                }
             } else {
                 out[key] = String(v);
             }
@@ -437,10 +443,29 @@ export class RedisStoreService {
     }
 
     private serialize(value: unknown): string {
+        return this.safeJsonStringify(value);
+    }
+
+    private safeJsonStringify(obj: any): string {
         try {
-            return JSON.stringify(value);
-        } catch {
-            return '[Non-Serializable]';
+            return JSON.stringify(obj);
+        } catch (error) {
+            if (error instanceof TypeError && error.message.includes('circular')) {
+                const getCircularReplacer = () => {
+                    const seen = new WeakSet();
+                    return (key: any, value: any) => {
+                        if (typeof value === 'object' && value !== null) {
+                            if (seen.has(value)) {
+                                return '[Circular]';
+                            }
+                            seen.add(value);
+                        }
+                        return value;
+                    };
+                };
+                return JSON.stringify(obj, getCircularReplacer());
+            }
+            return `[Serialization Error: ${error.message}]`;
         }
     }
 

@@ -156,57 +156,5 @@ export class WorkflowService {
     });
     return WorkflowDtoMapper.toDto(workflow);
   }
-
-  async evaluateAutoCloseableTasks(events: any[]) {
-    // Filter out events without aggregateIds, and get unique aggregateIds
-    const validEvents = events.filter(e => e && e.aggregateId);
-    if (!validEvents.length) return;
-
-    const aggregateIds = [...new Set(validEvents.map(e => e.aggregateId))];
-    this.logger.debug(`Evaluating auto-close tasks for aggregateIds: ${aggregateIds.join(', ')}`);
-
-    // Fetch tasks targeting any of these aggregate ids that aren't completed
-    const result = await this.instanceRepository.findTasksPaged({
-      pageIndex: 0,
-      pageSize: 1000,
-      props: {
-        autoCloseRefId: aggregateIds,
-        status: [WorkflowTaskStatus.PENDING, WorkflowTaskStatus.IN_PROGRESS] as any
-      }
-    });
-
-    if (result.content.length === 0) {
-      this.logger.debug(`No candidate tasks found for the given aggregate IDs.`);
-      return;
-    }
-
-    let evaluatedCount = 0;
-    for (const task of result.content) {
-      if (!task.autoCloseRefId) continue;
-
-      // Find the most recent event for this task's autoCloseRefId
-      // Reversing the validEvents array to find the latest (assuming chronologically ordered initially)
-      const matchingEvent = [...validEvents].reverse().find(e => e.aggregateId === task.autoCloseRefId);
-
-      if (matchingEvent) {
-        this.logger.log(`Found candidate task ${task.id} for auto-close based on event ${matchingEvent.data?.constructor?.name || matchingEvent.eventName}`);
-
-        // TODO: Actually evaluate `isAutoCloseable` business rules against matchingEvent.data
-
-        await this.completeTask.execute({
-          instanceId: task.workflowId,
-          taskId: task.id,
-          remarks: `Auto-closed by ${matchingEvent.data?.constructor?.name || matchingEvent.eventName || 'System Event'}`,
-          status: WorkflowTaskStatus.COMPLETED,
-          completedBy: { id: 'SYSTEM' }, // System user
-          data: { autoClosedReason: "Domain event trigger", eventData: matchingEvent.data }
-        });
-        evaluatedCount++;
-      }
-    }
-
-    this.logger.log(`Successfully evaluated and completed ${evaluatedCount} tasks.`);
-  }
-
 }
 
