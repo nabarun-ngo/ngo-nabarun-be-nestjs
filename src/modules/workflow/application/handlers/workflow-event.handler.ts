@@ -222,7 +222,7 @@ export class WorkflowEventsHandler {
   }
 
 
-  @OnEvent(TriggerAutoCloseWorkflowTasksEvent.name, { async: true })
+  @OnEvent(TriggerAutoCloseWorkflowTasksEvent.name, { async: false })
   @ApplyTryCatch()
   async closePendingTasks(event: TriggerAutoCloseWorkflowTasksEvent) {
 
@@ -245,36 +245,41 @@ export class WorkflowEventsHandler {
 
     for (const task of tasks) {
       const queryEvent = queueDepth.find(e => e.aggregateId === task.autoCloseRefId);
+      event.log(`Evaluating task: ${task.id} for event: ${queryEvent?.eventName} [RefId: ${task.autoCloseRefId} | Expected Event: ${task.autoCloseEventName} | Condition: ${task.autoCloseCondition}]`);
       if (queryEvent && task.autoCloseEventName?.trim() === queryEvent.eventName?.trim()) {
-        event.log(`Evaluating task: ${task.id} for event: ${queryEvent.eventName}`);
+        event.log(`Task: ${task.id} -> auto-closeable event name matched`);
         const result = this.evaluateCondition(task.autoCloseCondition!, queryEvent.data);
         if (result) {
-          event.log(`Task: ${task.id} is auto-closeable`);
+
+          event.log(`Task: ${task.id} -> auto-close condition matched ${JSON.stringify(task.autoCloseResultData)}`);
           await this.completeTask.execute({
             instanceId: task.workflowId,
             taskId: task.id,
-            remarks: `Auto-closed by ${queryEvent.eventName || 'System Event'}`,
+            remarks: `Domain event trigger : Auto-closed by ${queryEvent.eventName || 'System Event'}`,
             status: WorkflowTaskStatus.COMPLETED,
-            completedBy: { id: 'SYSTEM' }, // System user
-            data: { autoClosedReason: "Domain event trigger", eventData: queryEvent.data }
+            data: task.autoCloseResultData
           });
+          await this.redisCache.removeFromList(APP_DOMAIN_EVENTS_KEY, 'events', queryEvent);
+          event.log(`Task: ${task.id} -> auto-closed successfully`);
+        } else {
+          event.warn(`Task: ${task.id} -> auto-close condition not matched`);
         }
-
+      } else {
+        event.warn(`Task: ${task.id} -> auto-closeable event name not matched`);
       }
     }
   }
 
   private evaluateCondition(expression: string, context: any) {
-
     try {
       const parser = new Parser();
       const result = parser.evaluate(
         expression,
         context
       );
-      return !!result;;
+      return !!result;
     } catch (error) {
-      throw new Error(`Error evaluating condition "${expression}":`, error);
+      throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
     }
   }
 }

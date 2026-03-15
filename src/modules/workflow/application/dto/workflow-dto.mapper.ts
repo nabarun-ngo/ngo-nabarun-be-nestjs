@@ -76,6 +76,7 @@ export class WorkflowDtoMapper {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       assignments: task.assignments.map(a => this.assignmentDomainToDto(a)),
+      autoCloseable: task.isAutoCloseable ?? false
     };
   }
 

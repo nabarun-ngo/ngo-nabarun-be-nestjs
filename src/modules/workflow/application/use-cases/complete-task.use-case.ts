@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IUseCase } from '../../../../shared/interfaces/use-case.interface';
 import { WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
 import type { IWorkflowInstanceRepository } from '../../domain/repositories/workflow-instance.repository.interface';
@@ -18,6 +18,7 @@ class TaskUpdate {
 
 @Injectable()
 export class CompleteTaskUseCase implements IUseCase<TaskUpdate, WorkflowTask> {
+  private readonly logger = new Logger(CompleteTaskUseCase.name);
   constructor(
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly instanceRepository: IWorkflowInstanceRepository,
@@ -30,7 +31,7 @@ export class CompleteTaskUseCase implements IUseCase<TaskUpdate, WorkflowTask> {
     if (!instance) {
       throw new BusinessException(`Workflow instance not found: ${request.instanceId}`);
     }
-
+    this.logger.log(`Updating task: ${request.taskId} in instance: ${request.instanceId}`);
     const task = instance.updateTask(
       request.taskId,
       request.status,
@@ -38,10 +39,10 @@ export class CompleteTaskUseCase implements IUseCase<TaskUpdate, WorkflowTask> {
       request.remarks,
       request.data,
     );
-
+    this.logger.log(`Task: ${request.taskId} updated successfully`);
     // Save instance
     await this.instanceRepository.update(instance.id, instance);
-
+    this.logger.log(`Task: ${request.taskId} updated successfully`);
     // Emit domain events
     for (const event of instance.domainEvents) {
       this.eventEmitter.emit(event.constructor.name, event);

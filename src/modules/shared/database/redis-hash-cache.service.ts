@@ -507,6 +507,38 @@ export class RedisHashCacheService {
     });
   }
 
+  /**
+   * Clear a Redis List
+   * @param prefix - Namespace prefix
+   * @param id - Unique identifier
+   */
+  async clearList(prefix: string, id: string | number): Promise<boolean> {
+    const key = this.getKey(prefix, id);
+    const result = await this.redis.del(key);
+    this.logger.debug(`Cleared list ${key}`);
+    return result > 0;
+  }
+
+  /**
+   * Remove a specific item from a Redis List
+   * @param prefix - Namespace prefix
+   * @param id - Unique identifier
+   * @param item - Item to remove
+   * @param count - Number of occurrences to remove (default: 0 = all)
+   */
+  async removeFromList<T>(
+    prefix: string,
+    id: string | number,
+    item: T,
+    count: number = 0,
+  ): Promise<number> {
+    const key = this.getKey(prefix, id);
+    const serialized = typeof item === 'object' ? this.serialize(item) : String(item);
+    const result = await this.redis.lrem(key, count, serialized);
+    this.logger.debug(`Removed ${result} items from list ${key}`);
+    return result;
+  }
+
   private serialize(r: any) {
     {
       if (r && typeof r === 'object' && !(r instanceof Date) && !Array.isArray(r)) {
@@ -521,13 +553,4 @@ export class RedisHashCacheService {
     }
   }
 
-  /**
-   * Clears a Redis List
-   * @param prefix - Namespace prefix
-   * @param id - Unique identifier
-   */
-  async clearTimeline(prefix: string, id: string | number): Promise<void> {
-    const key = this.getKey(prefix, id);
-    await this.redis.del(key);
-  }
 }

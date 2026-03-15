@@ -185,7 +185,6 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
   #evaluateCondition(expression: string) {
     if (expression === 'default' || !expression) return true;
-
     try {
       const parser = new Parser();
       const result = parser.evaluate(
@@ -194,7 +193,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
       );
       return !!result;;
     } catch (error) {
-      throw new Error(`Error evaluating condition "${expression}":`, error);
+      throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
     }
   }
 
