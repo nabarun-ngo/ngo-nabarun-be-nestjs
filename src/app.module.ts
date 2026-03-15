@@ -21,6 +21,7 @@ import { NotificationModule } from './modules/shared/notification/notification.m
 import helpers from 'handlebars-helpers';
 import Handlebars from "handlebars";
 import { DateTime } from 'luxon';
+import { SystemEventsHandler } from './shared/system-events.handler';
 
 // Register all helpers
 helpers({ handlebars: Handlebars });
@@ -43,7 +44,7 @@ Handlebars.registerHelper("not", (a) => !a);
       cache: true, // Memory optimization
     }),
     EventEmitterModule.forRoot({
-      wildcard: false,
+      wildcard: true,
       delimiter: '.',
       maxListeners: 10,
       verboseMemoryLeak: false,
@@ -78,7 +79,11 @@ Handlebars.registerHelper("not", (a) => !a);
     CorrespondenceModule,
     CommunicationModule,
     CronModule,
-    NotificationModule
+    NotificationModule,
+
+  ],
+  providers: [
+    SystemEventsHandler,
   ],
 })
 export class AppModule { }

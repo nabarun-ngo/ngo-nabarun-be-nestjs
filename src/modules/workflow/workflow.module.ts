@@ -50,7 +50,7 @@ import { DonationPauseUpdateHandler } from './application/automatic-task-handler
     UserDeleteAndDataCleanupHandler,
     CancelWorkflowUseCase,
     DonationAmountUpdateHandler,
-    DonationPauseUpdateHandler
+    DonationPauseUpdateHandler,
   ],
   exports: [
     WorkflowService,

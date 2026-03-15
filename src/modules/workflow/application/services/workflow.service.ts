@@ -156,6 +156,5 @@ export class WorkflowService {
     });
     return WorkflowDtoMapper.toDto(workflow);
   }
-
 }
 

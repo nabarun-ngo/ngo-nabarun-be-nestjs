@@ -5,6 +5,6 @@ export class TransactionCreatedEvent extends DomainEvent {
   constructor(
     public readonly transaction: Transaction,
   ) {
-    super(transaction.id);
+    super(transaction.id, transaction);
   }
 }

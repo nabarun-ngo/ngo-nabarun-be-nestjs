@@ -25,6 +25,7 @@ export class TaskFilter {
   readonly type?: WorkflowTaskType[];
   readonly workflowId?: string;
   readonly taskId?: string;
+  readonly autoCloseRefId?: string | string[];
 }
 
 export class WorkflowTask extends BaseDomain<string> {
@@ -41,8 +42,10 @@ export class WorkflowTask extends BaseDomain<string> {
   #handler?: string;
   #checkList?: string[];
   #isAutoCloseable?: boolean;
-  #jobId?: string;
   #autoCloseRefId?: string;
+  #autoCloseEventName?: string;
+  #autoCloseCondition?: string;
+  #autoCloseResultData?: Record<string, any>;
   #completedAt?: Date;
   #completedBy?: Partial<User>;
   #remarks?: string;
@@ -63,8 +66,10 @@ export class WorkflowTask extends BaseDomain<string> {
     handler?: string,
     checkList?: string[],
     isAutoCloseable?: boolean,
-    jobId?: string,
     autoCloseRefId?: string,
+    autoCloseEventName?: string,
+    autoCloseCondition?: string,
+    autoCloseResultData?: Record<string, any>,
     completedAt?: Date,
     completedBy?: User,
     remarks?: string,
@@ -85,8 +90,10 @@ export class WorkflowTask extends BaseDomain<string> {
     this.#handler = handler;
     this.#checkList = checkList;
     this.#isAutoCloseable = isAutoCloseable;
-    this.#jobId = jobId;
     this.#autoCloseRefId = autoCloseRefId;
+    this.#autoCloseEventName = autoCloseEventName;
+    this.#autoCloseCondition = autoCloseCondition;
+    this.#autoCloseResultData = autoCloseResultData;
     this.#completedAt = completedAt;
     this.#completedBy = completedBy;
     this.#remarks = remarks;
@@ -107,6 +114,10 @@ export class WorkflowTask extends BaseDomain<string> {
       task.handler,
       task.taskDetail?.checklist,
       task.taskDetail?.isAutoCloseable,
+      task.taskDetail?.autoCloseRefId,
+      task.taskDetail?.autoCloseEventName,
+      task.taskDetail?.autoCloseCondition,
+      task.taskDetail?.autoCloseResultData,
     );
   }
 
@@ -151,18 +162,21 @@ export class WorkflowTask extends BaseDomain<string> {
   }
 
   complete(completedBy?: Partial<User>, remarks?: string, resultData?: Record<string, any>): void {
-    if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
-      throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
+    if (!this.#isAutoCloseable && completedBy?.fullName != 'System') {
+      if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
+        throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
+      }
+      const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
+      if (this.requiresManualAction() && !assignee) {
+        throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
+      }
     }
-    const assignee = this.#assignments.find(a => a.assignedTo.id == completedBy?.id && a.status == TaskAssignmentStatus.ACCEPTED);
-    if (this.requiresManualAction() && !assignee) {
-      throw new BusinessException(`User: ${completedBy?.id} cannot act on this task.`);
-    }
+
     this.#status = WorkflowTaskStatus.COMPLETED;
     this.#completedBy = completedBy;
     this.#completedAt = new Date();
     this.#remarks = remarks;
-    this.#resultData = resultData;
+    this.#resultData = resultData ?? this.#resultData;
     this.touch();
   }
 
@@ -173,11 +187,6 @@ export class WorkflowTask extends BaseDomain<string> {
     }
     this.#status = WorkflowTaskStatus.FAILED;
     this.#remarks = reason;
-    this.touch();
-  }
-
-  setJobId(jobId: string): void {
-    this.#jobId = jobId;
     this.touch();
   }
 
@@ -256,9 +265,6 @@ export class WorkflowTask extends BaseDomain<string> {
     return this.#assignments.find((a) => a.status === TaskAssignmentStatus.ACCEPTED)?.assignedTo;
   }
 
-  get jobId(): string | undefined {
-    return this.#jobId;
-  }
 
   get assignments(): TaskAssignment[] {
     return [...this.#assignments];
@@ -283,5 +289,17 @@ export class WorkflowTask extends BaseDomain<string> {
   set resultData(data: Record<string, any> | undefined) {
     this.#resultData = { ...(this.#resultData ?? {}), ...(data ?? {}) };
     this.touch();
+  }
+
+  get autoCloseEventName(): string | undefined {
+    return this.#autoCloseEventName;
+  }
+
+  get autoCloseCondition(): string | undefined {
+    return this.#autoCloseCondition;
+  }
+
+  get autoCloseResultData(): Record<string, any> | undefined {
+    return this.#autoCloseResultData;
   }
 }

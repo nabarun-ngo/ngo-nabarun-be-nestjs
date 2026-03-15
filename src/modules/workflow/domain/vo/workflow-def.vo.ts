@@ -17,6 +17,9 @@ export interface TaskDetailDef {
   assignedTo?: AssignedToDef;
   isAutoCloseable?: boolean;
   autoCloseCondition?: string;
+  autoCloseRefId?: string;
+  autoCloseEventName?: string;
+  autoCloseResultData?: Record<string, any>;
   checklist?: string[];
   fields: FieldDef[];
 }

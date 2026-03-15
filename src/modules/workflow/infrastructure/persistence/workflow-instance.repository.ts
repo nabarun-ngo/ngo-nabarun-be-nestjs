@@ -128,6 +128,11 @@ class WorkflowInstanceRepository
       ...(filter?.status ? { status: { in: filter.status } } : {}),
       ...(filter?.workflowId ? { workflowId: filter.workflowId } : {}),
       ...(filter?.taskId ? { id: filter.taskId } : {}),
+      ...(filter?.autoCloseRefId ? {
+        autoCloseRefId: Array.isArray(filter.autoCloseRefId)
+          ? { in: filter.autoCloseRefId }
+          : filter.autoCloseRefId
+      } : {}),
     };
     return where;
   }

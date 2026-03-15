@@ -6,7 +6,7 @@ export class WorkflowCreatedEvent extends DomainEvent {
   constructor(
     instance: WorkflowInstance,
   ) {
-    super(instance.id);
+    super(instance.id, instance);
     this.instance = instance;
   }
 }

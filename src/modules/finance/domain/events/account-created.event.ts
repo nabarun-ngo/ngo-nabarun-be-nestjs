@@ -7,6 +7,6 @@ export class AccountCreatedEvent extends DomainEvent {
     constructor(
         public readonly account: Account,
     ) {
-        super(account.id);
+        super(account.id, account);
     }
 }

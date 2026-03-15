@@ -5,6 +5,6 @@ export class DonationRaisedEvent extends DomainEvent {
   constructor(
     public readonly donation: Donation,
   ) {
-    super(donation.id);
+    super(donation.id, donation);
   }
 }

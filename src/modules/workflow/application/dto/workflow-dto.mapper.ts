@@ -68,7 +68,6 @@ export class WorkflowDtoMapper {
       checklist: task.checkList,
       assignedToId: task.assignedTo?.id,
       assignedToName: task.assignedTo?.fullName,
-      jobId: task.jobId,
       resultData: task.resultData,
       completedAt: task.completedAt,
       completedById: task.completedBy?.id,
@@ -77,6 +76,7 @@ export class WorkflowDtoMapper {
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
       assignments: task.assignments.map(a => this.assignmentDomainToDto(a)),
+      autoCloseable: task.isAutoCloseable ?? false
     };
   }
 
