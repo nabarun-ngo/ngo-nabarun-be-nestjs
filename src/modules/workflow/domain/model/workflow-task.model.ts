@@ -162,7 +162,7 @@ export class WorkflowTask extends BaseDomain<string> {
   }
 
   complete(completedBy?: Partial<User>, remarks?: string, resultData?: Record<string, any>): void {
-    if (!this.#isAutoCloseable) {
+    if (!this.#isAutoCloseable && completedBy?.fullName != 'System') {
       if (this.#status !== WorkflowTaskStatus.IN_PROGRESS) {
         throw new BusinessException(`Cannot complete task in status: ${this.#status}`);
       }

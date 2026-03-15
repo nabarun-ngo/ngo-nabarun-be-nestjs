@@ -257,7 +257,8 @@ export class WorkflowEventsHandler {
             taskId: task.id,
             remarks: `Domain event trigger : Auto-closed by ${queryEvent.eventName || 'System Event'}`,
             status: WorkflowTaskStatus.COMPLETED,
-            data: task.autoCloseResultData
+            data: task.autoCloseResultData,
+            completedBy: { fullName: 'System' }
           });
           await this.redisCache.removeFromList(APP_DOMAIN_EVENTS_KEY, 'events', queryEvent);
           event.log(`Task: ${task.id} -> auto-closed successfully`);
