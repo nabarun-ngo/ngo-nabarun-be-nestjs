@@ -5,9 +5,10 @@ import { INotificationRepository } from "../../domain/repositories/notification.
 import { IFcmTokenRepository } from "../../domain/repositories/fcm-token.repository.interface";
 import { FirebaseMessagingService } from "../services/firebase-messaging.service";
 import { IUserNotificationRepository } from "../../domain/repositories/user-notification.repository.interface";
-import { OnEvent } from "@nestjs/event-emitter";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { SendNotificationRequestEvent } from "../events/send-notification-request.event";
 import { MetadataService } from "../../infrastructure/external/metadata.service";
+import { AppTechnicalError } from "src/shared/exceptions/app-tech-error";
 
 export class CreateNotification {
     userIds: string[];
@@ -42,7 +43,7 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         private readonly fcmTokenRepository: IFcmTokenRepository,
         private readonly firebaseMessaging: FirebaseMessagingService,
         private readonly metadataService: MetadataService,
-
+        private readonly eventBus: EventEmitter2,
     ) { }
 
 
@@ -142,6 +143,9 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         const userNotification = await this.userNotificationRepository.findByUserIdAndNotificationId(userId, notification.id);
         if (!userNotification) {
             return;
+        }
+        if (result.failureCount > 0) {
+            this.eventBus.emit(AppTechnicalError.name, new AppTechnicalError(new Error(`Failed to send push notification for user ${userId}: ${JSON.stringify(result.errors)}`)));
         }
         // Update notification with push status
         userNotification.markPushSent(
