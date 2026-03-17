@@ -3,4 +3,5 @@ export enum NotificationKeys {
     DONATION_PAID = "DONATION_PAID",
     TASK_ASSIGNED = "TASK_ASSIGNED",
     TASK_STARTED = "TASK_STARTED",
+    TASK_REMINDER = "TASK_REMINDER",
 }

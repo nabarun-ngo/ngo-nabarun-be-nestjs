@@ -12,7 +12,6 @@ import { BusinessException } from '../exceptions/business-exception';
 import { ErrorResponse } from '../models/response-model';
 import { config } from '../../config/app.config';
 import { getTraceId, resolveTraceId } from '../utils/trace-context.util';
-import { SlackNotificationRequestEvent } from 'src/modules/shared/correspondence/events/slack-notification-request.event';
 import { AppTechnicalError } from '../exceptions/app-tech-error';
 
 /**
@@ -35,120 +34,82 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    // Determine status code and error response
+    // Determine status code and extract raw error details
     let status: number;
-    let errorResponse: ErrorResponse;
+    let messages: string[] = [];
+    let errorCode: string | undefined;
+    const stackTrace = exception instanceof Error ? exception.stack : (exception as any)?.stack;
 
     if (exception instanceof BusinessException) {
-      // Handle business exceptions - always show the error message
+      // Handle business exceptions
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse() as {
         message: string | string[];
         errorCode?: string;
       };
 
-      errorResponse = new ErrorResponse();
-      errorResponse.messages = Array.isArray(exceptionResponse.message)
+      messages = Array.isArray(exceptionResponse.message)
         ? exceptionResponse.message
         : [exceptionResponse.message || 'Business error occurred'];
+      errorCode = exceptionResponse.errorCode;
 
-      // Set error code if available
-      if (exceptionResponse.errorCode) {
-        errorResponse.setErrorCode(exceptionResponse.errorCode);
-      }
-
-      // Include stack trace in non-production
-      if (!config.app.isProd && exception.stack) {
-        errorResponse.stackTrace = exception.stack;
-      }
-
-      this.logger.warn(
-        `Business Exception: ${Array.isArray(exceptionResponse.message) ? exceptionResponse.message.join(', ') : exceptionResponse.message}`,
-        exception.stack,
-      );
+      this.logger.warn(`Business Exception: ${messages.join(', ')}`, stackTrace);
     } else if (exception instanceof HttpException) {
       // Handle HTTP exceptions (4xx, etc.)
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      errorResponse = new ErrorResponse();
-
       if (typeof exceptionResponse === 'string') {
-        errorResponse.messages = [exceptionResponse];
+        messages = [exceptionResponse];
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         const responseObj = exceptionResponse as any;
         if (responseObj.message) {
-          errorResponse.messages = Array.isArray(responseObj.message)
+          messages = Array.isArray(responseObj.message)
             ? responseObj.message
             : [responseObj.message];
         } else {
-          errorResponse.messages = ['An error occurred'];
+          messages = ['An error occurred'];
         }
-
-        // Set error code if available
-        if (responseObj.errorCode) {
-          errorResponse.setErrorCode(responseObj.errorCode);
-        }
+        errorCode = responseObj.errorCode;
       } else {
-        errorResponse.messages = ['An error occurred'];
-      }
-
-      // Include stack trace in non-production for server errors
-      if (status >= HttpStatus.INTERNAL_SERVER_ERROR && !config.app.isProd && exception.stack) {
-        errorResponse.stackTrace = exception.stack;
+        messages = ['An error occurred'];
       }
 
       if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-        this.logger.error(
-          `HTTP ${status} Error: ${errorResponse.messages.join(', ')}`,
-          exception.stack,
-        );
+        this.logger.error(`HTTP ${status} Error: ${messages.join(', ')}`, stackTrace);
       } else if (status === HttpStatus.BAD_REQUEST) {
-        this.logger.warn(
-          `HTTP ${status} Error: ${errorResponse.messages.join(', ')}`,
-          exception.stack,
-        );
+        this.logger.warn(`HTTP ${status} Error: ${messages.join(', ')}`, stackTrace);
       }
     } else {
       // Handle unknown errors (500)
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      errorResponse = new ErrorResponse();
       const error = exception as Error;
+      messages = [error?.message || 'An unexpected error occurred'];
 
-      if (config.app.isProd) {
-        // Production: Generic error message
-        errorResponse.messages = [
-          'An internal server error occurred. Please try again later.',
-        ];
-      } else {
-        // Non-production: Detailed error information
-        errorResponse.messages = [error?.message || 'An unexpected error occurred'];
-
-        if (error?.name) {
-          errorResponse.messages.push(`Error Type: ${error.name}`);
-        }
-
-        if (error?.stack) {
-          errorResponse.stackTrace = error.stack;
-        }
+      if (error?.name) {
+        messages.push(`Error Type: ${error.name}`);
       }
 
       // ALWAYS log the full unhandled exception for all environments
-      this.logger.error(
-        `Unhandled Exception: ${error?.message || 'Unknown error'}`,
-        error?.stack,
-      );
+      this.logger.error(`Unhandled Exception: ${error?.message || 'Unknown error'}`, stackTrace);
     }
 
-    // Set trace ID if available (retrieve from context or request headers)
+    // Prepare the full error response with all details
+    const errorResponse = new ErrorResponse();
+    errorResponse.messages = [...messages];
+    if (errorCode) {
+      errorResponse.setErrorCode(errorCode);
+    }
+    errorResponse.stackTrace = stackTrace;
     errorResponse.traceId = getTraceId() || resolveTraceId(request.headers);
+    errorResponse.status = status;
 
-    if (status >= 500) {
-      this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError(errorResponse));
-      this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
-        message: `HTTP ${status} TraceId: ${errorResponse.traceId} Error: ${errorResponse.messages.join(', ')} \n Stack : ${exception instanceof Error ? exception.stack : (exception as any)?.stack}`,
-        type: 'error',
-      });
+    // Always emit the AppTechnicalError event with FULL details for 5xx errors
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError({
+        ...errorResponse,
+        messages: [...errorResponse.messages]
+      } as ErrorResponse));
     }
 
     // Log error details for monitoring
@@ -157,19 +118,33 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       method: request.method,
       statusCode: status,
       traceId: errorResponse.traceId,
-      stack: exception instanceof Error ? exception.stack : (exception as any)?.stack,
+      stack: stackTrace,
     };
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `Exception caught: ${status} - ${errorResponse.messages.join(', ')}`,
+        `Exception caught: ${status} - ${messages.join(', ')}`,
         JSON.stringify(logDetails, null, 2),
       );
     } else if (status === HttpStatus.BAD_REQUEST) {
       this.logger.warn(
-        `Exception caught: ${status} - ${errorResponse.messages.join(', ')}`,
+        `Exception caught: ${status} - ${messages.join(', ')}`,
         JSON.stringify(logDetails, null, 2),
       );
+    }
+
+    // Sanitise the response before sending it to the end user
+    if (config.app.isProd) {
+      // In production: hide the stack trace for all errors
+      delete errorResponse.stackTrace;
+
+      // In production: obscure the actual error message for 5xx server errors
+      // unless it is a explicitly thrown BusinessException
+      if (status >= HttpStatus.INTERNAL_SERVER_ERROR && !(exception instanceof BusinessException)) {
+        errorResponse.messages = [
+          'An internal server error occurred. Please try again later.',
+        ];
+      }
     }
 
     response.status(status).json(errorResponse);
