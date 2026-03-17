@@ -115,7 +115,7 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         const result = await this.firebaseMessaging.sendToDevices(tokenStrings, {
             title: notification.title,
             body: notification.body,
-            imageUrl: notification.imageUrl,
+            ...(notification.imageUrl && { imageUrl: notification.imageUrl }),
             icon: notification.icon,
             data: {
                 notificationId: notification.id,

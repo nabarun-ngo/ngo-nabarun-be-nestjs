@@ -1,5 +1,4 @@
 
-import { Logger } from '@nestjs/common';
 
 /**
  * Decorator to wrap a cron event listener method in a try-catch block.
