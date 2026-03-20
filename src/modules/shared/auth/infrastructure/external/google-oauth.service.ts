@@ -7,7 +7,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { GOOGLE_SCOPES } from '../../scopes';
 import { AppTechnicalError } from 'src/shared/exceptions/app-tech-error';
-import { SlackNotificationRequestEvent } from 'src/modules/shared/correspondence/events/slack-notification-request.event';
 import { OAuthService } from '../../application/services/oauth.service';
 import { Credentials } from 'google-auth-library';
 
@@ -153,10 +152,6 @@ export class GoogleOAuthService extends OAuthService<Credentials, OAuth2Client> 
       return this.oauth2Client;
     } catch (error) {
       this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError(error));
-      this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
-        message: `Failed to get authenticated client: ${error.message}`,
-        type: 'error',
-      });
       this.logger.fatal(
         `Failed to get authenticated client: ${error.message}`,
         error.stack,

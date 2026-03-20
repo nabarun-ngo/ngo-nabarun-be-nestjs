@@ -21,7 +21,6 @@ export class DonationJobsHandler {
         private readonly donationRepository: IDonationRepository,
         private readonly createDonationUseCase: CreateDonationUseCase,
         private readonly financeReportService: FinanceReportService
-
     ) { }
 
     @ProcessJob({
@@ -134,7 +133,7 @@ export class DonationJobsHandler {
     }>) {
         job.log(`Processing ${JobName.GENERATE_REPORT} for report ${job.data.reportName}`);
         try {
-            const report = await this.financeReportService.generateReport(
+            await this.financeReportService.generateReport(
                 job.data.reportName,
                 job.data.reportParams,
                 'System'

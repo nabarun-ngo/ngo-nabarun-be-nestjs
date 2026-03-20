@@ -202,9 +202,7 @@ export class Expense extends AggregateRoot<string> {
     );
 
     expense.addDomainEvent(new ExpenseRecordedEvent(
-      expense.id,
-      expense.#amount,
-      expense.#requestedBy.id!,
+      expense,
     ));
 
     return expense;

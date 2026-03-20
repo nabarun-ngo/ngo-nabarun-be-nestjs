@@ -135,7 +135,13 @@
                                 "TREASURER"
                             ]
                         },
-                        "isAutoCloseable": false,
+                        "isAutoCloseable": true,
+                        "autoCloseRefId": "{{step_paymentcreate_task_createguestdonation.donationId}}",
+                        "autoCloseEventName": "DonationPaidEvent",
+                        "autoCloseCondition": "data.status == 'PAID'",
+                        "autoCloseResultData": {
+                            "isUpdated": "Yes"
+                        },
                         "checklist": [
                             "Goto Guest Donation Tab under Donations Module",
                             "Search the auto created guest donation {{step_paymentcreate_task_createguestdonation.donationId}} record.",

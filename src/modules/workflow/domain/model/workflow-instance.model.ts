@@ -139,7 +139,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     this.#currentStepDefId = this.steps.find(s => s.orderIndex === 0)?.stepDefId;
     const step = this.steps.find(s => s.stepDefId === this.#currentStepDefId);
     step?.start();
-    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!));
+    this.addDomainEvent(new StepStartedEvent(step?.id!, this.id, step?.id!, this));
     this.touch();
   }
 
@@ -179,13 +179,12 @@ export class WorkflowInstance extends AggregateRoot<string> {
     // If the revisited step is already then handle it some way
     nextStep.currentOrderIndex = currentStep.orderIndex + 1;
     nextStep.start();
-    this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id));
+    this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id, this));
     this.touch();
   }
 
   #evaluateCondition(expression: string) {
     if (expression === 'default' || !expression) return true;
-
     try {
       const parser = new Parser();
       const result = parser.evaluate(
@@ -194,7 +193,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
       );
       return !!result;;
     } catch (error) {
-      throw new Error(`Error evaluating condition "${expression}":`, error);
+      throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
     }
   }
 
@@ -278,7 +277,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
     if (step?.isAllTasksCompleted()) {
       step.complete();
       this.moveToNextStep();
-      this.addDomainEvent(new StepCompletedEvent(this.id, step?.id!));
+      this.addDomainEvent(new StepCompletedEvent(this.id, step?.id!, this));
       return task;
     }
 
@@ -329,7 +328,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
           this.addDomainEvent(new TaskCompletedEvent(this.id, task));
         }
       });
-      this.addDomainEvent(new StepCompletedEvent(this.id, step.id));
+      this.addDomainEvent(new StepCompletedEvent(this.id, step.id, this));
     }
     this.touch();
   }

@@ -191,6 +191,10 @@ export class WorkflowTaskDto {
   @ApiProperty({ type: [TaskAssignmentDto], required: true })
   @IsDefined()
   assignments: TaskAssignmentDto[];
+
+  @ApiProperty({ required: false })
+  @IsBoolean()
+  autoCloseable: boolean
 }
 
 export class WorkflowStepDto {

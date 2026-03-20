@@ -6,7 +6,7 @@ export class TaskStartedEvent extends DomainEvent {
     aggregateId: string,
     public readonly task: WorkflowTask,
   ) {
-    super(aggregateId);
+    super(aggregateId, task);
   }
 }
 

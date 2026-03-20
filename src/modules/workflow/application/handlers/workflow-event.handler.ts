@@ -9,7 +9,7 @@ import { WorkflowInstance } from "../../domain/model/workflow-instance.model";
 import { StepCompletedEvent } from "../../domain/events/step-completed.event";
 import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
 import { JobName } from "src/shared/job-names";
-import { WorkflowTask, WorkflowTaskType } from "../../domain/model/workflow-task.model";
+import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from "../../domain/model/workflow-task.model";
 import { TaskAssignmentCreatedEvent } from "../../domain/events/task-assignment-created.event";
 import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
 import { NotificationKeys } from "src/shared/notification-keys";
@@ -21,8 +21,14 @@ import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
 import { RootEvent } from "src/shared/models/root-event";
 import { generateUniqueNDigitNumber } from "src/shared/utilities/password-util";
+import { RedisHashCacheService } from "src/modules/shared/database/redis-hash-cache.service";
+import { DomainEventPayload } from "src/shared/dto/domain-event-payload.dto";
+import { APP_DOMAIN_EVENTS_KEY } from "src/shared/system-events.handler";
+import { Parser } from "expr-eval";
+import { CompleteTaskUseCase } from "../use-cases/complete-task.use-case";
 
 export class TriggerRemindPendingTasksEvent extends RootEvent { }
+export class TriggerAutoCloseWorkflowTasksEvent extends RootEvent { }
 
 @Injectable()
 export class WorkflowEventsHandler {
@@ -35,9 +41,13 @@ export class WorkflowEventsHandler {
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly workflowInstanceRepository: IWorkflowInstanceRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly reassignTaskUseCase: ReassignTaskUseCase
+    private readonly reassignTaskUseCase: ReassignTaskUseCase,
+    private readonly redisCache: RedisHashCacheService,
+    private readonly completeTask: CompleteTaskUseCase,
+
   ) { }
 
+  //#region StepStartedEvent
   @OnEvent(StepStartedEvent.name, { async: true })
   async handleStepStartedEvent(event: StepStartedEvent) {
     await this.jobProcessingService.addJob<{ instanceId: string; stepId: string }>(JobName.START_WORKFLOW_STEP, {
@@ -45,6 +55,7 @@ export class WorkflowEventsHandler {
       stepId: event.stepId,
     });
   }
+  //#endregion
 
   @OnEvent(StepCompletedEvent.name, { async: true })
   async handleStepCompletedEvent(event: StepCompletedEvent) {
@@ -128,9 +139,21 @@ export class WorkflowEventsHandler {
             delay: generateUniqueNDigitNumber(5),
           }
         );
-
         successCount++;
       }
+
+      this.eventEmitter.emit(SendNotificationRequestEvent.name,
+        new SendNotificationRequestEvent({
+          targetUserIds: [...assignees.keys()],
+          notificationKey: NotificationKeys.TASK_REMINDER,
+          type: NotificationType.REMINDER,
+          category: NotificationCategory.WORKFLOW,
+          priority: NotificationPriority.HIGH,
+          data: {
+            taskCount: tasks.length,
+            criticalAlert: 'N', // Todo Determine if there are any critical tasks
+          },
+        }));
 
       event.log(
         `Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
@@ -144,6 +167,7 @@ export class WorkflowEventsHandler {
   }
 
   @OnEvent(TaskAssignmentCreatedEvent.name, { async: true })
+  @ApplyTryCatch()
   async handleTaskAssignmentCreatedEvent(event: TaskAssignmentCreatedEvent) {
     const task = event.task;
     this.eventEmitter.emit(SendNotificationRequestEvent.name,
@@ -210,4 +234,64 @@ export class WorkflowEventsHandler {
   }
 
 
+  @OnEvent(TriggerAutoCloseWorkflowTasksEvent.name, { async: true })
+  @ApplyTryCatch()
+  async closePendingTasks(event: TriggerAutoCloseWorkflowTasksEvent) {
+
+    // Get the full list of events currently in the Redis list
+    const queueDepth = await this.redisCache.getList<DomainEventPayload>(APP_DOMAIN_EVENTS_KEY, 'events');
+    if (!queueDepth || queueDepth.length === 0) {
+      event.log('No pending events.');
+      return;
+    }
+
+    const aggregateIds = [...new Set(queueDepth.map(e => e.aggregateId))];
+
+    const tasks = await this.workflowInstanceRepository.findAllTasks({
+      autoCloseRefId: aggregateIds,
+      status: WorkflowTask.pendingTaskStatus,
+      type: [WorkflowTaskType.MANUAL]
+    })
+
+    event.log(`Fetched ${tasks.length} tasks for evaluation.`);
+
+    for (const task of tasks) {
+      const queryEvent = queueDepth.find(e => e.aggregateId === task.autoCloseRefId && e.eventName === task.autoCloseEventName);
+      event.log(`Evaluating task: ${task.id} for event: ${task.autoCloseEventName}`);
+      if (queryEvent) {
+        event.log(`Task: ${task.id} -> auto-closeable event name matched`);
+        const result = this.evaluateCondition(task.autoCloseCondition!, queryEvent.data);
+        if (result) {
+          event.log(`Task: ${task.id} -> auto-close condition matched ${JSON.stringify(task.autoCloseResultData)}`);
+          await this.completeTask.execute({
+            instanceId: task.workflowId,
+            taskId: task.id,
+            remarks: `Domain event trigger : Auto-closed by ${queryEvent.eventName || 'System Event'}`,
+            status: WorkflowTaskStatus.COMPLETED,
+            data: task.autoCloseResultData,
+            completedBy: { fullName: 'System' }
+          });
+          await this.redisCache.removeFromList(APP_DOMAIN_EVENTS_KEY, 'events', queryEvent);
+          event.log(`Task: ${task.id} -> auto-closed successfully`);
+        } else {
+          event.warn(`Task: ${task.id} -> auto-close condition not matched`);
+        }
+      } else {
+        event.warn(`Task: ${task.id} -> auto-closeable event name not matched`);
+      }
+    }
+  }
+
+  private evaluateCondition(expression: string, context: any) {
+    try {
+      const parser = new Parser();
+      const result = parser.evaluate(
+        expression,
+        context
+      );
+      return !!result;
+    } catch (error) {
+      throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
+    }
+  }
 }
