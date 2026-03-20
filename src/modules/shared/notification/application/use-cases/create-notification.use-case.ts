@@ -5,10 +5,10 @@ import { INotificationRepository } from "../../domain/repositories/notification.
 import { IFcmTokenRepository } from "../../domain/repositories/fcm-token.repository.interface";
 import { FirebaseMessagingService } from "../services/firebase-messaging.service";
 import { IUserNotificationRepository } from "../../domain/repositories/user-notification.repository.interface";
-import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { OnEvent } from "@nestjs/event-emitter";
 import { SendNotificationRequestEvent } from "../events/send-notification-request.event";
 import { MetadataService } from "../../infrastructure/external/metadata.service";
-import { AppTechnicalError } from "src/shared/exceptions/app-tech-error";
+import { NotificationError } from "src/shared/exceptions/notification-failure";
 
 export class CreateNotification {
     userIds: string[];
@@ -43,42 +43,45 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         private readonly fcmTokenRepository: IFcmTokenRepository,
         private readonly firebaseMessaging: FirebaseMessagingService,
         private readonly metadataService: MetadataService,
-        private readonly eventBus: EventEmitter2,
     ) { }
 
 
     async execute(dto: CreateNotification): Promise<Notification> {
+        try {
+            // Create notification
+            const notification = Notification.create({
+                title: dto.title,
+                body: dto.body,
+                type: dto.type,
+                category: dto.category,
+                priority: dto.priority,
+                action: {
+                    url: dto.actionUrl,
+                    type: dto.actionType,
+                    data: dto.actionData,
+                },
+                referenceId: dto.referenceId,
+                referenceType: dto.referenceType,
+                imageUrl: dto.imageUrl,
+                icon: dto.icon,
+                metadata: dto.metadata,
+                expiresAt: dto.expiresAt,
+            });
+            notification.sendToUserIds = dto.userIds;
+            // Save to database
+            await this.notificationRepository.create(notification);
 
-        // Create notification
-        const notification = Notification.create({
-            title: dto.title,
-            body: dto.body,
-            type: dto.type,
-            category: dto.category,
-            priority: dto.priority,
-            action: {
-                url: dto.actionUrl,
-                type: dto.actionType,
-                data: dto.actionData,
-            },
-            referenceId: dto.referenceId,
-            referenceType: dto.referenceType,
-            imageUrl: dto.imageUrl,
-            icon: dto.icon,
-            metadata: dto.metadata,
-            expiresAt: dto.expiresAt,
-        });
-        notification.sendToUserIds = dto.userIds;
-        // Save to database
-        await this.notificationRepository.create(notification);
-
-        // Send push notification if requested
-        if (dto.sendPush !== false) {
-            for (const userId of dto.userIds) {
-                await this.sendPushNotification(userId, notification);
+            // Send push notification if requested
+            if (dto.sendPush !== false) {
+                for (const userId of dto.userIds) {
+                    await this.sendPushNotification(userId, notification);
+                }
             }
+            return notification;
+        } catch (error) {
+            this.logger.error(`Failed to create notification: ${error.message}`);
+            throw new NotificationError(error);
         }
-        return notification;
     }
 
     @OnEvent(SendNotificationRequestEvent.name, { async: true })
@@ -144,8 +147,9 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         if (!userNotification) {
             return;
         }
+
         if (result.failureCount > 0) {
-            this.eventBus.emit(AppTechnicalError.name, new AppTechnicalError(new Error(`Failed to send push notification for user ${userId}: ${JSON.stringify(result.errors)}`)));
+            throw new NotificationError(new Error(`${result.failureCount} failures. ${JSON.stringify(result.errors)}`));
         }
         // Update notification with push status
         userNotification.markPushSent(

@@ -13,6 +13,7 @@ import { ErrorResponse } from '../models/response-model';
 import { config } from '../../config/app.config';
 import { getTraceId, resolveTraceId } from '../utils/trace-context.util';
 import { AppTechnicalError } from '../exceptions/app-tech-error';
+import { NotificationError } from '../exceptions/notification-failure';
 
 /**
  * Global exception filter that handles all exceptions in the application.
@@ -106,10 +107,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Always emit the AppTechnicalError event with FULL details for 5xx errors
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError({
-        ...errorResponse,
-        messages: [...errorResponse.messages]
-      } as ErrorResponse));
+      const full = Object.assign(new ErrorResponse(), errorResponse);
+      full.messages = [...errorResponse.messages];
+      this.eventEmitter.emit(AppTechnicalError.name, new AppTechnicalError(full, exception instanceof NotificationError));
     }
 
     // Log error details for monitoring

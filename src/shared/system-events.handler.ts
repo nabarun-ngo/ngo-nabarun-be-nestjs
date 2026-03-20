@@ -31,8 +31,10 @@ export class SystemEventsHandler {
     @OnEvent(AppTechnicalError.name, { async: true })
     @ApplyTryCatch()
     async handleAppTechnicalError(event: AppTechnicalError) {
-        const traceId = event.error instanceof ErrorResponse ? event.error.traceId : getTraceId();
-        const message = event.error instanceof ErrorResponse ? `HTTP ${event.error.status} TraceId: ${traceId} Error: ${event.error.messages.join(', ')} \n Stack : ${event.error.stackTrace}` : `TraceId: ${traceId} Error: ${event.error.message}`;
+        const isErrorResponse = event.error instanceof ErrorResponse || (event.error && typeof event.error === 'object' && 'messages' in event.error);
+        const errorResp = event.error as any;
+        const traceId = isErrorResponse ? errorResp.traceId : getTraceId();
+        const message = isErrorResponse ? `HTTP ${errorResp.status} TraceId: ${traceId} Error: ${(errorResp.messages || []).join(', ')} \n Stack : ${errorResp.stackTrace}` : `TraceId: ${traceId} Error: ${(event.error as any).message || 'Unknown Error'}`;
         this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
             message: message,
             type: 'error',
@@ -41,7 +43,7 @@ export class SystemEventsHandler {
             roleCodes: [Role.TECHNICAL_SPECIALIST]
         });
 
-        if (users.length > 0) {
+        if (users.length > 0 && !event.isNotificationFailure) {
             this.eventEmitter.emit(SendNotificationRequestEvent.name,
                 new SendNotificationRequestEvent({
                     targetUserIds: users.map(m => m.id),
