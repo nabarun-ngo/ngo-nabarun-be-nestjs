@@ -6,6 +6,8 @@ import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.de
 import { JobName } from 'src/shared/job-names';
 import { JobProcessor, Job } from '../dto/job.dto';
 import { config } from 'src/config/app.config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AppTechnicalError } from 'src/shared/exceptions/app-tech-error';
 
 @Injectable()
 export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBootstrap {
@@ -18,6 +20,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     @InjectQueue(config.jobProcessing.queueName) private readonly defaultQueue: Queue,
     private readonly moduleRef: ModuleRef,
     private readonly reflector: Reflector,
+    private readonly eventBus: EventEmitter2,
   ) { }
 
   async onApplicationBootstrap() {
@@ -161,7 +164,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     const maxAttempts = job.opts.attempts || 3;
 
     try {
-      this.logger.log(`Starting Processing: ${job.name}:${job.id} (attempt ${attemptNumber}/${maxAttempts})`);
+      job.log(`Starting Processing: ${job.name}:${job.id} (attempt ${attemptNumber}/${maxAttempts})`);
 
       // Apply timeout if configured
       const timeout = processorData.options.timeout;
@@ -178,11 +181,12 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
       }
 
       const duration = Date.now() - startTime;
+      job.log(`[SUCCESS] Completed: ${job.name}:${job.id} after ${duration}ms`);
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.logger.error(`Failed: ${job.name}:${job.id} after ${duration}ms - ${attemptNumber}:${error.message}`);
-
+      job.log(`[ERROR] Failed: ${job.name}:${job.id} after ${duration}ms - ${attemptNumber}:${error.message}`);
+      this.eventBus.emit(AppTechnicalError.name, new AppTechnicalError(error));
       // Call retry/failed callbacks
       if (processorData.options.onRetry && attemptNumber < maxAttempts) {
         try { await processorData.options.onRetry(attemptNumber, error); } catch { }

@@ -27,8 +27,8 @@ export class MetadataService {
         return {
             title: notificationMetadata?.VALUE!,
             description: notificationMetadata?.DESCRIPTION!,
-            imageUrl: notificationMetadata?.getAttribute('IMAGE_URL'),
-            actionUrl: notificationMetadata?.getAttribute('ACTION_URL')
+            imageUrl: notificationMetadata?.getAttribute('IMAGE_URL') || undefined,
+            actionUrl: notificationMetadata?.getAttribute('ACTION_URL') || undefined
         };
     }
 

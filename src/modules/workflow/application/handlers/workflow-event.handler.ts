@@ -139,9 +139,21 @@ export class WorkflowEventsHandler {
             delay: generateUniqueNDigitNumber(5),
           }
         );
-
         successCount++;
       }
+
+      this.eventEmitter.emit(SendNotificationRequestEvent.name,
+        new SendNotificationRequestEvent({
+          targetUserIds: [...assignees.keys()],
+          notificationKey: NotificationKeys.TASK_REMINDER,
+          type: NotificationType.REMINDER,
+          category: NotificationCategory.WORKFLOW,
+          priority: NotificationPriority.HIGH,
+          data: {
+            taskCount: tasks.length,
+            criticalAlert: 'N', // Todo Determine if there are any critical tasks
+          },
+        }));
 
       event.log(
         `Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
@@ -222,7 +234,7 @@ export class WorkflowEventsHandler {
   }
 
 
-  @OnEvent(TriggerAutoCloseWorkflowTasksEvent.name, { async: false })
+  @OnEvent(TriggerAutoCloseWorkflowTasksEvent.name, { async: true })
   @ApplyTryCatch()
   async closePendingTasks(event: TriggerAutoCloseWorkflowTasksEvent) {
 
@@ -244,13 +256,12 @@ export class WorkflowEventsHandler {
     event.log(`Fetched ${tasks.length} tasks for evaluation.`);
 
     for (const task of tasks) {
-      const queryEvent = queueDepth.find(e => e.aggregateId === task.autoCloseRefId);
-      event.log(`Evaluating task: ${task.id} for event: ${queryEvent?.eventName} [RefId: ${task.autoCloseRefId} | Expected Event: ${task.autoCloseEventName} | Condition: ${task.autoCloseCondition}]`);
-      if (queryEvent && task.autoCloseEventName?.trim() === queryEvent.eventName?.trim()) {
+      const queryEvent = queueDepth.find(e => e.aggregateId === task.autoCloseRefId && e.eventName === task.autoCloseEventName);
+      event.log(`Evaluating task: ${task.id} for event: ${task.autoCloseEventName}`);
+      if (queryEvent) {
         event.log(`Task: ${task.id} -> auto-closeable event name matched`);
         const result = this.evaluateCondition(task.autoCloseCondition!, queryEvent.data);
         if (result) {
-
           event.log(`Task: ${task.id} -> auto-close condition matched ${JSON.stringify(task.autoCloseResultData)}`);
           await this.completeTask.execute({
             instanceId: task.workflowId,

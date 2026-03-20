@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { OnEvent } from "@nestjs/event-emitter";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { AppTechnicalError } from "src/shared/exceptions/app-tech-error";
 import { Role } from "../modules/user/domain/model/role.model";
@@ -7,6 +7,13 @@ import { type IUserRepository, USER_REPOSITORY } from "../modules/user/domain/re
 import { DomainEvent } from "./models/domain-event";
 import { RedisHashCacheService } from "src/modules/shared/database/redis-hash-cache.service";
 import { DomainEventPayload } from "./dto/domain-event-payload.dto";
+import { SlackNotificationRequestEvent } from "src/modules/shared/correspondence/events/slack-notification-request.event";
+import { ErrorResponse } from "./models/response-model";
+import { getTraceId } from "./utils/trace-context.util";
+import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
+import { NotificationKeys } from "./notification-keys";
+import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
+import { ApplyTryCatch } from "./decorators/apply-try-catch.decorator";
 
 export const APP_DOMAIN_EVENTS_KEY = 'app:domain_events';
 
@@ -17,33 +24,39 @@ export class SystemEventsHandler {
     constructor(
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
-        private readonly corrService: CorrespondenceService,
         private readonly redisCache: RedisHashCacheService,
+        private readonly eventEmitter: EventEmitter2,
     ) { }
 
     @OnEvent(AppTechnicalError.name, { async: true })
+    @ApplyTryCatch()
     async handleAppTechnicalError(event: AppTechnicalError) {
-        try {
-            const users = await this.userRepository.findAll({
-                roleCodes: [Role.TECHNICAL_SPECIALIST]
-            });
+        const isErrorResponse = event.error instanceof ErrorResponse || (event.error && typeof event.error === 'object' && 'messages' in event.error);
+        const errorResp = event.error as any;
+        const traceId = isErrorResponse ? errorResp.traceId : getTraceId();
+        const message = isErrorResponse ? `HTTP ${errorResp.status} TraceId: ${traceId} Error: ${(errorResp.messages || []).join(', ')} \n Stack : ${errorResp.stackTrace}` : `TraceId: ${traceId} Error: ${(event.error as any).message || 'Unknown Error'}`;
+        this.eventEmitter.emit(SlackNotificationRequestEvent.name, {
+            message: message,
+            type: 'error',
+        });
+        const users = await this.userRepository.findAll({
+            roleCodes: [Role.TECHNICAL_SPECIALIST]
+        });
 
-            if (users.length > 0) {
-                await this.corrService.sendEmail({
-                    subject: '[NABARUN] App Technical Error',
-                    html: `
-            <div>
-              <h1>App Technical Error</h1>
-              <p>${JSON.stringify(event.error, null, 2)}</p>
-              <p>Please review slack <a href="https://app.slack.com/client">#prod_errors</a> channel for more details.</p>
-            </div>
-            `,
-                    to: users.map(m => m.email).join(',')
-                })
-                this.logger.log(`Sent technical error notification to ${users.length} specialists.`);
-            }
-        } catch (error) {
-            this.logger.error(`Failed to handle AppTechnicalError: ${error.message}`, error.stack);
+        if (users.length > 0 && !event.isNotificationFailure) {
+            this.eventEmitter.emit(SendNotificationRequestEvent.name,
+                new SendNotificationRequestEvent({
+                    targetUserIds: users.map(m => m.id),
+                    notificationKey: NotificationKeys.APP_TECHNICAL_ERROR,
+                    type: NotificationType.ERROR,
+                    category: NotificationCategory.SYSTEM,
+                    priority: NotificationPriority.URGENT,
+                    data: {
+                        traceId: traceId,
+                        error: message,
+                    },
+                }));
+            this.logger.log(`Sent technical error notification to ${users.length} specialists.`);
         }
     }
 
@@ -64,4 +77,19 @@ export class SystemEventsHandler {
             }
         }
     }
+
+
+    //#region Unused Code
+    // await this.corrService.sendEmail({
+    //     subject: '[NABARUN] App Technical Error',
+    //     html: `
+    //     <div>
+    //     <h1>App Technical Error</h1>
+    //     <p>${JSON.stringify(event.error, null, 2)}</p>
+    //     <p>Please review slack <a href="https://app.slack.com/client">#prod_errors</a> channel for more details.</p>
+    //     </div>
+    //     `,
+    //     to: users.map(m => m.email).join(',')
+    // });
+    //#endregion
 }
