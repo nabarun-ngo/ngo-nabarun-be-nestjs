@@ -7,6 +7,7 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateNotificationUseCase } from '../use-cases/create-notification.use-case';
 import { NotificationDtoMapper } from '../dto/notification-dto.mapper';
 import { IUserNotificationRepository } from '../../domain/repositories/user-notification.repository.interface';
+import { FirebaseMessagingService } from './firebase-messaging.service';
 
 @Injectable()
 export class NotificationService {
@@ -18,6 +19,7 @@ export class NotificationService {
         @Inject(IFcmTokenRepository)
         private readonly fcmTokenRepository: IFcmTokenRepository,
         private readonly createNotificationUseCase: CreateNotificationUseCase,
+        private readonly firebaseMessaging: FirebaseMessagingService,
     ) { }
 
     /**
@@ -44,14 +46,17 @@ export class NotificationService {
         userId: string,
         filter?: BaseFilter<NotificationFiltersDto>,
     ): Promise<PagedResult<NotificationResponseDto>> {
+        const { isRead, isArchived, isPushSent, pushDelivered, ...otherProps } = filter?.props || {};
         const pagedResult = await this.userNotificationRepository.findPaged({
             pageIndex: filter?.pageIndex,
             pageSize: filter?.pageSize,
             props: {
                 userId,
-                ...filter?.props,
-                isRead: filter?.props?.isRead ? (filter?.props?.isRead === 'Y') : undefined,
-                isArchived: filter?.props?.isArchived ? (filter?.props?.isArchived === 'Y') : undefined,
+                ...otherProps,
+                isRead: isRead ? (isRead === 'Y') : undefined,
+                isArchived: isArchived ? (isArchived === 'Y') : undefined,
+                isPushSent: isPushSent ? (isPushSent === 'Y') : undefined,
+                pushDelivered: pushDelivered ? (pushDelivered === 'Y') : undefined,
             }
         });
         return new PagedResult<NotificationResponseDto>(
@@ -145,10 +150,14 @@ export class NotificationService {
     }
 
     /**
-     * Deactivate FCM token
+     * Delete FCM token
      */
-    async deactivateFcmToken(token: string): Promise<void> {
-        await this.fcmTokenRepository.deactivateToken(token);
+    async deleteFcmToken(tokenId: string): Promise<void> {
+        const fcmToken = await this.fcmTokenRepository.findById(tokenId);
+        if (!fcmToken) {
+            throw new NotFoundException(`FCM token with ID ${tokenId} not found`);
+        }
+        await this.fcmTokenRepository.delete(fcmToken.id);
     }
 
     /**
@@ -181,6 +190,99 @@ export class NotificationService {
             pagedTokens.totalSize,
             pagedTokens.pageIndex,
             pagedTokens.pageSize
+        );
+    }
+
+    /**
+     * Get push notifications (admin view)
+     */
+    async getNotifications(
+        filter: BaseFilter<NotificationFiltersDto>,
+    ): Promise<PagedResult<NotificationResponseDto>> {
+        const { isRead, isArchived, isPushSent, pushDelivered, ...otherProps } = filter?.props || {};
+        const pagedResult = await this.userNotificationRepository.findPaged({
+            pageIndex: filter?.pageIndex,
+            pageSize: filter?.pageSize,
+            props: {
+                ...otherProps,
+                isRead: isRead ? (isRead === 'Y') : undefined,
+                isArchived: isArchived ? (isArchived === 'Y') : undefined,
+                isPushSent: isPushSent ? (isPushSent === 'Y') : undefined,
+                pushDelivered: pushDelivered ? (pushDelivered === 'Y') : undefined,
+            }
+        });
+
+        return new PagedResult<NotificationResponseDto>(
+            pagedResult.content.map(n => NotificationDtoMapper.toResponseDto(n!)),
+            pagedResult.totalSize,
+            pagedResult.pageIndex,
+            pagedResult.pageSize
+        );
+    }
+
+    /**
+     * Resend push notification
+     */
+    async resendPushNotification(userNotificationId: string): Promise<void> {
+        const userNotification = await this.userNotificationRepository.findById(userNotificationId);
+        if (!userNotification) {
+            throw new NotFoundException(`User notification with ID ${userNotificationId} not found`);
+        }
+
+        const userId = userNotification.user?.id;
+        if (!userId) {
+            throw new Error(`User ID not found for notification ${userNotificationId}`);
+        }
+
+        const tokens = await this.fcmTokenRepository.findActiveByUserId(userId);
+        if (tokens.length === 0) {
+            this.logger.warn(`No active FCM tokens found for user ${userId}`);
+            throw new Error(`No active FCM tokens found for user ${userId}`);
+        }
+
+        const tokenStrings = tokens.map(t => t.token);
+
+        const result = await this.firebaseMessaging.sendToDevices(tokenStrings, {
+            title: userNotification.title,
+            body: userNotification.body,
+            ...(userNotification.imageUrl && { imageUrl: userNotification.imageUrl }),
+            icon: userNotification.icon,
+            data: {
+                notificationId: userNotification.id,
+                type: userNotification.type,
+                category: userNotification.category,
+                ...(userNotification.action?.url && { actionUrl: userNotification.action.url }),
+                ...(userNotification.referenceId && { referenceId: userNotification.referenceId }),
+                ...(userNotification.referenceType && { referenceType: userNotification.referenceType }),
+            },
+        });
+
+        // Handle invalid tokens
+        if (result.failureCount > 0) {
+            for (const errObj of result.errors) {
+                const errorCode = errObj.error?.code;
+                if (errorCode === 'messaging/registration-token-not-registered' ||
+                    errorCode === 'messaging/invalid-registration-token') {
+                    this.logger.warn(`Deactivating invalid token for user ${userId}: ${errObj.token}`);
+                    await this.fcmTokenRepository.deactivateToken(errObj.token);
+                }
+            }
+        }
+
+        // Update notification with push status
+        userNotification.markPushSent(
+            result.successCount > 0,
+            result.failureCount > 0 ? `${result.failureCount} failures. ${JSON.stringify(result.errors)}` : undefined
+        );
+        await this.userNotificationRepository.update(userNotificationId, userNotification);
+
+        if (result.successCount === 0 && result.failureCount > 0) {
+            throw new Error(`Push notification failed: ${JSON.stringify(result.errors)}`);
+        }
+
+        this.logger.log(
+            `Push notification resent for notification ${userNotification.id}: ` +
+            `${result.successCount} success, ${result.failureCount} failures`
         );
     }
 }

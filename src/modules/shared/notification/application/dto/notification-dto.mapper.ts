@@ -23,6 +23,13 @@ export class NotificationDtoMapper {
             isPushSent: notification.isPushSent,
             pushSentAt: notification.pushSentAt,
             pushDelivered: notification.pushDelivered,
+            pushError: notification.pushError,
+            user: notification.user ? {
+                id: notification.user.id!,
+                firstName: notification.user.firstName || '',
+                lastName: notification.user.lastName || '',
+                email: notification.user.email || '',
+            } : undefined,
             imageUrl: notification.imageUrl,
             icon: notification.icon,
             metadata: notification.metadata,

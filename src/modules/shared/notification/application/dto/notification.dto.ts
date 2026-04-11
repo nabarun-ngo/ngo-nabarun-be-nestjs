@@ -58,6 +58,17 @@ export class NotificationResponseDto {
     pushDelivered: boolean;
 
     @ApiPropertyOptional()
+    pushError?: string;
+
+    @ApiPropertyOptional()
+    user?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+    };
+
+    @ApiPropertyOptional()
     imageUrl?: string;
 
     @ApiPropertyOptional()
@@ -107,6 +118,16 @@ export class NotificationFiltersDto {
     @IsString()
     @IsOptional()
     readonly referenceType?: string;
+    
+    @ApiPropertyOptional({ enum: ['Y', 'N'] })
+    @IsEnum(['Y', 'N'])
+    @IsOptional()
+    readonly isPushSent?: 'Y' | 'N';
+
+    @ApiPropertyOptional({ enum: ['Y', 'N'] })
+    @IsEnum(['Y', 'N'])
+    @IsOptional()
+    readonly pushDelivered?: 'Y' | 'N';
 
     @ApiPropertyOptional()
     @IsDateString()
@@ -117,6 +138,11 @@ export class NotificationFiltersDto {
     @IsDateString()
     @IsOptional()
     readonly toDate?: Date;
+
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    readonly userId?: string;
 }
 
 export class RegisterFcmTokenDto {

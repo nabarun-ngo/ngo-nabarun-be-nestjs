@@ -46,6 +46,8 @@ export interface NotificationFilter {
     isArchived?: boolean;
     referenceId?: string;
     referenceType?: string;
+    isPushSent?: boolean;
+    pushDelivered?: boolean;
     fromDate?: Date;
     toDate?: Date;
 }

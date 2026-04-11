@@ -113,12 +113,12 @@ export class NotificationController {
         return new SuccessResponse("FCM token registered successfully");
     }
 
-    @Delete('fcm-token/:token')
+    @Delete('fcm-token/:tokenId')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Deactivate FCM token' })
-    @ApiAutoVoidResponse({ status: 200, description: 'FCM token deactivated' })
-    async deactivateFcmToken(@Param('token') token: string) {
-        await this.notificationService.deactivateFcmToken(token);
+    @ApiOperation({ summary: 'Delete FCM token' })
+    @ApiAutoVoidResponse({ status: 200, description: 'FCM token deleted' })
+    async deleteFcmToken(@Param('tokenId') tokenId: string) {
+        await this.notificationService.deleteFcmToken(tokenId);
         return new SuccessResponse();
     }
 
@@ -138,6 +138,33 @@ export class NotificationController {
         });
 
         return new SuccessResponse(result);
+    }
+
+    @Get()
+    @ApiOperation({ summary: 'Get push notifications' })
+    @RequirePermissions('read:notifications')
+    @ApiAutoPagedResponse(NotificationResponseDto, { status: 200, description: 'Push notifications retrieved successfully', wrapInSuccessResponse: true, isArray: true })
+    async getNotifications(
+        @Query('pageIndex') pageIndex?: number,
+        @Query('pageSize') pageSize?: number,
+        @Query() filter?: NotificationFiltersDto,
+    ) {
+        const result = await this.notificationService.getNotifications({
+            pageIndex,
+            pageSize,
+            props: filter,
+        });
+
+        return new SuccessResponse(result);
+    }
+
+    @Post('resend/:id')
+    @ApiOperation({ summary: 'Resend a push notification' })
+    @RequirePermissions('create:notification')
+    @ApiAutoVoidResponse({ status: 200, description: 'Push notification resent successfully' })
+    async resendPushNotification(@Param('id') id: string) {
+        await this.notificationService.resendPushNotification(id);
+        return new SuccessResponse("Push notification resent successfully");
     }
 
 }

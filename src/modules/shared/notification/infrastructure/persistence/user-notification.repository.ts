@@ -109,6 +109,8 @@ export class UserNotificationRepository implements IUserNotificationRepository {
             ...filters?.isArchived !== undefined ? { isArchived: filters.isArchived } : {},
             ...filters?.referenceId ? { notification: { referenceId: filters.referenceId } } : {},
             ...filters?.referenceType ? { notification: { referenceType: filters.referenceType } } : {},
+            ...filters?.isPushSent !== undefined ? { isPushSent: filters.isPushSent } : {},
+            ...filters?.pushDelivered !== undefined ? { pushDelivered: filters.pushDelivered } : {},
             ...filters?.fromDate ? { createdAt: { gte: filters.fromDate } } : {},
             ...filters?.toDate ? { createdAt: { lte: filters.toDate } } : {},
         };
@@ -168,6 +170,12 @@ export class UserNotificationRepository implements IUserNotificationRepository {
                 pushSentAt: MapperUtils.nullToUndefined(data.pushSentAt),
                 pushDelivered: data.pushDelivered,
                 pushError: MapperUtils.nullToUndefined(data.pushError),
+                user: data.user ? {
+                    id: data.user.id,
+                    firstName: data.user.firstName,
+                    lastName: data.user.lastName,
+                    email: data.user.email,
+                } : undefined,
             },
             data.createdAt,
             data.updatedAt,
