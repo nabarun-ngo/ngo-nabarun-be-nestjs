@@ -17,6 +17,8 @@ import {
     RegisterFcmTokenDto,
     BulkNotificationDto,
     NotificationFiltersDto,
+    FcmTokenFilterDto,
+    UserFcmTokensDto,
 } from '../../application/dto/notification.dto';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
@@ -118,6 +120,24 @@ export class NotificationController {
     async deactivateFcmToken(@Param('token') token: string) {
         await this.notificationService.deactivateFcmToken(token);
         return new SuccessResponse();
+    }
+
+    @Get('fcm-tokens/metadata')
+    @ApiOperation({ summary: 'Get all FCM token metadata (grouped by user)' })
+    @RequirePermissions('read:fcm_tokens')
+    @ApiAutoPagedResponse(UserFcmTokensDto, { status: 200, description: 'FCM token metadata retrieved successfully', wrapInSuccessResponse: true, isArray: true })
+    async getFcmTokensMetadata(
+        @Query('pageIndex') pageIndex?: number,
+        @Query('pageSize') pageSize?: number,
+        @Query() filter?: FcmTokenFilterDto,
+    ) {
+        const result = await this.notificationService.getFcmTokensMetadata({
+            pageIndex,
+            pageSize,
+            props: filter,
+        });
+
+        return new SuccessResponse(result);
     }
 
 }

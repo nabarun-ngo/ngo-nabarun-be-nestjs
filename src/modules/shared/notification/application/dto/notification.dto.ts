@@ -186,3 +186,69 @@ export class BulkNotificationDto {
     @IsOptional()
     sendPush?: boolean;
 }
+
+export class FcmTokenMetadataDto {
+    @ApiProperty()
+    id: string;
+
+    @ApiPropertyOptional()
+    deviceType?: string;
+
+    @ApiPropertyOptional()
+    deviceName?: string;
+
+    @ApiPropertyOptional()
+    browser?: string;
+
+    @ApiPropertyOptional()
+    os?: string;
+
+    @ApiProperty()
+    isActive: boolean;
+
+    @ApiProperty()
+    lastUsedAt: Date;
+
+    @ApiProperty()
+    createdAt: Date;
+
+    @ApiProperty()
+    updatedAt: Date;
+}
+
+export class UserFcmTokensDto {
+    @ApiProperty()
+    userId: string;
+
+    @ApiProperty()
+    user: {
+        firstName: string;
+        lastName: string;
+        email: string;
+    };
+
+    @ApiProperty({ type: [FcmTokenMetadataDto] })
+    tokens: FcmTokenMetadataDto[];
+}
+
+export class FcmTokenFilterDto {
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    userId?: string;
+
+    @ApiPropertyOptional({ description: 'Device type (WEB, ANDROID, IOS)' })
+    @IsString()
+    @IsOptional()
+    deviceType?: string;
+
+    @ApiPropertyOptional({ enum: ['Y', 'N'] })
+    @IsEnum(['Y', 'N'])
+    @IsOptional()
+    isActive?: 'Y' | 'N';
+
+    @ApiPropertyOptional({ description: 'Search string for device name, user name, or email' })
+    @IsString()
+    @IsOptional()
+    search?: string;
+}

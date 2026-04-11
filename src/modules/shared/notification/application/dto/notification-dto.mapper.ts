@@ -1,5 +1,6 @@
+import { FcmToken } from "../../domain/models/fcm-token.model";
 import { Notification } from "../../domain/models/notification.model";
-import { NotificationResponseDto } from "./notification.dto";
+import { FcmTokenMetadataDto, NotificationResponseDto, UserFcmTokensDto } from "./notification.dto";
 
 export class NotificationDtoMapper {
     static toResponseDto(notification: Notification): NotificationResponseDto {
@@ -28,6 +29,20 @@ export class NotificationDtoMapper {
             expiresAt: notification.expiresAt,
             createdAt: notification.createdAt,
             updatedAt: notification.updatedAt,
+        };
+    }
+
+    static toFcmTokenMetadataDto(fcmToken: FcmToken): FcmTokenMetadataDto {
+        return {
+            id: fcmToken.id,
+            deviceType: fcmToken.deviceType,
+            deviceName: fcmToken.deviceName,
+            browser: fcmToken.browser,
+            os: fcmToken.os,
+            isActive: fcmToken.isActive,
+            lastUsedAt: fcmToken.lastUsedAt,
+            createdAt: fcmToken.createdAt,
+            updatedAt: fcmToken.updatedAt,
         };
     }
 }

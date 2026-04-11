@@ -4,18 +4,22 @@ import { IFcmTokenRepository } from '../../domain/repositories/fcm-token.reposit
 import { FcmToken } from '../../domain/models/fcm-token.model';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { Prisma } from '@prisma/client';
+import { FcmTokenFilterDto } from '../../application/dto/notification.dto';
 
 @Injectable()
 export class FcmTokenRepository implements IFcmTokenRepository {
     constructor(private readonly prisma: PrismaPostgresService) { }
-    async count(filter: any): Promise<number> {
+    async count(filter: FcmTokenFilterDto): Promise<number> {
         return await this.prisma.userFcmToken.count({
-            //where: this.whereQuery(filter!),
+            where: this.whereQuery(filter),
         });
     }
-    async findPaged(filter?: BaseFilter<any> | undefined): Promise<PagedResult<FcmToken>> {
+    async findPaged(filter?: BaseFilter<FcmTokenFilterDto> | undefined): Promise<PagedResult<FcmToken>> {
+        const where = this.whereQuery(filter?.props || {});
         const [tokens, total] = await Promise.all([
             this.prisma.userFcmToken.findMany({
+                where,
                 include: {
                     user: true,
                 },
@@ -23,7 +27,7 @@ export class FcmTokenRepository implements IFcmTokenRepository {
                 skip: (filter?.pageIndex ?? 0) * (filter?.pageSize ?? 1000),
                 take: filter?.pageSize ?? 1000,
             }),
-            this.prisma.userFcmToken.count(),
+            this.prisma.userFcmToken.count({ where }),
         ]);
 
         return {
@@ -34,7 +38,9 @@ export class FcmTokenRepository implements IFcmTokenRepository {
         };
     }
     async findAll<F>(filter: F): Promise<FcmToken[]> {
+        const where = this.whereQuery(filter as any);
         const tokens = await this.prisma.userFcmToken.findMany({
+            where,
             include: {
                 user: true,
             },
@@ -42,6 +48,41 @@ export class FcmTokenRepository implements IFcmTokenRepository {
         });
 
         return tokens.map(t => this.toDomain(t));
+    }
+
+    private whereQuery(filter: FcmTokenFilterDto): Prisma.UserFcmTokenWhereInput {
+        const where: Prisma.UserFcmTokenWhereInput = {};
+
+        if (filter.userId) {
+            where.userId = filter.userId;
+        }
+
+        if (filter.deviceType) {
+            where.deviceType = filter.deviceType;
+        }
+
+        if (filter.isActive) {
+            where.isActive = filter.isActive === 'Y';
+        }
+
+        if (filter.search) {
+            where.OR = [
+                { deviceName: { contains: filter.search, mode: 'insensitive' } },
+                { browser: { contains: filter.search, mode: 'insensitive' } },
+                { os: { contains: filter.search, mode: 'insensitive' } },
+                {
+                    user: {
+                        OR: [
+                            { firstName: { contains: filter.search, mode: 'insensitive' } },
+                            { lastName: { contains: filter.search, mode: 'insensitive' } },
+                            { email: { contains: filter.search, mode: 'insensitive' } },
+                        ]
+                    }
+                }
+            ];
+        }
+
+        return where;
     }
 
     async create(fcmToken: FcmToken): Promise<FcmToken> {
