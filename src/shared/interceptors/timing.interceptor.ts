@@ -1,6 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
 import { tap } from "rxjs";
-import { getTraceId } from "../utils/trace-context.util";
+import { getTraceId } from "../utilities/trace-context.util";
 
 @Injectable()
 export class TimingInterceptor implements NestInterceptor {

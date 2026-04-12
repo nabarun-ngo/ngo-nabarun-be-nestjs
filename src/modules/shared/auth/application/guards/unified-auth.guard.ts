@@ -11,7 +11,7 @@ import { USE_API_KEY } from '../decorators/use-api-key.decorator';
 import { JwtAuthService } from '../services/jwt-auth.service';
 import { IGNORE_CAPTCHA } from '../decorators/ignore-captcha.decorator';
 import { RecaptchaService } from '../services/google-recaptcha.service';
-import { traceStorage } from 'src/shared/utils/trace-context.util';
+import { traceStorage } from 'src/shared/utilities/trace-context.util';
 
 @Injectable()
 export class UnifiedAuthGuard implements CanActivate {

@@ -9,7 +9,7 @@ import { RedisHashCacheService } from "src/modules/shared/database/redis-hash-ca
 import { DomainEventPayload } from "./dto/domain-event-payload.dto";
 import { SlackNotificationRequestEvent } from "src/modules/shared/correspondence/events/slack-notification-request.event";
 import { ErrorResponse } from "./models/response-model";
-import { getTraceId } from "./utils/trace-context.util";
+import { getTraceId } from "./utilities/trace-context.util";
 import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
 import { NotificationKeys } from "./notification-keys";
 import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";

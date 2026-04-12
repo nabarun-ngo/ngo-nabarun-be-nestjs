@@ -5,7 +5,7 @@ import { Configkey } from "src/shared/config-keys";
 import { GlobalExceptionFilter } from "src/shared/filters/global-exception.filter";
 import * as bodyParser from 'body-parser';
 import { TimingInterceptor } from "src/shared/interceptors/timing.interceptor";
-import { resolveTraceId, traceStorage } from "src/shared/utils/trace-context.util";
+import { resolveTraceId, traceStorage } from "src/shared/utilities/trace-context.util";
 import { Request, Response, NextFunction } from "express";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 

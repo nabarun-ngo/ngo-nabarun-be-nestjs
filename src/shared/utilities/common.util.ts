@@ -1,3 +1,4 @@
+import { Parser } from 'expr-eval';
 import { DateTime } from 'luxon';
 
 export function formatDate(date: Date | string, options?: {
@@ -13,3 +14,15 @@ export function formatDate(date: Date | string, options?: {
         .toFormat(options?.format || 'dd/MM/yyyy');
 };
 
+export function evaluateCondition(expression: string, context: unknown) {
+    try {
+        const parser = new Parser();
+        const result = parser.evaluate(
+            expression,
+            context as never
+        );
+        return !!result;;
+    } catch (error) {
+        throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
+    }
+}
