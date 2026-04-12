@@ -20,6 +20,18 @@ export class CronJobDto {
     nextRun: Date;
 }
 
+export class QueueDto {
+    @ApiProperty()
+    @IsString()
+    id?: string;
+    @ApiProperty()
+    @IsString()
+    jobName: string;
+    @ApiProperty()
+    @IsString()
+    remarks?: string;
+}
+
 export class SchedulerLogDto {
     @ApiProperty()
     @IsString()
@@ -29,10 +41,10 @@ export class SchedulerLogDto {
     triggerAt: Date;
     @ApiProperty()
     @IsArray()
-    executedJobs: string[];
+    executedJobs: QueueDto[];
     @ApiProperty()
     @IsArray()
-    skippedJobs: string[];
+    skippedJobs: QueueDto[];
 }
 
 export class CronExecutionDto {

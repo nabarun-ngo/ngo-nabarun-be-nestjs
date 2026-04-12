@@ -35,7 +35,7 @@ export class CronLogStorageService {
     }
 
     // Global execution summaries
-    async addCronLog(log: { triggerId: string; triggerAt: Date; executedJobs: string[]; skippedJobs: string[] }): Promise<void> {
+    async addCronLog(log: SchedulerLogDto): Promise<void> {
         await this.store.pushToTimeline(this.NS, this.GLOBAL_KEY, {
             ...log,
             triggerAt: log.triggerAt.toISOString(),

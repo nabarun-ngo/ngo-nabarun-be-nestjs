@@ -2,7 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CronExpressionParser } from 'cron-parser';
-import { CronJobDto, SchedulerLogDto } from './cron-job.dto';
+import { CronJobDto, QueueDto, SchedulerLogDto } from './cron-job.dto';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { CronJob } from './cron-job.model';
 import { RemoteConfigService } from '../firebase/remote-config/remote-config.service';
@@ -27,12 +27,12 @@ export class CronSchedulerService {
     /**
      * Trigger all scheduled jobs
      */
-    async triggerScheduledJobs(timestamp?: string): Promise<{ triggerId: string, executed: string[], skipped: string[] }> {
+    async triggerScheduledJobs(timestamp?: string): Promise<SchedulerLogDto> {
         const now = timestamp ? new Date(timestamp) : new Date();
         const istTime = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         this.logger.log(`[CRON] Triggering scheduled jobs. Trigger DateTime: ${timestamp} -> Server DateTime: ${now.toISOString()} -> IST (interpreted): ${istTime}`);
-        const executed: string[] = [];
-        const skipped: string[] = [];
+        const executed: QueueDto[] = [];
+        const skipped: QueueDto[] = [];
         const CRON_JOBS = await this.fetchCronJobs();
         const triggerId = `T${generateUniqueNDigitNumber(4)}`;
 
@@ -45,26 +45,40 @@ export class CronSchedulerService {
                 const jobName = JobName[job.handler];
                 if (!jobName) {
                     this.logger.error(`[CRON] Job ${job.name} not found`);
-                    skipped.push(`${job.name}:JOB_NOT_FOUND`);
+                    skipped.push({
+                        jobName: job.name,
+                        remarks: 'JOB_NOT_FOUND'
+                    });
                     continue;
                 }
                 const jobQueue = await this.jobProcessingService.addJob(jobName, payload);
                 this.logger.log(`[CRON] Triggered job: ${job.name} with ID: ${jobQueue.id}`);
-                executed.push(`${job.name}:${jobQueue.id}`);
+                executed.push({
+                    jobName: job.name,
+                    id: jobQueue.id
+                });
             } else {
                 this.logger.log(`[CRON] Skipped job: ${job.name} because schedule not matched`);
-                skipped.push(`${job.name}:SCHEDULE_NOT_MATCHED`);
+                skipped.push({
+                    jobName: job.name,
+                    remarks: 'SCHEDULE_NOT_MATCHED'
+                });
             }
         }
-
+        const triggerAt = new Date();
         await this.logStorage.addCronLog({
             triggerId: triggerId,
-            triggerAt: new Date(),
+            triggerAt: triggerAt,
             executedJobs: executed,
             skippedJobs: skipped
         });
 
-        return { triggerId, executed, skipped };
+        return {
+            triggerId,
+            triggerAt,
+            executedJobs: executed,
+            skippedJobs: skipped
+        };
     }
 
     /**
