@@ -9,4 +9,12 @@ export enum JobName {
     ENGINE_PROCESS_STEP = "ENGINE_PROCESS_STEP",
     ENGINE_SEND_TASK_REMINDER = "ENGINE_SEND_TASK_REMINDER",
     CREATE_TRANSACTION = "CREATE_TRANSACTION",
+    TriggerMonthlyDonationEvent = "TriggerMonthlyDonationEvent",
+    TriggerMarkDonationAsPendingEvent = "TriggerMarkDonationAsPendingEvent",
+    TriggerRemindPendingDonationsEvent = "TriggerRemindPendingDonationsEvent",
+    GenerateDonationSummaryReportEvent = "GenerateDonationSummaryReportEvent",
+    TriggerRemindPendingTasksEvent = "TriggerRemindPendingTasksEvent",
+    DeleteNotificationRequestEvent = "DeleteNotificationRequestEvent",
+    DeleteFCMTokenRequestEvent = "DeleteFCMTokenRequestEvent",
+    TriggerAutoCloseWorkflowTasksEvent = "TriggerAutoCloseWorkflowTasksEvent",
 }

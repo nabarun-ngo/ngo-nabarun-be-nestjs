@@ -26,14 +26,6 @@ export class CronController {
         );
     }
 
-    @Post('run/:name')
-    @RequirePermissions('update:cron')
-    @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
-    async runScheduledJob(@Param('name') name: string) {
-        await this.schedulerService.runScheduledJob(name)
-        return new SuccessResponse('Job executed successfully');
-    }
-
     @Get('jobs')
     @RequirePermissions('read:cron')
     @ApiAutoResponse(CronJobDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
@@ -42,6 +34,37 @@ export class CronController {
             await this.schedulerService.getScheduledJobs()
         );
     }
+
+    @Get('trigger-logs')
+    @RequirePermissions('read:cron')
+    @ApiAutoResponse(SchedulerLogDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
+    async getTriggerLogs() {
+        return new SuccessResponse(
+            await this.schedulerService.getGlobalCronLogs()
+        );
+    }
+
+    //#region Deprecated Methods
+    /**
+     * @deprecated We are using Job Processing Service for this
+     * @param name 
+     * @returns 
+     */
+    @Post('run/:name')
+    @RequirePermissions('update:cron')
+    @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
+    async runScheduledJob(@Param('name') name: string) {
+        await this.schedulerService.runScheduledJob(name)
+        return new SuccessResponse('Job executed successfully');
+    }
+
+    /**
+     * @deprecated We are using Job Processing Service for this
+     * @param name 
+     * @param pageIndex 
+     * @param pageSize 
+     * @returns 
+     */
     @Get('executions/:name')
     @RequirePermissions('read:cron')
     @ApiQuery({ name: 'pageIndex', required: false, type: Number })
@@ -54,13 +77,5 @@ export class CronController {
             await this.schedulerService.getCronLogs(name, pageIndex, pageSize)
         );
     }
-
-    @Get('trigger-logs')
-    @RequirePermissions('read:cron')
-    @ApiAutoResponse(SchedulerLogDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
-    async getTriggerLogs() {
-        return new SuccessResponse(
-            await this.schedulerService.getGlobalCronLogs()
-        );
-    }
+    //#endregion
 }

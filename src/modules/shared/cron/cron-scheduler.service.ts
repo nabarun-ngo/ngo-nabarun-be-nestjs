@@ -10,6 +10,8 @@ import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
 import { CronLogStorageService } from './cron-log-storage.service';
 import { RootEvent } from 'src/shared/models/root-event';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
+import { JobProcessingService } from '../job-processing/services/job-processing.service';
+import { JobName } from 'src/shared/job-names';
 
 @Injectable()
 export class CronSchedulerService {
@@ -18,9 +20,13 @@ export class CronSchedulerService {
     constructor(
         private eventEmitter: EventEmitter2,
         private readonly firebasRC: RemoteConfigService,
-        private readonly logStorage: CronLogStorageService
+        private readonly logStorage: CronLogStorageService,
+        private readonly jobProcessingService: JobProcessingService
     ) { }
 
+    /**
+     * Trigger all scheduled jobs
+     */
     async triggerScheduledJobs(timestamp?: string): Promise<{ triggerId: string, executed: string[], skipped: string[] }> {
         const now = timestamp ? new Date(timestamp) : new Date();
         const istTime = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
@@ -32,12 +38,22 @@ export class CronSchedulerService {
 
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
-                this.logger.log(`[CRON] Triggered job: ${job.name}`);
-                executed.push(`${job.name}`);
-                this.runJob(job, 'AUTOMATIC', triggerId);
+                const payload = new class extends RootEvent { }();
+                if (job.inputData) {
+                    Object.assign(payload, job.inputData);
+                }
+                const jobName = JobName[job.handler];
+                if (!jobName) {
+                    this.logger.error(`[CRON] Job ${job.name} not found`);
+                    skipped.push(`${job.name}:JOB_NOT_FOUND`);
+                    continue;
+                }
+                const jobQueue = await this.jobProcessingService.addJob(jobName, payload);
+                this.logger.log(`[CRON] Triggered job: ${job.name} with ID: ${jobQueue.id}`);
+                executed.push(`${job.name}:${jobQueue.id}`);
             } else {
-                this.logger.log(`[CRON] Skipped job: ${job.name}`);
-                skipped.push(`${job.name}`);
+                this.logger.log(`[CRON] Skipped job: ${job.name} because schedule not matched`);
+                skipped.push(`${job.name}:SCHEDULE_NOT_MATCHED`);
             }
         }
 
@@ -51,7 +67,32 @@ export class CronSchedulerService {
         return { triggerId, executed, skipped };
     }
 
-    async fetchCronJobs(): Promise<CronJob[]> {
+    /**
+     * Get all scheduled jobs
+     */
+    async getScheduledJobs() {
+        return (await this.fetchCronJobs()).filter(f => f.enabled).map(m => {
+            return {
+                name: m.name,
+                description: m.description,
+                handler: m.handler,
+                enabled: m.enabled,
+                nextRun: CronExpressionParser.parse(m.expression, { tz: 'Asia/Kolkata' }).next().toDate(),
+            } as CronJobDto;
+        });
+    }
+
+    /**
+     * Get all cron logs
+     */
+    async getGlobalCronLogs(): Promise<SchedulerLogDto[]> {
+        return await this.logStorage.getGlobalLogs();
+    }
+
+    /**
+     * Fetch all cron jobs from Firebase Remote Config
+     */
+    private async fetchCronJobs(): Promise<CronJob[]> {
         const config = await this.firebasRC.getAllKeyValues();
         const cronJobs = parseKeyValueConfigs(config['CRON_JOBS'].value);
 
@@ -67,37 +108,9 @@ export class CronSchedulerService {
         });
     }
 
-    async getScheduledJobs() {
-        return (await this.fetchCronJobs()).filter(f => f.enabled).map(m => {
-            return {
-                name: m.name,
-                description: m.description,
-                handler: m.handler,
-                enabled: m.enabled,
-                nextRun: CronExpressionParser.parse(m.expression, { tz: 'Asia/Kolkata' }).next().toDate(),
-            } as CronJobDto;
-        });
-    }
-
-    async runScheduledJob(name: string) {
-        const job = (await this.fetchCronJobs()).find(f => f.name === name);
-        if (!job) {
-            throw new BusinessException(`Job ${name} not found OR Not in active state`);
-        }
-        await this.runJob(job, 'MANUAL');
-    }
-
-    async getCronLogs(jobName: string, pageIndex?: number, pageSize?: number) {
-        return await this.logStorage.getLogs(jobName, pageIndex, pageSize);
-    }
-
-    async getGlobalCronLogs(): Promise<SchedulerLogDto[]> {
-        return await this.logStorage.getGlobalLogs();
-    }
-
     /**
-   * Check if a cron expression should execute at the given time
-   */
+     * Check if a cron expression should execute at the given time
+     */
     private shouldExecute(expression: string, intendedTime: Date): boolean {
         try {
             // We shift the current date back by 1 minute to make the check inclusive
@@ -127,6 +140,24 @@ export class CronSchedulerService {
         }
     }
 
+
+    //#region All Methods under this is Deprecated
+
+    /**
+     * @deprecated We are using Job Processing Service for this
+     * Run a specific cron job manually
+     */
+    async runScheduledJob(name: string) {
+        const job = (await this.fetchCronJobs()).find(f => f.name === name);
+        if (!job) {
+            throw new BusinessException(`Job ${name} not found OR Not in active state`);
+        }
+        await this.runJob(job, 'MANUAL');
+    }
+
+    /**
+     * @deprecated We are using Job Processing Service for this
+     */
     private async runJob(job: CronJob, triggerType: "MANUAL" | "AUTOMATIC", triggerId?: string) {
         const startTime = new Date();
         const payload = new class extends RootEvent { }();
@@ -191,5 +222,13 @@ export class CronSchedulerService {
             }
         }
     }
+
+    /**
+     * @deprecated We are using Job Processing Service for this
+     */
+    async getCronLogs(jobName: string, pageIndex?: number, pageSize?: number) {
+        return await this.logStorage.getLogs(jobName, pageIndex, pageSize);
+    }
+    //#endregion
 
 }

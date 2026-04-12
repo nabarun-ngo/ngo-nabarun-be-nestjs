@@ -12,7 +12,7 @@ import { DatabaseModule } from '../database/database.module';
 import { CreateNotificationUseCase } from './application/use-cases/create-notification.use-case';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { MetadataService } from './infrastructure/external/metadata.service';
-import { NotificationEventHandler } from './application/handlers/notification-event.handler';
+import { NotificationJobsHandler } from './application/handlers/notification-jobs.handler';
 
 @Module({
     imports: [DatabaseModule, FirebaseModule],
@@ -34,7 +34,7 @@ import { NotificationEventHandler } from './application/handlers/notification-ev
         },
         CreateNotificationUseCase,
         MetadataService,
-        NotificationEventHandler
+        NotificationJobsHandler
     ],
     exports: [NotificationService, FirebaseMessagingService, CreateNotificationUseCase],
 })
