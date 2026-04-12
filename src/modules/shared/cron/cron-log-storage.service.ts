@@ -42,7 +42,15 @@ export class CronLogStorageService {
         }, 1000);
     }
 
-    async getGlobalLogs(start: number = 0, end?: number): Promise<SchedulerLogDto[]> {
-        return this.store.getTimeline(this.NS, this.GLOBAL_KEY, { start, end });
+    async getGlobalLogs(pageIndex: number = 0, pageSize: number = 10): Promise<PagedResult<SchedulerLogDto>> {
+        const start = pageIndex * pageSize;
+        const end = start + pageSize - 1;
+
+        const [items, totalSize] = await Promise.all([
+            this.store.getTimeline<SchedulerLogDto>(this.NS, this.GLOBAL_KEY, { start, end }),
+            this.store.timelineLength(this.NS, this.GLOBAL_KEY)
+        ]);
+
+        return new PagedResult<SchedulerLogDto>(items, totalSize, pageIndex, pageSize);
     }
 }

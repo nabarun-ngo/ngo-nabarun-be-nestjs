@@ -37,10 +37,15 @@ export class CronController {
 
     @Get('trigger-logs')
     @RequirePermissions('read:cron')
-    @ApiAutoResponse(SchedulerLogDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
-    async getTriggerLogs() {
+    @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+    @ApiQuery({ name: 'pageSize', required: false, type: Number })
+    @ApiAutoPagedResponse(SchedulerLogDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
+    async getTriggerLogs(
+        @Query('pageIndex') pageIndex?: number,
+        @Query('pageSize') pageSize?: number
+    ) {
         return new SuccessResponse(
-            await this.schedulerService.getGlobalCronLogs()
+            await this.schedulerService.getGlobalCronLogs(pageIndex, pageSize)
         );
     }
 

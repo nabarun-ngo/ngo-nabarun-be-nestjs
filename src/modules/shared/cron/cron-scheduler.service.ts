@@ -85,8 +85,8 @@ export class CronSchedulerService {
     /**
      * Get all cron logs
      */
-    async getGlobalCronLogs(): Promise<SchedulerLogDto[]> {
-        return await this.logStorage.getGlobalLogs();
+    async getGlobalCronLogs(pageIndex: number | undefined, pageSize: number | undefined) {
+        return await this.logStorage.getGlobalLogs(pageIndex, pageSize);
     }
 
     /**
