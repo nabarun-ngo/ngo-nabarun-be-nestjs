@@ -4,6 +4,7 @@ import { JobProcessingService } from './services/job-processing.service';
 import { JobProcessorRegistry } from './services/job-processor-registry.service';
 import { JobMonitoringService } from './services/job-monitoring.service';
 import { JobController } from './controllers/job.controller';
+import { config } from 'src/config/app.config';
 
 export interface JobProcessingModuleOptions {
   connection: {
@@ -39,6 +40,9 @@ export class JobProcessingModule {
           defaultJobOptions: options.defaultJobOptions,
         }),
         BullModule.registerQueue(...queueConfigs),
+        BullModule.registerFlowProducer({
+          name: config.jobProcessing.queueName + '-flow-producer',
+        }),
       ],
       providers: [
         JobProcessingService,

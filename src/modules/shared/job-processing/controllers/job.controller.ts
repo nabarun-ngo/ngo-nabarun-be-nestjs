@@ -23,8 +23,8 @@ export class JobController {
   @ApiQuery({ name: 'pageIndex', required: true, description: 'Page index of the failed jobs to return' })
   @ApiQuery({ name: 'pageSize', required: true, description: 'Page size of the failed jobs to return' })
   @ApiQuery({
-    name: 'status', required: true, description: 'Status of the failed jobs to return',
-    enum: ['completed', 'failed', 'paused', 'delayed', 'paused', 'active']
+    name: 'status', required: true, description: 'Status of the jobs to return',
+    enum: ['completed', 'failed', 'paused', 'delayed', 'active', 'waiting', 'waiting-children']
   })
   @ApiQuery({ name: 'name', required: false, description: 'Name of the failed jobs to return' })
   @RequirePermissions('read:jobs')
@@ -32,9 +32,9 @@ export class JobController {
   async getJobs(
     @Query('pageIndex') pageIndex: number,
     @Query('pageSize') pageSize: number,
-    @Query('status') status: 'completed' | 'failed' | 'paused' | 'delayed' | 'paused' | 'active',
+    @Query('status') status: 'completed' | 'failed' | 'paused' | 'delayed' | 'active' | 'waiting' | 'waiting-children',
     @Query('name') name?: string) {
-    const result = await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status, name });
+    const result = await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status: status as any, name });
     return new SuccessResponse(
       result
     );

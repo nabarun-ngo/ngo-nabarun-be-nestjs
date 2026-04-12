@@ -35,43 +35,6 @@ export class DonationJobsHandler {
     ) { }
 
     @ProcessJob({
-        name: JobName.CREATE_DONATION,
-        attempts: 3,
-        backoff: {
-            type: 'exponential',
-            delay: 2000,
-        },
-        priority: 1
-    })
-    async createDonationForUser(job: Job<{ userId: string; amount: number }, Donation>) {
-        job.log(`Processing ${JobName.CREATE_DONATION} for user ${job.data.userId}`);
-        const now = new Date();
-        // First date: set day to 1
-        const firstDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        // Last date: set month to next month, day to 0 (last day of current month)
-        const lastDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        try {
-            const donation = await this.createDonationUseCase.execute({
-                type: DonationType.REGULAR,
-                amount: job.data.amount,
-                donorId: job.data.userId,
-                startDate: firstDate,
-                endDate: lastDate,
-                isGuest: false,
-            });
-            job.log(`[MonthlyDonationsJob] Monthly donation ${donation.id} raised successfully for user: ${job.data.userId}`);
-            return donation.toJson();
-        } catch (error) {
-            if (error instanceof BusinessException) {
-                job.log(`[MonthlyDonationsJob] Skipping user ${job.data.userId}: ${error.message}.`);
-            } else {
-                job.log(`[MonthlyDonationsJob] Error raising monthly donation for user: ${job.data.userId} Error : ${error}`);
-                throw error;
-            }
-        }
-    }
-
-    @ProcessJob({
         name: JobName.SEND_DONATION_REMINDER_EMAIL,
         attempts: 3,
         backoff: {
@@ -166,32 +129,45 @@ export class DonationJobsHandler {
         }
     })
     async handleTriggerMonthlyDonationEvent(job: Job<any>) {
-        job.log('[MonthlyDonationsJob] Triggering monthly donation raise process...');
+        job.log('[INFO] Triggering monthly donation raise process...');
         const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
+        job.log(`[INFO] Found ${users.length} active users.`);
         const defaultAmount = Number(this.configService.get<number>(Configkey.PROP_DONATION_AMOUNT));
+        job.log(`[INFO] Default donation amount: ${defaultAmount}`);
         const today = new Date();
+        // First date: set day to 1
+        const firstDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        // Last date: set month to next month, day to 0 (last day of current month)
+        const lastDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         for (const user of users) {
+            // Check if user is in donation pause period
             if (user.donationPauseStart && user.donationPauseEnd &&
                 user.donationPauseStart <= today && user.donationPauseEnd >= today) {
-                job.log(`Donation pause period (${user.donationPauseStart}-${user.donationPauseEnd}) found for user ${user.id}. Skipping donation creation.`);
+                job.log(`[WARN] Donation pause period (${user.donationPauseStart}-${user.donationPauseEnd}) found for user ${user.id}. Skipping donation creation.`);
                 continue;
             }
-
             const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
-            await this.jobProcessingService.addJob(
-                JobName.CREATE_DONATION,
-                {
-                    userId: user.id,
+            job.log(`[INFO] Creating monthly donation for user ${user.fullName} (${user.id}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
+            try {
+                const donation = await this.createDonationUseCase.execute({
+                    type: DonationType.REGULAR,
                     amount: amount,
-                },
-                {
-                    delay: generateUniqueNDigitNumber(3),
-                    parent: { id: job.id!, queue: 'default' },
+                    donorId: user.id,
+                    startDate: firstDate,
+                    endDate: lastDate,
+                    isGuest: false,
+                });
+                job.log(`[INFO] Monthly donation ${donation.id} raised successfully for user: ${user.fullName} (${user.id})`);
+            } catch (error) {
+                if (error instanceof BusinessException) {
+                    job.log(`[WARN] Skipping user ${user.fullName} (${user.id}): ${error.message}.`);
+                } else {
+                    job.log(`[ERROR] Error raising monthly donation for user: ${user.fullName} (${user.id}) Error : ${error}`);
+                    throw error;
                 }
-            );
+            }
         }
-
-        job.log(`[MonthlyDonationsJob] Added ${users.length} donation jobs.`);
+        job.log(`[INFO] Donation raise process completed.`);
     }
 
     @ProcessJob({
@@ -203,14 +179,20 @@ export class DonationJobsHandler {
         }
     })
     async markPendingDonations(job: Job<any>): Promise<void> {
-        job.log('[PendingDonationsJob] Starting mark pending donations process...');
+        job.log('[INFO] Starting mark pending donations process...');
         const raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] })
+        job.log(`[INFO] Found ${raisedDonations.length} raised donations.`);
         for (const donation of raisedDonations) {
-            donation.markAsPending();
-            await this.donationRepository.update(donation.id, donation);
-            job.log(`[PendingDonationsJob] Donation ${donation.id} marked as pending...`);
+            try {
+                donation.markAsPending();
+                await this.donationRepository.update(donation.id, donation);
+                job.log(`[INFO] Donation ${donation.id} marked as pending...`);
+            } catch (error) {
+                job.log(`[ERROR] Error marking donation ${donation.id} as pending: ${error.message}`);
+                throw error;
+            }
         }
-        job.log('[PendingDonationsJob] Completed mark pending donations process...');
+        job.log('[INFO] Mark pending donations process completed...');
     }
 
     @ProcessJob({
@@ -222,25 +204,14 @@ export class DonationJobsHandler {
         }
     })
     async remindPendingDonations(job: Job<any>): Promise<void> {
-        job.log('[PendingDonationsReminderJob] Triggering pending donations reminder process...');
+        job.log('[INFO] Starting pending donations reminder process...');
         const donations = await this.donationRepository.findAll({ status: [DonationStatus.PENDING], isGuest: false });
+        job.log(`[INFO] Found ${donations.length} pending donations.`);
         const userDonations = groupBy(donations, (donation) => donation.donorId);
-
-        // Add jobs - concurrency will handle processing rate
-        // All jobs with same delay will become ready at same time, but concurrency limits simultaneous processing
+        job.log(`[INFO] Grouped ${Object.keys(userDonations).length} users with pending donations.`);
         for (const [userId, userDonationsList] of Object.entries(userDonations)) {
-            await this.jobProcessingService.addJob(
-                JobName.SEND_DONATION_REMINDER_EMAIL,
-                {
-                    donorId: userId,
-                    donorEmail: userDonationsList[0].donorEmail,
-                    donorName: userDonationsList[0].donorName,
-                },
-                {
-                    delay: generateUniqueNDigitNumber(3),
-                    parent: { id: job.id!, queue: 'default' },
-                }
-            );
+            job.log(`[INFO] Adding reminder job for user ${userId}`);
+
         }
 
         job.log(`[PendingDonationsReminderJob] Added ${Object.keys(userDonations).length} reminder jobs`);
@@ -261,23 +232,24 @@ export class DonationJobsHandler {
         const firstDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         // Last date: set month to current month, day to 0 (last day of previous month)
         const lastDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        await this.jobProcessingService.addJob<{ reportName: string; reportParams: ReportParamsDto }>(
-            JobName.GENERATE_REPORT,
+        
+        await this.jobProcessingService.addChildrenToJob(job, [
             {
-                reportName: 'DONATION_SUMMARY_REPORT',
-                reportParams: {
-                    startDate: firstDate,
-                    endDate: lastDate,
-                    uploadFile: 'Y',
-                    sendEmail: 'Y',
-                    on: 'paidOn'
+                name: JobName.GENERATE_REPORT,
+                queueName: 'default',
+                data: {
+                    reportName: 'DONATION_SUMMARY_REPORT',
+                    reportParams: {
+                        startDate: firstDate,
+                        endDate: lastDate,
+                        uploadFile: 'Y',
+                        sendEmail: 'Y',
+                        on: 'paidOn'
+                    }
                 }
-            },
-            {
-                parent: { id: job.id!, queue: 'default' },
             }
-        );
+        ]);
 
-        job.log('[GenerateDonationSummaryReportJob] Jon Scheduled for donation summary report generation ...');
+        job.log('[GenerateDonationSummaryReportJob] Flow created for donation summary report generation');
     }
 }

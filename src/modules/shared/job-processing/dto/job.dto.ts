@@ -7,6 +7,8 @@ import { IsArray, IsBoolean, IsDate, IsEnum, IsNumber, IsObject, IsOptional, IsS
 export type JobOptions = bullmq.JobsOptions;
 export type Job<TData = unknown, TResult = unknown> = bullmq.Job<TData, TResult>;
 export type JobProcessor<TData = unknown, TResult = unknown> = (job: Job<TData, TResult>) => Promise<TResult>;
+export type FlowJob = bullmq.FlowJob;
+export type FlowOptions = bullmq.FlowOpts;
 export interface JobData { [key: string]: any; }
 
 export class JobMetrics {
@@ -29,6 +31,10 @@ export class JobMetrics {
   @ApiProperty()
   @IsNumber()
   waiting: number;
+
+  @ApiProperty()
+  @IsNumber()
+  waitingChildren: number;
 
   @ApiProperty()
   @IsNumber()
@@ -120,9 +126,19 @@ export class JobDetail {
   stacktrace: string[];
 
   @ApiPropertyOptional()
-  @IsOptional()
   @IsArray()
   logs?: string[];
+
+  @ApiPropertyOptional({ type: () => [JobDetail] })
+  @IsOptional()
+  children?: JobDetail[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  parent?: {
+    id: string;
+    queue: string;
+  };
 }
 
 export class QueueHealth {

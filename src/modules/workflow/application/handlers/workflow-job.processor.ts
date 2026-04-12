@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
-import { type Job } from '../../../shared/job-processing/dto/job.dto';
+import { type Job, JobDetail, FlowJob } from '../../../shared/job-processing/dto/job.dto';
 import { WorkflowStep } from '../../domain/model/workflow-step.model';
 import { StartWorkflowStepUseCase } from '../use-cases/start-workflow-step.use-case';
 import { JobName } from 'src/shared/job-names';
@@ -131,9 +131,7 @@ export class WorkflowJobProcessor {
           status: WorkflowTask.pendingTaskStatus,
         });
 
-      job.log(
-        `Found ${tasks.length} pending tasks`,
-      );
+      job.log(`Found ${tasks.length} pending tasks`);
 
       const assignees = new Map(
         tasks
@@ -141,30 +139,28 @@ export class WorkflowJobProcessor {
           .map(a => [a.assignedTo.id, a.assignedTo]),
       );
 
-      job.log(
-        `Unique assignees count: ${assignees.size}`,
-      );
+      job.log(`Unique assignees count: ${assignees.size}`);
 
-      let successCount = 0;
-
+      const children: FlowJob[] = [];
       for (const user of assignees.values()) {
-        job.log(
-          `Queueing reminder | userId=${user.id} | email=${user.email}`,
-        );
+        job.log(`Adding reminder child | userId=${user.id} | email=${user.email}`);
 
-        await this.jobProcessingService.addJob(
-          JobName.SEND_TASK_REMINDER_EMAIL,
-          {
+        children.push({
+          name: JobName.SEND_TASK_REMINDER_EMAIL,
+          queueName: 'default',
+          data: {
             assigneeId: user.id,
             assigneeName: user.fullName,
             assigneeEmail: user.email,
           },
-          {
+          opts: {
             delay: generateUniqueNDigitNumber(5),
-            parent: { id: job.id!, queue: 'default' },
           }
-        );
-        successCount++;
+        });
+      }
+
+      if (children.length > 0) {
+        await this.jobProcessingService.addChildrenToJob(job, children);
       }
 
       this.eventEmitter.emit(SendNotificationRequestEvent.name,
@@ -181,7 +177,7 @@ export class WorkflowJobProcessor {
         }));
 
       job.log(
-        `Reminder job queued successfully | total=${successCount} | duration=${Date.now() - startedAt}ms`,
+        `Reminder job flow created successfully | total=${children.length} | duration=${Date.now() - startedAt}ms`,
       );
     } catch (error) {
       job.log(
