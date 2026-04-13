@@ -6,7 +6,7 @@ import { DONATION_REPOSITORY, type IDonationRepository } from '../../domain/repo
 import { JobName } from 'src/shared/job-names';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
-import { Donation, DonationStatus, DonationType } from '../../domain/model/donation.model';
+import { DonationStatus, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { formatDate } from 'src/shared/utilities/common.util';
 import { ReportParamsDto } from '../dto/report.dto';
@@ -17,7 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { UserStatus } from 'src/modules/user/domain/model/user.model';
 import { groupBy } from 'lodash';
-import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
+import { type JobExecutionContext } from 'src/modules/shared/job-processing/dto/job.dto';
 
 @Injectable()
 export class DonationJobsHandler {
@@ -30,7 +30,6 @@ export class DonationJobsHandler {
         private readonly financeReportService: FinanceReportService,
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
-        private readonly jobProcessingService: JobProcessingService,
         private readonly configService: ConfigService,
     ) { }
 
@@ -147,6 +146,8 @@ export class DonationJobsHandler {
                 continue;
             }
             const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
+
+            //
             job.log(`[INFO] Creating monthly donation for user ${user.fullName} (${user.id}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
             try {
                 const donation = await this.createDonationUseCase.execute({
@@ -166,6 +167,7 @@ export class DonationJobsHandler {
                     throw error;
                 }
             }
+            //
         }
         job.log(`[INFO] Donation raise process completed.`);
     }
@@ -225,13 +227,24 @@ export class DonationJobsHandler {
             delay: 30 * 1000,
         }
     })
-    async generateDonationSummaryReport(job: Job<any>): Promise<void> {
+    async generateDonationSummaryReport(job: Job<any>, ctx: JobExecutionContext): Promise<void> {
         job.log('[GenerateDonationSummaryReportJob] Triggering donation summary report generation...');
         const now = new Date();
         // First date: set day to 1 (of previous month)
         const firstDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         // Last date: set month to current month, day to 0 (last day of previous month)
         const lastDate = new Date(now.getFullYear(), now.getMonth(), 0);
+
+        ctx.addChild(JobName.GENERATE_REPORT, {
+            reportName: 'DONATION_SUMMARY_REPORT',
+            reportParams: {
+                startDate: firstDate,
+                endDate: lastDate,
+                uploadFile: 'Y',
+                sendEmail: 'N',
+                on: 'paidOn'
+            }
+        });
 
         // await this.jobProcessingService.addChildrenToJob(job, [
         //     {

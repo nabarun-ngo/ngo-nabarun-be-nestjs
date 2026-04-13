@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnModuleDestroy, OnApplicationBootstrap } from '@nestjs/common';
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, Worker, Job as BullJob } from 'bullmq';
+import { Queue, Worker, Job as BullJob, WaitingChildrenError } from 'bullmq';
 import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.decorator';
 import { JobName } from 'src/shared/job-names';
-import { JobProcessor, Job } from '../dto/job.dto';
+import { JobProcessor, Job, JobExecutionContext, JobOptions } from '../dto/job.dto';
 import { config } from 'src/config/app.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppTechnicalError } from 'src/shared/exceptions/app-tech-error';
@@ -97,8 +97,8 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
    * Register a processor with its options
    */
   private registerProcessor(options: ProcessJobOptions, method: Function) {
-    const processor: JobProcessor = async (job: Job) => {
-      return await method(job);
+    const processor: JobProcessor = async (job: Job, ctx: JobExecutionContext) => {
+      return await method(job, ctx);
     };
 
     this.processors.set(options.name, { processor, options });
@@ -112,7 +112,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     if (this.worker) return;
     this.worker = new Worker(
       config.jobProcessing.queueName,
-      async (job: BullJob) => this.processJob(job),
+      async (job: BullJob, token?: string) => this.processJob(job, token),
       {
         connection: this.defaultQueue.opts.connection,
         // Optimize for in-process execution
@@ -147,9 +147,18 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   /**
    * Process a job by routing to the appropriate processor with enhanced error handling
    */
-  private async processJob(job: BullJob): Promise<any> {
+  private async processJob(job: BullJob, token?: string): Promise<any> {
     if (this.isShuttingDown) {
       throw new Error('Worker is shutting down');
+    }
+
+    // Auto-completion for jobs that have awakened from a waiting-children state
+    if (job.data._internal_isWaitingOnChildren) {
+      this.logger.log(`Job ${job.id} resumed after waiting for children. Auto-completing parent job.`);
+      const cleanData = { ...job.data };
+      delete cleanData._internal_isWaitingOnChildren;
+      await job.updateData(cleanData);
+      return;
     }
 
     const processorData = this.processors.get(job.name);
@@ -163,6 +172,14 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     const attemptNumber = (job.attemptsMade || 0) + 1;
     const maxAttempts = job.opts.attempts || 3;
 
+    // Buffer for dynamic child jobs
+    const childrenToSpawn: { name: string; data: any; options?: JobOptions }[] = [];
+    const ctx: JobExecutionContext = {
+      addChild: <T = Record<string, any>>(name: string, data: T, options?: JobOptions) => {
+        childrenToSpawn.push({ name, data, options });
+      }
+    };
+
     try {
       job.log(`Starting Processing: ${job.name}:${job.id} (attempt ${attemptNumber}/${maxAttempts})`);
 
@@ -172,18 +189,53 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
 
       if (timeout) {
         result = await this.executeWithTimeout(
-          processorData.processor(job as unknown as Job),
+          processorData.processor(job as unknown as Job, ctx),
           timeout,
           job.name,
         );
       } else {
-        result = await processorData.processor(job as unknown as Job);
+        result = await processorData.processor(job as unknown as Job, ctx);
       }
 
       const duration = Date.now() - startTime;
       job.log(`[SUCCESS] Completed: ${job.name}:${job.id} after ${duration}ms`);
+
+      // Process buffered child jobs and properly suspend the parent 
+      if (childrenToSpawn.length > 0) {
+        this.logger.log(`Job ${job.id} spawning ${childrenToSpawn.length} children and entering waiting state.`);
+        
+        // Save state to auto-skip the processor logic when awakening next time
+        await job.updateData({ ...job.data, _internal_isWaitingOnChildren: true });
+
+        for (const child of childrenToSpawn) {
+          const childOpts = {
+            ...child.options,
+            parent: {
+              id: job.id!,
+              queue: job.queueQualifiedName || await this.defaultQueue.waitUntilReady().then(() => this.defaultQueue.qualifiedName)
+            }
+          };
+          await this.defaultQueue.add(child.name, child.data, childOpts);
+        }
+
+        const shouldWait = await job.moveToWaitingChildren(token!);
+        if (shouldWait) {
+          throw new WaitingChildrenError();
+        } else {
+          // If it doesn't wait, clear the flag quickly so it doesn't pollute data
+          const cleanData = { ...job.data };
+          delete cleanData._internal_isWaitingOnChildren;
+          await job.updateData(cleanData);
+          this.logger.log(`Job ${job.id} did not transition into waiting state (children might have completed instantly)`);
+        }
+      }
+
       return result;
     } catch (error) {
+      if (error instanceof WaitingChildrenError) {
+        throw error; // Let BullMQ handle the lock release silently
+      }
+
       const duration = Date.now() - startTime;
       job.log(`[ERROR] Failed: ${job.name}:${job.id} after ${duration}ms - ${attemptNumber}:${error.message}`);
       this.eventBus.emit(AppTechnicalError.name, new AppTechnicalError(error));

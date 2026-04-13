@@ -6,7 +6,10 @@ import { IsArray, IsBoolean, IsDate, IsEnum, IsNumber, IsObject, IsOptional, IsS
 // Re-export BullMQ's types as our types with better generic support
 export type JobOptions = bullmq.JobsOptions;
 export type Job<TData = unknown, TResult = unknown> = bullmq.Job<TData, TResult>;
-export type JobProcessor<TData = unknown, TResult = unknown> = (job: Job<TData, TResult>) => Promise<TResult>;
+export interface JobExecutionContext {
+  addChild: <T = any>(name: string, data: T, options?: JobOptions) => void;
+}
+export type JobProcessor<TData = unknown, TResult = unknown> = (job: Job<TData, TResult>, ctx: JobExecutionContext) => Promise<TResult>;
 export interface JobData { [key: string]: any; }
 
 export class JobMetrics {

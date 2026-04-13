@@ -3,7 +3,7 @@ export enum JobName {
     UPDATE_USER_ROLE = 'update-user-role',
     START_WORKFLOW_STEP = "START_WORKFLOW_STEP",
     SEND_DONATION_REMINDER_EMAIL = 'send-donation-reminder-email',
-    //CREATE_DONATION = "CREATE_DONATION",
+    CREATE_DONATION = "CREATE_DONATION",
     SEND_TASK_REMINDER_EMAIL = "SEND_TASK_REMINDER_EMAIL",
     GENERATE_REPORT = "GENERATE_REPORT",
     TriggerMonthlyDonationEvent = "TriggerMonthlyDonationEvent",
