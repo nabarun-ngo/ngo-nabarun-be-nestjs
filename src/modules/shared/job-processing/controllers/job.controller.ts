@@ -27,14 +27,17 @@ export class JobController {
     enum: ['completed', 'failed', 'paused', 'delayed', 'active', 'waiting', 'waiting-children']
   })
   @ApiQuery({ name: 'name', required: false, description: 'Name of the failed jobs to return' })
+  @ApiQuery({ name: 'rootJobsOnly', enum: ['Y', 'N'], required: false, description: 'If Y, excludes jobs that are children of other jobs' })
   @RequirePermissions('read:jobs')
   @ApiAutoPagedResponse(JobDetail, { status: 200, description: 'Failed jobs retrieved successfully', isArray: true, wrapInSuccessResponse: true })
   async getJobs(
     @Query('pageIndex') pageIndex: number,
     @Query('pageSize') pageSize: number,
     @Query('status') status: 'completed' | 'failed' | 'paused' | 'delayed' | 'active' | 'waiting' | 'waiting-children',
-    @Query('name') name?: string) {
-    const result = await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status: status as any, name });
+    @Query('name') name?: string,
+    @Query('rootJobsOnly') rootJobsOnly?: 'Y' | 'N',
+  ) {
+    const result = await this.jobMonitoringService.getJobs(pageIndex, pageSize, { status: status as any, name, });
     return new SuccessResponse(
       result
     );

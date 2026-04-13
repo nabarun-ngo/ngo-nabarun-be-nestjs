@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
-import { type Job, JobDetail, FlowJob } from '../../../shared/job-processing/dto/job.dto';
+import { type Job, JobDetail } from '../../../shared/job-processing/dto/job.dto';
 import { WorkflowStep } from '../../domain/model/workflow-step.model';
 import { StartWorkflowStepUseCase } from '../use-cases/start-workflow-step.use-case';
 import { JobName } from 'src/shared/job-names';
@@ -141,27 +141,27 @@ export class WorkflowJobProcessor {
 
       job.log(`Unique assignees count: ${assignees.size}`);
 
-      const children: FlowJob[] = [];
+      //const children: FlowJob[] = [];
       for (const user of assignees.values()) {
         job.log(`Adding reminder child | userId=${user.id} | email=${user.email}`);
 
-        children.push({
-          name: JobName.SEND_TASK_REMINDER_EMAIL,
-          queueName: 'default',
-          data: {
-            assigneeId: user.id,
-            assigneeName: user.fullName,
-            assigneeEmail: user.email,
-          },
-          opts: {
-            delay: generateUniqueNDigitNumber(5),
-          }
-        });
+        // children.push({
+        //   name: JobName.SEND_TASK_REMINDER_EMAIL,
+        //   queueName: 'default',
+        //   data: {
+        //     assigneeId: user.id,
+        //     assigneeName: user.fullName,
+        //     assigneeEmail: user.email,
+        //   },
+        //   opts: {
+        //     delay: generateUniqueNDigitNumber(5),
+        //   }
+        // });
       }
 
-      if (children.length > 0) {
-        await this.jobProcessingService.addChildrenToJob(job, children);
-      }
+      // if (children.length > 0) {
+      //   await this.jobProcessingService.addChildrenToJob(job, children);
+      // }
 
       this.eventEmitter.emit(SendNotificationRequestEvent.name,
         new SendNotificationRequestEvent({
@@ -176,9 +176,9 @@ export class WorkflowJobProcessor {
           },
         }));
 
-      job.log(
-        `Reminder job flow created successfully | total=${children.length} | duration=${Date.now() - startedAt}ms`,
-      );
+      // job.log(
+      //   `Reminder job flow created successfully | total=${children.length} | duration=${Date.now() - startedAt}ms`,
+      // );
     } catch (error) {
       job.log(
         `Failed to process pending task reminders ${error}`,

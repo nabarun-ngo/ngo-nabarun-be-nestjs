@@ -232,23 +232,23 @@ export class DonationJobsHandler {
         const firstDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         // Last date: set month to current month, day to 0 (last day of previous month)
         const lastDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        
-        await this.jobProcessingService.addChildrenToJob(job, [
-            {
-                name: JobName.GENERATE_REPORT,
-                queueName: 'default',
-                data: {
-                    reportName: 'DONATION_SUMMARY_REPORT',
-                    reportParams: {
-                        startDate: firstDate,
-                        endDate: lastDate,
-                        uploadFile: 'Y',
-                        sendEmail: 'Y',
-                        on: 'paidOn'
-                    }
-                }
-            }
-        ]);
+
+        // await this.jobProcessingService.addChildrenToJob(job, [
+        //     {
+        //         name: JobName.GENERATE_REPORT,
+        //         queueName: 'default',
+        //         data: {
+        //             reportName: 'DONATION_SUMMARY_REPORT',
+        //             reportParams: {
+        //                 startDate: firstDate,
+        //                 endDate: lastDate,
+        //                 uploadFile: 'Y',
+        //                 sendEmail: 'Y',
+        //                 on: 'paidOn'
+        //             }
+        //         }
+        //     }
+        // ]);
 
         job.log('[GenerateDonationSummaryReportJob] Flow created for donation summary report generation');
     }

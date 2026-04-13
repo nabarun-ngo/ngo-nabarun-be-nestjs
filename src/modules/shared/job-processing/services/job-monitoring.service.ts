@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Job, JobType, Queue, FlowJob } from 'bullmq';
+import { Job, JobType, Queue } from 'bullmq';
 import { JobDetail, JobMetrics, JobPerformanceMetrics, QueueHealth } from '../dto/job.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { config } from 'src/config/app.config';
@@ -31,16 +31,15 @@ export class JobMonitoringService {
       }
 
       // Use count methods instead of fetching full arrays - MUCH more efficient!
-      const [waiting, active, completed, failed, delayed, waitingChildren] = await Promise.all([
+      const [waiting, active, completed, failed, delayed] = await Promise.all([
         this.defaultQueue.getWaitingCount(),
         this.defaultQueue.getActiveCount(),
         this.defaultQueue.getCompletedCount(),
         this.defaultQueue.getFailedCount(),
         this.defaultQueue.getDelayedCount(),
-        this.defaultQueue.getWaitingChildrenCount(),
       ]);
 
-      const total = waiting + active + completed + failed + delayed + waitingChildren;
+      const total = waiting + active + completed + failed + delayed;
       const successRate = total > 0 ? (completed / total) * 100 : 0;
       const failureRate = total > 0 ? (failed / total) * 100 : 0;
 
@@ -50,7 +49,6 @@ export class JobMonitoringService {
         failed,
         active,
         waiting,
-        waitingChildren,
         delayed,
         successRate: Math.round(successRate * 100) / 100,
         failureRate: Math.round(failureRate * 100) / 100,
@@ -170,60 +168,7 @@ export class JobMonitoringService {
       delay: job.delay,
       stacktrace: job.stacktrace,
       logs: logs ?? (await this.defaultQueue.getJobLogs(job.id!)).logs,
-      parent: job.parent ? { id: job.parent.id as string, queue: job.opts.parent?.queue || '' } : undefined,
-      // Fetch children if this job is a parent
-      children: await this.getChildrenDetails(job),
     };
-  }
-
-  /**
-   * Helper to fetch children details for a parent job
-   */
-  private async getChildrenDetails(job: Job): Promise<JobDetail[] | undefined> {
-    try {
-      // In BullMQ, parent jobs have dependencies (children)
-      const dependencies = await job.getDependencies();
-
-      if (!dependencies || Object.keys(dependencies).length === 0) {
-        return undefined;
-      }
-
-      const children: JobDetail[] = [];
-
-      // dependencies is an object where keys are queue names and values are arrays of job IDs
-      const depEntries = Object.entries(dependencies);
-      for (const [queueName, jobIds] of depEntries) {
-        if (!Array.isArray(jobIds)) continue;
-        for (const childId of jobIds) {
-          const childJob = await this.defaultQueue.getJob(childId);
-          if (childJob) {
-            // Recursively convert to JobDetail (but limit depth to avoid infinite recursion/perf issues)
-            // For now, let's just do one level deep to avoid complexity
-            children.push({
-              id: childJob.id,
-              name: childJob.name,
-              data: childJob.data,
-              opts: childJob.opts,
-              state: await childJob.getState(),
-              progress: childJob.progress ?? 0,
-              returnvalue: childJob.returnvalue,
-              failedReason: childJob.failedReason ?? '',
-              processedOn: childJob.processedOn ? new Date(childJob.processedOn) : undefined,
-              finishedOn: childJob.finishedOn ? new Date(childJob.finishedOn) : undefined,
-              timestamp: childJob.timestamp ? new Date(childJob.timestamp) : undefined,
-              attemptsMade: childJob.attemptsMade,
-              delay: childJob.delay,
-              stacktrace: childJob.stacktrace,
-            });
-          }
-        }
-      }
-
-      return children.length > 0 ? children : undefined;
-    } catch (error) {
-      this.logger.debug(`Could not fetch children for job ${job.id}: ${error.message}`);
-      return undefined;
-    }
   }
 
   /**

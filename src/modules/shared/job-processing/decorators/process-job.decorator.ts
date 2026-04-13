@@ -55,7 +55,7 @@ export interface ProcessJobOptions {
 
 /**
  * Decorator to register a method as a BullMQ job processor.
- * The decorated method should accept a BullMQ Job object as its only argument.
+ * The decorated method should accept a BullMQ Job object and an optional token string as arguments.
  */
 export const ProcessJob = (options: ProcessJobOptions) =>
   SetMetadata(PROCESS_JOB_KEY, options);
