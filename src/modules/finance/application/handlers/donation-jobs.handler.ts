@@ -120,6 +120,43 @@ export class DonationJobsHandler {
     }
 
     @ProcessJob({
+        name: JobName.CREATE_DONATION,
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 30 * 1000,
+        }
+    })
+    async createDonation(job: Job<{
+        userId: string,
+        fullName: string,
+        amount: number,
+        firstDate: Date,
+        lastDate: Date,
+    }>) {
+        const { userId, fullName, amount, firstDate, lastDate } = job.data;
+        job.log(`[INFO] Creating monthly donation for user ${fullName} (${userId}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
+        try {
+            const donation = await this.createDonationUseCase.execute({
+                type: DonationType.REGULAR,
+                amount: amount,
+                donorId: userId,
+                startDate: firstDate,
+                endDate: lastDate,
+                isGuest: false,
+            });
+            job.log(`[INFO] Monthly donation ${donation.id} raised successfully for user: ${fullName} (${userId})`);
+        } catch (error) {
+            if (error instanceof BusinessException) {
+                job.log(`[WARN] Skipping user ${fullName} (${userId}): ${error.message}.`);
+            } else {
+                job.log(`[ERROR] Error raising monthly donation for user: ${fullName} (${userId}) Error : ${error}`);
+                throw error;
+            }
+        }
+    }
+
+    @ProcessJob({
         name: JobName.TriggerMonthlyDonationEvent,
         attempts: 3,
         backoff: {
@@ -127,7 +164,7 @@ export class DonationJobsHandler {
             delay: 30 * 1000,
         }
     })
-    async handleTriggerMonthlyDonationEvent(job: Job<any>) {
+    async handleTriggerMonthlyDonationEvent(job: Job<any>, ctx: JobExecutionContext) {
         job.log('[INFO] Triggering monthly donation raise process...');
         const users = await this.userRepository.findAll({ status: UserStatus.ACTIVE });
         job.log(`[INFO] Found ${users.length} active users.`);
@@ -146,30 +183,16 @@ export class DonationJobsHandler {
                 continue;
             }
             const amount = user.donationAmount && user.donationAmount > 0 ? user.donationAmount : defaultAmount;
-
-            //
-            job.log(`[INFO] Creating monthly donation for user ${user.fullName} (${user.id}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
-            try {
-                const donation = await this.createDonationUseCase.execute({
-                    type: DonationType.REGULAR,
-                    amount: amount,
-                    donorId: user.id,
-                    startDate: firstDate,
-                    endDate: lastDate,
-                    isGuest: false,
-                });
-                job.log(`[INFO] Monthly donation ${donation.id} raised successfully for user: ${user.fullName} (${user.id})`);
-            } catch (error) {
-                if (error instanceof BusinessException) {
-                    job.log(`[WARN] Skipping user ${user.fullName} (${user.id}): ${error.message}.`);
-                } else {
-                    job.log(`[ERROR] Error raising monthly donation for user: ${user.fullName} (${user.id}) Error : ${error}`);
-                    throw error;
-                }
-            }
-            //
+            ctx.addChildJob(JobName.CREATE_DONATION, {
+                userId: user.id,
+                fullName: user.fullName,
+                amount: amount,
+                firstDate: firstDate,
+                lastDate: lastDate,
+            });
+            job.log(`[INFO] Added create donation job for user ${user.fullName} (${user.id}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
         }
-        job.log(`[INFO] Donation raise process completed.`);
+        job.log(`[INFO] Trigger monthly donation process completed.`);
     }
 
     @ProcessJob({
@@ -235,7 +258,7 @@ export class DonationJobsHandler {
         // Last date: set month to current month, day to 0 (last day of previous month)
         const lastDate = new Date(now.getFullYear(), now.getMonth(), 0);
 
-        ctx.addChild(JobName.GENERATE_REPORT, {
+        ctx.addChildJob(JobName.GENERATE_REPORT, {
             reportName: 'DONATION_SUMMARY_REPORT',
             reportParams: {
                 startDate: firstDate,

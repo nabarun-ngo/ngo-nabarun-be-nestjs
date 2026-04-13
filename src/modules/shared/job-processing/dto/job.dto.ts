@@ -2,12 +2,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 // Import BullMQ's types
 import * as bullmq from 'bullmq';
 import { IsArray, IsBoolean, IsDate, IsEnum, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { JobName } from 'src/shared/job-names';
 
 // Re-export BullMQ's types as our types with better generic support
 export type JobOptions = bullmq.JobsOptions;
 export type Job<TData = unknown, TResult = unknown> = bullmq.Job<TData, TResult>;
 export interface JobExecutionContext {
-  addChild: <T = any>(name: string, data: T, options?: JobOptions) => void;
+  addChildJob: <T = any>(name: JobName, data: T, options?: JobOptions) => void;
 }
 export type JobProcessor<TData = unknown, TResult = unknown> = (job: Job<TData, TResult>, ctx: JobExecutionContext) => Promise<TResult>;
 export interface JobData { [key: string]: any; }

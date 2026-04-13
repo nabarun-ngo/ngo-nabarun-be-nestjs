@@ -175,7 +175,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     // Buffer for dynamic child jobs
     const childrenToSpawn: { name: string; data: any; options?: JobOptions }[] = [];
     const ctx: JobExecutionContext = {
-      addChild: <T = Record<string, any>>(name: string, data: T, options?: JobOptions) => {
+      addChildJob: <T = Record<string, any>>(name: JobName, data: T, options?: JobOptions) => {
         childrenToSpawn.push({ name, data, options });
       }
     };
@@ -203,7 +203,7 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
       // Process buffered child jobs and properly suspend the parent 
       if (childrenToSpawn.length > 0) {
         this.logger.log(`Job ${job.id} spawning ${childrenToSpawn.length} children and entering waiting state.`);
-        
+
         // Save state to auto-skip the processor logic when awakening next time
         await job.updateData({ ...job.data, _internal_isWaitingOnChildren: true });
 
@@ -273,14 +273,14 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   /**
    * Manually register a processor at runtime
    */
-  registerProcessorManually(
+  private registerProcessorManually(
     name: JobName,
     processor: JobProcessor,
-    options: Partial<ProcessJobOptions> = {},
+    options: JobOptions = {},
   ) {
     const processorOptions: ProcessJobOptions = {
       name,
-      attempts: 3,
+      attempts: options.attempts || 3,
       backoff: {
         type: 'exponential',
         delay: 2000,
