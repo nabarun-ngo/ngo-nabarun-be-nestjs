@@ -1,17 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ProcessJob } from '../../../shared/job-processing/decorators/process-job.decorator';
-import { type Job, JobDetail } from '../../../shared/job-processing/dto/job.dto';
-import { WorkflowStep } from '../../domain/model/workflow-step.model';
-import { StartWorkflowStepUseCase } from '../use-cases/start-workflow-step.use-case';
+import { ProcessJob } from '../../../shared/job-processing/application/decorators/process-job.decorator';
+import { type Job } from '../../../shared/job-processing/presentation/dto/job.dto';
 import { JobName } from 'src/shared/job-names';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { evaluateCondition, formatDate } from 'src/shared/utilities/common.util';
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
-import { JobProcessingService } from 'src/modules/shared/job-processing/services/job-processing.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { SendNotificationRequestEvent } from 'src/modules/shared/notification/application/events/send-notification-request.event';
 import { NotificationKeys } from 'src/shared/notification-keys';
 import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/notification/domain/models/notification.model';
@@ -19,6 +15,7 @@ import { RedisHashCacheService } from 'src/modules/shared/database/redis-hash-ca
 import { CompleteTaskUseCase } from '../use-cases/complete-task.use-case';
 import { DomainEventPayload } from 'src/shared/dto/domain-event-payload.dto';
 import { APP_DOMAIN_EVENTS_KEY } from 'src/shared/system-events.handler';
+import { User } from 'src/modules/user/domain/model/user.model';
 
 export interface WorkflowAutomaticTaskJobData {
   instanceId: string;
@@ -33,9 +30,7 @@ export class WorkflowJobProcessor {
 
 
   constructor(
-    private readonly jobProcessingService: JobProcessingService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly startWorkflowStep: StartWorkflowStepUseCase,
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly workflowInstanceRepository: IWorkflowInstanceRepository,
     private readonly correspondenceService: CorrespondenceService,
@@ -44,41 +39,53 @@ export class WorkflowJobProcessor {
   ) { }
 
   @ProcessJob({
-    name: JobName.START_WORKFLOW_STEP,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-  })
-  async processStartWorkflowStep(job: Job<{ instanceId: string; step: WorkflowStep }>): Promise<void> {
-    const data = job.data;
-    await this.startWorkflowStep.execute(data.instanceId);
-  }
-
-
-  @ProcessJob({
-    name: JobName.SEND_TASK_REMINDER_EMAIL,
+    name: JobName.TriggerRemindPendingTasksEvent,
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 30 * 1000,
-    },
+    }
   })
-  async processSendTaskReminderEmail(job: Job<{ assigneeId: string, assigneeName: string, assigneeEmail: string }>): Promise<void> {
+  async remindPendingTasks(job: Job<any>): Promise<void> {
+    job.log('[INFO] Remind pending tasks started');
+    const tasks =
+      await this.workflowInstanceRepository.findAllTasks({
+        status: WorkflowTask.pendingTaskStatus,
+      });
+    job.log(`[INFO] Found ${tasks.length} pending tasks`);
 
-    job.log(`Processing ${JobName.SEND_TASK_REMINDER_EMAIL} for user ${job.data.assigneeEmail}`);
+    if (tasks.length === 0) {
+      job.log(`[WARN] No pending tasks found`);
+      return;
+    }
+
+    const assignees = new Map(
+      tasks
+        .flatMap(t => t.assignments)
+        .map(a => [a.assignedTo.id, a.assignedTo]),
+    );
+
+    job.log(`[INFO] Found ${assignees.size} Task Assignees`);
+    for (const user of assignees.values()) {
+      this.processTaskReminder(user, job);
+    }
+    job.log(`[INFO] Remind pending tasks completed`);
+  }
+
+  private async processTaskReminder(user: User, job: Job<any>) {
+    job.log(`[INFO] Sending reminder for user ${user.email}`);
     try {
       const allPendingTasks = await this.workflowInstanceRepository.findAllTasks({
         status: WorkflowTask.pendingTaskStatus,
-        assignedTo: job.data.assigneeId
+        assignedTo: user.id
       });
 
       if (allPendingTasks.length === 0) {
-        job.log(`No valid tasks found for reminder job ${job.id}`);
+        job.log(`[WARN] No valid tasks found for reminder job ${job.id}`);
         return;
       }
 
+      //Sending Email
       const templateData = await this.correspondenceService.getEmailTemplateData(EmailTemplateName.TASK_REMINDER, {
         data: {
         },
@@ -97,93 +104,32 @@ export class WorkflowJobProcessor {
       await this.correspondenceService.sendTemplatedEmail({
         options: {
           recipients: {
-            to: job.data.assigneeEmail,
+            to: user.email,
           },
         },
         templateData,
       });
 
-      job.log(`Reminder email SENT to user ${job.data.assigneeEmail} for ${allPendingTasks.length} tasks`);
-    } catch (error) {
-      job.log(`Failed to send task reminder email for user ${job.data.assigneeEmail} : ${error}`);
-      throw error;
-    }
-  }
+      job.log(`[INFO] Reminder email SENT to user ${user.email} for ${allPendingTasks.length} tasks`);
 
-
-
-
-  @ProcessJob({
-    name: JobName.TriggerRemindPendingTasksEvent,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 30 * 1000,
-    }
-  })
-  async remindPendingTasks(job: Job<any>): Promise<void> {
-    const startedAt = Date.now();
-    job.log('Remind pending tasks started');
-
-    try {
-      const tasks =
-        await this.workflowInstanceRepository.findAllTasks({
-          status: WorkflowTask.pendingTaskStatus,
-        });
-
-      job.log(`Found ${tasks.length} pending tasks`);
-
-      const assignees = new Map(
-        tasks
-          .flatMap(t => t.assignments)
-          .map(a => [a.assignedTo.id, a.assignedTo]),
-      );
-
-      job.log(`Unique assignees count: ${assignees.size}`);
-
-      //const children: FlowJob[] = [];
-      for (const user of assignees.values()) {
-        job.log(`Adding reminder child | userId=${user.id} | email=${user.email}`);
-
-        // children.push({
-        //   name: JobName.SEND_TASK_REMINDER_EMAIL,
-        //   queueName: 'default',
-        //   data: {
-        //     assigneeId: user.id,
-        //     assigneeName: user.fullName,
-        //     assigneeEmail: user.email,
-        //   },
-        //   opts: {
-        //     delay: generateUniqueNDigitNumber(5),
-        //   }
-        // });
-      }
-
-      // if (children.length > 0) {
-      //   await this.jobProcessingService.addChildrenToJob(job, children);
-      // }
-
+      //Sending Notification
       this.eventEmitter.emit(SendNotificationRequestEvent.name,
         new SendNotificationRequestEvent({
-          targetUserIds: [...assignees.keys()],
+          targetUserIds: [user.id],
           notificationKey: NotificationKeys.TASK_REMINDER,
           type: NotificationType.REMINDER,
           category: NotificationCategory.WORKFLOW,
           priority: NotificationPriority.HIGH,
           data: {
-            taskCount: tasks.length,
+            taskCount: allPendingTasks.length,
             criticalAlert: 'N', // Todo Determine if there are any critical tasks
           },
         }));
 
-      // job.log(
-      //   `Reminder job flow created successfully | total=${children.length} | duration=${Date.now() - startedAt}ms`,
-      // );
+      job.log(`[INFO] Reminder notification triggered to user ${user.email} for ${allPendingTasks.length} tasks`);
     } catch (error) {
-      job.log(
-        `Failed to process pending task reminders ${error}`,
-
-      );
+      job.log(`[ERROR] Failed to send task reminder for user ${user.email} : ${error}`);
+      throw error;
     }
   }
 
@@ -197,11 +143,10 @@ export class WorkflowJobProcessor {
     }
   })
   async closePendingTasks(job: Job<any>) {
-
     // Get the full list of events currently in the Redis list
     const queueDepth = await this.redisCache.getList<DomainEventPayload>(APP_DOMAIN_EVENTS_KEY, 'events');
     if (!queueDepth || queueDepth.length === 0) {
-      job.log('No pending events.');
+      job.log('[WARN] No pending events.');
       return;
     }
 
@@ -213,31 +158,36 @@ export class WorkflowJobProcessor {
       type: [WorkflowTaskType.MANUAL]
     })
 
-    job.log(`Fetched ${tasks.length} tasks for evaluation.`);
+    job.log(`[INFO] Fetched ${tasks.length} tasks for evaluation.`);
 
     for (const task of tasks) {
-      const queryEvent = queueDepth.find(e => e.aggregateId === task.autoCloseRefId && e.eventName === task.autoCloseEventName);
-      job.log(`Evaluating task: ${task.id} for event: ${task.autoCloseEventName}`);
-      if (queryEvent) {
-        job.log(`Task: ${task.id} -> auto-closeable event name matched`);
-        const result = evaluateCondition(task.autoCloseCondition!, queryEvent.data);
-        if (result) {
-          job.log(`Task: ${task.id} -> auto-close condition matched ${JSON.stringify(task.autoCloseResultData)}`);
-          await this.completeTask.execute({
-            instanceId: task.workflowId,
-            taskId: task.id,
-            remarks: `Domain event trigger : Auto-closed by ${queryEvent.eventName || 'System Event'}`,
-            status: WorkflowTaskStatus.COMPLETED,
-            data: task.autoCloseResultData,
-            completedBy: { fullName: 'System' }
-          });
-          await this.redisCache.removeFromList(APP_DOMAIN_EVENTS_KEY, 'events', queryEvent);
-          job.log(`Task: ${task.id} -> auto-closed successfully`);
+      try {
+        const queryEvent = queueDepth.find(e => e.aggregateId === task.autoCloseRefId && e.eventName === task.autoCloseEventName);
+        job.log(`[INFO] Evaluating task: ${task.id} for event: ${task.autoCloseEventName}`);
+        if (queryEvent) {
+          job.log(`[INFO] Task: ${task.id} -> auto-closeable event name matched`);
+          const result = evaluateCondition(task.autoCloseCondition!, queryEvent.data);
+          if (result) {
+            job.log(`[INFO] Task: ${task.id} -> auto-close condition matched ${JSON.stringify(task.autoCloseResultData)}`);
+            await this.completeTask.execute({
+              instanceId: task.workflowId,
+              taskId: task.id,
+              remarks: `Domain event trigger : Auto-closed by ${queryEvent.eventName || 'System Event'}`,
+              status: WorkflowTaskStatus.COMPLETED,
+              data: task.autoCloseResultData,
+              completedBy: { fullName: 'System' }
+            });
+            await this.redisCache.removeFromList(APP_DOMAIN_EVENTS_KEY, 'events', queryEvent);
+            job.log(`[INFO] Task: ${task.id} -> auto-closed successfully`);
+          } else {
+            job.log(`[INFO] Task: ${task.id} -> auto-close condition not matched`);
+          }
         } else {
-          job.log(`Task: ${task.id} -> auto-close condition not matched`);
+          job.log(`[INFO] Task: ${task.id} -> auto-closeable event name not matched`);
         }
-      } else {
-        job.log(`Task: ${task.id} -> auto-closeable event name not matched`);
+      } catch (error) {
+        job.log(`[ERROR] Failed to process task ${task.id} : ${error}`);
+        throw error;
       }
     }
   }

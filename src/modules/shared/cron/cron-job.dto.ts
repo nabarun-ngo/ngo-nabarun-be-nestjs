@@ -18,6 +18,10 @@ export class CronJobDto {
     @ApiProperty()
     @Type(() => Date)
     nextRun: Date;
+    @ApiProperty()
+    @IsObject()
+    @Type(() => Object)
+    inputData?: any;
 }
 
 export class QueueDto {

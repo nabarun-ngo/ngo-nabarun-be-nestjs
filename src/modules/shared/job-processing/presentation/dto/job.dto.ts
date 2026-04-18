@@ -8,7 +8,7 @@ import { JobName } from 'src/shared/job-names';
 export type JobOptions = bullmq.JobsOptions;
 export type Job<TData = unknown, TResult = unknown> = bullmq.Job<TData, TResult>;
 export interface JobExecutionContext {
-  addChildJob: <T = any>(name: JobName, data: T, options?: JobOptions) => void;
+  addChildJob: <T = any>(name: JobName, data: T, options?: JobOptions) => string;
 }
 export type JobProcessor<TData = unknown, TResult = unknown> = (job: Job<TData, TResult>, ctx: JobExecutionContext) => Promise<TResult>;
 export interface JobData { [key: string]: any; }
@@ -38,6 +38,11 @@ export class JobMetrics {
   @IsNumber()
   delayed: number;
 
+  //'completed', 'failed', 'delayed', 'active', 'waiting', 'waiting-children', 'unknown'
+  @ApiProperty()
+  @IsNumber()
+  waitingChildren: number;
+
   @ApiProperty()
   @IsNumber()
   successRate: number;
@@ -64,6 +69,8 @@ export class JobPerformanceMetrics {
   @IsNumber()
   totalProcessingTime: number;
 }
+
+
 export class JobDetail {
   @ApiPropertyOptional()
   @IsString()

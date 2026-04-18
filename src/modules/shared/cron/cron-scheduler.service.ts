@@ -10,7 +10,7 @@ import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
 import { CronLogStorageService } from './cron-log-storage.service';
 import { RootEvent } from 'src/shared/models/root-event';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
-import { JobProcessingService } from '../job-processing/services/job-processing.service';
+import { JobProcessingService } from '../job-processing/infrastructure/services/job-processing.service';
 import { JobName } from 'src/shared/job-names';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class CronSchedulerService {
 
         for (const job of CRON_JOBS) {
             if (this.shouldExecute(job.expression, now)) {
-                const payload = new class extends RootEvent { }();
+                let payload: any;
                 if (job.inputData) {
                     Object.assign(payload, job.inputData);
                 }
@@ -92,6 +92,7 @@ export class CronSchedulerService {
                 handler: m.handler,
                 enabled: m.enabled,
                 nextRun: CronExpressionParser.parse(m.expression, { tz: 'Asia/Kolkata' }).next().toDate(),
+                inputData: m.inputData
             } as CronJobDto;
         });
     }
@@ -99,10 +100,32 @@ export class CronSchedulerService {
     /**
      * Get all cron logs
      */
-    async getGlobalCronLogs(pageIndex: number | undefined, pageSize: number | undefined) {
+    async getGlobalCronTriggerLogs(pageIndex: number | undefined, pageSize: number | undefined) {
         return await this.logStorage.getGlobalLogs(pageIndex, pageSize);
     }
 
+    /**
+        * Run a specific cron job manually
+        */
+    async runScheduledJob(name: string, inputData?: any) {
+        const job = (await this.fetchCronJobs()).find(f => f.name === name);
+        if (!job) {
+            throw new BusinessException(`Job ${name} not found OR Not in active state`);
+        }
+        const jobQueue = await this.jobProcessingService.addJob(JobName[job.handler], inputData ?? job.inputData);
+        this.logger.log(`[CRON] Triggered job: ${job.name} with ID: ${jobQueue.id}`);
+        const triggerId = `MT${generateUniqueNDigitNumber(4)}`;
+        await this.logStorage.addCronLog({
+            triggerId: triggerId,
+            triggerAt: new Date(),
+            executedJobs: [{
+                jobName: job.name,
+                id: jobQueue.id
+            }],
+            skippedJobs: []
+        });
+        return jobQueue.id;
+    }
     /**
      * Fetch all cron jobs from Firebase Remote Config
      */
@@ -157,17 +180,7 @@ export class CronSchedulerService {
 
     //#region All Methods under this is Deprecated
 
-    /**
-     * @deprecated We are using Job Processing Service for this
-     * Run a specific cron job manually
-     */
-    async runScheduledJob(name: string) {
-        const job = (await this.fetchCronJobs()).find(f => f.name === name);
-        if (!job) {
-            throw new BusinessException(`Job ${name} not found OR Not in active state`);
-        }
-        await this.runJob(job, 'MANUAL');
-    }
+
 
     /**
      * @deprecated We are using Job Processing Service for this

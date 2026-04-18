@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { Configkey } from "src/shared/config-keys";
 import { INotificationRepository } from "../../domain/repositories/notification.repository.interface";
 import { IFcmTokenRepository } from "../../domain/repositories/fcm-token.repository.interface";
-import { ProcessJob } from "src/modules/shared/job-processing/decorators/process-job.decorator";
+import { ProcessJob } from "src/modules/shared/job-processing/application/decorators/process-job.decorator";
 import { JobName } from "src/shared/job-names";
 import { Job } from "bullmq";
 
@@ -19,7 +19,7 @@ export class NotificationJobsHandler {
     ) { }
 
     @ProcessJob({
-        name: JobName.DeleteNotificationRequestEvent,
+        name: JobName.TriggerDeleteNotificationRequestEvent,
         attempts: 3,
         backoff: {
             type: 'exponential',
@@ -35,7 +35,7 @@ export class NotificationJobsHandler {
     }
 
     @ProcessJob({
-        name: JobName.DeleteFCMTokenRequestEvent,
+        name: JobName.TriggerDeleteFCMTokenRequestEvent,
         attempts: 3,
         backoff: {
             type: 'exponential',

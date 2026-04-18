@@ -1,7 +1,7 @@
 // src/cron/cron.controller.ts
-import { Controller, Post, Headers, Param, Get, Query } from '@nestjs/common';
+import { Controller, Post, Headers, Param, Get, Query, Body } from '@nestjs/common';
 import { CronSchedulerService } from './cron-scheduler.service';
-import { ApiBearerAuth, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiQuery, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { UseApiKey } from '../auth/application/decorators/use-api-key.decorator';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
@@ -45,7 +45,7 @@ export class CronController {
         @Query('pageSize') pageSize?: number
     ) {
         return new SuccessResponse(
-            await this.schedulerService.getGlobalCronLogs(pageIndex, pageSize)
+            await this.schedulerService.getGlobalCronTriggerLogs(pageIndex, pageSize)
         );
     }
 
@@ -58,29 +58,30 @@ export class CronController {
     @Post('run/:name')
     @RequirePermissions('update:cron')
     @ApiAutoResponse(String, { description: 'OK', wrapInSuccessResponse: true })
-    async runScheduledJob(@Param('name') name: string) {
-        await this.schedulerService.runScheduledJob(name)
+    @ApiBody({ type: Object })
+    async runScheduledJob(@Param('name') name: string, @Body() body: Record<string, any>) {
+        await this.schedulerService.runScheduledJob(name, body)
         return new SuccessResponse('Job executed successfully');
     }
 
-    /**
-     * @deprecated We are using Job Processing Service for this
-     * @param name 
-     * @param pageIndex 
-     * @param pageSize 
-     * @returns 
-     */
-    @Get('executions/:name')
-    @RequirePermissions('read:cron')
-    @ApiQuery({ name: 'pageIndex', required: false, type: Number })
-    @ApiQuery({ name: 'pageSize', required: false, type: Number })
-    @ApiAutoPagedResponse(CronExecutionDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
-    async getCronLogs(@Param('name') name: string,
-        @Query('pageIndex') pageIndex?: number,
-        @Query('pageSize') pageSize?: number) {
-        return new SuccessResponse(
-            await this.schedulerService.getCronLogs(name, pageIndex, pageSize)
-        );
-    }
+    // /**
+    //  * @deprecated We are using Job Processing Service for this
+    //  * @param name 
+    //  * @param pageIndex 
+    //  * @param pageSize 
+    //  * @returns 
+    //  */
+    // @Get('executions/:name')
+    // @RequirePermissions('read:cron')
+    // @ApiQuery({ name: 'pageIndex', required: false, type: Number })
+    // @ApiQuery({ name: 'pageSize', required: false, type: Number })
+    // @ApiAutoPagedResponse(CronExecutionDto, { description: 'OK', wrapInSuccessResponse: true, isArray: true })
+    // async getCronLogs(@Param('name') name: string,
+    //     @Query('pageIndex') pageIndex?: number,
+    //     @Query('pageSize') pageSize?: number) {
+    //     return new SuccessResponse(
+    //         await this.schedulerService.getCronLogs(name, pageIndex, pageSize)
+    //     );
+    // }
     //#endregion
 }

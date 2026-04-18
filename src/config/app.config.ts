@@ -41,12 +41,12 @@ export const config = {
   jobProcessing: {
     queueName: 'default',
     removeOnComplete: {
-      age: 3600 * 24 * 7, // 7 Days
-      count: 100000,
+      age: 3600 * 24 * parseInt(process.env[Configkey.PROP_COMPLETED_JOB_RETENTION_DAYS] || '7'), // 7 Days retention
+      count: 500 * parseInt(process.env[Configkey.PROP_COMPLETED_JOB_RETENTION_DAYS] || '7'), // 100 jobs per day
     },
     removeOnFail: {
-      age: 3600 * 24 * 30, // 30 Days
-      count: 10000,
+      age: 3600 * 24 * parseInt(process.env[Configkey.PROP_FAILED_JOB_RETENTION_DAYS] || '30'), // 30 Days retention
+      count: 50 * parseInt(process.env[Configkey.PROP_FAILED_JOB_RETENTION_DAYS] || '30'), // 10 jobs per day
     }
   }
 };

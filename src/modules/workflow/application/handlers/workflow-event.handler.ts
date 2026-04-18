@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
+import { JobProcessingService } from "src/modules/shared/job-processing/infrastructure/services/job-processing.service";
 import { StepStartedEvent } from "../../domain/events/step-started.event";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
@@ -8,7 +8,6 @@ import { EmailTemplateName } from "src/shared/email-keys";
 import { WorkflowInstance } from "../../domain/model/workflow-instance.model";
 import { StepCompletedEvent } from "../../domain/events/step-completed.event";
 import { WorkflowCreatedEvent } from "../../domain/events/workflow-created.event";
-import { JobName } from "src/shared/job-names";
 import { WorkflowTask, WorkflowTaskType } from "../../domain/model/workflow-task.model";
 import { TaskAssignmentCreatedEvent } from "../../domain/events/task-assignment-created.event";
 import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
@@ -19,12 +18,12 @@ import { TaskAssignmentStatus } from "../../domain/model/task-assignment.model";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
 import { ReassignTaskUseCase } from "../use-cases/reassign-task.use-case";
 import { ApplyTryCatch } from "src/shared/decorators/apply-try-catch.decorator";
+import { StartWorkflowStepUseCase } from "../use-cases/start-workflow-step.use-case";
 
 @Injectable()
 export class WorkflowEventsHandler {
 
   constructor(
-    private readonly jobProcessingService: JobProcessingService,
     @Inject(WORKFLOW_INSTANCE_REPOSITORY)
     private readonly workflowRepository: IWorkflowInstanceRepository,
     private readonly corrService: CorrespondenceService,
@@ -32,6 +31,7 @@ export class WorkflowEventsHandler {
     private readonly workflowInstanceRepository: IWorkflowInstanceRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly reassignTaskUseCase: ReassignTaskUseCase,
+    private readonly startWorkflowStep: StartWorkflowStepUseCase,
 
 
   ) { }
@@ -39,10 +39,7 @@ export class WorkflowEventsHandler {
   //#region StepStartedEvent
   @OnEvent(StepStartedEvent.name, { async: true })
   async handleStepStartedEvent(event: StepStartedEvent) {
-    await this.jobProcessingService.addJob<{ instanceId: string; stepId: string }>(JobName.START_WORKFLOW_STEP, {
-      instanceId: event.instanceId,
-      stepId: event.stepId,
-    });
+    await this.startWorkflowStep.execute(event.instanceId);
   }
   //#endregion
 

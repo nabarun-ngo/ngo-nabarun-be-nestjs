@@ -2,9 +2,9 @@ import { Injectable, Logger, OnModuleDestroy, OnApplicationBootstrap } from '@ne
 import { ModuleRef, Reflector } from '@nestjs/core';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Worker, Job as BullJob, WaitingChildrenError } from 'bullmq';
-import { ProcessJobOptions, PROCESS_JOB_KEY } from '../decorators/process-job.decorator';
+import { ProcessJobOptions, PROCESS_JOB_KEY } from '../../application/decorators/process-job.decorator';
 import { JobName } from 'src/shared/job-names';
-import { JobProcessor, Job, JobExecutionContext, JobOptions } from '../dto/job.dto';
+import { JobProcessor, Job, JobExecutionContext, JobOptions } from '../../presentation/dto/job.dto';
 import { config } from 'src/config/app.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppTechnicalError } from 'src/shared/exceptions/app-tech-error';
@@ -175,8 +175,10 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     // Buffer for dynamic child jobs
     const childrenToSpawn: { name: string; data: any; options?: JobOptions }[] = [];
     const ctx: JobExecutionContext = {
-      addChildJob: <T = Record<string, any>>(name: JobName, data: T, options?: JobOptions) => {
-        childrenToSpawn.push({ name, data, options });
+      addChildJob: <T = Record<string, any>>(name: JobName, data: T, options?: JobOptions): string => {
+        const jobId = options?.jobId || `${job.id}-C${childrenToSpawn.length}`;
+        childrenToSpawn.push({ name, data, options: { ...options, jobId } });
+        return jobId;
       }
     };
 
@@ -271,31 +273,6 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   }
 
   /**
-   * Manually register a processor at runtime
-   */
-  private registerProcessorManually(
-    name: JobName,
-    processor: JobProcessor,
-    options: JobOptions = {},
-  ) {
-    const processorOptions: ProcessJobOptions = {
-      name,
-      attempts: options.attempts || 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000,
-      },
-    };
-
-    this.processors.set(name, {
-      processor,
-      options: processorOptions,
-    });
-
-    this.logger.log(`Manually registered: ${name}`);
-  }
-
-  /**
    * Unregister a processor
    */
   unregisterProcessor(name: string) {
@@ -348,26 +325,6 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
   }
 
   /**
-   * Pause all job processing
-   */
-  async pause() {
-    if (this.worker && !this.isShuttingDown) {
-      await this.worker.pause();
-      this.logger.log('Worker paused');
-    }
-  }
-
-  /**
-   * Resume job processing
-   */
-  async resume() {
-    if (this.worker && !this.isShuttingDown) {
-      this.worker.resume();
-      this.logger.log('Worker resumed');
-    }
-  }
-
-  /**
    * Graceful shutdown
    */
   private async shutdown() {
@@ -390,18 +347,4 @@ export class JobProcessorRegistry implements OnModuleDestroy, OnApplicationBoots
     this.processors.clear();
   }
 
-  /**
-   * Get queue statistics (optimized with count methods)
-   */
-  async getQueueStats() {
-    const [waiting, active, completed, failed, delayed] = await Promise.all([
-      this.defaultQueue.getWaitingCount(),
-      this.defaultQueue.getActiveCount(),
-      this.defaultQueue.getCompletedCount(),
-      this.defaultQueue.getFailedCount(),
-      this.defaultQueue.getDelayedCount(),
-    ]);
-
-    return { waiting, active, completed, failed, delayed };
-  }
 }
