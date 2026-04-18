@@ -2,10 +2,10 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { IFcmTokenRepository } from '../../domain/repositories/fcm-token.repository.interface';
 import { FcmToken } from '../../domain/models/fcm-token.model';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { RegisterFcmTokenDto, BulkNotificationDto, NotificationFiltersDto, NotificationResponseDto, FcmTokenFilterDto, UserFcmTokensDto } from '../dto/notification.dto';
+import { RegisterFcmTokenDto, BulkNotificationDto, NotificationFiltersDto, NotificationResponseDto, FcmTokenFilterDto, UserFcmTokensDto } from '../../presentation/dtos/notification.dto';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateNotificationUseCase } from '../use-cases/create-notification.use-case';
-import { NotificationDtoMapper } from '../dto/notification-dto.mapper';
+import { NotificationDtoMapper } from '../../presentation/dtos/notification-dto.mapper';
 import { IUserNotificationRepository } from '../../domain/repositories/user-notification.repository.interface';
 import { FirebaseMessagingService } from './firebase-messaging.service';
 

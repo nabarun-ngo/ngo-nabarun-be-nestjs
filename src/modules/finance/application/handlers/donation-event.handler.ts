@@ -4,13 +4,13 @@ import { Inject, Injectable } from "@nestjs/common";
 import { DonationPaidEvent } from "../../domain/events/donation-paid.event";
 import { DONATION_REPOSITORY, type IDonationRepository } from "../../domain/repositories/donation.repository.interface";
 import { EmailTemplateName } from "src/shared/email-keys";
-import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { Donation } from "../../domain/model/donation.model";
 import { formatDate } from "src/shared/utilities/common.util";
-import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
-import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
 import { NotificationKeys } from "src/shared/notification-keys";
 import { UserDeletedEvent } from "src/modules/user/domain/events/user-deleted.event";
+import { CorrespondenceService } from "src/modules/shared/correspondence/application/services/correspondence.service";
+import { SendNotificationRequestEvent } from "src/modules/shared/correspondence/application/events/send-notification-request.event";
+import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/correspondence/domain/models/notification.model";
 
 @Injectable()
 export class DonationsEventHandler {

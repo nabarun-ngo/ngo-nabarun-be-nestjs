@@ -3,19 +3,19 @@ import { ProcessJob } from '../../../shared/job-processing/application/decorator
 import { type Job } from '../../../shared/job-processing/presentation/dto/job.dto';
 import { JobName } from 'src/shared/job-names';
 import { type IWorkflowInstanceRepository, WORKFLOW_INSTANCE_REPOSITORY } from '../../domain/repositories/workflow-instance.repository.interface';
-import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { evaluateCondition, formatDate } from 'src/shared/utilities/common.util';
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '../../domain/model/workflow-task.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SendNotificationRequestEvent } from 'src/modules/shared/notification/application/events/send-notification-request.event';
+import { SendNotificationRequestEvent } from 'src/modules/shared/correspondence/application/events/send-notification-request.event';
 import { NotificationKeys } from 'src/shared/notification-keys';
-import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/notification/domain/models/notification.model';
+import { NotificationCategory, NotificationPriority, NotificationType } from 'src/modules/shared/correspondence/domain/models/notification.model';
 import { RedisHashCacheService } from 'src/modules/shared/database/redis-hash-cache.service';
 import { CompleteTaskUseCase } from '../use-cases/complete-task.use-case';
 import { DomainEventPayload } from 'src/shared/dto/domain-event-payload.dto';
 import { APP_DOMAIN_EVENTS_KEY } from 'src/shared/system-events.handler';
 import { User } from 'src/modules/user/domain/model/user.model';
+import { CorrespondenceService } from 'src/modules/shared/correspondence/application/services/correspondence.service';
 
 export interface WorkflowAutomaticTaskJobData {
   instanceId: string;

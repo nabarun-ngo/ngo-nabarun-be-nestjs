@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GmailService } from './gmail.service';
-import { SendEmailRequest, SendEmailResult } from '../dtos/email.dto';
-import { RemoteConfigService } from '../../firebase/remote-config/remote-config.service';
-import { loadTemplate, renderJsonTemplateFromString } from '../utilities/email-template.utility';
-import { EmailTemplateData } from '../dtos/email-template.dto';
+import { SendEmailRequest, SendEmailResult } from '../../presentation/dtos/email.dto';
+import { RemoteConfigService } from '../../../firebase/remote-config/remote-config.service';
+import { EmailTemplateData } from '../../presentation/dtos/email-template.dto';
 
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { SendEmailDto } from '../dtos/correspondence.dto';
+import { SendEmailDto } from '../../presentation/dtos/correspondence.dto';
 import { EmailTemplateName } from 'src/shared/email-keys';
+import { loadTemplate, renderJsonTemplateFromString } from '../../infrastructure/utilities/email-template.utility';
 
 
 

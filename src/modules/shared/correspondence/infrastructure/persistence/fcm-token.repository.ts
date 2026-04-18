@@ -5,7 +5,7 @@ import { FcmToken } from '../../domain/models/fcm-token.model';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { Prisma } from '@prisma/client';
-import { FcmTokenFilterDto } from '../../application/dto/notification.dto';
+import { FcmTokenFilterDto } from '../../presentation/dtos/notification.dto';
 
 @Injectable()
 export class FcmTokenRepository implements IFcmTokenRepository {

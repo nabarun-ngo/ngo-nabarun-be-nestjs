@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { ProcessJob } from 'src/modules/shared/job-processing/application/decorators/process-job.decorator';
-import { CorrespondenceService } from 'src/modules/shared/correspondence/services/correspondence.service';
 import { DONATION_REPOSITORY, type IDonationRepository } from '../../domain/repositories/donation.repository.interface';
 import { JobName } from 'src/shared/job-names';
 import { EmailTemplateName } from 'src/shared/email-keys';
@@ -9,13 +8,13 @@ import { CreateDonationUseCase } from '../use-cases/create-donation.use-case';
 import { Donation, DonationStatus, DonationType } from '../../domain/model/donation.model';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { formatDate } from 'src/shared/utilities/common.util';
-import { FinanceReportService } from '../services/report.service';
 import { type IUserRepository, USER_REPOSITORY } from 'src/modules/user/domain/repositories/user.repository.interface';
 import { ConfigService } from '@nestjs/config';
 import { Configkey } from 'src/shared/config-keys';
 import { User, UserStatus } from 'src/modules/user/domain/model/user.model';
 import { groupBy } from 'lodash';
 import { type JobExecutionContext } from 'src/modules/shared/job-processing/presentation/dto/job.dto';
+import { CorrespondenceService } from 'src/modules/shared/correspondence/application/services/correspondence.service';
 
 @Injectable()
 export class DonationJobsHandler {

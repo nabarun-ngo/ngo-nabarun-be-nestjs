@@ -3,7 +3,7 @@ import { JobProcessingService } from "src/modules/shared/job-processing/infrastr
 import { UserCreatedEvent } from "../../domain/events/user-created.event";
 import { Injectable, Logger } from "@nestjs/common";
 import { RoleAssignedEvent } from "../../domain/events/role-assigned.event";
-import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
+import { CorrespondenceService } from "src/modules/shared/correspondence/application/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { JobName } from "src/shared/job-names";
 import { formatDate } from "src/shared/utilities/common.util";

@@ -19,7 +19,7 @@ import {
     NotificationFiltersDto,
     FcmTokenFilterDto,
     UserFcmTokensDto,
-} from '../../application/dto/notification.dto';
+} from '../dtos/notification.dto';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { SuccessResponse } from 'src/shared/models/response-model';

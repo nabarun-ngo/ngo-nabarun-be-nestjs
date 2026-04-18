@@ -2,11 +2,11 @@ import { Body, Controller, Get, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { ApiAutoResponse } from "src/shared/decorators/api-auto-response.decorator";
 import { SuccessResponse } from "src/shared/models/response-model";
-import { CorrespondenceService } from "../services/correspondence.service";
+import { CorrespondenceService } from "../../application/services/correspondence.service";
 import { SendEmailDto } from "../dtos/correspondence.dto";
 import { SendEmailResult } from "../dtos/email.dto";
-import { RequirePermissions } from "../../auth/application/decorators/require-permissions.decorator";
-import { UseApiKey } from "../../auth/application/decorators/use-api-key.decorator";
+import { RequirePermissions } from "../../../auth/application/decorators/require-permissions.decorator";
+import { UseApiKey } from "../../../auth/application/decorators/use-api-key.decorator";
 
 @ApiTags(CorrespondenceController.name)
 @ApiSecurity('api-key')

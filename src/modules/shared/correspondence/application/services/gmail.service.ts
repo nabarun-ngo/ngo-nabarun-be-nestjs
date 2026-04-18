@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { gmail as googleMail } from '@googleapis/gmail';
-import { EmailOptions, SendEmailResult } from '../dtos/email.dto';
-import { GOOGLE_SCOPES } from '../../auth/scopes';
-import { GOOGLE_OAUTH_SERVICE, OAuthService } from '../../auth/application/services';
+import { EmailOptions, SendEmailResult } from '../../presentation/dtos/email.dto';
+import { GOOGLE_SCOPES } from '../../../auth/scopes';
+import { GOOGLE_OAUTH_SERVICE, OAuthService } from '../../../auth/application/services';
 
 
 
