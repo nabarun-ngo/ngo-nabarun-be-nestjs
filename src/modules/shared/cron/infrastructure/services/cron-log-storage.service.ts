@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CronExecution } from '../domain/models/cron-job.model';
-import { RedisStoreService } from '../../database/redis-store.service';
-import { SchedulerLogDto } from '../presentation/dtos/cron-job.dto';
 import { config } from 'src/config/app.config';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { CronExecution } from '../../domain/models/cron-job.model';
+import { SchedulerLogDto } from '../../presentation/dtos/cron-job.dto';
+import { RedisStoreService } from 'src/modules/shared/database/redis-store.service';
 
 @Injectable()
 export class CronLogStorageService {

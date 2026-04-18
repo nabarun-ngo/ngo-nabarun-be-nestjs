@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { RemoteConfigService } from '../../firebase/remote-config/remote-config.service';
 import { parseKeyValueConfigs } from 'src/shared/utilities/kv-config.util';
-import { CronJob } from '../domain/models/cron-job.model';
+import { RemoteConfigService } from 'src/modules/shared/firebase/remote-config/remote-config.service';
+import { CronJob } from '../../domain/models/cron-job.model';
 
 @Injectable()
 export class CronConfigService {
@@ -10,7 +10,7 @@ export class CronConfigService {
     async fetchCronJobs(): Promise<CronJob[]> {
         const config = await this.firebaseRC.getAllKeyValues();
         if (!config['CRON_JOBS']) return [];
-        
+
         const cronJobs = parseKeyValueConfigs(config['CRON_JOBS'].value);
 
         return cronJobs.map(m => {

@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CronExpressionParser } from 'cron-parser';
-import { CronJobDto, QueueDto, SchedulerLogDto } from '../presentation/dtos/cron-job.dto';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
-import { CronLogStorageService } from '../infrastructure/services/cron-log-storage.service';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
-import { JobProcessingService } from '../../job-processing/infrastructure/services/job-processing.service';
 import { JobName } from 'src/shared/job-names';
-import { CronConfigService } from '../infrastructure/services/cron-config.service';
+import { CronConfigService } from '../../infrastructure/services/cron-config.service';
+import { CronLogStorageService } from '../../infrastructure/services/cron-log-storage.service';
+import { CronJobDto, QueueDto, SchedulerLogDto } from '../../presentation/dtos/cron-job.dto';
+import { JobProcessingService } from 'src/modules/shared/job-processing/infrastructure/services/job-processing.service';
 
 @Injectable()
 export class CronService {
@@ -25,7 +25,7 @@ export class CronService {
         const now = timestamp ? new Date(timestamp) : new Date();
         const istTime = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
         this.logger.log(`[CRON] Triggering scheduled jobs. Trigger DateTime: ${timestamp} -> Server DateTime: ${now.toISOString()} -> IST (interpreted): ${istTime}`);
-        
+
         const executed: QueueDto[] = [];
         const skipped: QueueDto[] = [];
         const CRON_JOBS = await this.cronConfig.fetchCronJobs();
