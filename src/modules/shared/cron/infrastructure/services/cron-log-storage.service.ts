@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CronExecution } from './cron-job.model';
-import { RedisStoreService } from '../database/redis-store.service';
-import { SchedulerLogDto } from './cron-job.dto';
+import { CronExecution } from '../domain/models/cron-job.model';
+import { RedisStoreService } from '../../database/redis-store.service';
+import { SchedulerLogDto } from '../presentation/dtos/cron-job.dto';
 import { config } from 'src/config/app.config';
 import { PagedResult } from 'src/shared/models/paged-result';
+
 @Injectable()
 export class CronLogStorageService {
     private readonly NS = 'cron:jobs';
     private readonly GLOBAL_KEY = 'global';
     private readonly INDEXED_FIELDS: (keyof CronExecution)[] = ['status', 'id', 'jobName'];
-
 
     constructor(private readonly store: RedisStoreService) { }
 
