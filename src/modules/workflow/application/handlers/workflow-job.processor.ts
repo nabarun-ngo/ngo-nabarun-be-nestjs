@@ -67,7 +67,7 @@ export class WorkflowJobProcessor {
 
     job.log(`[INFO] Found ${assignees.size} Task Assignees`);
     for (const user of assignees.values()) {
-      this.processTaskReminder(user, job);
+      await this.processTaskReminder(user, job);
     }
     job.log(`[INFO] Remind pending tasks completed`);
   }
