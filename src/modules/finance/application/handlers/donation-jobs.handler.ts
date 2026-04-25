@@ -209,7 +209,7 @@ export class DonationJobsHandler {
             raisedDonations = donation ? [donation] : [];
         } else {
             job.log(`[INFO] Processing mark pending donation for all raised donations`);
-            raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] })
+            raisedDonations = await this.donationRepository.findAll({ status: [DonationStatus.RAISED] });
         }
         job.log(`[INFO] Found ${raisedDonations.length} raised donations.`);
         for (const donation of raisedDonations) {
