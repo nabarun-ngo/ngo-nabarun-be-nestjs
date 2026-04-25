@@ -9,10 +9,18 @@ import { resolveTraceId, traceStorage } from "src/shared/utilities/trace-context
 import { Request, Response, NextFunction } from "express";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
+const parseRetentionDays = (value: string | undefined, defaultValue: number): number => {
+  const parsed = parseInt(value || '', 10);
+  return Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 365) : defaultValue;
+};
+
+const completedJobRetentionDays = parseRetentionDays(process.env[Configkey.PROP_COMPLETED_JOB_RETENTION_DAYS], 7);
+const failedJobRetentionDays = parseRetentionDays(process.env[Configkey.PROP_FAILED_JOB_RETENTION_DAYS], 30);
+
 export const config = {
   app: {
     name: process.env[Configkey.APP_NAME] || '',
-    port: parseInt(process.env.PORT || '8080'),
+    port: parseInt(process.env.PORT || '8080', 10) || 8080,
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
     logLevel: (process.env[Configkey.LOG_LEVEL] || 'log') as LogLevel,
@@ -41,12 +49,12 @@ export const config = {
   jobProcessing: {
     queueName: 'default',
     removeOnComplete: {
-      age: 3600 * 24 * parseInt(process.env[Configkey.PROP_COMPLETED_JOB_RETENTION_DAYS] || '7'), // 7 Days retention
-      count: 500 * parseInt(process.env[Configkey.PROP_COMPLETED_JOB_RETENTION_DAYS] || '7'), // 100 jobs per day
+      age: 3600 * 24 * completedJobRetentionDays,
+      count: 500 * completedJobRetentionDays,
     },
     removeOnFail: {
-      age: 3600 * 24 * parseInt(process.env[Configkey.PROP_FAILED_JOB_RETENTION_DAYS] || '30'), // 30 Days retention
-      count: 50 * parseInt(process.env[Configkey.PROP_FAILED_JOB_RETENTION_DAYS] || '30'), // 10 jobs per day
+      age: 3600 * 24 * failedJobRetentionDays,
+      count: 50 * failedJobRetentionDays,
     }
   }
 };
