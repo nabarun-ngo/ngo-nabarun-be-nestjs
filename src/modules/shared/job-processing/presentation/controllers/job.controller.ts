@@ -72,7 +72,7 @@ export class JobController {
   @ApiAutoResponse(String, { status: 200, description: 'Options: pause, resume', isArray: false, wrapInSuccessResponse: true })
   @ApiParam({ name: 'operation', required: true, description: 'Operation to trigger', enum: ['pause', 'resume'] })
   async queueOperation(@Param('operation') operation: string) {
-    this.jobService.queueOperation(operation);
+    await this.jobService.queueOperation(operation);
     return new SuccessResponse('Queue ' + operation + 'd successfully');
   }
 
