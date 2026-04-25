@@ -37,7 +37,7 @@ export class CronService {
                 if (job.inputData) {
                     Object.assign(payload, job.inputData);
                 }
-                const jobName = JobName[job.handler];
+                const jobName = this.resolveJobName(job.handler);
                 if (!jobName) {
                     this.logger.error(`[CRON] Job ${job.name} (handler: ${job.handler}) not found in JobName registry`);
                     skipped.push({
@@ -109,7 +109,11 @@ export class CronService {
         if (!job) {
             throw new BusinessException(`Job ${name} not found OR Not in active state`);
         }
-        const jobQueue = await this.jobProcessingService.addJob(JobName[job.handler], inputData ?? job.inputData);
+        const jobName = this.resolveJobName(job.handler);
+        if (!jobName) {
+            throw new BusinessException(`Job ${name} has an invalid handler: ${job.handler}`);
+        }
+        const jobQueue = await this.jobProcessingService.addJob(jobName, inputData ?? job.inputData);
         this.logger.log(`[CRON] Triggered job: ${job.name} with ID: ${jobQueue.id}`);
         const triggerId = `MT${generateUniqueNDigitNumber(4)}`;
         await this.logStorage.addCronLog({
@@ -151,5 +155,17 @@ export class CronService {
             this.logger.error(`Invalid cron expression: ${expression} ${error.stack}`);
             return false;
         }
+    }
+
+    /**
+     * Resolve JobName from either key or value
+     */
+    private resolveJobName(handler: string): JobName | undefined {
+        // 1. Try treating it as a value
+        if (Object.values(JobName).includes(handler as JobName)) {
+            return handler as JobName;
+        }
+        // 2. Try treating it as a key
+        return JobName[handler as keyof typeof JobName];
     }
 }

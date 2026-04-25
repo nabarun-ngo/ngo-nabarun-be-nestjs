@@ -18,6 +18,8 @@ export class CronConfigService {
                 name: m.KEY,
                 expression: m.VALUE,
                 description: m.DESCRIPTION,
+                // handler can be a JobName enum value (e.g. 'send-onboarding-email')
+                // or a JobName enum key (e.g. 'SEND_ONBOARDING_EMAIL')
                 handler: m.getAttribute('EVENT_NAME'),
                 enabled: m.ACTIVE,
                 inputData: m.getAttribute('INPUT_DATA') ? m.getAttribute('INPUT_DATA') : undefined
