@@ -2,13 +2,12 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { IUseCase } from "src/shared/interfaces/use-case.interface";
 import { Notification, NotificationCategory, NotificationPriority, NotificationType } from "../../domain/models/notification.model";
 import { INotificationRepository } from "../../domain/repositories/notification.repository.interface";
-import { IFcmTokenRepository } from "../../domain/repositories/fcm-token.repository.interface";
-import { FirebaseMessagingService } from "../services/firebase-messaging.service";
 import { IUserNotificationRepository } from "../../domain/repositories/user-notification.repository.interface";
 import { OnEvent } from "@nestjs/event-emitter";
 import { SendNotificationRequestEvent } from "../events/send-notification-request.event";
 import { MetadataService } from "../../infrastructure/external/metadata.service";
 import { NotificationError } from "src/shared/exceptions/notification-failure";
+import { IPushNotificationProvider } from "../../domain/interfaces/push-notification-provider.interface";
 
 export class CreateNotification {
     userIds: string[];
@@ -39,9 +38,8 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
         private readonly notificationRepository: INotificationRepository,
         @Inject(IUserNotificationRepository)
         private readonly userNotificationRepository: IUserNotificationRepository,
-        @Inject(IFcmTokenRepository)
-        private readonly fcmTokenRepository: IFcmTokenRepository,
-        private readonly firebaseMessaging: FirebaseMessagingService,
+        @Inject(IPushNotificationProvider)
+        private readonly pushNotificationProvider: IPushNotificationProvider,
         private readonly metadataService: MetadataService,
     ) { }
 
@@ -107,16 +105,7 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
     * Send push notification for a notification
     */
     private async sendPushNotification(userId: string, notification: Notification): Promise<void> {
-        const tokens = await this.fcmTokenRepository.findActiveByUserId(userId);
-
-        if (tokens.length === 0) {
-            this.logger.warn(`No active FCM tokens found for user ${userId}`);
-            return;
-        }
-
-        const tokenStrings = tokens.map(t => t.token);
-
-        const result = await this.firebaseMessaging.sendToDevices(tokenStrings, {
+        const result = await this.pushNotificationProvider.sendToUsers([userId], {
             title: notification.title,
             body: notification.body,
             ...(notification.imageUrl && { imageUrl: notification.imageUrl }),
@@ -131,26 +120,14 @@ export class CreateNotificationUseCase implements IUseCase<CreateNotification, N
             },
         });
 
-        // Handle invalid tokens (unregistered or invalid)
-        if (result.failureCount > 0) {
-            for (const errObj of result.errors) {
-                const errorCode = errObj.error?.code;
-                if (errorCode === 'messaging/registration-token-not-registered' ||
-                    errorCode === 'messaging/invalid-registration-token') {
-                    this.logger.warn(`Deactivating invalid token for user ${userId}: ${errObj.token}`);
-                    await this.fcmTokenRepository.deactivateToken(errObj.token);
-                }
-            }
-        }
-
         const userNotification = await this.userNotificationRepository.findByUserIdAndNotificationId(userId, notification.id);
         if (!userNotification) {
             return;
         }
-
-        if (result.failureCount > 0) {
-            throw new NotificationError(new Error(`${result.failureCount} failures. ${JSON.stringify(result.errors)}`));
-        }
+        // On Notification Push Failure, Don't fail the entire request
+        // if (result.failureCount > 0 && result.successCount === 0) {
+        //     throw new NotificationError(new Error(`${result.failureCount} failures. ${JSON.stringify(result.errors)}`));
+        // }
         // Update notification with push status
         userNotification.markPushSent(
             result.successCount > 0,

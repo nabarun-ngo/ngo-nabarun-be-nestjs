@@ -19,6 +19,9 @@ import { IFcmTokenRepository } from './domain/repositories/fcm-token.repository.
 import { CreateNotificationUseCase } from './application/use-cases/create-notification.use-case';
 import { MetadataService } from './infrastructure/external/metadata.service';
 import { NotificationJobsHandler } from './application/handlers/notification-jobs.handler';
+import { IPushNotificationProvider } from './domain/interfaces/push-notification-provider.interface';
+import { FirebasePushProvider } from './infrastructure/external/firebase-push.provider';
+import { OneSignalPushProvider } from './infrastructure/external/onesignal-push.provider';
 
 @Global()
 @Module({
@@ -30,6 +33,12 @@ import { NotificationJobsHandler } from './application/handlers/notification-job
         NotificationHandler,
         NotificationService,
         FirebaseMessagingService,
+        FirebasePushProvider,
+        OneSignalPushProvider,
+        {
+            provide: IPushNotificationProvider,
+            useClass: OneSignalPushProvider, // Use OneSignal as the default provider
+        },
         {
             provide: INotificationRepository,
             useClass: NotificationRepository,
@@ -46,6 +55,12 @@ import { NotificationJobsHandler } from './application/handlers/notification-job
         MetadataService,
         NotificationJobsHandler
     ],
-    exports: [CorrespondenceService, NotificationService, FirebaseMessagingService, CreateNotificationUseCase],
+    exports: [
+        CorrespondenceService,
+        NotificationService,
+        FirebaseMessagingService,
+        CreateNotificationUseCase,
+        IPushNotificationProvider
+    ],
 })
 export class CorrespondenceModule { }

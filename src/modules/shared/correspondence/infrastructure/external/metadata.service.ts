@@ -3,6 +3,7 @@ import { RemoteConfigService } from "src/modules/shared/firebase/remote-config/r
 import { NotificationKeys } from "src/shared/notification-keys";
 import { parseKeyValueConfigs } from "src/shared/utilities/kv-config.util";
 import Handlebars from 'handlebars';
+import { Configkey } from "src/shared/config-keys";
 
 @Injectable()
 export class MetadataService {
@@ -24,12 +25,29 @@ export class MetadataService {
             throw new Error(`Notification metadata not found for key: ${notificationKey}`);
         }
 
+        const appFeUrl = process.env[Configkey.APP_FE_URL]!;
+        const imageUrl = notificationMetadata?.getAttribute<string>('IMAGE_URL');
+        const actionUrl = notificationMetadata?.getAttribute<string>('ACTION_URL');
+
         return {
             title: notificationMetadata?.VALUE!,
             description: notificationMetadata?.DESCRIPTION!,
-            imageUrl: notificationMetadata?.getAttribute('IMAGE_URL') || undefined,
-            actionUrl: notificationMetadata?.getAttribute('ACTION_URL') || undefined
+            imageUrl: this.buildUrl(appFeUrl, imageUrl),
+            actionUrl: this.buildUrl(appFeUrl, actionUrl)
         };
+    }
+
+    private buildUrl(baseUrl: string, path?: string,): string | undefined {
+        if (!path) {
+            return undefined;
+        }
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+            return path;
+        }
+        if (path.startsWith('/')) {
+            return `${baseUrl}${path}`;
+        }
+        return `${baseUrl}/${path}`;
     }
 
 

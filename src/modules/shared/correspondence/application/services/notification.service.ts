@@ -7,7 +7,7 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
 import { CreateNotificationUseCase } from '../use-cases/create-notification.use-case';
 import { NotificationDtoMapper } from '../../presentation/dtos/notification-dto.mapper';
 import { IUserNotificationRepository } from '../../domain/repositories/user-notification.repository.interface';
-import { FirebaseMessagingService } from './firebase-messaging.service';
+import { IPushNotificationProvider } from '../../domain/interfaces/push-notification-provider.interface';
 
 @Injectable()
 export class NotificationService {
@@ -19,7 +19,8 @@ export class NotificationService {
         @Inject(IFcmTokenRepository)
         private readonly fcmTokenRepository: IFcmTokenRepository,
         private readonly createNotificationUseCase: CreateNotificationUseCase,
-        private readonly firebaseMessaging: FirebaseMessagingService,
+        @Inject(IPushNotificationProvider)
+        private readonly pushNotificationProvider: IPushNotificationProvider,
     ) { }
 
     /**
@@ -234,15 +235,7 @@ export class NotificationService {
             throw new Error(`User ID not found for notification ${userNotificationId}`);
         }
 
-        const tokens = await this.fcmTokenRepository.findActiveByUserId(userId);
-        if (tokens.length === 0) {
-            this.logger.warn(`No active FCM tokens found for user ${userId}`);
-            throw new Error(`No active FCM tokens found for user ${userId}`);
-        }
-
-        const tokenStrings = tokens.map(t => t.token);
-
-        const result = await this.firebaseMessaging.sendToDevices(tokenStrings, {
+        const result = await this.pushNotificationProvider.sendToUsers([userId], {
             title: userNotification.title,
             body: userNotification.body,
             ...(userNotification.imageUrl && { imageUrl: userNotification.imageUrl }),
@@ -256,18 +249,6 @@ export class NotificationService {
                 ...(userNotification.referenceType && { referenceType: userNotification.referenceType }),
             },
         });
-
-        // Handle invalid tokens
-        if (result.failureCount > 0) {
-            for (const errObj of result.errors) {
-                const errorCode = errObj.error?.code;
-                if (errorCode === 'messaging/registration-token-not-registered' ||
-                    errorCode === 'messaging/invalid-registration-token') {
-                    this.logger.warn(`Deactivating invalid token for user ${userId}: ${errObj.token}`);
-                    await this.fcmTokenRepository.deactivateToken(errObj.token);
-                }
-            }
-        }
 
         // Update notification with push status
         userNotification.markPushSent(
