@@ -113,18 +113,20 @@ export class DonationJobsHandler {
         userId: string,
         fullName: string,
         amount: number,
-        firstDate: Date,
-        lastDate: Date,
+        firstDate: string,
+        lastDate: string,
     }>) {
         const { userId, fullName, amount, firstDate, lastDate } = job.data;
-        job.log(`[INFO] Creating monthly donation for user ${fullName} (${userId}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
+        const startDate = new Date(firstDate);
+        const endDate = new Date(lastDate);
+        job.log(`[INFO] Creating monthly donation for user ${fullName} (${userId}) with amount ${amount} for period ${startDate.toDateString()} - ${endDate.toDateString()}`);
         try {
             const donation = await this.createDonationUseCase.execute({
                 type: DonationType.REGULAR,
                 amount: amount,
                 donorId: userId,
-                startDate: firstDate,
-                endDate: lastDate,
+                startDate: startDate,
+                endDate: endDate,
                 isGuest: false,
             });
             job.log(`[INFO] Monthly donation ${donation.id} raised successfully for user: ${fullName} (${userId})`);
@@ -176,8 +178,8 @@ export class DonationJobsHandler {
                 userId: user.id,
                 fullName: user.fullName,
                 amount: amount,
-                firstDate: firstDate,
-                lastDate: lastDate,
+                firstDate: firstDate.toISOString(),
+                lastDate: lastDate.toISOString(),
             });
             job.log(`[INFO] Added create donation job ${jobId} for user ${user.fullName} (${user.id}) with amount ${amount} for period ${firstDate} - ${lastDate}`);
         }
