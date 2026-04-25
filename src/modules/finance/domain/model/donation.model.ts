@@ -319,8 +319,8 @@ export class Donation extends AggregateRoot<string> {
    * Mark as pending payment
    */
   markAsPending(): void {
-    if (this.#status === DonationStatus.PAID) {
-      throw new BusinessException('Cannot mark paid donation as pending');
+    if (this.#status !== DonationStatus.RAISED && this.#status !== DonationStatus.UPDATE_MISTAKE) {
+      throw new BusinessException(`Cannot mark donation as pending from current status: ${this.#status}`);
     }
     this.#status = DonationStatus.PENDING;
     this.touch();

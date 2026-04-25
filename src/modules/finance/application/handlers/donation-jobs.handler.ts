@@ -202,6 +202,10 @@ export class DonationJobsHandler {
         if (job.data.donationId) {
             job.log(`[INFO] Processing mark pending donation only for donation ${job.data.donationId}`);
             const donation = await this.donationRepository.findById(job.data.donationId);
+            if (donation && donation.status !== DonationStatus.RAISED) {
+                job.log(`[WARN] Donation ${donation.id} is not in RAISED status (current: ${donation.status}). Skipping mark as pending.`);
+                return;
+            }
             raisedDonations = donation ? [donation] : [];
         } else {
             job.log(`[INFO] Processing mark pending donation for all raised donations`);
