@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JobDetail, JobMetrics, JobPerformanceMetrics, QueueHealth, QueueStatistics } from '../../presentation/dto/job.dto';
+import { JobDetail, JobMetrics, JobPerformanceMetrics, QueueHealth } from '../../presentation/dto/job.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { JobProcessingService } from '../../infrastructure/services/job-processing.service';
 import { Job, JobType } from 'bullmq';
