@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JobDetail, JobMetrics, JobPerformanceMetrics, QueueHealth } from '../../presentation/dto/job.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { JobProcessingService } from '../../infrastructure/services/job-processing.service';
-import { Job, JobType } from 'bullmq';
+import { JobType } from 'bullmq';
 import { toJobDTO } from '../../presentation/dto/job-dto.mapper';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 
