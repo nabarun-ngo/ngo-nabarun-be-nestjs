@@ -321,7 +321,7 @@ class UserRepository
         where: {
           paidById: id,
           status: {
-            notIn: [ExpenseStatus.SETTLED, ExpenseStatus.REJECTED]
+            notIn: [ExpenseStatus.SETTLED, ExpenseStatus.REJECTED, ExpenseStatus.DRAFT]
           }
         },
         _sum: { amount: true }

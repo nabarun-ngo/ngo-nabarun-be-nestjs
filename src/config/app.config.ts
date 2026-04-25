@@ -5,14 +5,22 @@ import { Configkey } from "src/shared/config-keys";
 import { GlobalExceptionFilter } from "src/shared/filters/global-exception.filter";
 import * as bodyParser from 'body-parser';
 import { TimingInterceptor } from "src/shared/interceptors/timing.interceptor";
-import { resolveTraceId, traceStorage } from "src/shared/utils/trace-context.util";
+import { resolveTraceId, traceStorage } from "src/shared/utilities/trace-context.util";
 import { Request, Response, NextFunction } from "express";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+
+const parseRetentionDays = (value: string | undefined, defaultValue: number): number => {
+  const parsed = parseInt(value || '', 10);
+  return Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 365) : defaultValue;
+};
+
+const completedJobRetentionDays = parseRetentionDays(process.env[Configkey.PROP_COMPLETED_JOB_RETENTION_DAYS], 7);
+const failedJobRetentionDays = parseRetentionDays(process.env[Configkey.PROP_FAILED_JOB_RETENTION_DAYS], 30);
 
 export const config = {
   app: {
     name: process.env[Configkey.APP_NAME] || '',
-    port: parseInt(process.env.PORT || '8080'),
+    port: parseInt(process.env.PORT || '8080', 10) || 8080,
     environment: process.env[Configkey.NODE_ENV] || 'development',
     isProd: process.env[Configkey.NODE_ENV] === 'prod',
     logLevel: (process.env[Configkey.LOG_LEVEL] || 'log') as LogLevel,
@@ -41,12 +49,12 @@ export const config = {
   jobProcessing: {
     queueName: 'default',
     removeOnComplete: {
-      age: 3600 * 24 * 7, // 7 Days
-      count: 100000,
+      age: 3600 * 24 * completedJobRetentionDays,
+      count: 500 * completedJobRetentionDays,
     },
     removeOnFail: {
-      age: 3600 * 24 * 30, // 30 Days
-      count: 10000,
+      age: 3600 * 24 * failedJobRetentionDays,
+      count: 50 * failedJobRetentionDays,
     }
   }
 };

@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { Job } from "bullmq";
-import { ProcessJob } from "src/modules/shared/job-processing/decorators/process-job.decorator";
+import { ProcessJob } from "src/modules/shared/job-processing/application/decorators/process-job.decorator";
 import { Role } from "../../domain/model/role.model";
 import { AssignRoleUseCase } from "../use-cases/assign-role.use-case";
-import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
+import { CorrespondenceService } from "src/modules/shared/correspondence/application/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";

@@ -1,9 +1,10 @@
 import { Module, DynamicModule, Global } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { JobProcessingService } from './services/job-processing.service';
-import { JobProcessorRegistry } from './services/job-processor-registry.service';
-import { JobMonitoringService } from './services/job-monitoring.service';
-import { JobController } from './controllers/job.controller';
+import { JobProcessingService } from './infrastructure/services/job-processing.service';
+import { JobProcessorRegistry } from './infrastructure/services/job-processor-registry.service';
+import { JobService } from './application/services/job.service';
+import { JobController } from './presentation/controllers/job.controller';
+import { config } from 'src/config/app.config';
 
 export interface JobProcessingModuleOptions {
   connection: {
@@ -39,11 +40,14 @@ export class JobProcessingModule {
           defaultJobOptions: options.defaultJobOptions,
         }),
         BullModule.registerQueue(...queueConfigs),
+        BullModule.registerFlowProducer({
+          name: config.jobProcessing.queueName + '-flow-producer',
+        }),
       ],
       providers: [
         JobProcessingService,
         JobProcessorRegistry,
-        JobMonitoringService,
+        JobService,
       ],
       exports: [
         JobProcessingService,

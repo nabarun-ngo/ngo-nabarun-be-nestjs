@@ -1,19 +1,18 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
-import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
 import { AppTechnicalError } from "src/shared/exceptions/app-tech-error";
 import { Role } from "../modules/user/domain/model/role.model";
 import { type IUserRepository, USER_REPOSITORY } from "../modules/user/domain/repositories/user.repository.interface";
 import { DomainEvent } from "./models/domain-event";
 import { RedisHashCacheService } from "src/modules/shared/database/redis-hash-cache.service";
 import { DomainEventPayload } from "./dto/domain-event-payload.dto";
-import { SlackNotificationRequestEvent } from "src/modules/shared/correspondence/events/slack-notification-request.event";
 import { ErrorResponse } from "./models/response-model";
-import { getTraceId } from "./utils/trace-context.util";
-import { SendNotificationRequestEvent } from "src/modules/shared/notification/application/events/send-notification-request.event";
+import { getTraceId } from "./utilities/trace-context.util";
+import { SendNotificationRequestEvent } from "src/modules/shared/correspondence/application/events/send-notification-request.event";
 import { NotificationKeys } from "./notification-keys";
-import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/notification/domain/models/notification.model";
+import { NotificationCategory, NotificationPriority, NotificationType } from "src/modules/shared/correspondence/domain/models/notification.model";
 import { ApplyTryCatch } from "./decorators/apply-try-catch.decorator";
+import { SlackNotificationRequestEvent } from "src/modules/shared/correspondence/application/events/slack-notification-request.event";
 
 export const APP_DOMAIN_EVENTS_KEY = 'app:domain_events';
 
