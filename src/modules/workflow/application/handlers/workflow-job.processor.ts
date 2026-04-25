@@ -156,7 +156,7 @@ export class WorkflowJobProcessor {
       autoCloseRefId: aggregateIds,
       status: WorkflowTask.pendingTaskStatus,
       type: [WorkflowTaskType.MANUAL]
-    })
+    });
 
     job.log(`[INFO] Fetched ${tasks.length} tasks for evaluation.`);
 
