@@ -1,6 +1,6 @@
 import { FcmToken } from "../../domain/models/fcm-token.model";
 import { Notification } from "../../domain/models/notification.model";
-import { FcmTokenMetadataDto, NotificationResponseDto, UserFcmTokensDto } from "./notification.dto";
+import { FcmTokenMetadataDto, NotificationResponseDto } from "./notification.dto";
 
 export class NotificationDtoMapper {
     static toResponseDto(notification: Notification): NotificationResponseDto {
