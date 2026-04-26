@@ -70,6 +70,10 @@ export default class MeetingRepository implements IMeetingRepository {
                 createdAt: meeting.createdAt,
                 creatorEmail: meeting.hostEmail,
                 createdById: meeting.creator?.id,
+                meetingNotes: meeting.meetingNotes ? JSON.stringify(meeting.meetingNotes) : null,
+                meetingTranscript: meeting.meetingTranscript ? JSON.stringify(meeting.meetingTranscript) : null,
+                meetingRecordingUrl: meeting.recordingUrl,
+                meetingActionItems: meeting.meetingActionItems ? JSON.stringify(meeting.meetingActionItems) : null,
             }
         });
         return MeetingMapper.fromEntityToModel(entity);
@@ -90,6 +94,10 @@ export default class MeetingRepository implements IMeetingRepository {
                 status: meeting.status,
                 extVideoConferenceLink: meeting.meetLink,
                 extHtmlLink: meeting.calendarLink,
+                meetingNotes: meeting.meetingNotes ? JSON.stringify(meeting.meetingNotes) : null,
+                meetingTranscript: meeting.meetingTranscript ? JSON.stringify(meeting.meetingTranscript) : null,
+                meetingRecordingUrl: meeting.recordingUrl,
+                meetingActionItems: meeting.meetingActionItems ? JSON.stringify(meeting.meetingActionItems) : null,
             }
         });
         return MeetingMapper.fromEntityToModel(entity);
@@ -107,6 +115,23 @@ export default class MeetingRepository implements IMeetingRepository {
             where: { extMeetingId: extId }
         });
         return entity ? MeetingMapper.fromEntityToModel(entity) : null;
+    }
+
+    async findByTimeRange(startGte: Date, startLte: Date, endGte: Date, endLte: Date): Promise<Meeting[]> {
+        const entities = await this.prisma.meeting.findMany({
+            where: {
+                deletedAt: null,
+                meetingStartTime: {
+                    gte: startGte,
+                    lte: startLte,
+                },
+                meetingEndTime: {
+                    gte: endGte,
+                    lte: endLte,
+                }
+            }
+        });
+        return entities.map(e => MeetingMapper.fromEntityToModel(e));
     }
 
     async findAll(filter?: MeetingFilter): Promise<Meeting[]> {

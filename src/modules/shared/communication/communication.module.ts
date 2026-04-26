@@ -10,6 +10,7 @@ import MeetingRepository from './infrastructure/persistence/meeting.repository';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { MeetingService } from './application/service/meeting.service';
+import { FathomJobsHandler } from './application/handlers/fathom-jobs.handler';
 
 @Global()
 @Module({
@@ -27,6 +28,7 @@ import { MeetingService } from './application/service/meeting.service';
             provide: MEETING_REPOSITORY,
             useClass: MeetingRepository,
         },
+        FathomJobsHandler,
     ],
     exports: [
 

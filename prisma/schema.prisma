@@ -621,6 +621,10 @@ model Meeting {
   meetingAgenda          String?   @db.Text
   meetingOutcomes        String?   @db.Text
   attendees              String?   @db.Text
+  meetingNotes           String?   @db.Text
+  meetingTranscript      String?   @db.Text
+  meetingRecordingUrl    String?   @db.VarChar(1000)
+  meetingActionItems     String?   @db.Text
 
   createdById String?      @db.VarChar(255)
   createdBy   UserProfile? @relation("MeetingCreator", fields: [createdById], references: [id])
