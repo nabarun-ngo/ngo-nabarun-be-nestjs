@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { getUserContext, getTraceId } from 'src/shared/utils/trace-context.util';
+import { getUserContext, getTraceId } from 'src/shared/utilities/trace-context.util';
 
 import { config } from 'src/config/app.config';
 

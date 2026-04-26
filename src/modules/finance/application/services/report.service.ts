@@ -4,9 +4,8 @@ import { GenerateDonationSummaryReportUseCase } from "../use-cases/generate-dona
 import { DmsService } from "src/modules/shared/dms/application/services/dms.service";
 import { DocumentMappingRefType } from "src/modules/shared/dms/domain/mapping.model";
 import { fileTypeFromBuffer } from "file-type";
-import { formatDate } from "src/shared/utilities/common.util";
 import { ReportParamsDto } from "../dto/report.dto";
-import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
+import { CorrespondenceService } from "src/modules/shared/correspondence/application/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { type IUserRepository, USER_REPOSITORY } from "src/modules/user/domain/repositories/user.repository.interface";
 import { Role } from "src/modules/user/domain/model/role.model";

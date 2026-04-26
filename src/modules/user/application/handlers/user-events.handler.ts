@@ -1,19 +1,16 @@
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
-import { JobProcessingService } from "src/modules/shared/job-processing/services/job-processing.service";
+import { JobProcessingService } from "src/modules/shared/job-processing/infrastructure/services/job-processing.service";
 import { UserCreatedEvent } from "../../domain/events/user-created.event";
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { RoleAssignedEvent } from "../../domain/events/role-assigned.event";
-import { CorrespondenceService } from "src/modules/shared/correspondence/services/correspondence.service";
+import { CorrespondenceService } from "src/modules/shared/correspondence/application/services/correspondence.service";
 import { EmailTemplateName } from "src/shared/email-keys";
 import { JobName } from "src/shared/job-names";
 import { formatDate } from "src/shared/utilities/common.util";
 import { StaticDocsService } from "src/modules/shared/dms/application/services/static-docs.service";
 import { UserDeletedEvent } from "../../domain/events/user-deleted.event";
-import { type IUserRepository, USER_REPOSITORY } from "../../domain/repositories/user.repository.interface";
 import { Role } from "../../domain/model/role.model";
-import { EventEmitter } from "stream";
 import { CreateWorkflowRequestEvent } from "src/modules/workflow/application/events/create-workflow-request.event";
-import { StartWorkflow } from "src/modules/workflow/application/use-cases/start-workflow.use-case";
 
 @Injectable()
 export class UserEventsHandler {

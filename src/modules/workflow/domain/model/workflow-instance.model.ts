@@ -9,11 +9,11 @@ import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { WorkflowTask, WorkflowTaskStatus } from './workflow-task.model';
 import { TaskCompletedEvent } from '../events/task-completed.event';
 import { StepCompletedEvent } from '../events/step-completed.event';
-import { Parser } from 'expr-eval';
 import { TaskStartedEvent } from '../events/task-started.event';
 import { TaskFailedEvent } from '../events/task-failed.event';
 import { TaskAssignmentCreatedEvent } from '../events/task-assignment-created.event';
 import { TaskAssignment } from './task-assignment.model';
+import { evaluateCondition } from 'src/shared/utilities/common.util';
 
 export enum WorkflowInstanceStatus {
   PENDING = 'PENDING',
@@ -154,7 +154,7 @@ export class WorkflowInstance extends AggregateRoot<string> {
 
     // Evaluate transitions from the current step
     for (const transition of currentStep.transitions) {
-      const d = this.#evaluateCondition(transition.condition);
+      const d = transition.condition === 'default' || !transition.condition || evaluateCondition(transition.condition, this.#context || {});
       if (d) {
         nextStepId = transition.nextStepId;
         break;
@@ -181,20 +181,6 @@ export class WorkflowInstance extends AggregateRoot<string> {
     nextStep.start();
     this.addDomainEvent(new StepStartedEvent(nextStep.id, this.id, nextStep.id, this));
     this.touch();
-  }
-
-  #evaluateCondition(expression: string) {
-    if (expression === 'default' || !expression) return true;
-    try {
-      const parser = new Parser();
-      const result = parser.evaluate(
-        expression,
-        this.#context
-      );
-      return !!result;;
-    } catch (error) {
-      throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
-    }
   }
 
   public initCurrentStepTasks(taskDefs: TaskDef[]): WorkflowTask[] {
