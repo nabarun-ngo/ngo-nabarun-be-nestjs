@@ -182,4 +182,27 @@ export class Meeting extends AggregateRoot<string> {
     get meetLink() { return this.#meetLink; }
     get hostEmail() { return this.#hostEmail; }
     get creator() { return this.#creator; }
+
+    #recordingUrl?: string;
+    #meetingNotes?: string;
+    #meetingTranscript?: string;
+    #meetingActionItems?: string;
+
+    get recordingUrl() { return this.#recordingUrl; }
+    get meetingNotes() { return this.#meetingNotes; }
+    get meetingTranscript() { return this.#meetingTranscript; }
+    get meetingActionItems() { return this.#meetingActionItems; }
+
+    setMeetingData(op: {
+        recordingUrl: string;
+        meetingNotes?: string | undefined;
+        meetingTranscript?: string | undefined;
+        meetingActionItems?: string | undefined;
+    }) {
+        this.#recordingUrl = op.recordingUrl ?? this.#recordingUrl;
+        this.#meetingNotes = op.meetingNotes ?? this.#meetingNotes;
+        this.#meetingTranscript = op.meetingTranscript ?? this.#meetingTranscript;
+        this.#meetingActionItems = op.meetingActionItems ?? this.#meetingActionItems;
+    }
+
 }

@@ -92,7 +92,12 @@ export function applyConfig(app: INestApplication) {
   });
 
   // File Size configuration
-  app.use(bodyParser.json({ limit: config.app.fileSize }));
+  app.use(bodyParser.json({ 
+    limit: config.app.fileSize,
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
+    }
+  }));
   app.use(bodyParser.urlencoded({ limit: config.app.fileSize, extended: true }));
 
   // Global Interceptors
