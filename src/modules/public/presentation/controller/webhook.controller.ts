@@ -8,7 +8,7 @@ import { JobProcessingService } from 'src/modules/shared/job-processing/infrastr
 import { JobName } from 'src/shared/job-names';
 
 @ApiTags('Webhooks')
-@Controller('webhook')
+@Controller('webhooks')
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name);
 
@@ -16,7 +16,7 @@ export class WebhookController {
     private readonly jobProcessingService: JobProcessingService,
   ) { }
 
-  @Post('fathom-meeting')
+  @Post('fathom')
   @Public()
   @IgnoreCaptchaValidation()
   // @UseGuards(FathomWebhookGuard)
@@ -28,12 +28,12 @@ export class WebhookController {
     this.logger.log(`Received Fathom Webhook for meeting: ${payload.meeting_title || payload.title}, adding to queue...`);
 
     // Add the webhook payload to the queue for background processing
-    await this.jobProcessingService.addJob(
+    const job = await this.jobProcessingService.addJob(
       JobName.PROCESS_FATHOM_MEETING_WEBHOOK,
       payload
     );
 
     // Acknowledge receipt
-    return { status: 'success' };
+    return { status: 'success', jobId: job.id };
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GmailService } from './gmail.service';
+import { GmailService } from '../../infrastructure/external/gmail.service';
 import { SendEmailRequest, SendEmailResult } from '../../presentation/dtos/email.dto';
 import { RemoteConfigService } from '../../../firebase/remote-config/remote-config.service';
 import { EmailTemplateData } from '../../presentation/dtos/email-template.dto';
@@ -11,6 +11,7 @@ import { firstValueFrom } from 'rxjs';
 import { SendEmailDto } from '../../presentation/dtos/correspondence.dto';
 import { EmailTemplateName } from 'src/shared/email-keys';
 import { loadTemplate, renderJsonTemplateFromString } from '../../infrastructure/utilities/email-template.utility';
+import { isTrue } from 'src/shared/utilities/common.util';
 
 
 
@@ -134,9 +135,7 @@ export class CorrespondenceService {
     return template(templateData);
   }
 
-  private isTrue(value?: string | boolean): boolean {
-    return value === true || value === 'true';
-  }
+
   private resolveRecipients(to?: string | string[], cc?: string | string[], bcc?: string | string[]): {
     to?: string | string[];
     cc?: string | string[];
@@ -144,7 +143,7 @@ export class CorrespondenceService {
   } {
     const isProdEnv = this.configService.get(Configkey.ENVIRONMENT) == 'prod';
 
-    const isProdMode = this.isTrue(
+    const isProdMode = isTrue(
       this.configService.get(Configkey.ENABLE_PROD_MODE)
     );
 
@@ -152,7 +151,7 @@ export class CorrespondenceService {
       return { to, cc, bcc };
     }
 
-    const isMockingEnabled = this.isTrue(
+    const isMockingEnabled = isTrue(
       this.configService.get(Configkey.ENABLE_EMAIL_MOCKING)
     );
 
