@@ -17,6 +17,7 @@ import { CorrespondenceModule } from './modules/shared/correspondence/correspond
 import { CommunicationModule } from './modules/shared/communication/communication.module';
 import { CronModule } from './modules/shared/cron/cron.module';
 import { DocumentGeneratorModule } from './modules/shared/document-generator/document-generator.module';
+import { CommentsModule } from './modules/shared/comments/comments.module';
 
 import helpers from 'handlebars-helpers';
 import Handlebars from "handlebars";
@@ -79,6 +80,7 @@ Handlebars.registerHelper("not", (a) => !a);
     CorrespondenceModule,
     CommunicationModule,
     CronModule,
+    CommentsModule,
 
 
   ],
