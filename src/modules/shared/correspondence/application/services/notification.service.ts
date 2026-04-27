@@ -52,8 +52,8 @@ export class NotificationService {
             pageIndex: filter?.pageIndex,
             pageSize: filter?.pageSize,
             props: {
-                userId,
                 ...otherProps,
+                userId,
                 isRead: isRead ? (isRead === 'Y') : undefined,
                 isArchived: isArchived ? (isArchived === 'Y') : undefined,
                 isPushSent: isPushSent ? (isPushSent === 'Y') : undefined,

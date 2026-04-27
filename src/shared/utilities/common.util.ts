@@ -26,3 +26,7 @@ export function evaluateCondition(expression: string, context: unknown) {
         throw new Error(`Error evaluating condition "${expression}": ${error.message}`, error);
     }
 }
+
+export function isTrue(value?: string | boolean): boolean {
+    return value === true || value === 'true';
+}
