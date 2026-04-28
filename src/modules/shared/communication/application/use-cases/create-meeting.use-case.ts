@@ -1,20 +1,27 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IUseCase } from 'src/shared/interfaces/use-case.interface';
-import { CreateMeetingDto, MeetingDto } from '../dto/meetings.dto';
+import { CreateMeetingDto, MeetingDto, MeetingParticipantDto } from '../dto/meetings.dto';
 import { MEETING_REPOSITORY } from '../../domain/repositories/meeting.repository.interface';
 import type { IMeetingRepository } from '../../domain/repositories/meeting.repository.interface';
 import { GoogleCalendarService } from '../../infrastructure/external/google-calendar.service';
 import { Meeting, MeetingType } from '../../domain/model/meeting.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DateTime } from 'luxon';
+import { ConfigService } from '@nestjs/config';
+import { Configkey } from 'src/shared/config-keys';
+import { isTrue } from 'src/shared/utilities/common.util';
 
 @Injectable()
 export class CreateMeetingUseCase implements IUseCase<{ request: CreateMeetingDto, creatorId?: string }, Meeting> {
+
+    private readonly logger = new Logger(CreateMeetingUseCase.name);
+
     constructor(
         @Inject(MEETING_REPOSITORY)
         private readonly meetingRepository: IMeetingRepository,
         private readonly googleCalendarService: GoogleCalendarService,
-        private readonly eventEmitter: EventEmitter2
+        private readonly eventEmitter: EventEmitter2,
+        private readonly configService: ConfigService,
     ) { }
 
     async execute({ request, creatorId }: { request: CreateMeetingDto, creatorId?: string }): Promise<Meeting> {
@@ -24,7 +31,7 @@ export class CreateMeetingUseCase implements IUseCase<{ request: CreateMeetingDt
             description: request.description ? `${request.description}\n\n` : '' + 'Agenda: ' + request.agenda?.map((agenda, index) => `\n${index + 1}. ${agenda.agenda}`).join('\n'),
             startTime: DateTime.fromISO(request.startTime, { zone: "Asia/Kolkata" }).toJSDate(),
             endTime: DateTime.fromISO(request.endTime, { zone: "Asia/Kolkata" }).toJSDate(),
-            attendees: request.attendees.map((attendee) => attendee.email),
+            attendees: this.prepareAttendees(request.attendees),
             location: request.location,
             timeZone: 'Asia/Kolkata',
             addMeetLink: request.type == MeetingType.ONLINE,
@@ -106,5 +113,25 @@ export class CreateMeetingUseCase implements IUseCase<{ request: CreateMeetingDt
         meeting.clearEvents();
 
         return savedMeeting;
+    }
+
+    private prepareAttendees(attendees: MeetingParticipantDto[]): string[] | undefined {
+        const isProdEnv = this.configService.get(Configkey.ENVIRONMENT) == 'prod';
+
+        const isProdMode = isTrue(
+            this.configService.get(Configkey.ENABLE_PROD_MODE)
+        );
+
+        if (isProdEnv || isProdMode) {
+            return attendees.map(attendee => attendee.email);
+        }
+
+        const mockedEmail = this.configService.get<string>(
+            Configkey.MOCKED_EMAIL_ADDRESS
+        );
+
+        this.logger.warn(`📧 Mocking email. Redirecting to ${mockedEmail}`);
+
+        return [mockedEmail!];
     }
 }

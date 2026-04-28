@@ -8,10 +8,11 @@ import { ContentService } from "./application/services/content.service";
 import { CallbackController } from "./presentation/controller/callback.controller";
 import { HealthController } from "./presentation/controller/health.controller";
 import { AuthModule } from "../shared/auth/auth.module";
+import { WebhookController } from "./presentation/controller/webhook.controller";
 
 @Module({
   imports: [FirebaseModule, UserModule, WorkflowModule, AuthModule],
-  controllers: [PublicController, CallbackController, HealthController],
+  controllers: [PublicController, CallbackController, HealthController, WebhookController],
   providers: [PublicService, ContentService],
   exports: [],
 })

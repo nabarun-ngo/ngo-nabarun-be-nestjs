@@ -81,6 +81,7 @@ model UserProfile {
   transactionCreator Transaction[]     @relation("TransactionCreator")
   expenses           Expense[]
   activityExpenses   ActivityExpense[]
+  comments           Comment[]         @relation("CommentAuthor")
 
   @@index([email])
   @@index([authUserId])
@@ -621,6 +622,10 @@ model Meeting {
   meetingAgenda          String?   @db.Text
   meetingOutcomes        String?   @db.Text
   attendees              String?   @db.Text
+  meetingNotes           String?   @db.Text
+  meetingTranscript      String?   @db.Text
+  meetingRecordingUrl    String?   @db.VarChar(1000)
+  meetingActionItems     String?   @db.Text
 
   createdById String?      @db.VarChar(255)
   createdBy   UserProfile? @relation("MeetingCreator", fields: [createdById], references: [id])
@@ -1012,4 +1017,27 @@ model AuditLog {
   @@index([traceId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  authorId    String   @db.VarChar(255)
+  author      UserProfile @relation("CommentAuthor", fields: [authorId], references: [id])
+  
+  entityType  String   @db.VarChar(100) // e.g., 'Meeting', 'Notice', 'Project'
+  entityId    String   @db.VarChar(255)
+  
+  parentId    String?  @db.VarChar(255)
+  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  version     Int      @default(0)
+
+  @@index([entityType, entityId])
+  @@index([parentId])
+  @@map("comments")
 }

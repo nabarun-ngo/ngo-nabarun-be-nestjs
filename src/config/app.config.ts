@@ -87,12 +87,21 @@ export function applyConfig(app: INestApplication) {
       {
         path: '/callback/oauth/:provider',
         method: RequestMethod.GET
+      },
+      {
+        path: '/webhooks/fathom',
+        method: RequestMethod.POST
       }
     ]
   });
 
   // File Size configuration
-  app.use(bodyParser.json({ limit: config.app.fileSize }));
+  app.use(bodyParser.json({
+    limit: config.app.fileSize,
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf;
+    }
+  }));
   app.use(bodyParser.urlencoded({ limit: config.app.fileSize, extended: true }));
 
   // Global Interceptors

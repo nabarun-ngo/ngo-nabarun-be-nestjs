@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { GmailService } from './application/services/gmail.service';
+import { GmailService } from './infrastructure/external/gmail.service';
 import { CorrespondenceService } from './application/services/correspondence.service';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { NotificationHandler } from './application/handlers/notification.handler';
@@ -9,7 +9,7 @@ import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { NotificationController } from './presentation/controllers/notification.controller';
 import { NotificationService } from './application/services/notification.service';
-import { FirebaseMessagingService } from './application/services/firebase-messaging.service';
+import { FirebaseMessagingService } from './infrastructure/external/firebase-messaging.service';
 import { NotificationRepository } from './infrastructure/persistence/notification.repository';
 import { UserNotificationRepository } from './infrastructure/persistence/user-notification.repository';
 import { FcmTokenRepository } from './infrastructure/persistence/fcm-token.repository';

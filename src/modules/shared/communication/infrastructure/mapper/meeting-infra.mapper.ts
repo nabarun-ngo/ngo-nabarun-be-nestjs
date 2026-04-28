@@ -25,7 +25,7 @@ export class MeetingMapper {
     }
 
     static fromEntityToModel(entity: MeetingEntity): Meeting {
-        return new Meeting(
+        const meeting = new Meeting(
             entity.id,
             entity.meetingSummary,
             entity.meetingType as MeetingType,
@@ -45,6 +45,17 @@ export class MeetingMapper {
             entity.createdAt,
             entity.updatedAt
         );
+
+        if (entity.meetingNotes || entity.meetingTranscript || entity.meetingActionItems) {
+            meeting.setMeetingData({
+                recordingUrl: entity.meetingRecordingUrl ?? '',
+                meetingNotes: entity.meetingNotes ?? '',
+                meetingTranscript: entity.meetingTranscript ?? '',
+                meetingActionItems: entity.meetingActionItems ?? '',
+            });
+        }
+
+        return meeting;
     }
 
 
