@@ -126,7 +126,8 @@ export class WorkflowEventsHandler {
   }
 
   @OnEvent(UserDeletedEvent.name, { async: true })
-  async handleUserDeletedEvent(event: UserDeletedEvent) {
+  @ApplyTryCatch()
+  async handleUserDeletedEventReallocateTasks(event: UserDeletedEvent) {
     event.log(`Processing user deletion for user: ${event.user.id}`);
     const user = event.user;
     const tasks = await this.workflowInstanceRepository.findAllTasks({

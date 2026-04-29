@@ -20,6 +20,7 @@ import { CreateTransactionUseCase } from './application/use-cases/create-transac
 import { CreateEarningUseCase } from './application/use-cases/create-earning.use-case';
 import { UpdateEarningUseCase } from './application/use-cases/update-earning.use-case';
 import { GenerateDonationSummaryReportUseCase } from './application/use-cases/generate-donation-summary.use-case';
+import { GenerateAnnualAuditUseCase } from './application/use-cases/generate-annual-audit.use-case';
 
 // Services
 import { DonationService } from './application/services/donation.service';
@@ -87,6 +88,7 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     UpdateDonationUseCase,
     ProcessDonationPaymentUseCase,
     GenerateDonationSummaryReportUseCase,
+    GenerateAnnualAuditUseCase,
     DonationService,
     {
       provide: DONATION_REPOSITORY,
@@ -145,6 +147,8 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     EXPENSE_REPOSITORY,
     EARNING_REPOSITORY,
     CreateDonationUseCase,
+    GenerateDonationSummaryReportUseCase,
+    GenerateAnnualAuditUseCase,
   ],
 })
 export class FinanceModule { }

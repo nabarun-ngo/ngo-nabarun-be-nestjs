@@ -25,6 +25,8 @@ import { CreateGoalUseCase } from './application/use-cases/create-goal.use-case'
 import { CreateActivityUseCase } from './application/use-cases/create-activity.use-case';
 import { LinkExpenseToActivityUseCase } from './application/use-cases/link-expense-to-activity.use-case';
 import { UpdateActivityUseCase } from './application/use-cases/update-activity.use-case';
+import { GenerateProjectReportUseCase } from './application/use-cases/generate-project-report.use-case';
+import { GenerateActivityReportUseCase } from './application/use-cases/generate-activity-report.use-case';
 
 // Services
 import { ProjectService } from './application/services/project.service';
@@ -32,9 +34,10 @@ import { ProjectService } from './application/services/project.service';
 // Controllers
 import { ProjectController } from './presentation/controllers/project.controller';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
+import { DocumentGeneratorModule } from '../shared/document-generator/document-generator.module';
 
 @Module({
-  imports: [FirebaseModule],
+  imports: [FirebaseModule, DocumentGeneratorModule],
   controllers: [ProjectController],
   providers: [
     // Repositories
@@ -77,10 +80,12 @@ import { FirebaseModule } from '../shared/firebase/firebase.module';
     CreateActivityUseCase,
     LinkExpenseToActivityUseCase,
     UpdateActivityUseCase,
+    GenerateProjectReportUseCase,
+    GenerateActivityReportUseCase,
     // Services
     ProjectService,
   ],
-  exports: [ProjectService],
+  exports: [ProjectService, GenerateProjectReportUseCase, GenerateActivityReportUseCase],
 })
 export class ProjectModule { }
 

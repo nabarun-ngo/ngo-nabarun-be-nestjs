@@ -7,6 +7,7 @@ import { CronConfigService } from '../../infrastructure/services/cron-config.ser
 import { CronLogStorageService } from '../../infrastructure/services/cron-log-storage.service';
 import { CronJobDto, QueueDto, SchedulerLogDto } from '../../presentation/dtos/cron-job.dto';
 import { JobProcessingService } from 'src/modules/shared/job-processing/infrastructure/services/job-processing.service';
+import { isEmpty } from 'lodash';
 
 @Injectable()
 export class CronService {
@@ -109,11 +110,16 @@ export class CronService {
         if (!job) {
             throw new BusinessException(`Job ${name} not found OR Not in active state`);
         }
+        let payload: any = {};
+        if (inputData || job.inputData) {
+            const data = isEmpty(inputData) ? job.inputData : inputData;
+            Object.assign(payload, data);
+        }
         const jobName = this.resolveJobName(job.handler);
         if (!jobName) {
             throw new BusinessException(`Job ${name} has an invalid handler: ${job.handler}`);
         }
-        const jobQueue = await this.jobProcessingService.addJob(jobName, inputData ?? job.inputData);
+        const jobQueue = await this.jobProcessingService.addJob(jobName, payload);
         this.logger.log(`[CRON] Triggered job: ${job.name} with ID: ${jobQueue.id}`);
         const triggerId = `MT${generateUniqueNDigitNumber(4)}`;
         await this.logStorage.addCronLog({
