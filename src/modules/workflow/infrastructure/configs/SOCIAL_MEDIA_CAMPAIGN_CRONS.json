@@ -38,7 +38,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_SaraswatiPuja",
     "VALUE": "0 8 20 1 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Saraswati Puja / Basant Panchami on 20th January at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Saraswati Puja / Basant Panchami on 20th January at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -92,7 +92,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_MahaShivratri",
     "VALUE": "0 8 12 2 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Maha Shivratri on 12th February at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Maha Shivratri on 12th February at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -128,7 +128,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Holi",
     "VALUE": "0 8 1 3 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Holi on 1st March at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Holi on 1st March at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -164,7 +164,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_IdUlFitter",
     "VALUE": "0 8 18 3 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Id Ul Fitter on 18th March at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Id Ul Fitter on 18th March at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -182,7 +182,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Ramnavami",
     "VALUE": "0 8 24 3 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Ramnavami on 24th March at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Ramnavami on 24th March at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -218,7 +218,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_AkshayTritiya",
     "VALUE": "0 8 17 4 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Akshay Tritiya on 17th April at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Akshay Tritiya on 17th April at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -254,7 +254,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_BuddhaPurnima",
     "VALUE": "0 8 28 4 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Buddha Purnima on 28th April at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Buddha Purnima on 28th April at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -272,7 +272,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_RabindraJayanti",
     "VALUE": "0 8 6 5 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Rabindra Jayanti on 6th May at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Rabindra Jayanti on 6th May at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -345,7 +345,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Muharrum",
     "VALUE": "0 8 23 6 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Muharrum on 23rd June at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Muharrum on 23rd June at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -363,7 +363,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_RathYatra",
     "VALUE": "0 8 13 7 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Rath Yatra on 13th July at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Rath Yatra on 13th July at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -381,7 +381,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_GuruPurnima",
     "VALUE": "0 8 26 7 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Guru Purnima on 26th July at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Guru Purnima on 26th July at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -417,7 +417,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_RakshaBandhan",
     "VALUE": "0 8 25 8 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Raksha Bandhan on 25th August at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Raksha Bandhan on 25th August at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -435,7 +435,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Janmashtami",
     "VALUE": "0 8 1 9 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Janmashtami on 1st September at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Janmashtami on 1st September at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -471,7 +471,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_GaneshChaturthi",
     "VALUE": "0 8 12 9 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Ganesh Chaturthi on 12th September at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Ganesh Chaturthi on 12th September at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -525,7 +525,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Mahalaya",
     "VALUE": "0 8 29 9 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Mahalaya on 29th September at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Mahalaya on 29th September at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -543,7 +543,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_SasthiDurgaPuja",
     "VALUE": "0 8 14 10 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Sasthi of Durga Puja on 14th October at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Sasthi of Durga Puja on 14th October at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -561,7 +561,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Saptami",
     "VALUE": "0 8 15 10 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Saptami on 15th October at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Saptami on 15th October at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -579,7 +579,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Asthami",
     "VALUE": "0 8 16 10 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Asthami on 16th October at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Asthami on 16th October at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -597,7 +597,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_Navami",
     "VALUE": "0 8 17 10 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Navami on 17th October at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Navami on 17th October at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -615,7 +615,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_VijayaDashami",
     "VALUE": "0 8 18 10 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Vijaya Dashami on 18th October at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Vijaya Dashami on 18th October at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -633,7 +633,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_KaliPujaDeepawali",
     "VALUE": "0 8 5 11 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Kali Puja & Deepawali on 5th November at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Kali Puja & Deepawali on 5th November at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -651,7 +651,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_ChhatPuja",
     "VALUE": "0 8 12 11 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Chhat Puja on 12th November at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Chhat Puja on 12th November at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,
@@ -669,7 +669,7 @@
   {
     "KEY": "Trigger_Workflow_SocialMedia_GuruNanakJayanti",
     "VALUE": "0 8 21 11 *",
-    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Guru Nanak Jayanti on 21st November at 8AM.",
+    "DESCRIPTION": "[YEAR SPECIFIC] Trigger Social Media Campaign Workflow for Guru Nanak Jayanti on 21st November at 8AM.",
     "ACTIVE": true,
     "ATTRIBUTES": {
       "IS_VISIBLE": false,

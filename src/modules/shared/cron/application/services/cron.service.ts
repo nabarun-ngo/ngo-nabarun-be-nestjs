@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CronExpressionParser } from 'cron-parser';
 import { BusinessException } from 'src/shared/exceptions/business-exception';
 import { generateUniqueNDigitNumber } from 'src/shared/utilities/password-util';
 import { JobName } from 'src/shared/job-names';
@@ -8,6 +7,9 @@ import { CronLogStorageService } from '../../infrastructure/services/cron-log-st
 import { CronJobDto, QueueDto, SchedulerLogDto } from '../../presentation/dtos/cron-job.dto';
 import { JobProcessingService } from 'src/modules/shared/job-processing/infrastructure/services/job-processing.service';
 import { isEmpty } from 'lodash';
+import { DateTime } from 'luxon';
+import * as AwsCronParser from 'aws-cron-parser';
+import cronstrue from 'cronstrue';
 
 @Injectable()
 export class CronService {
@@ -89,7 +91,9 @@ export class CronService {
                     description: m.description,
                     handler: m.handler,
                     enabled: m.enabled,
-                    nextRun: CronExpressionParser.parse(m.expression, { tz: 'Asia/Kolkata' }).next().toDate(),
+                    expression: m.expression,
+                    readableExpression: cronstrue.toString(this.normalizeToQuartz(m.expression)),
+                    nextRun: this.calculateNextRun(m.expression, new Date()),
                     inputData: m.inputData
                 } as CronJobDto;
             });
@@ -140,11 +144,7 @@ export class CronService {
     private shouldExecute(expression: string, intendedTime: Date): boolean {
         try {
             const searchStart = new Date(intendedTime.getTime() - 60000);
-            const interval = CronExpressionParser.parse(expression, {
-                currentDate: searchStart,
-                tz: 'Asia/Kolkata'
-            });
-            const nextRun = interval.next().toDate();
+            const nextRun = this.calculateNextRun(expression, searchStart);
 
             const diffSeconds = Math.abs(nextRun.getTime() - intendedTime.getTime()) / 1000;
             const match = diffSeconds < 60;
@@ -161,6 +161,65 @@ export class CronService {
             this.logger.error(`Invalid cron expression: ${expression} ${error.stack}`);
             return false;
         }
+    }
+
+    private calculateNextRun(expression: string, fromDate: Date): Date {
+        const normalized = this.normalizeToQuartz(expression);
+
+        const istDate = DateTime.fromJSDate(fromDate).setZone('Asia/Kolkata');
+        const dateForParser = new Date(Date.UTC(
+            istDate.year,
+            istDate.month - 1,
+            istDate.day,
+            istDate.hour,
+            istDate.minute,
+            istDate.second
+        ));
+
+        try {
+            const occurrence = AwsCronParser.parse(normalized);
+            const nextDateUTC = AwsCronParser.next(occurrence, dateForParser);
+
+            if (!nextDateUTC) {
+                throw new Error(`Could not calculate next run for expression: ${expression} (normalized: ${normalized})`);
+            }
+
+            const resultIST = DateTime.fromObject({
+                year: nextDateUTC.getUTCFullYear(),
+                month: nextDateUTC.getUTCMonth() + 1,
+                day: nextDateUTC.getUTCDate(),
+                hour: nextDateUTC.getUTCHours(),
+                minute: nextDateUTC.getUTCMinutes(),
+                second: nextDateUTC.getUTCSeconds()
+            }, { zone: 'Asia/Kolkata' });
+
+            return resultIST.toJSDate();
+        } catch (error) {
+            this.logger.error(`[CRON] Error parsing expression "${expression}": ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Normalize standard 5-part UNIX cron to 6-part Quartz/AWS format
+     */
+    private normalizeToQuartz(expression: string): string {
+        const parts = expression.trim().split(/\s+/);
+
+        if (parts.length === 5) {
+            // Minutes Hours DayMonth Month DayWeek
+            // In Quartz, either DayOfMonth or DayOfWeek must be '?'
+            if (parts[2] === '*' && parts[4] === '*') {
+                parts[4] = '?';
+            } else if (parts[2] === '*') {
+                parts[2] = '?';
+            } else if (parts[4] === '*') {
+                parts[4] = '?';
+            }
+            parts.push('*'); // Add Year field
+        }
+
+        return parts.join(' ');
     }
 
     /**
