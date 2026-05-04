@@ -1,0 +1,705 @@
+[
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_HappyNewYear",
+    "VALUE": "0 8 29 12 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Happy New Year on 29th December at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Happy New Year",
+          "eventDate": "1st January",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_SwamiVivekanandaBirthday",
+    "VALUE": "0 8 9 1 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Swami Vivekananda Birthday & National Youth Day on 9th January at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Swami Vivekananda Birthday & National Youth Day",
+          "eventDate": "12th January",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_NetajisBirthday",
+    "VALUE": "0 8 20 1 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Netaji's Birthday on 20th January at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Netaji's Birthday",
+          "eventDate": "23rd January",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_RepublicDay",
+    "VALUE": "0 8 23 1 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Republic Day on 23rd January at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Republic Day",
+          "eventDate": "26th January",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_ValentinesDay",
+    "VALUE": "0 8 11 2 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Valentine's Day on 11th February at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Valentine's Day",
+          "eventDate": "14th February",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_WorldNGODay",
+    "VALUE": "0 8 24 2 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for World NGO Day on 24th February at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "World NGO Day",
+          "eventDate": "27th February",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_PoilaBaishakh",
+    "VALUE": "0 8 12 4 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Poila Baishakh (Bengali New Year) on 12th April at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Poila Baishakh (Bengali New Year)",
+          "eventDate": "15th April",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_WorldDanceDay",
+    "VALUE": "0 8 26 4 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for World Dance Day on 26th April at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "World Dance Day",
+          "eventDate": "29th April",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_NabarunBirthday",
+    "VALUE": "0 8 10 5 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for NABARUN's Birthday on 10th May at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "NEED_CHANGE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "NABARUN's Birthday",
+          "eventDate": "13th May",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_WorldEnvironmentDay",
+    "VALUE": "0 8 2 6 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for World Environment Day on 2nd June at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "World Environment Day",
+          "eventDate": "5th June",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_IndependenceDay",
+    "VALUE": "0 8 12 8 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Independence Day on 12th August at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Independence Day",
+          "eventDate": "15th August",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_TeachersDay",
+    "VALUE": "0 8 2 9 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Teacher's Day on 2nd September at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Teacher's Day",
+          "eventDate": "5th September",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_VidyasagarBirthday",
+    "VALUE": "0 8 23 9 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Vidyasagar Birthday on 23rd September at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Vidyasagar Birthday",
+          "eventDate": "26th September",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_MerryChristmas",
+    "VALUE": "0 8 22 12 *",
+    "DESCRIPTION": "Trigger Social Media Campaign Workflow for Merry Christmas on 22nd December at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Merry Christmas",
+          "eventDate": "25th December",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_SaraswatiPuja",
+    "VALUE": "0 8 20 1 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Saraswati Puja / Basant Panchami on 20th January at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Saraswati Puja / Basant Panchami",
+          "eventDate": "23rd January",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_MahaShivratri",
+    "VALUE": "0 8 12 2 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Maha Shivratri on 12th February at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Maha Shivratri",
+          "eventDate": "15th February",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Holi",
+    "VALUE": "0 8 1 3 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Holi on 1st March at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Holi",
+          "eventDate": "4th March",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_WorldSocialWorkDay",
+    "VALUE": "0 8 18 3 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for World Social Work Day & Id Ul Fitter on 18th March at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "World Social Work Day",
+          "eventDate": "19th March",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_WorldSocialWorkDayIdUlFitter",
+    "VALUE": "0 8 18 3 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for World Social Work Day & Id Ul Fitter on 18th March at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "World Social Work Day & Id Ul Fitter",
+          "eventDate": "21st March",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Ramnavami",
+    "VALUE": "0 8 24 3 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Ramnavami on 24th March at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Ramnavami",
+          "eventDate": "27th March",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_AkshayTritiya",
+    "VALUE": "0 8 17 4 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Akshay Tritiya on 17th April at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Akshay Tritiya",
+          "eventDate": "20th April",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_BuddhaPurnima",
+    "VALUE": "0 8 28 4 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Buddha Purnima on 28th April at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Buddha Purnima",
+          "eventDate": "1st May",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_RabindraJayanti",
+    "VALUE": "0 8 6 5 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Rabindra Jayanti on 6th May at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Rabindra Jayanti",
+          "eventDate": "9th May",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_FathersDay",
+    "VALUE": "0 8 18 6 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Father's Day on 18th June at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Father's Day",
+          "eventDate": "21st June",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Muharrum",
+    "VALUE": "0 8 23 6 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Muharrum on 23rd June at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Muharrum",
+          "eventDate": "26th June",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_RathYatra",
+    "VALUE": "0 8 13 7 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Rath Yatra on 13th July at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Rath Yatra",
+          "eventDate": "16th July",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_GuruPurnima",
+    "VALUE": "0 8 26 7 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Guru Purnima on 26th July at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Guru Purnima",
+          "eventDate": "29th July",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_RakshaBandhan",
+    "VALUE": "0 8 25 8 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Raksha Bandhan on 25th August at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Raksha Bandhan",
+          "eventDate": "28th August",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Janmashtami",
+    "VALUE": "0 8 1 9 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Janmashtami on 1st September at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Janmashtami",
+          "eventDate": "4th September",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_GaneshChaturthi",
+    "VALUE": "0 8 12 9 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Ganesh Chaturthi on 12th September at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Ganesh Chaturthi",
+          "eventDate": "15th September",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_GandhiJayantiMahalaya",
+    "VALUE": "0 8 29 9 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Gandhi Jayanti & Mahalaya on 29th September at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Gandhi Jayanti & Mahalaya",
+          "eventDate": "2nd October",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_SasthiDurgaPuja",
+    "VALUE": "0 8 14 10 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Sasthi of Durga Puja on 14th October at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Sasthi of Durga Puja",
+          "eventDate": "17th October",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Saptami",
+    "VALUE": "0 8 15 10 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Saptami on 15th October at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Saptami",
+          "eventDate": "18th October",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Asthami",
+    "VALUE": "0 8 16 10 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Asthami on 16th October at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Asthami",
+          "eventDate": "19th October",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_Navami",
+    "VALUE": "0 8 17 10 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Navami on 17th October at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Navami",
+          "eventDate": "20th October",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_VijayaDashami",
+    "VALUE": "0 8 18 10 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Vijaya Dashami on 18th October at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Vijaya Dashami",
+          "eventDate": "21st October",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_KaliPujaDeepawali",
+    "VALUE": "0 8 5 11 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Kali Puja & Deepawali on 5th November at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Kali Puja & Deepawali",
+          "eventDate": "8th November",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_ChhatPuja",
+    "VALUE": "0 8 12 11 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Chhat Puja on 12th November at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Chhat Puja",
+          "eventDate": "15th November",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_GuruNanakJayanti",
+    "VALUE": "0 8 21 11 *",
+    "DESCRIPTION": "[ONLY for 2026] Trigger Social Media Campaign Workflow for Guru Nanak Jayanti on 21st November at 8AM.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN",
+        "data": {
+          "eventName": "Guru Nanak Jayanti",
+          "eventDate": "24th November",
+          "targetPlatforms": "Facebook, Instagram, WhatsApp"
+        }
+      }
+    }
+  }
+]
