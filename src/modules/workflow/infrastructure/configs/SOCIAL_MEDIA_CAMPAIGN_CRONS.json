@@ -719,5 +719,18 @@
         }
       }
     }
+  },
+  {
+    "KEY": "Trigger_Workflow_SocialMedia_AnnualCronUpdateReminder",
+    "VALUE": "0 9 1 1 *",
+    "DESCRIPTION": "Trigger reminder for TECHNICAL_SPECIALIST to update year-specific social media campaign crons for the new year.",
+    "ACTIVE": true,
+    "ATTRIBUTES": {
+      "IS_VISIBLE": false,
+      "EVENT_NAME": "TriggerWorkflowRequestEvent",
+      "INPUT_DATA": {
+        "type": "SOCIAL_MEDIA_CAMPAIGN_CRON_UPDATE"
+      }
+    }
   }
 ]
