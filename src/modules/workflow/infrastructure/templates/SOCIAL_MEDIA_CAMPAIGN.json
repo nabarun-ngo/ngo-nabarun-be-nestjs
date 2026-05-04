@@ -1,0 +1,195 @@
+{
+  "name": "Social Media Campaign",
+  "description": "Create and publish social media posters for {{eventName}} on {{eventDate}}.",
+  "fields": [
+    {
+      "key": "eventName",
+      "defKey": "INPUT_TEXT_FIELD",
+      "label": "Event Name",
+      "mandatory": true
+    },
+    {
+      "key": "eventDate",
+      "defKey": "INPUT_DATE_FIELD",
+      "label": "Event Date",
+      "mandatory": true
+    },
+    {
+      "key": "targetPlatforms",
+      "defKey": "INPUT_TEXT_FIELD",
+      "label": "Target Platforms (e.g., Facebook, Instagram, WhatsApp)",
+      "mandatory": true
+    }
+  ],
+  "preCreationTasks": [
+    {
+      "taskId": "validateinputs",
+      "type": "AUTOMATIC",
+      "handler": "ValidateInputs",
+      "description": ""
+    }
+  ],
+  "steps": [
+    {
+      "isDefault": true,
+      "stepId": "postercreation",
+      "name": "Poster Creation",
+      "description": "Create poster for {{eventName}} scheduled on {{eventDate}}",
+      "tasks": [
+        {
+          "taskId": "createposter",
+          "name": "Create poster for {{eventName}}",
+          "description": "Design poster for {{eventName}}",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "COMMUNITY_MANAGER",
+                "ASST_COMMUNITY_MANAGER"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Understand event details: {{eventName}}",
+              "Design poster suitable for social media",
+              "Ensure branding guidelines are followed"
+            ],
+            "fields": [
+              {
+                "key": "posterCreated",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Is the poster created?",
+                "mandatory": true
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_postercreation_task_createposter.posterCreated == 'Yes'",
+          "nextStepId": "publishing"
+        },
+        {
+          "condition": "step_postercreation_task_createposter.posterCreated == 'No'",
+          "nextStepId": "postercreation"
+        },
+        {
+          "condition": "default",
+          "nextStepId": "postercreation"
+        }
+      ]
+    },
+    {
+      "isDefault": false,
+      "stepId": "publishing",
+      "name": "Publishing",
+      "description": "Publish poster for {{eventName}} on {{targetPlatforms}}",
+      "tasks": [
+        {
+          "taskId": "publishpost",
+          "name": "Publish on {{targetPlatforms}}",
+          "description": "Post the poster for {{eventName}} on {{targetPlatforms}}",
+          "type": "MANUAL",
+          "etaHours": 12,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "COMMUNITY_MANAGER",
+                "ASST_COMMUNITY_MANAGER"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Verify poster quality",
+              "Post on {{targetPlatforms}}",
+              "Ensure correct timing (before {{eventDate}})",
+              "Verify post visibility"
+            ],
+            "fields": [
+              {
+                "key": "postDone",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Is the post published?",
+                "mandatory": true
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_publishing_task_publishpost.postDone == 'Yes'",
+          "nextStepId": "emailcampaign"
+        },
+        {
+          "condition": "step_publishing_task_publishpost.postDone == 'No'",
+          "nextStepId": "publishing"
+        },
+        {
+          "condition": "default",
+          "nextStepId": "publishing"
+        }
+      ]
+    },
+    {
+      "isDefault": false,
+      "stepId": "emailcampaign",
+      "name": "Email Campaign",
+      "description": "Start email campaign for {{eventName}}",
+      "tasks": [
+        {
+          "taskId": "startemailcampaign",
+          "name": "Start Email Campaign for {{eventName}}",
+          "description": "Send email notifications to members regarding {{eventName}} scheduled on {{eventDate}}",
+          "type": "MANUAL",
+          "etaHours": 24,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "TECHNICAL_SPECIALIST"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Prepare email content for {{eventName}}",
+              "Include event date: {{eventDate}}",
+              "Attach poster if available",
+              "Send email to all target members",
+              "Verify delivery status"
+            ],
+            "fields": [
+              {
+                "key": "emailCampaignStarted",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Has the email campaign been started?",
+                "mandatory": true
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_emailcampaign_task_startemailcampaign.emailCampaignStarted == 'Yes'",
+          "nextStepId": null
+        },
+        {
+          "condition": "step_emailcampaign_task_startemailcampaign.emailCampaignStarted == 'No'",
+          "nextStepId": "emailcampaign"
+        },
+        {
+          "condition": "default",
+          "nextStepId": "emailcampaign"
+        }
+      ]
+    }
+  ]
+}
