@@ -35,6 +35,8 @@ import { ProjectService } from './application/services/project.service';
 import { ProjectController } from './presentation/controllers/project.controller';
 import { FirebaseModule } from '../shared/firebase/firebase.module';
 import { DocumentGeneratorModule } from '../shared/document-generator/document-generator.module';
+import { ProjectReportProvider } from './application/providers/project-report.provider';
+import { ActivityReportProvider } from './application/providers/activity-report.provider';
 
 @Module({
   imports: [FirebaseModule, DocumentGeneratorModule],
@@ -82,6 +84,8 @@ import { DocumentGeneratorModule } from '../shared/document-generator/document-g
     UpdateActivityUseCase,
     GenerateProjectReportUseCase,
     GenerateActivityReportUseCase,
+    ProjectReportProvider,
+    ActivityReportProvider,
     // Services
     ProjectService,
   ],

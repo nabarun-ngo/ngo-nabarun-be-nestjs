@@ -1,4 +1,5 @@
 {
+    "$schema": "./workflow-schema.json",
     "name": "Contact & Support Request",
     "description": "Request from {{fullName}} for assistance/support regarding: {{subject}}",
     "fields": [
@@ -38,7 +39,8 @@
             "taskId": "validateinputs",
             "type": "AUTOMATIC",
             "handler": "ValidateInputs",
-            "description": ""
+            "description": "",
+            "name": "Validate"
         }
     ],
     "steps": [

@@ -49,9 +49,9 @@ import { ReverseTransactionUseCase } from './application/use-cases/reverse-trans
 import { DonationsEventHandler } from './application/handlers/donation-event.handler';
 import { DonationJobsHandler } from './application/handlers/donation-jobs.handler';
 import { DocumentGeneratorModule } from '../shared/document-generator/document-generator.module';
-import { FinanceReportService } from './application/services/report.service';
 import { DMSModule } from '../shared/dms/dms.module';
-import { FinanceReportController } from './presentation/controllers/finance-report.controller';
+import { DonationSummaryReportProvider } from './application/providers/donation-summary.provider';
+import { AuditReportProvider } from './application/providers/audit-report.provider';
 import { FixTransactionUseCase } from './application/use-cases/fix-transaction.use-case';
 
 
@@ -74,7 +74,6 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     AccountController,
     ExpenseController,
     //EarningController,
-    FinanceReportController,
   ],
   imports: [
     UserModule,
@@ -89,6 +88,8 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     ProcessDonationPaymentUseCase,
     GenerateDonationSummaryReportUseCase,
     GenerateAnnualAuditUseCase,
+    DonationSummaryReportProvider,
+    AuditReportProvider,
     DonationService,
     {
       provide: DONATION_REPOSITORY,
@@ -138,7 +139,6 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     MetadataService,
     DonationsEventHandler,
     DonationJobsHandler,
-    FinanceReportService
   ],
   exports: [
     DONATION_REPOSITORY,

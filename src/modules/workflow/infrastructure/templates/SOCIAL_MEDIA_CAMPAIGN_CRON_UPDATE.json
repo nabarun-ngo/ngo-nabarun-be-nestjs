@@ -1,4 +1,5 @@
 {
+  "$schema": "./workflow-schema.json",
   "name": "Update Year-Specific Social Media Campaigns",
   "description": "Workflow to remind and track the update of annual social media campaign dates (e.g., Saraswati Puja, Holi, Durga Puja) for the current year in the system configuration.",
   "fields": [],

@@ -1,4 +1,5 @@
 {
+    "$schema": "./workflow-schema.json",
     "name": "Donation Pause Request",
     "description": "Donation pause request from {{formatDate startDate 'dd/MM/yyyy'}} to {{formatDate endDate 'dd/MM/yyyy'}}",
     "fields": [
@@ -26,7 +27,8 @@
             "taskId": "validateinputs",
             "type": "AUTOMATIC",
             "handler": "ValidateInputs",
-            "description": ""
+            "description": "",
+            "name": "Validate"
         }
     ],
     "steps": [

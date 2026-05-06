@@ -1,4 +1,5 @@
 {
+    "$schema": "./workflow-schema.json",
     "name": "Donation Amount Change Request",
     "description": "Donation amount change request to {{newAmount}}",
     "fields": [
@@ -20,7 +21,8 @@
             "taskId": "validateinputs",
             "type": "AUTOMATIC",
             "handler": "ValidateInputs",
-            "description": ""
+            "description": "",
+            "name": "Validate"
         }
     ],
     "steps": [
