@@ -10,11 +10,11 @@ import { Role } from 'src/modules/user/domain/model/role.model';
 @ReportProvider()
 export class DonationSummaryReportProvider implements IReportProvider<{ startDate: Date; endDate: Date; }> {
     readonly reportCode = 'DONATION_SUMMARY';
-    readonly displayName = 'Donation Summary Report';
-    readonly requiresApproval: boolean = true;
-    readonly approverRoles?: string[] = [Role.TREASURER, Role.CASHIER, Role.ASSISTANT_CASHIER];
-    readonly visibleToRoles: string[] = [Role.MEMBER];
-
+    readonly description = 'This report provides a consolidated overview of all donations received during the mentioned period, including donor-wise transaction details and any outstanding donations.';
+    readonly displayName: string = 'Donation Summary Report';
+    readonly requiresApproval = true;
+    readonly approverRoles = [Role.TREASURER, Role.CASHIER, Role.ASSISTANT_CASHIER];
+    readonly visibleToRoles = [Role.MEMBER];
     constructor(
         private readonly donationSummaryUseCase: GenerateDonationSummaryReportUseCase,
     ) { }
@@ -40,5 +40,6 @@ export class DonationSummaryReportProvider implements IReportProvider<{ startDat
         const fileType = (await fileTypeFromBuffer(buffer))?.mime ?? 'application/octet-stream';
         return { buffer, fileName, contentType: fileType };
     }
+
 
 }

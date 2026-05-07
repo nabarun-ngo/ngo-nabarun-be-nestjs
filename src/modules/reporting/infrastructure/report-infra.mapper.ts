@@ -19,6 +19,7 @@ export type ReportPersistence = Prisma.ReportGetPayload<{
         viewers: true,
         docId: true,
         workflowId: true,
+        reportName: true,
     };
 }>;
 
@@ -30,6 +31,7 @@ export class ReportInfraMapper {
         return new Report(
             p.id,
             p.reportCode,
+            p.reportName,
             MapperUtils.nullToUndefined(p.requestedById),
             p.status as ReportStatus,
             (p.parameters as Record<string, any>) ?? undefined,
@@ -54,6 +56,7 @@ export class ReportInfraMapper {
                 connect: { id: domain.requestedById }
             },
             status: domain.status,
+            reportName: domain.reportName,
             parameters: domain.parameters ?? Prisma.DbNull,
             docId: MapperUtils.undefinedToNull(domain.dmsDocumentId),
             needApproval: domain.needApproval,
@@ -71,6 +74,7 @@ export class ReportInfraMapper {
     static toUpdatePersistence(domain: Report): Prisma.ReportUpdateInput {
         return {
             status: domain.status,
+            reportName: domain.reportName,
             docId: MapperUtils.undefinedToNull(domain.dmsDocumentId),
             docVersion: domain.version,
             updatedAt: domain.updatedAt,

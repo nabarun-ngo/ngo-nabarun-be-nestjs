@@ -7,6 +7,10 @@ import { Report, ReportStatus } from '../../domain/models/report.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IReportProvider } from '../providers/reporting.interface';
 import { StartWorkflowUseCase } from 'src/modules/workflow/application/use-cases/start-workflow.use-case';
+import { BaseFilter } from 'src/shared/models/base-filter-props';
+import { ReportFilter } from '../../domain/models/report.model';
+import { PagedResult } from 'src/shared/models/paged-result';
+import { ReportDetailDto, ReportFilterDto } from '../dto/report.dto';
 
 @Injectable()
 export class ReportingService {
@@ -28,8 +32,10 @@ export class ReportingService {
         }
         const generatedData = await provider.generate(params);
 
+
         const report = Report.create({
             reportCode,
+            reportName: generatedData.fileName,
             requestedById: authUserId,
             parameters: params as Record<string, any>,
             needApproval: provider.requiresApproval,
@@ -38,7 +44,8 @@ export class ReportingService {
         });
         await this.reportRepository.create(report);
 
-        return this.processAndSaveReportDocument(provider, report, generatedData, authUserId);
+        const result = await this.processAndSaveReportDocument(provider, report, generatedData, authUserId);
+        return ReportDetailDto.fromDomain(result.report);
     }
 
     async regenerateReport(reportId: string, authUserId: string) {
@@ -56,7 +63,8 @@ export class ReportingService {
         }
         const generatedData = await provider.generate(report.parameters);
 
-        return this.processAndSaveReportDocument(provider, report, generatedData, authUserId);
+        const result = await this.processAndSaveReportDocument(provider, report, generatedData, authUserId, true);
+        return ReportDetailDto.fromDomain(result.report);
     }
 
     private async processAndSaveReportDocument(
@@ -64,6 +72,7 @@ export class ReportingService {
         report: Report,
         generatedData: { buffer: Buffer; fileName: string; contentType: string },
         authUserId: string,
+        isRegenerate: boolean = false,
     ) {
         const { buffer, fileName, contentType } = generatedData;
 
@@ -82,20 +91,23 @@ export class ReportingService {
 
         report.incrementVersion(doc.id);
 
-        if (provider.requiresApproval) {
-            const workflow = await this.startWorkflowUseCase.execute({
-                type: 'REPORT_REVIEW',
-                data: {
-                    reportCode: report.reportCode,
-                    reportId: report.id,
-                    reportName: provider.displayName,
-                    roleNames: provider.approverRoles?.join(',') || '',
-                },
-                requestedBy: authUserId,
-            });
-            report.workflowId = workflow.id;
-        } else {
-            report.markApproved(authUserId);
+        if (!isRegenerate) {
+            if (provider.requiresApproval) {
+                const workflow = await this.startWorkflowUseCase.execute({
+                    type: 'REPORT_REVIEW',
+                    data: {
+                        reportCode: report.reportCode,
+                        reportId: report.id,
+                        reportName: provider.displayName,
+                        roleNames: provider.approverRoles?.join(',') || '',
+                    },
+                    requestedBy: authUserId,
+                });
+                report.workflowId = workflow.id;
+            }
+            else {
+                report.markApproved(authUserId);
+            }
         }
         await this.reportRepository.update(report.id, report);
 
@@ -103,7 +115,7 @@ export class ReportingService {
             this.eventBus.emit(event.constructor.name, event);
         }
 
-        return { buffer, fileName, contentType, reportId: report.id };
+        return { buffer, fileName, contentType, report: report };
     }
 
     async approveReport(reportId: string, authUserId: string) {
@@ -123,6 +135,32 @@ export class ReportingService {
         for (const event of report.domainEvents) {
             this.eventBus.emit(event.constructor.name, event);
         }
+
+        return ReportDetailDto.fromDomain(report);
+    }
+
+    async findReports(
+        reportCode: string,
+        filter?: ReportFilterDto,
+        pageIndex?: number,
+        pageSize?: number,
+    ): Promise<PagedResult<ReportDetailDto>> {
+        const result = await this.reportRepository.findPaged({
+            pageIndex: pageIndex,
+            pageSize: pageSize,
+            props: {
+                ...filter,
+                reportCode,
+                status: filter?.status ? [filter.status] : undefined,
+            },
+        });
+
+        return new PagedResult<ReportDetailDto>(
+            result.content.map(r => ReportDetailDto.fromDomain(r)),
+            result.totalSize,
+            result.pageIndex,
+            result.pageSize,
+        );
     }
 
 

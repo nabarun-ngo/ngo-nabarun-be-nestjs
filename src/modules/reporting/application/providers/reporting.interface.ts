@@ -23,10 +23,11 @@ export interface ReportGeneratedData {
 export interface IReportProvider<TParams = any> {
     readonly reportCode: string;
     readonly displayName: string;
+    readonly description: string;
     readonly requiresApproval: boolean;
-    readonly approverRoles?: string[];
+    readonly approverRoles: string[] | undefined;
     readonly visibleToRoles: string[];
-
     generate(params: TParams): Promise<ReportGeneratedData>;
+
 }
 

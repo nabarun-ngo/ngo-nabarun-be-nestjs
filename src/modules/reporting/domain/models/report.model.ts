@@ -30,11 +30,12 @@ export class Report extends AggregateRoot<string> {
     #requestedById: string | undefined;
     #reportCode: string;
     #workflowId: string | undefined;
-
+    #reportName: string;
 
     constructor(
         id: string,
         reportCode: string,
+        reportName: string,
         requestedById: string | undefined,
         status: ReportStatus,
         parameters: Record<string, any> | undefined,
@@ -51,6 +52,7 @@ export class Report extends AggregateRoot<string> {
     ) {
         super(id, createdAt, updatedAt);
         this.#reportCode = reportCode;
+        this.#reportName = reportName;
         this.#requestedById = requestedById;
         this.#status = status;
         this.#parameters = parameters;
@@ -69,6 +71,7 @@ export class Report extends AggregateRoot<string> {
      */
     static create(props: {
         reportCode: string;
+        reportName: string;
         requestedById?: string;
         parameters?: Record<string, any>;
         needApproval: boolean;
@@ -78,6 +81,7 @@ export class Report extends AggregateRoot<string> {
         return new Report(
             crypto.randomUUID(),
             props.reportCode,
+            props.reportName,
             props.requestedById,
             ReportStatus.DRAFT,
             props.parameters,
@@ -107,6 +111,10 @@ export class Report extends AggregateRoot<string> {
     incrementVersion(docId: string): void {
         this.#version++;
         this.#dmsDocumentId = docId;
+    }
+
+    get reportName(): string {
+        return this.#reportName;
     }
 
     set workflowId(id: string) {

@@ -8,8 +8,10 @@ import { Role } from 'src/modules/user/domain/model/role.model';
 export class ProjectReportProvider implements IReportProvider {
     readonly reportCode = 'PROJECT_REPORT';
     readonly displayName = 'Project Closure Report';
+    readonly description = 'This report provides a consolidated overview of all activities of the organization ';
     readonly requiresApproval: boolean = false;
     readonly visibleToRoles: string[] = [Role.MEMBER];
+    readonly approverRoles: string[] | undefined = undefined;
 
     constructor(
         private readonly projectReportUseCase: GenerateProjectReportUseCase,

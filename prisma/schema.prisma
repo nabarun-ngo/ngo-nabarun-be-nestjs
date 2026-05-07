@@ -1050,6 +1050,7 @@ model Comment {
 model Report {
   id            String       @id @default(uuid())
   reportCode    String       @db.VarChar(50)
+  reportName    String       @default("") @db.VarChar(100)
   requestedById String?      @db.VarChar(255) // Optional, system might trigger some
   requestedBy   UserProfile? @relation("ReportRequestedBy", fields: [requestedById], references: [id])
   status        String       @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED

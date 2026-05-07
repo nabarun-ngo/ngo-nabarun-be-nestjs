@@ -8,9 +8,11 @@ import { Role } from 'src/modules/user/domain/model/role.model';
 @ReportProvider()
 export class ActivityReportProvider implements IReportProvider {
     readonly reportCode = 'ACTIVITY_REPORT';
-    readonly displayName = 'Activity Progress Report';
+    readonly description = 'This report provides a consolidated status of all the activities under the project';
     readonly requiresApproval = false;
     readonly visibleToRoles: string[] = [Role.MEMBER];
+    readonly approverRoles: string[] | undefined = undefined;
+    readonly displayName: string = 'Activity Progress Report';
 
     constructor(
         private readonly activityReportUseCase: GenerateActivityReportUseCase,
@@ -25,4 +27,5 @@ export class ActivityReportProvider implements IReportProvider {
             contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         };
     }
+
 }

@@ -11,6 +11,7 @@ import { Role } from 'src/modules/user/domain/model/role.model';
 export class AuditReportProvider implements IReportProvider {
     readonly reportCode = 'ANNUAL_AUDIT_REPORT';
     readonly displayName = 'Financial Year Audit Report';
+    readonly description = 'This report provides a consolidated overview of all financial activities of the organization during the mentioned financial year, including income and expenditure details.';
     readonly requiresApproval = true;
     readonly approverRoles = [Role.TREASURER];
     readonly visibleToRoles = [Role.MEMBER];
