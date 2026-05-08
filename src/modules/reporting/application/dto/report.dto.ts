@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Report, ReportStatus } from '../../domain/models/report.model';
+import { IReportProvider } from '../providers/reporting.interface';
 
 export class ReportDetailDto {
     @ApiProperty({ description: 'The unique identifier of the report execution' })
@@ -83,4 +84,47 @@ export class ReportFilterDto {
     @IsOptional()
     @IsString()
     requestedById?: string;
+}
+
+
+export class ReportCategoryDto {
+    @ApiProperty({ description: 'The unique identifier of the category' })
+    @IsString()
+    reportCode: string;
+
+    @ApiProperty({ description: 'The name of the category' })
+    @IsString()
+    reportName: string;
+
+    @ApiProperty({ description: 'The description of the category' })
+    @IsString()
+    @IsOptional()
+    description?: string;
+
+    @ApiProperty({ description: 'The roles that can view the report', isArray: true, type: String })
+    @IsString({ each: true })
+    viewerRoles: string[];
+
+    @ApiProperty({ description: 'The roles that can manage the report', isArray: true, type: String })
+    @IsString({ each: true })
+    @IsOptional()
+    manageRoles?: string[];
+
+    @ApiProperty({ description: 'The flag to indicate whether the report is active' })
+    @IsBoolean()
+    @IsOptional()
+    isActive?: boolean;
+
+
+    static fromDomain(category: IReportProvider): ReportCategoryDto {
+        return {
+            reportCode: category.reportCode,
+            reportName: category.displayName,
+            description: category.description,
+            viewerRoles: category.visibleToRoles,
+            manageRoles: category.approverRoles,
+            isActive: category.isActive,
+        } as ReportCategoryDto;
+    }
+
 }

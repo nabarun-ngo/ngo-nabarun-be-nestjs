@@ -12,7 +12,8 @@ export class ActivityReportProvider implements IReportProvider {
     readonly requiresApproval = false;
     readonly visibleToRoles: string[] = [Role.MEMBER];
     readonly approverRoles: string[] | undefined = undefined;
-    readonly displayName: string = 'Activity Progress Report';
+    readonly displayName: string = 'Activity Closure Report';
+    readonly isActive: boolean = true;
 
     constructor(
         private readonly activityReportUseCase: GenerateActivityReportUseCase,

@@ -27,6 +27,7 @@ export interface IReportProvider<TParams = any> {
     readonly requiresApproval: boolean;
     readonly approverRoles: string[] | undefined;
     readonly visibleToRoles: string[];
+    readonly isActive: boolean;
     generate(params: TParams): Promise<ReportGeneratedData>;
 
 }

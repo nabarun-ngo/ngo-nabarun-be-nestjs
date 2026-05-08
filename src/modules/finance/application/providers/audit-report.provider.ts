@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IReportProvider, ReportGeneratedData, ReportProvider } from '../../../reporting/application/providers/reporting.interface';
 import { GenerateAnnualAuditUseCase } from 'src/modules/finance/application/use-cases/generate-annual-audit.use-case';
-import { User } from 'src/modules/user/domain/model/user.model';
-import { EmailTemplateName } from 'src/shared/email-keys';
-import { NotificationKeys } from 'src/shared/notification-keys';
 import { Role } from 'src/modules/user/domain/model/role.model';
 
 @Injectable()
@@ -15,7 +12,7 @@ export class AuditReportProvider implements IReportProvider {
     readonly requiresApproval = true;
     readonly approverRoles = [Role.TREASURER];
     readonly visibleToRoles = [Role.MEMBER];
-
+    readonly isActive: boolean = true;
 
     constructor(
         private readonly auditUseCase: GenerateAnnualAuditUseCase,

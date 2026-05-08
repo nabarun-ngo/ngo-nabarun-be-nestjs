@@ -15,6 +15,7 @@ export class DonationSummaryReportProvider implements IReportProvider<{ startDat
     readonly requiresApproval = true;
     readonly approverRoles = [Role.TREASURER, Role.CASHIER, Role.ASSISTANT_CASHIER];
     readonly visibleToRoles = [Role.MEMBER];
+    readonly isActive: boolean = true;
     constructor(
         private readonly donationSummaryUseCase: GenerateDonationSummaryReportUseCase,
     ) { }

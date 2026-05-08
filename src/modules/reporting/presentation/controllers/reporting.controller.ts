@@ -1,17 +1,14 @@
-import { Controller, Get, Post, Body, Param, Query, StreamableFile, Res, Header } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiResponse, ApiSecurity, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiSecurity, ApiBody } from '@nestjs/swagger';
 import { ReportingService } from '../../application/services/reporting.service';
 import { ReportRegistryService } from '../../application/services/report-registry.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
-import type { Response } from 'express';
-import { Readable } from 'stream';
-import { ApiAutoPagedResponse, ApiAutoResponse, ApiAutoVoidResponse } from 'src/shared/decorators/api-auto-response.decorator';
+import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
 import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
-import { ReportDetailDto, ReportFilterDto } from '../../application/dto/report.dto';
+import { ReportCategoryDto, ReportDetailDto, ReportFilterDto } from '../../application/dto/report.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
 
 @ApiTags(ReportingController.name)
 @Controller('report')
@@ -20,7 +17,6 @@ import { BaseFilter } from 'src/shared/models/base-filter-props';
 export class ReportingController {
     constructor(
         private readonly reportingService: ReportingService,
-        private readonly registry: ReportRegistryService,
     ) { }
 
     /**
@@ -29,15 +25,9 @@ export class ReportingController {
      */
     @Get('registered-reports')
     @ApiOperation({ summary: 'Get list of reports that can be generated' })
-    @ApiAutoResponse(KeyValueDto, { isArray: true, description: 'List of reports that can be generated', wrapInSuccessResponse: true })
-    async getRegisteredReports(): Promise<SuccessResponse<KeyValueDto[]>> {
-        const providers = this.registry.getAllProviders().map(p => {
-            return {
-                key: p.reportCode,
-                displayValue: p.displayName,
-                description: p.description,
-            } as KeyValueDto;
-        });
+    @ApiAutoResponse(ReportCategoryDto, { isArray: true, description: 'List of reports that can be generated', wrapInSuccessResponse: true })
+    async getRegisteredReports(): Promise<SuccessResponse<ReportCategoryDto[]>> {
+        const providers = await this.reportingService.registeredReports();
         return new SuccessResponse(providers);
     }
 

@@ -7,10 +7,8 @@ import { Report, ReportStatus } from '../../domain/models/report.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IReportProvider } from '../providers/reporting.interface';
 import { StartWorkflowUseCase } from 'src/modules/workflow/application/use-cases/start-workflow.use-case';
-import { BaseFilter } from 'src/shared/models/base-filter-props';
-import { ReportFilter } from '../../domain/models/report.model';
 import { PagedResult } from 'src/shared/models/paged-result';
-import { ReportDetailDto, ReportFilterDto } from '../dto/report.dto';
+import { ReportCategoryDto, ReportDetailDto, ReportFilterDto } from '../dto/report.dto';
 
 @Injectable()
 export class ReportingService {
@@ -24,6 +22,13 @@ export class ReportingService {
         private readonly eventBus: EventEmitter2,
         private readonly startWorkflowUseCase: StartWorkflowUseCase,
     ) { }
+
+    async registeredReports(): Promise<ReportCategoryDto[]> {
+        const providers = this.registry.getAllProviders();
+        return providers
+            .filter(provider => provider.isActive)
+            .map(provider => ReportCategoryDto.fromDomain(provider));
+    }
 
     async generateReport<T>(reportCode: string, params: T, authUserId: string) {
         const provider = this.registry.getProvider(reportCode);
