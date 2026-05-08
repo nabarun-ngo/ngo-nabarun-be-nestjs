@@ -32,13 +32,18 @@ export class DonationSummaryReportProvider implements IReportProvider<{ startDat
 
 
     async generate(params: { startDate: Date; endDate: Date; }): Promise<ReportGeneratedData> {
+        const startDt = (typeof params.startDate === 'string'
+            ? DateTime.fromISO(params.startDate)
+            : DateTime.fromJSDate(params.startDate!)).setZone('Asia/Kolkata');
+        const endDt = (typeof params.endDate === 'string'
+            ? DateTime.fromISO(params.endDate)
+            : DateTime.fromJSDate(params.endDate!)).setZone('Asia/Kolkata');
+
         const buffer = await this.template({
-            startDate: params.startDate!,
-            endDate: params.endDate!,
+            startDate: startDt.toJSDate(),
+            endDate: endDt.toJSDate(),
             on: 'paidOn'
         });
-        const startDt = DateTime.fromJSDate(params.startDate!).setZone('Asia/Kolkata');
-        const endDt = DateTime.fromJSDate(params.endDate!).setZone('Asia/Kolkata');
 
         const startDate = startDt.toFormat('dd-MM-yyyy');
         const endDate = endDt.toFormat('dd-MM-yyyy');
