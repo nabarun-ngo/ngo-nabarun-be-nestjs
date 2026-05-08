@@ -1,8 +1,4 @@
 import { SetMetadata, Type } from '@nestjs/common';
-import { ProtocolError } from 'puppeteer';
-import { User } from 'src/modules/user/domain/model/user.model';
-import { EmailTemplateName } from 'src/shared/email-keys';
-import { NotificationKeys } from 'src/shared/notification-keys';
 
 export const REPORT_PROVIDER_METADATA_KEY = 'REPORT_PROVIDER_METADATA_KEY';
 
@@ -29,6 +25,5 @@ export interface IReportProvider<TParams = any> {
     readonly visibleToRoles: string[];
     readonly isActive: boolean;
     generate(params: TParams): Promise<ReportGeneratedData>;
-
 }
 

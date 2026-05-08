@@ -15,6 +15,5 @@ export enum JobName {
 
     // Integrations
     PROCESS_FATHOM_MEETING_WEBHOOK = "PROCESS_FATHOM_MEETING_WEBHOOK",
-    //GENERATE_REPORT = "GENERATE_REPORT",
-    //TriggerDonationSummaryReportEvent = "TriggerDonationSummaryReportEvent",
+    TriggerReportJobEvent = "TriggerReportJobEvent",
 }

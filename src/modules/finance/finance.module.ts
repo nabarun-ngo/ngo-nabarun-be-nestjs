@@ -19,8 +19,6 @@ import { FinalizeExpenseUseCase } from './application/use-cases/finalize-expense
 import { CreateTransactionUseCase } from './application/use-cases/create-transaction.use-case';
 import { CreateEarningUseCase } from './application/use-cases/create-earning.use-case';
 import { UpdateEarningUseCase } from './application/use-cases/update-earning.use-case';
-import { GenerateDonationSummaryReportUseCase } from './application/use-cases/generate-donation-summary.use-case';
-import { GenerateAnnualAuditUseCase } from './application/use-cases/generate-annual-audit.use-case';
 
 // Services
 import { DonationService } from './application/services/donation.service';
@@ -50,8 +48,8 @@ import { DonationsEventHandler } from './application/handlers/donation-event.han
 import { DonationJobsHandler } from './application/handlers/donation-jobs.handler';
 import { DocumentGeneratorModule } from '../shared/document-generator/document-generator.module';
 import { DMSModule } from '../shared/dms/dms.module';
-import { DonationSummaryReportProvider } from './application/providers/donation-summary.provider';
-import { AuditReportProvider } from './application/providers/audit-report.provider';
+import { DonationSummaryReportProvider } from './application/providers/reports/donation-summary.provider';
+import { AuditReportProvider } from './application/providers/reports/audit-report.provider';
 import { FixTransactionUseCase } from './application/use-cases/fix-transaction.use-case';
 
 
@@ -86,8 +84,6 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     CreateDonationUseCase,
     UpdateDonationUseCase,
     ProcessDonationPaymentUseCase,
-    GenerateDonationSummaryReportUseCase,
-    GenerateAnnualAuditUseCase,
     DonationSummaryReportProvider,
     AuditReportProvider,
     DonationService,
@@ -147,8 +143,6 @@ import { FixTransactionUseCase } from './application/use-cases/fix-transaction.u
     EXPENSE_REPOSITORY,
     EARNING_REPOSITORY,
     CreateDonationUseCase,
-    GenerateDonationSummaryReportUseCase,
-    GenerateAnnualAuditUseCase,
   ],
 })
 export class FinanceModule { }

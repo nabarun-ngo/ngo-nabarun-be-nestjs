@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 import { ReportingService } from './application/services/reporting.service';
 import { ReportRegistryService } from './application/services/report-registry.service';
+import { ReportJobsProvider } from './application/providers/bg-jobs/report-jobs.provider';
 import { DMSModule } from '../shared/dms/dms.module';
 import { CorrespondenceModule } from '../shared/correspondence/correspondence.module';
 import { ReportingController } from './presentation/controllers/reporting.controller';
@@ -21,14 +22,13 @@ import { WorkflowModule } from '../workflow/workflow.module';
     providers: [
         ReportingService,
         ReportRegistryService,
+        ReportJobsProvider,
         {
             provide: REPORT_REPOSITORY,
             useClass: ReportRepository,
         },
     ],
     exports: [
-        ReportingService,
-        ReportRegistryService,
         REPORT_REPOSITORY
     ],
 })

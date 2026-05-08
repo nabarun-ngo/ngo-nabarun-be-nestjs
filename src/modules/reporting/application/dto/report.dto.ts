@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Report, ReportStatus } from '../../domain/models/report.model';
-import { IReportProvider } from '../providers/reporting.interface';
+import { IReportProvider } from '../../domain/reporting.interface';
 
 export class ReportDetailDto {
     @ApiProperty({ description: 'The unique identifier of the report execution' })

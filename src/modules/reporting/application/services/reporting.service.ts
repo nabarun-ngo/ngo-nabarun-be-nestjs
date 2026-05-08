@@ -5,7 +5,7 @@ import { DocumentMappingRefType } from 'src/modules/shared/dms/domain/mapping.mo
 import { type IReportRepository, REPORT_REPOSITORY } from '../../domain/repositories/report.repository.interface';
 import { Report, ReportStatus } from '../../domain/models/report.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { IReportProvider } from '../providers/reporting.interface';
+import { IReportProvider } from '../../domain/reporting.interface';
 import { StartWorkflowUseCase } from 'src/modules/workflow/application/use-cases/start-workflow.use-case';
 import { PagedResult } from 'src/shared/models/paged-result';
 import { ReportCategoryDto, ReportDetailDto, ReportFilterDto } from '../dto/report.dto';
