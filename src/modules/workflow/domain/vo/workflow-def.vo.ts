@@ -3,7 +3,7 @@ import { WorkflowTaskType } from "../model/workflow-task.model";
 // Base DTOs for reusability
 export interface AssignedToDef {
   roleGroups?: string[];
-  roleNames: string[];
+  roleNames: string | string[];
 }
 
 export interface FieldDef {

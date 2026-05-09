@@ -57,6 +57,7 @@ model UserProfile {
   meetingsCreated    Meeting[]          @relation("MeetingCreator")
   notifications      UserNotification[] @relation("UserNotificationsFor")
   fcmTokens          UserFcmToken[]     @relation("UserFcmTokens")
+  requestedReports   Report[]           @relation("ReportRequestedBy")
 
   // Project module relations
   managedProjects     Project[]           @relation("ProjectManager")
@@ -1020,24 +1021,53 @@ model AuditLog {
 }
 
 model Comment {
-  id          String   @id @default(uuid())
-  content     String   @db.Text
-  authorId    String   @db.VarChar(255)
-  author      UserProfile @relation("CommentAuthor", fields: [authorId], references: [id])
-  
-  entityType  String   @db.VarChar(100) // e.g., 'Meeting', 'Notice', 'Project'
-  entityId    String   @db.VarChar(255)
-  
-  parentId    String?  @db.VarChar(255)
-  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     Comment[] @relation("CommentReplies")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-  version     Int      @default(0)
+  id       String      @id @default(uuid())
+  content  String      @db.Text
+  authorId String      @db.VarChar(255)
+  author   UserProfile @relation("CommentAuthor", fields: [authorId], references: [id])
+
+  entityType String @db.VarChar(100) // e.g., 'Meeting', 'Notice', 'Project'
+  entityId   String @db.VarChar(255)
+
+  parentId String?   @db.VarChar(255)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  version   Int       @default(0)
 
   @@index([entityType, entityId])
   @@index([parentId])
   @@map("comments")
+}
+
+// ====================================
+// REPORT MODULE MODELS
+// ====================================
+
+model Report {
+  id            String       @id @default(uuid())
+  reportCode    String       @db.VarChar(50)
+  reportName    String       @default("") @db.VarChar(100)
+  requestedById String?      @db.VarChar(255) // Optional, system might trigger some
+  requestedBy   UserProfile? @relation("ReportRequestedBy", fields: [requestedById], references: [id])
+  status        String       @db.VarChar(20) // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  parameters    Json?
+  needApproval  Boolean      @default(false)
+  approvedBy    String?      @db.VarChar(255)
+  approvedAt    DateTime?
+  approvers     String[]     @default([]) @db.VarChar(255)
+  viewers       String[]     @default([]) @db.VarChar(255)
+  docId         String?      @db.VarChar(255)
+  docVersion    Int          @default(1)
+  workflowId    String?      @db.VarChar(255)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([reportCode])
+  @@index([requestedById])
+  @@index([status])
+  @@map("reports")
 }

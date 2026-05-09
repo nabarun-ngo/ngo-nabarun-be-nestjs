@@ -53,8 +53,9 @@ import { DonationPauseUpdateHandler } from './application/automatic-task-handler
     DonationPauseUpdateHandler,
   ],
   exports: [
-    WorkflowService,
+    WorkflowService, // TODO make it internal
     WORKFLOW_INSTANCE_REPOSITORY,
+    StartWorkflowUseCase,
   ],
 })
 export class WorkflowModule { }

@@ -2,7 +2,6 @@ import { Inject, Injectable } from "@nestjs/common";
 import { FIREBASE_ADMIN } from "../firebase-core.module";
 import * as admin from 'firebase-admin';
 import * as querystring from 'querystring';
-import { metadata } from "reflect-metadata/no-conflict";
 
 @Injectable()
 export class FirebaseStorageService {

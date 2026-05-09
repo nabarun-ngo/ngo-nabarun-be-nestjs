@@ -13,6 +13,10 @@ export class Role extends BaseDomain<string> {
   public static readonly VICE_PRESIDENT = 'VICE_PRESIDENT';
   public static readonly SECRETARY = 'SECRETARY';
   public static readonly ASSISTANT_SECRETARY = 'ASSISTANT_SECRETARY';
+  public static readonly GROUP_COORDINATOR = 'GROUP_COORDINATOR';
+  public static readonly ASST_GROUP_COORDINATOR = 'ASST_GROUP_COORDINATOR';
+  public static readonly COMMUNITY_MANAGER = 'COMMUNITY_MANAGER';
+  public static readonly ASST_COMMUNITY_MANAGER = 'ASST_COMMUNITY_MANAGER';
   // 🔒 TRUE PRIVATE FIELDS
   #roleCode: string;
   #roleName: string;
