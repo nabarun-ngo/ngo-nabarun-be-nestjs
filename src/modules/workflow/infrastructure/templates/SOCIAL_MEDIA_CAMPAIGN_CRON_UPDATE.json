@@ -1,0 +1,71 @@
+{
+  "$schema": "./workflow-schema.json",
+  "name": "Update Year-Specific Social Media Campaigns",
+  "description": "Workflow to remind and track the update of annual social media campaign dates (e.g., Saraswati Puja, Holi, Durga Puja) for the current year in the system configuration.",
+  "fields": [],
+  "preCreationTasks": [],
+  "steps": [
+    {
+      "isDefault": true,
+      "stepId": "cronupdate",
+      "name": "Update Campaign Crons",
+      "description": "Update the cron expressions and event dates for year-specific campaigns for the current year.",
+      "tasks": [
+        {
+          "taskId": "updateyearspecificcrons",
+          "name": "Update year-specific crons for the current year",
+          "description": "Review and update the SOCIAL_MEDIA_CAMPAIGN_CRONS.json configuration for all items marked as [YEAR SPECIFIC].",
+          "type": "MANUAL",
+          "etaHours": 48,
+          "taskDetail": {
+            "assignedTo": {
+              "roleGroups": [],
+              "roleNames": [
+                "TECHNICAL_SPECIALIST"
+              ]
+            },
+            "isAutoCloseable": false,
+            "autoCloseCondition": null,
+            "checklist": [
+              "Identify all [YEAR SPECIFIC] campaigns in SOCIAL_MEDIA_CAMPAIGN_CRONS.json",
+              "Research correct dates for these festivals/events for the current year",
+              "Update the 'VALUE' (cron expression) for each campaign (typically 3 days before the event)",
+              "Update the 'eventDate' in 'INPUT_DATA.data' for each campaign",
+              "Verify the human-readable description matches the new cron value",
+              "Commit and push changes to the repository",
+              "Ensure the backend service is redeployed or restarted to pick up new configurations"
+            ],
+            "fields": [
+              {
+                "key": "updateStatus",
+                "defKey": "SELECT_YES_NO_FIELD",
+                "label": "Have all year-specific crons been updated for the current year?",
+                "mandatory": true
+              },
+              {
+                "key": "remarks",
+                "defKey": "INPUT_TEXT_FIELD",
+                "label": "Additional Remarks (optional)",
+                "mandatory": false
+              }
+            ]
+          }
+        }
+      ],
+      "transitions": [
+        {
+          "condition": "step_cronupdate_task_updateyearspecificcrons.updateStatus == 'Yes'",
+          "nextStepId": null
+        },
+        {
+          "condition": "step_cronupdate_task_updateyearspecificcrons.updateStatus == 'No'",
+          "nextStepId": "cronupdate"
+        },
+        {
+          "condition": "default",
+          "nextStepId": "cronupdate"
+        }
+      ]
+    }
+  ]
+}

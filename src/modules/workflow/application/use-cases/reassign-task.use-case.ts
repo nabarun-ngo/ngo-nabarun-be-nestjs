@@ -62,7 +62,10 @@ export class ReassignTaskUseCase implements IUseCase<ReassignTask, WorkflowTask>
                 throw new BusinessException(`Task definition not found for task: ${dto.taskId}`);
             }
 
-            roleCodes = actualTaskDef.taskDetail?.assignedTo?.roleNames || [];
+            const rawRoles = actualTaskDef.taskDetail?.assignedTo?.roleNames;
+            if (rawRoles) {
+                roleCodes = Array.isArray(rawRoles) ? rawRoles : (rawRoles || '').trim().split(',').map(r => r.trim());
+            }
             if (roleCodes.length > 0) {
                 users = await this.userRepository.findAll({ roleCodes, status: UserStatus.ACTIVE });
             }

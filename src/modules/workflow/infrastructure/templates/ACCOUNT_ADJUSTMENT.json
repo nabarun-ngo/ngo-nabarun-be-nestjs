@@ -1,4 +1,5 @@
 {
+    "$schema": "./workflow-schema.json",
     "name": "Account Adjustment",
     "description": "Account adjustment due to role change",
     "fields": [
@@ -44,7 +45,8 @@
             "taskId": "validateinputs",
             "type": "AUTOMATIC",
             "handler": "ValidateInputs",
-            "description": ""
+            "description": "",
+            "name": "Validate"
         }
     ],
     "steps": [

@@ -50,7 +50,11 @@ export class StartWorkflowStepUseCase implements IUseCase<string, WorkflowInstan
                 }
                 else {
                     const taskDef = taskDefs.find(td => td.taskId == task.taskDefId);
-                    const roleCodes = taskDef?.taskDetail?.assignedTo?.roleNames || [];
+                    let roleCodes: string[] = [];
+                    const rawRoles = taskDef?.taskDetail?.assignedTo?.roleNames;
+                    if (rawRoles) {
+                        roleCodes = Array.isArray(rawRoles) ? rawRoles : (rawRoles || '').trim().split(',').map(r => r.trim());
+                    }
                     const users = await this.userRepository.findAll({ roleCodes, status: UserStatus.ACTIVE });
                     if (users.length > 0) {
                         workflow.assignTask(task.id, users, roleCodes);

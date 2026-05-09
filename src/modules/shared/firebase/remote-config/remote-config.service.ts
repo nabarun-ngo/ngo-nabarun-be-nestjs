@@ -28,7 +28,6 @@ export class RemoteConfigService {
     const remoteConfig = this.app.remoteConfig();
     const template = await remoteConfig.getTemplate();
     const result: Record<string, RemoteConfigParam> = {};
-
     for (const [key, param] of Object.entries(template.parameters)) {
       result[key] = {
         key: key,

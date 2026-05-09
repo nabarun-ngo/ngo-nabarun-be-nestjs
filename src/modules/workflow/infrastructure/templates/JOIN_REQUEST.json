@@ -1,4 +1,5 @@
 {
+  "$schema": "./workflow-schema.json",
   "name": "User Onboarding",
   "description": "Onboard {{firstName}} {{lastName}} to NABARUN.",
   "fields": [
@@ -44,13 +45,15 @@
       "taskId": "validateinputs",
       "type": "AUTOMATIC",
       "handler": "ValidateInputs",
-      "description": ""
+      "description": "",
+      "name": "Validate"
     },
     {
       "taskId": "checkduplicateuser",
       "type": "AUTOMATIC",
       "handler": "UserNotRegisteredTaskHandler",
-      "description": "Ensure no existing user is registered with the same email address."
+      "description": "Ensure no existing user is registered with the same email address.",
+      "name": "Check Duplicate User"
     }
   ],
   "steps": [

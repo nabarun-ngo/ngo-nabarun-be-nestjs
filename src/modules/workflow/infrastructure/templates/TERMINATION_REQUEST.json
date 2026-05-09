@@ -1,4 +1,5 @@
 {
+    "$schema": "./workflow-schema.json",
     "name": "Member Exit Request",
     "description": "Exit request for member {{firstName}} {{lastName}} ({{email}})",
     "fields": [
@@ -20,7 +21,8 @@
             "taskId": "validateinputs",
             "type": "AUTOMATIC",
             "handler": "ValidateInputs",
-            "description": "Validate termination request inputs"
+            "description": "Validate termination request inputs",
+            "name": "Validate"
         }
     ],
     "steps": [

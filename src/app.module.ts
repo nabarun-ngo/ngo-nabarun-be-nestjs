@@ -18,6 +18,7 @@ import { CommunicationModule } from './modules/shared/communication/communicatio
 import { CronModule } from './modules/shared/cron/cron.module';
 import { DocumentGeneratorModule } from './modules/shared/document-generator/document-generator.module';
 import { CommentsModule } from './modules/shared/comments/comments.module';
+import { ReportingModule } from './modules/reporting/reporting.module';
 
 import helpers from 'handlebars-helpers';
 import Handlebars from "handlebars";
@@ -81,6 +82,7 @@ Handlebars.registerHelper("not", (a) => !a);
     CommunicationModule,
     CronModule,
     CommentsModule,
+    ReportingModule,
 
 
   ],

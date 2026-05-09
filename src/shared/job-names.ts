@@ -11,7 +11,9 @@ export enum JobName {
     TriggerDeleteNotificationRequestEvent = "TriggerDeleteNotificationRequestEvent",
     TriggerDeleteFCMTokenRequestEvent = "TriggerDeleteFCMTokenRequestEvent",
     TriggerAutoCloseWorkflowTasksEvent = "TriggerAutoCloseWorkflowTasksEvent",
+    TriggerWorkflowRequestEvent = "TriggerWorkflowRequestEvent",
 
     // Integrations
     PROCESS_FATHOM_MEETING_WEBHOOK = "PROCESS_FATHOM_MEETING_WEBHOOK",
+    TriggerReportJobEvent = "TriggerReportJobEvent",
 }

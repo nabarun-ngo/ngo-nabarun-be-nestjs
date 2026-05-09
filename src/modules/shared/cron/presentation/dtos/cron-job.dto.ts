@@ -13,6 +13,12 @@ export class CronJobDto {
     @IsString()
     handler: string; // method name in service
     @ApiProperty()
+    @IsString()
+    expression: string;
+    @ApiProperty()
+    @IsString()
+    readableExpression: string;
+    @ApiProperty()
     @IsBoolean()
     enabled: boolean;
     @ApiProperty()

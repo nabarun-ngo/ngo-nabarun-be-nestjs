@@ -16,6 +16,8 @@ import { DomainEventPayload } from 'src/shared/dto/domain-event-payload.dto';
 import { APP_DOMAIN_EVENTS_KEY } from 'src/shared/system-events.handler';
 import { User } from 'src/modules/user/domain/model/user.model';
 import { CorrespondenceService } from 'src/modules/shared/correspondence/application/services/correspondence.service';
+import { StartWorkflowUseCase } from '../use-cases/start-workflow.use-case';
+import { StartWorkflowDto } from '../dto/workflow.dto';
 
 export interface WorkflowAutomaticTaskJobData {
   instanceId: string;
@@ -36,6 +38,7 @@ export class WorkflowJobProcessor {
     private readonly correspondenceService: CorrespondenceService,
     private readonly redisCache: RedisHashCacheService,
     private readonly completeTask: CompleteTaskUseCase,
+    private readonly startWorkflow: StartWorkflowUseCase,
   ) { }
 
   @ProcessJob({
@@ -153,7 +156,7 @@ export class WorkflowJobProcessor {
     const aggregateIds = [...new Set(queueDepth.map(e => e.aggregateId))];
 
     const tasks = await this.workflowInstanceRepository.findAllTasks({
-      autoCloseRefId: aggregateIds,
+      autoCloseRefId: aggregateIds.filter(id => id !== undefined),
       status: WorkflowTask.pendingTaskStatus,
       type: [WorkflowTaskType.MANUAL]
     });
@@ -189,6 +192,35 @@ export class WorkflowJobProcessor {
         job.log(`[ERROR] Failed to process task ${task.id} : ${error}`);
         throw error;
       }
+    }
+  }
+
+  @ProcessJob({
+    name: JobName.TriggerWorkflowRequestEvent,
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 30 * 1000,
+    }
+  })
+  async handleTriggerWorkflowRequestEvent(job: Job<StartWorkflowDto>): Promise<void> {
+    try {
+      job.log(`[INFO] Starting workflow request event for type : ${job.data.type} and data : ${JSON.stringify(job.data.data)}`);
+
+      const workflow = await this.startWorkflow.execute({
+        type: job.data.type,
+        data: job.data.data,
+        requestedFor: job.data.requestedFor,
+        ...(job.data.forExternalUser ? { forExternalUser: true } : {}),
+        ...(job.data.forExternalUser ? { externalUserEmail: job.data.externalUserEmail } : {}),
+      });
+      if (!workflow) {
+        job.log(`[ERROR] Failed to process workflow request event : ${job.data.type}`);
+        return;
+      }
+    } catch (error) {
+      job.log(`[ERROR] Failed to process workflow request event : ${error}`);
+      throw error;
     }
   }
 }

@@ -1,0 +1,287 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Workflow Definition",
+  "description": "Schema for NABARUN Workflow Templates",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human Readable Workflow Name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the workflow."
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/FieldDef"
+      }
+    },
+    "preCreationTasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TaskDef"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/StepDef"
+      }
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "fields",
+    "preCreationTasks",
+    "steps"
+  ],
+  "definitions": {
+    "FieldDef": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "defKey": {
+          "type": "string",
+          "enum": [
+            "INPUT_TEXT_FIELD",
+            "INPUT_NUMBER_FIELD",
+            "INPUT_DATE_FIELD",
+            "INPUT_EMAIL_FIELD",
+            "INPUT_PHONE_FIELD",
+            "TEXTAREA_FIELD",
+            "SELECT_YES_NO_FIELD",
+            "SELECT_APPROVE_DECLINE_FIELD"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "mandatory": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "defKey",
+        "label",
+        "mandatory"
+      ]
+    },
+    "AssignedToDef": {
+      "type": "object",
+      "properties": {
+        "roleGroups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roleNames": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "CASHIER",
+                  "ASSISTANT_CASHIER",
+                  "TREASURER",
+                  "MEMBER",
+                  "TECHNICAL_SPECIALIST",
+                  "PRESIDENT",
+                  "VICE_PRESIDENT",
+                  "SECRETARY",
+                  "ASST_SECRETARY",
+                  "ASSISTANT_SECRETARY",
+                  "GROUP_COORDINATOR",
+                  "ASST_GROUP_COORDINATOR",
+                  "COMMUNITY_MANAGER",
+                  "ASST_COMMUNITY_MANAGER"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "roleNames"
+      ]
+    },
+    "TaskDetailDef": {
+      "type": "object",
+      "properties": {
+        "assignedTo": {
+          "$ref": "#/definitions/AssignedToDef"
+        },
+        "isAutoCloseable": {
+          "type": "boolean"
+        },
+        "autoCloseCondition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "autoCloseRefId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "autoCloseEventName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "autoCloseResultData": {
+          "type": "object"
+        },
+        "checklist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FieldDef"
+          }
+        }
+      },
+      "required": [
+        "checklist",
+        "fields"
+      ]
+    },
+    "TaskDef": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "MANUAL",
+            "AUTOMATIC"
+          ]
+        },
+        "etaHours": {
+          "type": "number"
+        },
+        "handler": {
+          "type": "string"
+        },
+        "taskDetail": {
+          "$ref": "#/definitions/TaskDetailDef"
+        }
+      },
+      "required": [
+        "taskId",
+        "name",
+        "description",
+        "type"
+      ],
+      "if": {
+        "properties": {
+          "type": {
+            "const": "MANUAL"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "taskDetail"
+        ]
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "type": {
+              "const": "AUTOMATIC"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "handler"
+          ]
+        }
+      }
+    },
+    "StepTransitionsDef": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "type": "string"
+        },
+        "nextStepId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "condition",
+        "nextStepId"
+      ]
+    },
+    "StepDef": {
+      "type": "object",
+      "properties": {
+        "isDefault": {
+          "type": "boolean"
+        },
+        "stepId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TaskDef"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StepTransitionsDef"
+          }
+        }
+      },
+      "required": [
+        "isDefault",
+        "stepId",
+        "name",
+        "description",
+        "tasks",
+        "transitions"
+      ]
+    }
+  }
+}
