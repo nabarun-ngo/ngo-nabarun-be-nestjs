@@ -52,9 +52,9 @@ export class ReportInfraMapper {
         return {
             id: domain.id,
             reportCode: domain.reportCode,
-            requestedBy: {
-                connect: { id: domain.requestedById }
-            },
+            requestedBy: (domain.requestedById && domain.requestedById !== 'system')
+                ? { connect: { id: domain.requestedById } }
+                : undefined,
             status: domain.status,
             reportName: domain.reportName,
             parameters: domain.parameters ?? Prisma.DbNull,

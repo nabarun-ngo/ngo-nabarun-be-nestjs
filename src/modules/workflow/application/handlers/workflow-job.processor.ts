@@ -156,7 +156,7 @@ export class WorkflowJobProcessor {
     const aggregateIds = [...new Set(queueDepth.map(e => e.aggregateId))];
 
     const tasks = await this.workflowInstanceRepository.findAllTasks({
-      autoCloseRefId: aggregateIds,
+      autoCloseRefId: aggregateIds.filter(id => id !== undefined),
       status: WorkflowTask.pendingTaskStatus,
       type: [WorkflowTaskType.MANUAL]
     });

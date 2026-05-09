@@ -40,8 +40,12 @@ export class JobService {
       // Use infra service to get jobs
       const { jobs, count } = await this.jobProcessingService.getJobs(start, end, filter.status, filter.id);
 
-      const jobDetails = await Promise.all(jobs.map(async (job) => await toJobDTO(job)));
-
+      const jobDetails = (await Promise.all(jobs.map(async (job) => await toJobDTO(job))))
+        .sort((a, b) => {
+          if (a.state === 'completed' && b.state !== 'completed') return 1;
+          if (a.state !== 'completed' && b.state === 'completed') return -1;
+          return 0;
+        });
       return new PagedResult(jobDetails, count, page, size);
     } catch (error) {
       this.logger.error('Failed to get jobs', error);

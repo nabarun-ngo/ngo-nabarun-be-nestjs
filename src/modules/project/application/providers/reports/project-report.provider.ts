@@ -15,7 +15,7 @@ export class ProjectReportProvider implements IReportProvider {
     readonly requiresApproval: boolean = false;
     readonly visibleToRoles: string[] = [Role.MEMBER];
     readonly approverRoles: string[] | undefined = undefined;
-    readonly isActive: boolean = true;
+    readonly isActive: boolean = false;
 
     constructor(
         @Inject(PROJECT_REPOSITORY)

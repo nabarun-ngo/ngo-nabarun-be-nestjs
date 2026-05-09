@@ -98,6 +98,7 @@ export class ReportingService {
 
         if (!isRegenerate) {
             if (provider.requiresApproval) {
+                console.error('authUserId', authUserId)
                 const workflow = await this.startWorkflowUseCase.execute({
                     type: 'REPORT_REVIEW',
                     data: {
