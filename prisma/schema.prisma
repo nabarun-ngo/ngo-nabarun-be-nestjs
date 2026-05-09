@@ -1058,8 +1058,8 @@ model Report {
   needApproval  Boolean      @default(false)
   approvedBy    String?      @db.VarChar(255)
   approvedAt    DateTime?
-  approvers     String[]     @db.VarChar(255)
-  viewers       String[]     @db.VarChar(255)
+  approvers     String[]     @default([]) @db.VarChar(255)
+  viewers       String[]     @default([]) @db.VarChar(255)
   docId         String?      @db.VarChar(255)
   docVersion    Int          @default(1)
   workflowId    String?      @db.VarChar(255)

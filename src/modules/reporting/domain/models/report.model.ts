@@ -24,7 +24,7 @@ export class Report extends AggregateRoot<string> {
     #dmsDocumentId: string | undefined;
     #version: number = 0;
     #parameters: Record<string, any> | undefined;
-    #approvers: string[] | undefined;
+    #approvers: string[];
     #viewers: string[];
     #needApproval: boolean;
     #requestedById: string | undefined;
@@ -43,7 +43,7 @@ export class Report extends AggregateRoot<string> {
         approvedBy: string | undefined,
         approvedAt: Date | undefined,
         approvers: string[] | undefined,
-        viewers: string[],
+        viewers: string[] | undefined,
         dmsDocumentId: string | undefined,
         workflowId: string | undefined,
         version: number = 0,
@@ -59,8 +59,8 @@ export class Report extends AggregateRoot<string> {
         this.#needApproval = needApproval;
         this.#approvedBy = approvedBy;
         this.#approvedAt = approvedAt;
-        this.#approvers = approvers;
-        this.#viewers = viewers;
+        this.#approvers = approvers ?? [];
+        this.#viewers = viewers ?? [];
         this.#dmsDocumentId = dmsDocumentId;
         this.#version = version;
         this.#workflowId = workflowId;
@@ -76,7 +76,7 @@ export class Report extends AggregateRoot<string> {
         parameters?: Record<string, any>;
         needApproval: boolean;
         approvers: string[] | undefined;
-        viewers: string[];
+        viewers: string[] | undefined;
     }): Report {
         return new Report(
             crypto.randomUUID(),
@@ -88,8 +88,8 @@ export class Report extends AggregateRoot<string> {
             props.needApproval,
             undefined,
             undefined,
-            props.approvers,
-            props.viewers,
+            props.approvers ?? [],
+            props.viewers ?? [],
             undefined,
             undefined,
             0,
@@ -146,7 +146,7 @@ export class Report extends AggregateRoot<string> {
     get approvedAt(): Date | undefined {
         return this.#approvedAt;
     }
-    get approvers(): string[] | undefined {
+    get approvers(): string[] {
         return this.#approvers;
     }
     get viewers(): string[] {
