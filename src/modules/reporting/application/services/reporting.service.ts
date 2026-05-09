@@ -124,7 +124,7 @@ export class ReportingService {
         return { buffer, fileName, contentType, report: report };
     }
 
-    async approveReport(reportId: string, authUserId: string) {
+    async approveReport(reportId: string, authUserId: string, userRoles: string[]) {
         const report = await this.reportRepository.findById(reportId);
         if (!report) {
             throw new NotFoundException(`Report not found`);
@@ -135,6 +135,15 @@ export class ReportingService {
         if (report.status === ReportStatus.APPROVED) {
             throw new BadRequestException(`Report is already approved`);
         }
+
+        // Check if user has required roles for approval
+        if (report.approvers && report.approvers.length > 0) {
+            const hasApproverRole = userRoles.some(role => report.approvers?.includes(role));
+            if (!hasApproverRole) {
+                throw new BadRequestException(`You do not have the required role to approve this report. Required: ${report.approvers.join(', ')}`);
+            }
+        }
+
         report.markApproved(authUserId);
         await this.reportRepository.update(report.id, report);
 

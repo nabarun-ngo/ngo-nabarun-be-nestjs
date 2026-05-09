@@ -46,6 +46,7 @@ export class JwtAuthService implements OnModuleInit {
         sub: payload.sub,
         name: payload.name,
         permissions: payload.permissions,
+        user_roles: payload.user_roles,
         profile_name: payload.profile_name,
         user_id: payload.user_id,
         aud: payload.aud,

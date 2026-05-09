@@ -1,14 +1,13 @@
 import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiSecurity, ApiBody } from '@nestjs/swagger';
 import { ReportingService } from '../../application/services/reporting.service';
-import { ReportRegistryService } from '../../application/services/report-registry.service';
 import { CurrentUser } from 'src/modules/shared/auth/application/decorators/current-user.decorator';
 import type { AuthUser } from 'src/modules/shared/auth/domain/models/api-user.model';
 import { ApiAutoPagedResponse, ApiAutoResponse } from 'src/shared/decorators/api-auto-response.decorator';
-import { KeyValueDto } from 'src/shared/dto/KeyValue.dto';
 import { SuccessResponse } from 'src/shared/models/response-model';
 import { ReportCategoryDto, ReportDetailDto, ReportFilterDto } from '../../application/dto/report.dto';
 import { PagedResult } from 'src/shared/models/paged-result';
+import { RequirePermissions } from 'src/modules/shared/auth/application/decorators/require-permissions.decorator';
 
 @ApiTags(ReportingController.name)
 @Controller('report')
@@ -24,6 +23,7 @@ export class ReportingController {
      * Returns the list of all registered report providers.
      */
     @Get('registered-reports')
+    @RequirePermissions('read:reports')
     @ApiOperation({ summary: 'Get list of reports that can be generated' })
     @ApiAutoResponse(ReportCategoryDto, { isArray: true, description: 'List of reports that can be generated', wrapInSuccessResponse: true })
     async getRegisteredReports(): Promise<SuccessResponse<ReportCategoryDto[]>> {
@@ -37,6 +37,7 @@ export class ReportingController {
      * Uploads the result to DMS and sends email notifications.
      */
     @Post('generate/:reportCode')
+    @RequirePermissions('create:report')
     @ApiOperation({ summary: 'generate a report' })
     @ApiBody({
         schema: {
@@ -61,6 +62,7 @@ export class ReportingController {
      * Returns a paginated list of report executions for the given report code.
      */
     @Get('list/:reportCode')
+    @RequirePermissions('read:reports')
     @ApiOperation({ summary: 'List report executions for a specific report' })
     @ApiParam({ name: 'reportCode', description: 'The unique code of the report' })
     @ApiQuery({ name: 'pageIndex', required: false, type: Number })
@@ -94,7 +96,7 @@ export class ReportingController {
         @Param('reportId') reportId: string,
         @CurrentUser() user: AuthUser,
     ) {
-        const result = await this.reportingService.approveReport(reportId, user.profile_id!);
+        const result = await this.reportingService.approveReport(reportId, user.profile_id!, user.user_roles || []);
         return new SuccessResponse(result);
     }
 
